@@ -1,0 +1,13 @@
+
+  let arr<int> = [ 1, 2, 3, 4, 5 ];
+  for index,value in enumerate arr{
+   print(f "index : {index} value : {value} \n"); 
+  }
+
+  for val in arr{
+    print(f "val : {val} \n");
+  }
+
+
+  let arr2<int> = [ 1, 2, 3, 4, 5 ];
+  let str = "Hello World."

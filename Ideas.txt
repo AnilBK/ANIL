@@ -1,0 +1,109 @@
+Ideas : 
+
+March 3, 2023.
+
+1. Compile Time Dictionary:
+
+    constexpr Dictionary enum_to_color = {
+        "Red" : 255,
+        "Green" : 255,
+        "Blue" : 255
+    }
+
+    let r_value = enum_to_color["Red"]
+    # Compiled to :
+    #       int r_value = 255;
+
+    let v_value = enum_to_color["Violet"]
+    # Compiler Error.
+
+    Done...
+
+2. Hooks inside Function
+
+    @hook_method means compile time replacement is possible.
+
+    class A:
+        int a;
+
+        def default_print(a):
+            print(a)
+
+        def print():
+            @hook_method(a, default = default_print)
+            print(a)
+
+        # Or Syntax 2.
+        def print():
+            # Call 'hook_method' else call the body within.
+            @hook_begin("hook_method", a)
+            print(a)
+            @hook_end
+
+
+
+    def CustomPrint(a):
+        print(f"{a} is nice.")
+
+    A obj;
+    obj.a = 10;
+
+    @hook_method(CustomPrint)
+    obj.print()
+
+    Done...
+
+
+Explicitly convert Char to Char* by creating a temporary variable.
+
+All local variables should have different name because we store variable name 
+and types without defined scope.
+
+
+March 27 :: Initializer Lists.
+
+def push X...{
+	char_tokens.allocate_n_more X.size
+	forall x in X: char_tokens.push x 
+}
+
+push 10 20 30 40 50 60 70
+
+Translated to :
+
+char_tokens.allocate_n_more 7
+char_tokens.push 10
+char_tokens.push 20
+char_tokens.push 30
+char_tokens.push 40
+char_tokens.push 50
+char_tokens.push 60
+char_tokens.push 70
+
+-------------------------------------------------
+
+March 30 :: Reflection
+
+struct Cat{str name;int height;};
+
+def push():
+    forall x in members_of(Cat): values.push x 
+enddef  
+
+Translated to :
+
+values.push "name"
+values.push "height"
+
+-------------------------------------------------
+
+April 2 :: Macros to class Macros
+
+  def push(X...):
+    values.allocate_more X.size
+	forall x: values.push_unchecked x 
+  enddef  
+
+^^^^ Add it to the class itself.
+
+-------------------------------------------------
