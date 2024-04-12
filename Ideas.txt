@@ -104,6 +104,15 @@ April 2 :: Macros to class Macros
 	forall x: values.push_unchecked x 
   enddef  
 
+  def push(X...) for Vector:
+    self.allocate_more X.size
+	forall x: self.push_unchecked x 
+  enddef  
+
+  let A = Vector<int>{};
+  A.pushn 10 20 30 40 50
+
+
 ^^^^ Add it to the class itself.
 
 -------------------------------------------------

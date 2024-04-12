@@ -65,7 +65,7 @@ impl Vector print
   }
   */
 
-  printf("Dynamic Array (size=%zu, capacity=%zu): [", this->size, this->capacity);
+  printf("Dynamic Array (size = %zu, capacity = %zu) : [", this->size, this->capacity);
   for (size_t i = 0; i < this->size; ++i) {
       const char* type = "@TEMPLATED_DATA_TYPE@";
       if(strcmp(type, "float") == 0){
@@ -100,5 +100,9 @@ impl Vector __getitem__ index : int -> T
   return *(this->arr + index);
 endfunc
 
+def pushn(X...) for Vector:
+  self.allocate_more X.size
+	forall x: self.push_unchecked x 
+enddef  
 ///*///
 

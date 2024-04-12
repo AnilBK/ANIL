@@ -87,23 +87,8 @@ int main() {
   TOKEN_MAP["*"] = 24
   TOKEN_MAP["-"] = 25
 
-  let character_tokens = Vector<char>{20};
-  character_tokens.push "="
-  character_tokens.push "["
-  character_tokens.push "]"
-  character_tokens.push ";"
-  character_tokens.push ","
-  character_tokens.push "{"
-  character_tokens.push "}"
-  character_tokens.push "<"
-  character_tokens.push ">"
-  character_tokens.push "+"
-  character_tokens.push "("
-  character_tokens.push ")"
-  character_tokens.push ":"
-  character_tokens.push "."
-  character_tokens.push "*"
-  character_tokens.push "-"
+  let character_tokens = Vector<char>{1};
+  character_tokens.pushn "=" "[" "]" ";" "," "{" "}" "<" ">" "+" "(" ")" ":" "." "*" "-"
 
   let line_org = String{"  let arr = [ 1, 2, 3, 4 , 5 ]; } let"};
   let line = line_org.strip

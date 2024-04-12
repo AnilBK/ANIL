@@ -8,8 +8,9 @@ import os
 # source_file = "vector_source.c"
 # source_file = "unique_ptr_source.c"
 # source_file = "string_class_source.c"
-source_file = "lexer_test_source.c"
-source_file = "initializer_list.c"
+# source_file = "lexer_test_source.c"
+# source_file = "initializer_list.c"
+source_file = "vector_class_macros_test.c"
 # source_file = "examples\\List.c"
 # source_file = "examples\\constexpr_dict.c"
 # source_file = "examples\\decorators_inside_fn_body.c"
@@ -212,6 +213,7 @@ class Struct:
         self.member_functions = []
         self.templated_data_type = ""
         self.template_defination_variable = ""
+        self.macro_definations = []
 
     def resolve_template_types_for_fn_names(self, p_instance_templated_data_type):
         if self.template_defination_variable == "":
@@ -241,6 +243,9 @@ class Struct:
 
     def has_member_fn(self, p_fn) -> bool:
         return any(fn.fn_name == p_fn for fn in self.member_functions)
+
+    def has_macro(self, p_def_name) -> bool:
+        return any(macro_def.name == p_def_name for macro_def in self.macro_definations)
 
     def get_return_type_of_fn(self, p_fn_name) -> str:
         for fn in self.member_functions:
@@ -478,9 +483,21 @@ def get_macro_def_by_name(p_name: str):
             return macro_def
 
 
+def get_macro_def_by_name_of_class(p_macro_name: str, struct_type):
+    StructInfo = get_struct_defination_of_type(struct_type)
+
+    for macro_def in StructInfo.macro_definations:
+        if macro_def.name == p_macro_name:
+            return macro_def
+
+    raise ValueError(f'{struct_type} has no macro names "{p_macro_name}".')
+
+
 is_inside_def = False
 currently_reading_def_name = ""
+currently_reading_def_macro_type = ""  # NORMAL_MACRO,CLASS_MACRO
 currently_reading_def_paramter_initializer_list = False
+currently_reading_def_target_class = ""
 currently_reading_def_parameter = ""
 currently_reading_def_body = ""
 
@@ -977,6 +994,205 @@ while index < len(Lines):
         else:
             REGISTER_VARIABLE(var_name, return_type)
 
+    def parse_macro(parsed_member):
+        # add_token_raw "="
+        parser.next_token()
+
+        # Get the remaining tokens
+        remaining_tokens = Line.split(parsed_member)[1]
+        remaining_tokens = remaining_tokens.strip("\n")
+
+        # Write the macro name by replacing the fn parameter.
+        code = ""
+        macro_def = get_macro_def_by_name(parsed_member)
+
+        code = macro_def.fn_body
+
+        code_lines_list = code.split("\n")
+        replaced_list = []
+
+        # X.size for init_list
+        if macro_def.first_param_initializer_list:
+            size_str = f"{macro_def.first_param}.size"
+            if size_str in code:
+                params = remaining_tokens
+                params = params.split(" ")
+                print(params)
+                length = str(len(params) - 1)
+                code = code.replace(size_str, length)
+
+        if macro_def.first_param != "":
+            code = code.replace(macro_def.first_param, remaining_tokens)
+        code_list = code.split("\n")
+        print(code_list)
+
+        new_code = []
+        for line in code_list:
+            if "forall" in line:
+                # forall x: values.push_unchecked x
+                #       ^ rhs----------------------
+                rhs = line.split("forall")[1]
+                split = rhs.split(":")
+                forall_param = split[0].strip()
+                forall_code = split[1].strip()
+
+                # forall x:
+                #        ^ params (forall_param)
+                params = remaining_tokens
+
+                contexpr_functions = ["members_of", "member_functions_of"]
+
+                is_constexpr_function = any(
+                    constexpr_func in forall_param
+                    for constexpr_func in contexpr_functions
+                )
+
+                if is_constexpr_function:
+                    # forall x in members_of(Vector)
+                    #        ^forall_param
+                    classname = forall_param[
+                        forall_param.find("(") + 1 : forall_param.find(")")
+                    ]
+
+                    forall_param_unmodified = forall_param
+
+                    forall_param = forall_param[0 : forall_param.find("in")]
+                    forall_param = forall_param.strip()
+
+                    struct_def = get_struct_defination_of_type(classname)
+                    if struct_def == None:
+                        raise ValueError(f"{classname} class isn't registered.")
+
+                    params = ""
+
+                    fn_names = []
+
+                    if "members_of" in forall_param_unmodified:
+                        for member in struct_def.members:
+                            fn_names.append('"' + member.member + '" ')
+                    elif "member_functions_of" in forall_param_unmodified:
+                        for fn in struct_def.member_functions:
+                            fn_names.append('"' + fn.fn_name + '" ')
+                    else:
+                        raise ValueError("Constexpr function undefined.")
+
+                    params = " ".join(fn_names)
+
+                params = params.split(" ")
+                forall_code_combined = ""
+                for param in params:
+                    if param == "":
+                        continue
+                    zz = forall_code.replace(forall_param, param)
+                    forall_code_combined = zz + "\n"
+                    new_code.append(forall_code_combined)
+            else:
+                new_code.append(line)
+
+        index_to_insert_at = index
+        global Lines
+        Lines = Lines[:index_to_insert_at] + new_code + Lines[index_to_insert_at:]
+
+    def parse_class_macro(parsed_member, fn_name, remaining_tokens):
+        # values.pushn 40 50 60
+        #        ^^^^^ macro_name
+        # ^^^^^^ parsed_member
+
+        # Write the macro name by replacing the fn parameter.
+        code = ""
+
+        struct_type = get_struct_type_of_instanced_struct(parsed_member)
+        macro_def = get_macro_def_by_name_of_class(fn_name, struct_type)
+
+        code = macro_def.fn_body
+
+        code = code.replace("self", parsed_member)
+
+        code_lines_list = code.split("\n")
+        replaced_list = []
+
+        # X.size for init_list
+        if macro_def.first_param_initializer_list:
+            size_str = f"{macro_def.first_param}.size"
+            if size_str in code:
+                params = remaining_tokens
+                params = params.split(" ")
+                print(params)
+                length = str(len(params) - 1)
+                code = code.replace(size_str, length)
+
+        if macro_def.first_param != "":
+            code = code.replace(macro_def.first_param, remaining_tokens)
+        code_list = code.split("\n")
+        print(code_list)
+
+        new_code = []
+        for line in code_list:
+            if "forall" in line:
+                # forall x: values.push_unchecked x
+                #       ^ rhs----------------------
+                rhs = line.split("forall")[1]
+                split = rhs.split(":")
+                forall_param = split[0].strip()
+                forall_code = split[1].strip()
+
+                # forall x:
+                #        ^ params (forall_param)
+                params = remaining_tokens
+
+                contexpr_functions = ["members_of", "member_functions_of"]
+
+                is_constexpr_function = any(
+                    constexpr_func in forall_param
+                    for constexpr_func in contexpr_functions
+                )
+
+                if is_constexpr_function:
+                    # forall x in members_of(Vector)
+                    #        ^forall_param
+                    classname = forall_param[
+                        forall_param.find("(") + 1 : forall_param.find(")")
+                    ]
+
+                    forall_param_unmodified = forall_param
+
+                    forall_param = forall_param[0 : forall_param.find("in")]
+                    forall_param = forall_param.strip()
+
+                    struct_def = get_struct_defination_of_type(classname)
+                    if struct_def == None:
+                        raise ValueError(f"{classname} class isn't registered.")
+
+                    params = ""
+
+                    fn_names = []
+
+                    if "members_of" in forall_param_unmodified:
+                        for member in struct_def.members:
+                            fn_names.append('"' + member.member + '" ')
+                    elif "member_functions_of" in forall_param_unmodified:
+                        for fn in struct_def.member_functions:
+                            fn_names.append('"' + fn.fn_name + '" ')
+                    else:
+                        raise ValueError("Constexpr function undefined.")
+
+                    params = " ".join(fn_names)
+
+                params = params.split(" ")
+                forall_code_combined = ""
+                for param in params:
+                    if param == "":
+                        continue
+                    zz = forall_code.replace(forall_param, param)
+                    forall_code_combined = zz + "\n"
+                    new_code.append(forall_code_combined)
+            else:
+                new_code.append(line)
+
+        index_to_insert_at = index
+        global Lines
+        Lines = Lines[:index_to_insert_at] + new_code + Lines[index_to_insert_at:]
+
     if is_inside_struct_impl and not "endfunc" in Line:
         currently_reading_fn_body += Line
         if should_write_fn_body:
@@ -999,10 +1215,24 @@ while index < len(Lines):
                 currently_reading_def_body,
             )
             macro_def.first_param_initializer_list = True
-            MacroDefinations.append(macro_def)
+
+            if currently_reading_def_macro_type == "NORMAL_MACRO":
+                MacroDefinations.append(macro_def)
+            elif currently_reading_def_macro_type == "CLASS_MACRO":
+                struct_defination = get_struct_defination_of_type(
+                    currently_reading_def_target_class
+                )
+                if struct_defination is None:
+                    raise ValueError(
+                        f"Struct type {currently_reading_def_target_class} doesn't exist."
+                    )
+                else:
+                    struct_defination.macro_definations.append(macro_def)
 
             currently_reading_def_name = ""
             currently_reading_def_parameter = ""
+            currently_reading_def_macro_type = "NORMAL_MACRO"
+            currently_reading_def_target_class = ""
             currently_reading_def_paramter_initializer_list = False
             currently_reading_def_body = ""
         continue
@@ -1050,6 +1280,18 @@ while index < len(Lines):
                 struct_type = get_struct_type_of_instanced_struct(parsed_member)
                 StructInfo = get_struct_defination_of_type(struct_type)
                 # StructInfo.print_member_fn_info()
+
+                # macro type functinons
+                if StructInfo.has_macro(fn_name):
+                    # parse_macro(parsed_member)
+                    struct_name = parsed_member
+                    # Get the remaining tokens which are parameters.
+                    # TODO : Parse parameters properly.
+                    remaining_tokens = Line.split(fn_name)[1]
+                    remaining_tokens = remaining_tokens.strip("\n")
+                    parse_class_macro(struct_name, fn_name, remaining_tokens)
+                    LinesCache.append(f"//Class Macro.\n")
+                    continue
 
                 StructInfo.ensure_has_function(fn_name, parsed_member)
 
@@ -1228,114 +1470,7 @@ while index < len(Lines):
                 continue
         elif is_macro_name(parsed_member):
             # add_token_raw "="
-            parser.next_token()
-
-            # Get the remaining tokens
-            remaining_tokens = Line.split(parsed_member)[1]
-            remaining_tokens = remaining_tokens.strip("\n")
-
-            # Write the macro name by replacing the fn parameter.
-            code = ""
-            macro_def = get_macro_def_by_name(parsed_member)
-
-            code = macro_def.fn_body
-
-            code_lines_list = code.split("\n")
-            replaced_list = []
-
-            """
-
-            c = 0
-            for line in code_lines_list:
-                replaced_line = line.replace(macro_def.first_param, remaining_tokens)
-                print(replaced_line)
-                # replaced_list.append(replaced_line)
-                Lines.insert(index + c, replaced_line)
-                c += 1
-
-            print(code)
-            """
-
-            # X.size for init_list
-            if macro_def.first_param_initializer_list:
-                size_str = f"{macro_def.first_param}.size"
-                if size_str in code:
-                    params = remaining_tokens
-                    params = params.split(" ")
-                    print(params)
-                    length = str(len(params) - 1)
-                    code = code.replace(size_str, length)
-
-            if macro_def.first_param != "":
-                code = code.replace(macro_def.first_param, remaining_tokens)
-            code_list = code.split("\n")
-            print(code_list)
-
-            new_code = []
-            for line in code_list:
-                if "forall" in line:
-                    # forall x: values.push_unchecked x
-                    #       ^ rhs----------------------
-                    rhs = line.split("forall")[1]
-                    split = rhs.split(":")
-                    forall_param = split[0].strip()
-                    forall_code = split[1].strip()
-
-                    # forall x:
-                    #        ^ params (forall_param)
-                    params = remaining_tokens
-
-                    contexpr_functions = ["members_of", "member_functions_of"]
-
-                    is_constexpr_function = any(
-                        constexpr_func in forall_param
-                        for constexpr_func in contexpr_functions
-                    )
-
-                    if is_constexpr_function:
-                        # forall x in members_of(Vector)
-                        #        ^forall_param
-                        classname = forall_param[
-                            forall_param.find("(") + 1 : forall_param.find(")")
-                        ]
-
-                        forall_param_unmodified = forall_param
-
-                        forall_param = forall_param[0 : forall_param.find("in")]
-                        forall_param = forall_param.strip()
-
-                        struct_def = get_struct_defination_of_type(classname)
-                        if struct_def == None:
-                            raise ValueError(f"{classname} class isn't registered.")
-
-                        params = ""
-
-                        fn_names = []
-
-                        if "members_of" in forall_param_unmodified:
-                            for member in struct_def.members:
-                                fn_names.append('"' + member.member + '" ')
-                        elif "member_functions_of" in forall_param_unmodified:
-                            for fn in struct_def.member_functions:
-                                fn_names.append('"' + fn.fn_name + '" ')
-                        else:
-                            raise ValueError("Constexpr function undefined.")
-
-                        params = " ".join(fn_names)
-
-                    params = params.split(" ")
-                    forall_code_combined = ""
-                    for param in params:
-                        if param == "":
-                            continue
-                        zz = forall_code.replace(forall_param, param)
-                        forall_code_combined = zz + "\n"
-                        new_code.append(forall_code_combined)
-                else:
-                    new_code.append(line)
-
-            index_to_insert_at = index
-            Lines = Lines[:index_to_insert_at] + new_code + Lines[index_to_insert_at:]
+            parse_macro(parsed_member)
 
             # Index is already incremented above so,
             # ##Lines.insert(index + 1, code)
@@ -2365,11 +2500,29 @@ while index < len(Lines):
         parser.match_token(lexer.Token.RIGHT_ROUND_BRACKET)
 
         parser.next_token()
-        parser.match_token(lexer.Token.COLON)
+
+        target_class = ""
+
+        # def pushn(X...) for Vector: <- class macros.
+        # def push(X...): <- normal macros
+        macro_type = "NORMAL_MACRO"
+        if parser.current_token() == lexer.Token.COLON:
+            parser.match_token(lexer.Token.COLON)
+            macro_type = "NORMAL_MACRO"
+        elif parser.current_token() == lexer.Token.FOR:
+            parser.match_token(lexer.Token.FOR)
+            macro_type = "CLASS_MACRO"
+            parser.next_token()
+
+            target_class = parser.get_token()
+            parser.match_token(lexer.Token.COLON)
+            print(f"The macro is defined for {target_class} class.")
 
         is_inside_def = True
         currently_reading_def_name = fn_name
         currently_reading_def_parameter = param1
+        currently_reading_def_macro_type = macro_type
+        currently_reading_def_target_class = target_class
     elif check_token(lexer.Token.CONSTEXPR):
         # constexpr Color = {"Red":255, "Green":200}
         parser.match_token(lexer.Token.CONSTEXPR)
