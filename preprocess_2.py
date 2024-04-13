@@ -1839,14 +1839,17 @@ while index < len(Lines):
                     else:
                         parse_access_struct_member(var_name, target)
     elif check_token(lexer.Token.IF):
-        if ("==" in Line or "!=" in Line):
+        nesting_levels.append(NestingLevel.IF_STATEMENT)
+
+        parser = Parser.Parser(Line)
+
+        parser.match_token(lexer.Token.IF)
+        parser.next_token()
+
+        if "==" in Line or "!=" in Line:
             # if str == "Hello"
             # if str != "Hello"
-            nesting_levels.append(NestingLevel.IF_STATEMENT)
 
-            parser = Parser.Parser(Line)
-            parser.match_token(lexer.Token.IF)
-            parser.next_token()
             var_to_check_against = parser.get_token()
             print(f"Obtained String : {var_to_check_against}")
 
@@ -1875,6 +1878,7 @@ while index < len(Lines):
 
             string = parser.current_token()
 
+            comparision_code = ""
             if is_instanced_struct(var_to_check_against):
                 eq_fn = "__eq__"
                 fns_required_for_equality = [eq_fn]
@@ -1887,41 +1891,30 @@ while index < len(Lines):
                         StructInfo.ensure_has_function(fn, var_to_check_against)
 
                 fn_name = get_mangled_fn_name(struct_type, eq_fn)
-                gen_code = f'{fn_name}(&{var_to_check_against}, "{string}")'
+                comparision_code = f'{fn_name}(&{var_to_check_against}, "{string}")'
 
                 if negation_boolean_expression:
-                    gen_code = "!" + gen_code
-
-                LinesCache.append(f"\nif({gen_code}){{\n")
+                    comparision_code = "!" + comparision_code
             else:
                 if is_variable_char_type(var_to_check_against):
-                    LinesCache.append(
-                        f"\nif({var_to_check_against} {comparision_operation} '{string}'){{\n"
+                    comparision_code = (
+                        f"{var_to_check_against} {comparision_operation} '{string}'"
                     )
                 else:
                     # if Char == "\""
                     if string == '"':
-                        LinesCache.append(
-                            f'\nif({var_to_check_against} {comparision_operation} "\\{string}"){{\n'
-                        )
+                        comparision_code = f'{var_to_check_against} {comparision_operation} "\\{string}"'
                     else:
+                        comparision_code = f'{var_to_check_against} == "{string}"'
                         if negation_boolean_expression:
-                            LinesCache.append(
-                                f'\nif(!({var_to_check_against} == "{string}")){{\n'
-                            )
-                        else:
-                            LinesCache.append(
-                                f'\nif({var_to_check_against} == "{string}"){{\n'
-                            )
+                            comparision_code = f"!({comparision_code})"
+
+            LinesCache.append(f"\nif({comparision_code}){{\n")
+
         else:
             # if bool_to_check {
             # if var_to_check in var_to_check_against {
-            nesting_levels.append(NestingLevel.IF_STATEMENT)
             # if,var_to_check,in,var_to_check_against,{
-            parser = Parser.Parser(Line)
-
-            parser.match_token(lexer.Token.IF)
-            parser.next_token()
 
             var_to_check = ""
             var_to_check_type = "int"
@@ -1952,10 +1945,14 @@ while index < len(Lines):
 
                 if is_instanced_struct(var_to_check_against):
                     fn_name = "__contains__"
-                    struct_type = get_struct_type_of_instanced_struct(var_to_check_against)
+                    struct_type = get_struct_type_of_instanced_struct(
+                        var_to_check_against
+                    )
 
                     templated_type = ""
-                    templated_data_type = get_templated_type_of_struct(var_to_check_against)
+                    templated_data_type = get_templated_type_of_struct(
+                        var_to_check_against
+                    )
                     if templated_data_type is not None:
                         templated_type = templated_data_type
                         print(f"Templated type : {templated_data_type}")
@@ -1968,7 +1965,9 @@ while index < len(Lines):
                         fn_name = get_mangled_fn_name(struct_type, fn_name)
 
                     if var_to_check_type == "str":
-                        gen_code = f'{fn_name}(&{var_to_check_against}, "{var_to_check}")'
+                        gen_code = (
+                            f'{fn_name}(&{var_to_check_against}, "{var_to_check}")'
+                        )
                     else:
                         gen_code = f"{fn_name}(&{var_to_check_against}, {var_to_check})"
                 else:
