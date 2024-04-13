@@ -8,9 +8,9 @@ import os
 # source_file = "vector_source.c"
 # source_file = "unique_ptr_source.c"
 # source_file = "string_class_source.c"
-# source_file = "lexer_test_source.c"
+source_file = "lexer_test_source.c"
 # source_file = "initializer_list.c"
-source_file = "vector_class_macros_test.c"
+# source_file = "vector_class_macros_test.c"
 # source_file = "examples\\List.c"
 # source_file = "examples\\constexpr_dict.c"
 # source_file = "examples\\decorators_inside_fn_body.c"
@@ -1838,157 +1838,158 @@ while index < len(Lines):
                         LinesCache.append(f"int {var_name} = {actual_value};\n")
                     else:
                         parse_access_struct_member(var_name, target)
-    elif check_token(lexer.Token.IF) and ("==" in Line or "!=" in Line):
-        # if str == "Hello"
-        # if str != "Hello"
-        nesting_levels.append(NestingLevel.IF_STATEMENT)
+    elif check_token(lexer.Token.IF):
+        if ("==" in Line or "!=" in Line):
+            # if str == "Hello"
+            # if str != "Hello"
+            nesting_levels.append(NestingLevel.IF_STATEMENT)
 
-        parser = Parser.Parser(Line)
-        parser.match_token(lexer.Token.IF)
-        parser.next_token()
-        var_to_check_against = parser.get_token()
-        print(f"Obtained String : {var_to_check_against}")
-
-        negation_boolean_expression = False
-
-        curr_token = parser.current_token()
-
-        if curr_token == lexer.Token.EXCLAMATION:
-            # For !=
+            parser = Parser.Parser(Line)
+            parser.match_token(lexer.Token.IF)
             parser.next_token()
-            negation_boolean_expression = True
-        elif curr_token == lexer.Token.EQUALS:
-            # For ==
-            parser.next_token()
+            var_to_check_against = parser.get_token()
+            print(f"Obtained String : {var_to_check_against}")
+
             negation_boolean_expression = False
 
-        comparision_operation = "=="
-        if negation_boolean_expression:
-            comparision_operation = "!="
+            curr_token = parser.current_token()
 
-        parser.match_token(lexer.Token.EQUALS)
-        parser.next_token()
+            if curr_token == lexer.Token.EXCLAMATION:
+                # For !=
+                parser.next_token()
+                negation_boolean_expression = True
+            elif curr_token == lexer.Token.EQUALS:
+                # For ==
+                parser.next_token()
+                negation_boolean_expression = False
 
-        parser.match_token(lexer.Token.QUOTE)
-        parser.next_token()
-
-        string = parser.current_token()
-
-        if is_instanced_struct(var_to_check_against):
-            eq_fn = "__eq__"
-            fns_required_for_equality = [eq_fn]
-
-            struct_type = get_struct_type_of_instanced_struct(var_to_check_against)
-            StructInfo = get_struct_defination_of_type(struct_type)
-
-            if struct_type == "String":
-                for fn in fns_required_for_equality:
-                    StructInfo.ensure_has_function(fn, var_to_check_against)
-
-            fn_name = get_mangled_fn_name(struct_type, eq_fn)
-            gen_code = f'{fn_name}(&{var_to_check_against}, "{string}")'
-
+            comparision_operation = "=="
             if negation_boolean_expression:
-                gen_code = "!" + gen_code
+                comparision_operation = "!="
 
-            LinesCache.append(f"\nif({gen_code}){{\n")
-        else:
-            if is_variable_char_type(var_to_check_against):
-                LinesCache.append(
-                    f"\nif({var_to_check_against} {comparision_operation} '{string}'){{\n"
-                )
-            else:
-                # if Char == "\""
-                if string == '"':
-                    LinesCache.append(
-                        f'\nif({var_to_check_against} {comparision_operation} "\\{string}"){{\n'
-                    )
-                else:
-                    if negation_boolean_expression:
-                        LinesCache.append(
-                            f'\nif(!({var_to_check_against} == "{string}")){{\n'
-                        )
-                    else:
-                        LinesCache.append(
-                            f'\nif({var_to_check_against} == "{string}"){{\n'
-                        )
-    elif check_token(lexer.Token.IF):
-        # if bool_to_check {
-        # if var_to_check in var_to_check_against {
-        nesting_levels.append(NestingLevel.IF_STATEMENT)
-        # if,var_to_check,in,var_to_check_against,{
-        parser = Parser.Parser(Line)
-
-        parser.match_token(lexer.Token.IF)
-        parser.next_token()
-
-        var_to_check = ""
-        var_to_check_type = "int"
-
-        if parser.check_token(lexer.Token.QUOTE):
+            parser.match_token(lexer.Token.EQUALS)
             parser.next_token()
-            var_to_check_type = "str"
-            var_to_check = parser.current_token()
-            parser.next_token()
+
             parser.match_token(lexer.Token.QUOTE)
             parser.next_token()
-        else:
-            var_to_check = parser.get_token()
 
-        print(f"var to check = {var_to_check}")
-
-        # if var_to_check in var_to_check_against {
-        if parser.check_token(lexer.Token.IN):
-            parser.match_token(lexer.Token.IN)
-            parser.next_token()
-
-            var_to_check_against = parser.get_token()
-            print(f"var to check against= {var_to_check_against}")
-
-            parser.match_token(lexer.Token.LEFT_CURLY)
-
-            gen_code = ""
+            string = parser.current_token()
 
             if is_instanced_struct(var_to_check_against):
-                fn_name = "__contains__"
+                eq_fn = "__eq__"
+                fns_required_for_equality = [eq_fn]
+
                 struct_type = get_struct_type_of_instanced_struct(var_to_check_against)
+                StructInfo = get_struct_defination_of_type(struct_type)
 
-                templated_type = ""
-                templated_data_type = get_templated_type_of_struct(var_to_check_against)
-                if templated_data_type is not None:
-                    templated_type = templated_data_type
-                    print(f"Templated type : {templated_data_type}")
+                if struct_type == "String":
+                    for fn in fns_required_for_equality:
+                        StructInfo.ensure_has_function(fn, var_to_check_against)
 
-                if templated_type != "":
-                    fn_name = get_templated_mangled_fn_name(
-                        struct_type, fn_name, templated_data_type
+                fn_name = get_mangled_fn_name(struct_type, eq_fn)
+                gen_code = f'{fn_name}(&{var_to_check_against}, "{string}")'
+
+                if negation_boolean_expression:
+                    gen_code = "!" + gen_code
+
+                LinesCache.append(f"\nif({gen_code}){{\n")
+            else:
+                if is_variable_char_type(var_to_check_against):
+                    LinesCache.append(
+                        f"\nif({var_to_check_against} {comparision_operation} '{string}'){{\n"
                     )
                 else:
-                    fn_name = get_mangled_fn_name(struct_type, fn_name)
-
-                if var_to_check_type == "str":
-                    gen_code = f'{fn_name}(&{var_to_check_against}, "{var_to_check}")'
-                else:
-                    gen_code = f"{fn_name}(&{var_to_check_against}, {var_to_check})"
-            else:
-                gen_code = call_function(
-                    "operator:in",
-                    [
-                        DataType(var_to_check, ""),
-                        DataType(var_to_check_against, "Array"),
-                    ],
-                )
-
-            LinesCache.append(f"\nif({gen_code}){{\n")
-        elif parser.check_token(lexer.Token.LEFT_CURLY):
+                    # if Char == "\""
+                    if string == '"':
+                        LinesCache.append(
+                            f'\nif({var_to_check_against} {comparision_operation} "\\{string}"){{\n'
+                        )
+                    else:
+                        if negation_boolean_expression:
+                            LinesCache.append(
+                                f'\nif(!({var_to_check_against} == "{string}")){{\n'
+                            )
+                        else:
+                            LinesCache.append(
+                                f'\nif({var_to_check_against} == "{string}"){{\n'
+                            )
+        else:
             # if bool_to_check {
-            parser.match_token(lexer.Token.LEFT_CURLY)
-            bool_to_check = var_to_check
+            # if var_to_check in var_to_check_against {
+            nesting_levels.append(NestingLevel.IF_STATEMENT)
+            # if,var_to_check,in,var_to_check_against,{
+            parser = Parser.Parser(Line)
 
-            if is_variable_boolean_type(bool_to_check):
-                LinesCache.append(f"\nif({bool_to_check}){{\n")
+            parser.match_token(lexer.Token.IF)
+            parser.next_token()
+
+            var_to_check = ""
+            var_to_check_type = "int"
+
+            if parser.check_token(lexer.Token.QUOTE):
+                parser.next_token()
+                var_to_check_type = "str"
+                var_to_check = parser.current_token()
+                parser.next_token()
+                parser.match_token(lexer.Token.QUOTE)
+                parser.next_token()
             else:
-                raise ValueError(f"{bool_to_check} isn't a valid boolean.")
+                var_to_check = parser.get_token()
+
+            print(f"var to check = {var_to_check}")
+
+            # if var_to_check in var_to_check_against {
+            if parser.check_token(lexer.Token.IN):
+                parser.match_token(lexer.Token.IN)
+                parser.next_token()
+
+                var_to_check_against = parser.get_token()
+                print(f"var to check against= {var_to_check_against}")
+
+                parser.match_token(lexer.Token.LEFT_CURLY)
+
+                gen_code = ""
+
+                if is_instanced_struct(var_to_check_against):
+                    fn_name = "__contains__"
+                    struct_type = get_struct_type_of_instanced_struct(var_to_check_against)
+
+                    templated_type = ""
+                    templated_data_type = get_templated_type_of_struct(var_to_check_against)
+                    if templated_data_type is not None:
+                        templated_type = templated_data_type
+                        print(f"Templated type : {templated_data_type}")
+
+                    if templated_type != "":
+                        fn_name = get_templated_mangled_fn_name(
+                            struct_type, fn_name, templated_data_type
+                        )
+                    else:
+                        fn_name = get_mangled_fn_name(struct_type, fn_name)
+
+                    if var_to_check_type == "str":
+                        gen_code = f'{fn_name}(&{var_to_check_against}, "{var_to_check}")'
+                    else:
+                        gen_code = f"{fn_name}(&{var_to_check_against}, {var_to_check})"
+                else:
+                    gen_code = call_function(
+                        "operator:in",
+                        [
+                            DataType(var_to_check, ""),
+                            DataType(var_to_check_against, "Array"),
+                        ],
+                    )
+
+                LinesCache.append(f"\nif({gen_code}){{\n")
+            elif parser.check_token(lexer.Token.LEFT_CURLY):
+                # if bool_to_check {
+                parser.match_token(lexer.Token.LEFT_CURLY)
+                bool_to_check = var_to_check
+
+                if is_variable_boolean_type(bool_to_check):
+                    LinesCache.append(f"\nif({bool_to_check}){{\n")
+                else:
+                    raise ValueError(f"{bool_to_check} isn't a valid boolean.")
     elif check_token(lexer.Token.FOR):
         # Normal, Un-Enumerated loops.
         # for current_array_value_variable in array_name{
