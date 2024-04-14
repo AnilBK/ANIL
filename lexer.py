@@ -200,7 +200,7 @@ def get_tokens(line):
     if token != "":
         add_token(token)
 
-    print(tokens)
+    # print(tokens)
     return tokens
 
 
