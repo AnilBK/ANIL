@@ -28,3 +28,18 @@ class Parser:
             if p_custom_msg != None:
                 error_msg += "\n" + p_custom_msg
             raise ValueError(error_msg)
+
+    def extract_string_literal(self) -> str:
+        """
+        Extract the string defined inside the quotes "...".
+        And, advances the parser to the next token.
+        It expects the following Tokens: Token.QUOTE, Actual string, Token.QUOTE.
+        """
+        self.match_token(lexer.Token.QUOTE)
+        self.next_token()
+
+        string = self.get_token()
+        self.match_token(lexer.Token.QUOTE, "Quote Should be Closed.")
+        self.next_token()
+
+        return string

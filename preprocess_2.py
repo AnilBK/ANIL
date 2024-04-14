@@ -154,21 +154,8 @@ def parse_hook_info(p_hook_body) -> HookInfo:
     hook_parser.match_token(lexer.Token.LEFT_ROUND_BRACKET)
     hook_parser.next_token()
 
-    hook_parser.match_token(lexer.Token.QUOTE)
-    hook_parser.next_token()
-
-    hook_fn_name = hook_parser.get_token()
-
-    hook_parser.match_token(lexer.Token.QUOTE)
-    hook_parser.next_token()
-
-    hook_parser.match_token(lexer.Token.QUOTE)
-    hook_parser.next_token()
-
-    hook_fn_arg_type = hook_parser.get_token()
-
-    hook_parser.match_token(lexer.Token.QUOTE)
-    hook_parser.next_token()
+    hook_fn_name = hook_parser.extract_string_literal()
+    hook_fn_arg_type = hook_parser.extract_string_literal()
 
     hook_var_name = hook_parser.get_token()
 
@@ -737,14 +724,7 @@ while index < len(Lines):
             parsed_string = False
 
             if parser.check_token(lexer.Token.QUOTE):
-                parser.next_token()
-
-                string = parser.current_token()
-
-                parser.next_token()
-                parser.match_token(lexer.Token.QUOTE, "Quote Should be Closed.")
-                parser.next_token()
-
+                string = parser.extract_string_literal()
                 parsed_string = True
 
             if parsed_string:
@@ -1310,13 +1290,7 @@ while index < len(Lines):
                     current_param_index = param_count
 
                     if parser.check_token(lexer.Token.QUOTE):
-                        parser.next_token()
-
-                        string = parser.current_token()
-
-                        parser.next_token()
-                        if parser.check_token(lexer.Token.QUOTE):
-                            parser.next_token()
+                        string = parser.extract_string_literal()
 
                         """
                         if len(string) == 1:
@@ -1760,14 +1734,8 @@ while index < len(Lines):
             if parser.check_token(lexer.Token.QUOTE):
                 # let str = "Hello World";
                 #           ^
-                parser.match_token(lexer.Token.QUOTE)
-                parser.next_token()
-
-                string = parser.get_token()
+                string = parser.extract_string_literal()
                 print(f"Obtained String : {string}")
-
-                parser.match_token(lexer.Token.QUOTE)
-
                 LinesCache.append(f'char {array_name}[{len(string)+1}] = "{string}";\n')
                 string_variable_names.append(array_name)
             elif parser.check_token(lexer.Token.TRUE) or parser.check_token(
@@ -1809,13 +1777,7 @@ while index < len(Lines):
                         parser.match_token(lexer.Token.LEFT_SQUARE_BRACKET)
                         parser.next_token()
 
-                        parser.match_token(lexer.Token.QUOTE)
-                        parser.next_token()
-
-                        variable_requested = parser.get_token()
-
-                        parser.match_token(lexer.Token.QUOTE)
-                        parser.next_token()
+                        variable_requested = parser.extract_string_literal()
 
                         parser.match_token(lexer.Token.RIGHT_SQUARE_BRACKET)
                         parser.next_token()
@@ -1873,10 +1835,7 @@ while index < len(Lines):
             parser.match_token(lexer.Token.EQUALS)
             parser.next_token()
 
-            parser.match_token(lexer.Token.QUOTE)
-            parser.next_token()
-
-            string = parser.current_token()
+            string = parser.extract_string_literal()
 
             comparision_code = ""
             if is_instanced_struct(var_to_check_against):
@@ -1920,12 +1879,8 @@ while index < len(Lines):
             var_to_check_type = "int"
 
             if parser.check_token(lexer.Token.QUOTE):
-                parser.next_token()
                 var_to_check_type = "str"
-                var_to_check = parser.current_token()
-                parser.next_token()
-                parser.match_token(lexer.Token.QUOTE)
-                parser.next_token()
+                var_to_check = parser.extract_string_literal()
             else:
                 var_to_check = parser.get_token()
 
@@ -2540,13 +2495,7 @@ while index < len(Lines):
         dict = {}
 
         while True:
-            parser.match_token(lexer.Token.QUOTE)
-            parser.next_token()
-
-            key = parser.get_token()
-
-            parser.match_token(lexer.Token.QUOTE)
-            parser.next_token()
+            key = parser.extract_string_literal()
 
             parser.match_token(lexer.Token.COLON)
             parser.next_token()
@@ -2579,13 +2528,7 @@ while index < len(Lines):
         parser.match_token(lexer.Token.LEFT_ROUND_BRACKET)
         parser.next_token()
 
-        parser.match_token(lexer.Token.QUOTE)
-        parser.next_token()
-
-        HOOKS_hook_fn_name = parser.get_token()
-
-        parser.match_token(lexer.Token.QUOTE)
-        parser.next_token()
+        HOOKS_hook_fn_name = parser.extract_string_literal()
 
         parser.match_token(lexer.Token.COMMA)
         parser.next_token()
