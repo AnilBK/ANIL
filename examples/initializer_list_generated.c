@@ -197,7 +197,7 @@ void Vector_intprint(struct Vector__int *this) {
   }
   */
 
-  printf("Dynamic Array (size=%zu, capacity=%zu): [", this->size,
+  printf("Dynamic Array (size = %zu, capacity = %zu) : [", this->size,
          this->capacity);
   for (size_t i = 0; i < this->size; ++i) {
     const char *type = "int";

@@ -86,6 +86,12 @@ bool String__eq__(struct String *this, char *pstring) {
   return strcmp(this->arr, pstring) == 0;
 }
 
+bool Stringis_of_length(struct String *this, int p_len) {
+  return strlen(this->arr) == p_len;
+}
+
+char *Stringc_str(struct String *this) { return this->arr; }
+
 void String__add__(struct String *this, char *pstring) {
   size_t new_length = strlen(this->arr) + strlen(pstring) + 1;
 

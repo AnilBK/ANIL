@@ -1,8 +1,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-int a[] = {5, 10, 25, 100, 500};
-
 struct iterator {
   int *begin;
   int *end;
@@ -47,23 +45,19 @@ Iterator create_iterator_from_array(int *array, int len) {
 }
 
 int main() {
-  int length = 5;
 
-  Iterator iter = create_iterator_from_array(a, length);
+  // clang-format off
 
-  while (can_iterate(iter)) {
-    int val = next_iter(&iter);
-    printf("%d\n", val);
+  ///*///
+
+  let arr<int> = [ 1, 2, 3, 4, 5 ];
+  for index,value in enumerate arr{
+    print(f "index : {index} value : {value} \n"); 
   }
 
-  printf("\nEnumerator from array: \n");
 
-  Enumerator enumerator;
-  enumerator.index = -1;
-
-  while (enumerate(&iter, &enumerator)) {
-    printf("i = %d val = %d\n", enumerator.index, enumerator.val);
-  }
+  ///*///
+  // clang-format on
 
   return 0;
 }
