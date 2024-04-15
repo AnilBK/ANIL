@@ -146,22 +146,15 @@ def parse_hook_info(p_hook_body) -> HookInfo:
     # @hook_begin("custom_integer_printer" "int" data)
     hook_parser = Parser.Parser(p_hook_body)
 
-    hook_parser.match_token(lexer.Token.AT)
-    hook_parser.next_token()
-
-    hook_parser.match_token(lexer.Token.HOOK_BEGIN)
-    hook_parser.next_token()
-
-    hook_parser.match_token(lexer.Token.LEFT_ROUND_BRACKET)
-    hook_parser.next_token()
+    hook_parser.consume_token(lexer.Token.AT)
+    hook_parser.consume_token(lexer.Token.HOOK_BEGIN)
+    hook_parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
 
     hook_fn_name = hook_parser.extract_string_literal()
     hook_fn_arg_type = hook_parser.extract_string_literal()
-
     hook_var_name = hook_parser.get_token()
 
-    hook_parser.match_token(lexer.Token.RIGHT_ROUND_BRACKET)
-    hook_parser.next_token()
+    hook_parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
 
     return HookInfo(hook_fn_name, hook_fn_arg_type, hook_var_name)
 
@@ -629,11 +622,8 @@ while index < len(Lines):
         )
 
     def parse_let(type_name, array_name):
-        parser.match_token(lexer.Token.EQUALS)
-        parser.next_token()
-
-        parser.match_token(lexer.Token.LEFT_SQUARE_BRACKET)
-        parser.next_token()
+        parser.consume_token(lexer.Token.EQUALS)
+        parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)
 
         array_values = []
 
@@ -645,7 +635,7 @@ while index < len(Lines):
                 parser.next_token()
 
         parser.next_token()
-        parser.match_token(lexer.Token.SEMICOLON)
+        parser.consume_token(lexer.Token.SEMICOLON)
 
         array_element_count = len(array_values)
         array_elements_str = ",".join(array_values)
@@ -692,8 +682,8 @@ while index < len(Lines):
             )
 
             parser.next_token()
-            parser.match_token(lexer.Token.GREATER_THAN)
-            parser.next_token()
+
+            parser.consume_token(lexer.Token.GREATER_THAN)
 
         StructInfo = get_struct_defination_of_type(struct_type)
         print(StructInfo)
@@ -714,8 +704,7 @@ while index < len(Lines):
                 ObjectInstance(struct_type, is_templated_struct, templated_data_type)
             )
 
-        parser.match_token(lexer.Token.LEFT_CURLY)
-        parser.next_token()
+        parser.consume_token(lexer.Token.LEFT_CURLY)
 
         values_list = []
 
@@ -1313,8 +1302,7 @@ while index < len(Lines):
                     if reading_operator_fn:
                         if parser.check_token(lexer.Token.RIGHT_SQUARE_BRACKET):
                             parser.next_token()
-                            parser.match_token(lexer.Token.EQUALS)
-                            parser.next_token()
+                            parser.consume_token(lexer.Token.EQUALS)
 
                             value_for_set_item_func = parser.current_token()
                             parameters.append(value_for_set_item_func)
@@ -1377,15 +1365,13 @@ while index < len(Lines):
             elif parser.check_token(lexer.Token.PLUS):
                 # str += "World"
                 parser.next_token()
-                parser.match_token(lexer.Token.EQUALS)
-                parser.next_token()
+                parser.consume_token(lexer.Token.EQUALS)
 
                 parsed_string_variable = False
 
                 if parser.check_token(lexer.Token.QUOTE):
                     # str += "World"
-                    parser.match_token(lexer.Token.QUOTE)
-                    parser.next_token()
+                    parser.consume_token(lexer.Token.QUOTE)
                     parsed_string_variable = False
                 else:
                     # token += Char
@@ -1455,8 +1441,7 @@ while index < len(Lines):
             # escape_back_slash = False
             parser.next_token()
 
-            parser.match_token(lexer.Token.EQUALS)
-            parser.next_token()
+            parser.consume_token(lexer.Token.EQUALS)
 
             curr_token = parser.get_token()
             is_true_token = curr_token == lexer.Token.TRUE
@@ -1678,8 +1663,7 @@ while index < len(Lines):
         LinesCache.append(str_to_write)
     elif check_token(lexer.Token.MATCH):
         # % match x{
-        parser.match_token(lexer.Token.MATCH)
-        parser.next_token()
+        parser.consume_token(lexer.Token.MATCH)
         match_variable_name = parser.get_token()
         print(f"Matching variable {match_variable_name}")
         parser.match_token(lexer.Token.LEFT_CURLY)
@@ -1706,8 +1690,7 @@ while index < len(Lines):
         else:
             match_type = "variable"  # variable,struct
     elif check_token(lexer.Token.LET):
-        parser.match_token(lexer.Token.LET)
-        parser.next_token()
+        parser.consume_token(lexer.Token.LET)
 
         array_name = parser.get_token()
         print(f"Obtained array name = {array_name}")
@@ -1716,21 +1699,18 @@ while index < len(Lines):
         # let arr<T> = [ 1, 2, 3, 4, 5 ];
         #        ^
         if parser.check_token(lexer.Token.SMALLER_THAN):
-            parser.match_token(lexer.Token.SMALLER_THAN)
-            parser.next_token()
+            parser.consume_token(lexer.Token.SMALLER_THAN)
 
             type_name = parser.get_token()
             print(f"Obtained array type = {type_name}")
-            parser.match_token(lexer.Token.GREATER_THAN)
-            parser.next_token()
+            parser.consume_token(lexer.Token.GREATER_THAN)
 
             parse_let(type_name, array_name)
         elif check_token(lexer.Token.EQUALS):
             # let str = "Hello World";
             # let obj = Point{10, 20};
             #         ^
-            parser.match_token(lexer.Token.EQUALS)
-            parser.next_token()
+            parser.consume_token(lexer.Token.EQUALS)
 
             if parser.check_token(lexer.Token.QUOTE):
                 # let str = "Hello World";
@@ -1775,13 +1755,11 @@ while index < len(Lines):
                     if is_constexpr_dict:
                         #  let color = Color["Red"]
                         #                   ^
-                        parser.match_token(lexer.Token.LEFT_SQUARE_BRACKET)
-                        parser.next_token()
+                        parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)
 
                         variable_requested = parser.extract_string_literal()
 
-                        parser.match_token(lexer.Token.RIGHT_SQUARE_BRACKET)
-                        parser.next_token()
+                        parser.consume_token(lexer.Token.RIGHT_SQUARE_BRACKET)
 
                         actual_value = ""
 
@@ -1806,8 +1784,7 @@ while index < len(Lines):
 
         parser = Parser.Parser(Line)
 
-        parser.match_token(lexer.Token.IF)
-        parser.next_token()
+        parser.consume_token(lexer.Token.IF)
 
         if "==" in Line or "!=" in Line:
             # if str == "Hello"
@@ -1833,8 +1810,7 @@ while index < len(Lines):
             if negation_boolean_expression:
                 comparision_operation = "!="
 
-            parser.match_token(lexer.Token.EQUALS)
-            parser.next_token()
+            parser.consume_token(lexer.Token.EQUALS)
 
             string = parser.extract_string_literal()
 
@@ -1889,8 +1865,7 @@ while index < len(Lines):
 
             # if var_to_check in var_to_check_against {
             if parser.check_token(lexer.Token.IN):
-                parser.match_token(lexer.Token.IN)
-                parser.next_token()
+                parser.consume_token(lexer.Token.IN)
 
                 var_to_check_against = parser.get_token()
                 print(f"var to check against= {var_to_check_against}")
@@ -1953,8 +1928,7 @@ while index < len(Lines):
         # for ranged_index_item_variable,current_array_value_variable in enumerate array_name{
         nesting_levels.append(NestingLevel.FOR_LOOP)
 
-        parser.match_token(lexer.Token.FOR)
-        parser.next_token()
+        parser.consume_token(lexer.Token.FOR)
 
         current_array_value_variable = parser.get_token()
         ranged_index_item_variable = None
@@ -1974,12 +1948,10 @@ while index < len(Lines):
 
             current_array_value_variable = parser.get_token()
 
-        parser.match_token(lexer.Token.IN)
-        parser.next_token()
+        parser.consume_token(lexer.Token.IN)
 
         if is_enumerated_for_loop:
-            parser.match_token(lexer.Token.ENUMERATE)
-            parser.next_token()
+            parser.consume_token(lexer.Token.ENUMERATE)
 
         array_name = parser.get_token()
         parser.match_token(lexer.Token.LEFT_CURLY)
@@ -1999,8 +1971,7 @@ while index < len(Lines):
                 create_normal_array_iterator(array_name, current_array_value_variable)
     elif check_token(lexer.Token.STRUCT):
         # % struct Point {T x, T y };
-        parser.match_token(lexer.Token.STRUCT)
-        parser.next_token()
+        parser.consume_token(lexer.Token.STRUCT)
         struct_name = parser.get_token()
 
         generic_data_types = []
@@ -2014,13 +1985,11 @@ while index < len(Lines):
             generic_data_types.append(generic_data_type)
             print(f"Generic type : {generic_data_type}")
             parser.next_token()
-            parser.match_token(lexer.Token.GREATER_THAN)
-            parser.next_token()
+            parser.consume_token(lexer.Token.GREATER_THAN)
 
         print(f"Found Struct Defination : {struct_name}")
 
-        parser.match_token(lexer.Token.LEFT_CURLY)
-        parser.next_token()
+        parser.consume_token(lexer.Token.LEFT_CURLY)
 
         struct_members_list = []
 
@@ -2074,19 +2043,12 @@ while index < len(Lines):
         # if we use equals to then the if condition above executes.
         # TODO : Fix that.
         # fn (dst) + (src) > strcat(dst, src);
-        parser.match_token(lexer.Token.FN)
-
-        parser.next_token()
-        parser.match_token(lexer.Token.LEFT_ROUND_BRACKET)
-
-        parser.next_token()
-        param1 = parser.current_token()
+        parser.consume_token(lexer.Token.FN)
+        parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
+        param1 = parser.get_token()
         print(f"Obtained First param : {param1}")
 
-        parser.next_token()
-        parser.match_token(lexer.Token.RIGHT_ROUND_BRACKET)
-
-        parser.next_token()
+        parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
 
         print(parser.current_token())
 
@@ -2106,10 +2068,8 @@ while index < len(Lines):
             print("Parsing Function operator failed.")
             exit(0)
 
-        # parser.next_token()
-        parser.match_token(lexer.Token.LEFT_ROUND_BRACKET)
+        parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
 
-        parser.next_token()
         param2 = parser.current_token()
         print(f"Obtained Second param : {param2}")
 
@@ -2121,9 +2081,8 @@ while index < len(Lines):
             data_type = parser.current_token()
             parser.next_token()
 
-        parser.match_token(lexer.Token.RIGHT_ROUND_BRACKET)
+        parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
 
-        parser.next_token()
         parser.match_token(lexer.Token.GREATER_THAN)
 
         fn_defn_str = Line.split(">")[1]
@@ -2418,17 +2377,11 @@ while index < len(Lines):
 
         add_token_raw "="
         """
-        parser.match_token(lexer.Token.DEF)
+        parser.consume_token(lexer.Token.DEF)
 
-        parser.next_token()
+        fn_name = parser.get_token()
 
-        fn_name = parser.current_token()
-
-        parser.next_token()
-
-        parser.match_token(lexer.Token.LEFT_ROUND_BRACKET)
-
-        parser.next_token()
+        parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
 
         param1 = ""
         currently_reading_def_paramter_initializer_list = False
@@ -2453,9 +2406,7 @@ while index < len(Lines):
                 else:
                     raise Exception("Expected 3 dots for initializer list.")
 
-        parser.match_token(lexer.Token.RIGHT_ROUND_BRACKET)
-
-        parser.next_token()
+        parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
 
         target_class = ""
 
@@ -2466,12 +2417,11 @@ while index < len(Lines):
             parser.match_token(lexer.Token.COLON)
             macro_type = "NORMAL_MACRO"
         elif parser.current_token() == lexer.Token.FOR:
-            parser.match_token(lexer.Token.FOR)
+            parser.consume_token(lexer.Token.FOR)
             macro_type = "CLASS_MACRO"
-            parser.next_token()
 
             target_class = parser.get_token()
-            parser.match_token(lexer.Token.COLON)
+            parser.consume_token(lexer.Token.COLON)
             print(f"The macro is defined for {target_class} class.")
 
         is_inside_def = True
@@ -2481,25 +2431,21 @@ while index < len(Lines):
         currently_reading_def_target_class = target_class
     elif check_token(lexer.Token.CONSTEXPR):
         # constexpr Color = {"Red":255, "Green":200}
-        parser.match_token(lexer.Token.CONSTEXPR)
-        parser.next_token()
+        parser.consume_token(lexer.Token.CONSTEXPR)
 
         dict_name = parser.get_token()
         print(f"Obtained Constexpr Dictionary name = {dict_name}")
 
-        parser.match_token(lexer.Token.EQUALS)
-        parser.next_token()
+        parser.consume_token(lexer.Token.EQUALS)
 
-        parser.match_token(lexer.Token.LEFT_CURLY)
-        parser.next_token()
+        parser.consume_token(lexer.Token.LEFT_CURLY)
 
         dict = {}
 
         while True:
             key = parser.extract_string_literal()
 
-            parser.match_token(lexer.Token.COLON)
-            parser.next_token()
+            parser.consume_token(lexer.Token.COLON)
 
             value = parser.get_token()
 
@@ -2511,8 +2457,7 @@ while index < len(Lines):
                 parser.next_token()
                 break
             elif parser.check_token(lexer.Token.COMMA):
-                parser.match_token(lexer.Token.COMMA)
-                parser.next_token()
+                parser.consume_token(lexer.Token.COMMA)
             else:
                 raise ValueError("Incorrect Constexpr Dictionary Format.")
 
@@ -2520,24 +2465,13 @@ while index < len(Lines):
         constexpr_dictionaries.append(m_dict)
     elif check_token(lexer.Token.AT):
         # @apply_hook("custom_integer_printer", CustomPrint)
-        parser.match_token(lexer.Token.AT)
-        parser.next_token()
-
-        parser.match_token(lexer.Token.APPLY_HOOK)
-        parser.next_token()
-
-        parser.match_token(lexer.Token.LEFT_ROUND_BRACKET)
-        parser.next_token()
-
+        parser.consume_token(lexer.Token.AT)
+        parser.consume_token(lexer.Token.APPLY_HOOK)
+        parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
         HOOKS_hook_fn_name = parser.extract_string_literal()
-
-        parser.match_token(lexer.Token.COMMA)
-        parser.next_token()
-
+        parser.consume_token(lexer.Token.COMMA)
         HOOKS_target_fn = parser.get_token()
-
-        parser.match_token(lexer.Token.RIGHT_ROUND_BRACKET)
-        parser.next_token()
+        parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
     else:
         LinesCache.append(Line)
 

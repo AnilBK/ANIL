@@ -29,16 +29,25 @@ class Parser:
                 error_msg += "\n" + p_custom_msg
             raise ValueError(error_msg)
 
+    def consume_token(self, p_token: lexer.Token):
+        """
+        Expects the 'p_token' token.
+        And, advances the parser to next token.
+        Basically, we check for 'p_token' and then goto next token.
+        """
+        self.match_token(p_token)
+        self.next_token()
+
     def extract_string_literal(self) -> str:
         """
         Extract the string defined inside the quotes "...".
         And, advances the parser to the next token.
         It expects the following Tokens: Token.QUOTE, Actual string, Token.QUOTE.
         """
-        self.match_token(lexer.Token.QUOTE)
-        self.next_token()
+        self.consume_token(lexer.Token.QUOTE)
 
         string = self.get_token()
+
         self.match_token(lexer.Token.QUOTE, "Quote Should be Closed.")
         self.next_token()
 
