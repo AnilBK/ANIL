@@ -142,9 +142,6 @@ int main() {
   struct List list_instances;
   List__init__(&list_instances);
 
-  // 'instances_of_class' returns name of the instances in "string" form,
-  // so, we unquote that.
-
   Listappend_str(&vector_class_members, "arr");
 
   Listappend_str(&vector_class_members, "size");
@@ -177,6 +174,9 @@ int main() {
 
   printf("We print the different instances of class List using Reflection as "
          "follows: \n ");
+
+  // 'instances_of_class' returns name of the instances in "string" form,
+  // so, we unquote that using UNQUOTE in macro as belows.
 
   Listprint(&vector_class_members);
 
