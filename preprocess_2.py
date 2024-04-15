@@ -8,8 +8,9 @@ import os
 # source_file = "examples\\vector_source.c"
 # source_file = "examples\\unique_ptr_source.c"
 # source_file = "examples\\string_class_source.c"
-source_file = "lexer_test_source.c"
+# source_file = "lexer_test_source.c"
 # source_file = "examples\\initializer_list.c"
+source_file = "examples\\Reflection.c"
 # source_file = "examples\\vector_class_macros_test.c"
 # source_file = "examples\\List.c"
 # source_file = "examples\\constexpr_dict.c"
@@ -1010,7 +1011,11 @@ while index < len(Lines):
                 #        ^ params (forall_param)
                 params = remaining_tokens
 
-                contexpr_functions = ["members_of", "member_functions_of"]
+                contexpr_functions = [
+                    "members_of",
+                    "member_functions_of",
+                    "instances_of_class",
+                ]
 
                 is_constexpr_function = any(
                     constexpr_func in forall_param
@@ -1033,16 +1038,39 @@ while index < len(Lines):
                     if struct_def == None:
                         raise ValueError(f"{classname} class isn't registered.")
 
+                    # These constexpr functions returns "strings", which maybe toggled by an UNQUOTE optional parameter to get the raw objects like the struct names.
+                    unquote_location = forall_param_unmodified.find("UNQUOTE")
+                    has_unquote_text = unquote_location != -1
+                    if has_unquote_text:
+                        right_bracket_location = forall_param_unmodified.find(")")
+                        if (
+                            "UNQUOTE"
+                            in forall_param_unmodified[right_bracket_location:]
+                        ):
+                            has_unquote_text = True
+                        else:
+                            has_unquote_text = False
+
+                    def stringify(p_str):
+                        if has_unquote_text:
+                            return p_str
+                        else:
+                            return '"' + p_str + '" '
+
                     params = ""
 
                     fn_names = []
 
                     if "members_of" in forall_param_unmodified:
                         for member in struct_def.members:
-                            fn_names.append('"' + member.member + '" ')
+                            fn_names.append(stringify(member.member))
                     elif "member_functions_of" in forall_param_unmodified:
                         for fn in struct_def.member_functions:
-                            fn_names.append('"' + fn.fn_name + '" ')
+                            fn_names.append(stringify(fn.fn_name))
+                    elif "instances_of_class" in forall_param_unmodified:
+                        for struct in instanced_struct_names:
+                            if struct.struct_type == classname:
+                                fn_names.append(stringify(struct.struct_name))
                     else:
                         raise ValueError("Constexpr function undefined.")
 

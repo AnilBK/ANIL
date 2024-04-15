@@ -6,130 +6,11 @@
 
 ///*///
 
-#include <stdlib.h>
-
-// Define a union for storing int or char*
-typedef union {
-  int int_data;
-  char *str_data;
-} Data;
-
-enum DataType { INT, STRING };
-
-// Define a struct for the node
-typedef struct Node {
-  Data data;
-  enum DataType data_type;
-  struct Node *next;
-} Node;
-
-Node *createIntNode(int p_int) {
-  Node *newNode = (Node *)malloc(sizeof(Node));
-  newNode->data.int_data = p_int;
-  newNode->data_type = INT;
-  newNode->next = NULL;
-  return newNode;
-}
-
-Node *createStringNode(char *p_str) {
-  Node *newNode = (Node *)malloc(sizeof(Node));
-  newNode->data.str_data = p_str;
-  newNode->data_type = STRING;
-  newNode->next = NULL;
-  return newNode;
-}
-
-void insertEnd(Node **head, Node *newNode) {
-  if (*head == NULL) {
-    *head = newNode;
-    return;
-  }
-
-  Node *current = *head;
-  while (current->next != NULL) {
-    current = current->next;
-  }
-  current->next = newNode;
-}
-
-///*///
-
-///*///
-
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 // IMPORTS //
-
-struct List {
-  Node *head;
-};
-
-void List__init__(struct List *this) { this->head = NULL; }
-
-void List__del__(struct List *this) {
-  Node *current = this->head;
-  while (current != NULL) {
-    Node *temp = current;
-    current = current->next;
-
-    if (temp->data_type == STRING) {
-      free(temp->data.str_data);
-    }
-
-    free(temp);
-  }
-}
-
-void Listprint(struct List *this) {
-  Node *current = this->head;
-  printf("[");
-  while (current != NULL) {
-    if (current->data_type == STRING) {
-      printf("\"%s\" ", current->data.str_data);
-    } else {
-      int data = current->data.int_data;
-
-      //@hook_begin("custom_integer_printer" "int" data)
-      printf("%d ", data);
-      //@hook_end
-    }
-    printf(",");
-    current = current->next;
-  }
-  printf("]\n");
-}
-
-typedef void (*custom_integer_printer)(int);
-void Listprint_hooked_custom_integer_printer(
-    struct List *this, custom_integer_printer p_custom_integer_printer) {
-  Node *current = this->head;
-  printf("[");
-  while (current != NULL) {
-    if (current->data_type == STRING) {
-      printf("\"%s\" ", current->data.str_data);
-    } else {
-      int data = current->data.int_data;
-
-      //
-      p_custom_integer_printer(data);
-    }
-    printf(",");
-    current = current->next;
-  }
-  printf("]\n");
-}
-
-void Listappend_int(struct List *this, int p_value) {
-  Node *int_node = createIntNode(p_value);
-  insertEnd(&this->head, int_node);
-}
-
-void Listappend_str(struct List *this, char *p_str) {
-  Node *string_node = createStringNode(strdup(p_str));
-  insertEnd(&this->head, string_node);
-}
 
 struct Vector__int {
   int *arr;
@@ -273,36 +154,6 @@ int main() {
 
   Vector_intpush_unchecked(&values, 80);
 
-  struct List class_values;
-  List__init__(&class_values);
-
-  Listappend_str(&class_values, "arr");
-
-  Listappend_str(&class_values, "size");
-
-  Listappend_str(&class_values, "capacity");
-
-  Listappend_str(&class_values, "__init__");
-
-  Listappend_str(&class_values, "__del__");
-
-  Listappend_str(&class_values, "push");
-
-  Listappend_str(&class_values, "allocate_more");
-
-  Listappend_str(&class_values, "push_unchecked");
-
-  Listappend_str(&class_values, "print");
-
-  Listappend_str(&class_values, "__contains__");
-
-  Listappend_str(&class_values, "len");
-
-  Listappend_str(&class_values, "__getitem__");
-
-  Listprint(&class_values);
-
-  List__del__(&class_values);
   Vector_int__del__(&values);
   ///*///
 
