@@ -32,25 +32,13 @@ Node *createStringNode(char *p_str) {
   return newNode;
 }
 
-void insertEnd(Node **head, Node *newNode) {
-  if (*head == NULL) {
-    *head = newNode;
-    return;
-  }
-
-  Node *current = *head;
-  while (current->next != NULL) {
-    current = current->next;
-  }
-  current->next = newNode;
-}
-
 ///*///
 
-struct List{Node *head};
+struct List{Node *head,Node *tail};
 
 impl List __init__
   this->head = NULL;
+  this->tail = NULL;
 endfunc
 
 impl List __del__
@@ -86,19 +74,53 @@ impl List print
   }
   printf("]\n");
 endfunc
+///*///
 
+/* 
+FIXME: The order in which normal C code and our custom code is generated is different.
+So this function will be emitted earlier than the actual List struct causing forward declaration errors.
+Temporarily we replace the entire function body at all the needed callsites.
+
+void ListinsertEnd(struct List *this, Node *newNode) {
+  if (this->head == NULL) {
+    this->head = newNode;
+    this->tail = newNode;
+    return;
+  }
+
+  this->tail->next = newNode;
+  this->tail = newNode;
+}
+*/
+
+///*///
 impl List append_int p_value:int
   Node *int_node = createIntNode(p_value);
-  insertEnd(&this->head, int_node);
+  //ListinsertEnd(this, int_node);
+  // TODO : Move the below code to separate function 'ListinsertEnd'.
+  if (this->head == NULL) {
+    this->head = int_node;
+    this->tail = int_node;
+    return;
+  }
+
+  this->tail->next = int_node;
+  this->tail = int_node;
 endfunc
 
 impl List append_str p_str:str
   Node *string_node = createStringNode(strdup(p_str));
-  insertEnd(&this->head, string_node);
+  //ListinsertEnd(this, string_node);
+  // TODO : Move the below code to separate function 'ListinsertEnd'.
+  if (this->head == NULL) {
+    this->head = string_node;
+    this->tail = string_node;
+    return;
+  }
+
+  this->tail->next = string_node;
+  this->tail = string_node;
 endfunc
-
-
-
 ///*///
 
 
