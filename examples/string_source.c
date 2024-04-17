@@ -19,11 +19,6 @@ int main() {
 
   import String
   
-  fn (dst) + (src) > strcat(dst, src);
-  fn (src) == (dst) > strcmp(src, dst) == 0
-  fn (src) in (dst) > strstr(dst, src) != NULL
-  fn (val) in (#p_array#:Array) > array_contains(#p_array#,#p_array#_array_size,val)
-
   let str = "Hello";
   puts(str);
 

@@ -413,37 +413,6 @@ class DataType:
         self.type = p_type
 
 
-class Function:
-    def __init__(self, p_fn_name: str, p_fn_arguments: list, p_fn_defn: str) -> None:
-        self.fn_name = p_fn_name
-        self.fn_arguments = p_fn_arguments
-        self.fn_defn = p_fn_defn.strip("\n")
-
-    def data_types_of_all_arguments(self):
-        types = [arg.type for arg in self.fn_arguments]
-        return types
-
-
-Functions = []
-
-
-def call_function(p_fn_name: str, passed_arguments: list):
-    list_of_types_of_args = [arg.type for arg in passed_arguments]
-    for function in Functions:
-        fn_args_list = function.data_types_of_all_arguments()
-        if not (fn_args_list == list_of_types_of_args):
-            continue
-
-        if function.fn_name == p_fn_name:
-            fn_defn_str = function.fn_defn
-            for idx, args in enumerate(function.fn_arguments):
-                fn_defn_str = fn_defn_str.replace(args.name, passed_arguments[idx].name)
-            return fn_defn_str
-
-    print(f"Function \"{p_fn_name} isn't defined.")
-    exit(0)
-
-
 contexpr_functions = [
     "members_of",
     "member_functions_of",
@@ -1880,14 +1849,6 @@ while index < len(Lines):
                         )
                     else:
                         gen_code = f"{fn_name}(&{var_to_check_against}, {var_to_check})"
-                else:
-                    gen_code = call_function(
-                        "operator:in",
-                        [
-                            DataType(var_to_check, ""),
-                            DataType(var_to_check_against, "Array"),
-                        ],
-                    )
 
                 LinesCache.append(f"\nif({gen_code}){{\n")
             elif parser.check_token(lexer.Token.LEFT_CURLY):
@@ -2018,67 +1979,6 @@ while index < len(Lines):
 
         # LinesCache.append(code)
         # [struct_name,x,y,z..]
-    elif check_token(lexer.Token.FN):
-        # if we use equals to then the if condition above executes.
-        # TODO : Fix that.
-        # fn (dst) + (src) > strcat(dst, src);
-        parser.consume_token(lexer.Token.FN)
-        parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
-        param1 = parser.get_token()
-        print(f"Obtained First param : {param1}")
-
-        parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
-
-        print(parser.current_token())
-
-        operator = ""
-        if parser.check_token(lexer.Token.IN):
-            operator = "in"
-            parser.next_token()
-        elif parser.check_token(lexer.Token.PLUS):
-            operator = "+"
-            parser.next_token()
-        elif parser.check_token(lexer.Token.EQUALS):
-            parser.next_token()
-            if parser.check_token(lexer.Token.EQUALS):
-                operator = "=="
-                parser.next_token()
-        else:
-            print("Parsing Function operator failed.")
-            exit(0)
-
-        parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
-
-        param2 = parser.current_token()
-        print(f"Obtained Second param : {param2}")
-
-        data_type = ""
-
-        parser.next_token()
-        if parser.check_token(lexer.Token.COLON):
-            parser.next_token()
-            data_type = parser.current_token()
-            parser.next_token()
-
-        parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
-
-        parser.match_token(lexer.Token.GREATER_THAN)
-
-        fn_defn_str = Line.split(">")[1]
-        print(f"Function Defination : {fn_defn_str}")
-
-        param2_data_type = DataType(param2, data_type)
-        param1_data_type = DataType(param1, "")
-
-        fn = Function(
-            f"operator:{operator}", [param1_data_type, param2_data_type], fn_defn_str
-        )
-        Functions.append(fn)
-
-        gen_code = call_function(
-            f"operator:{operator}", [DataType("Hello", ""), DataType("World", "")]
-        )
-        print(f"{gen_code}")
     elif check_token(lexer.Token.IMPL):
         # impl Point say Param1 Param2 ... ParamN
         # void say(struct Point *this) { printf("x : %d , y : %d \n", this->x, this->y); }

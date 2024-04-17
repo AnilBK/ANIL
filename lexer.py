@@ -22,7 +22,6 @@ class Token(Enum):
     ENUMERATE = 17
     QUOTE = 18
     PLUS = 19
-    FN = 20
     LEFT_ROUND_BRACKET = 21
     RIGHT_ROUND_BRACKET = 22
     COLON = 23
@@ -91,7 +90,6 @@ TOKEN_MAP = {
     "enumerate": Token.ENUMERATE,
     '"': Token.QUOTE,
     "+": Token.PLUS,
-    "fn": Token.FN,
     "(": Token.LEFT_ROUND_BRACKET,
     ")": Token.RIGHT_ROUND_BRACKET,
     ":": Token.COLON,
