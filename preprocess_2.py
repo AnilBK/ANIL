@@ -1212,7 +1212,9 @@ while index < len(Lines):
                 currently_reading_def_parameter,
                 currently_reading_def_body,
             )
-            macro_def.first_param_initializer_list = True
+            macro_def.first_param_initializer_list = (
+                currently_reading_def_paramter_initializer_list
+            )
 
             if currently_reading_def_macro_type == "NORMAL_MACRO":
                 MacroDefinations.append(macro_def)
