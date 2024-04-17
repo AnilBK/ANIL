@@ -25,7 +25,7 @@ int main() {
     forall x in member_functions_of(Vector): vector_class_member_functions.append_str x 
     forall x in instances_of_class(List): list_instances.append_str x
   enddef  
-  reflection x
+  reflection
 
   print(f "We print the different instances of class List using Reflection as follows: \n");
 
@@ -35,7 +35,7 @@ int main() {
   def reflective_print():
     forall x in instances_of_class(List) UNQUOTE: x.print
   enddef
-  reflective_print _
+  reflective_print
 
   // DESTRUCTOR_CODE //
   ///*///
