@@ -2037,29 +2037,6 @@ while index < len(Lines):
 
             parameters.append(f"{param_type} {param_name}")
 
-        """
-        parameters = []
-        while parser.has_tokens_remaining():
-            # impl Vector __contains__ value -> bool
-            if parser.check_token(lexer.Token.MINUS):
-                parser.next_token()
-                if parser.check_token(lexer.Token.GREATER_THAN):
-                    parser.next_token()
-                    return_type = parser.get_token()
-                    print(f"Function Return Type is : {return_type}")
-                    break
-            
-            if parser.check_token(lexer.Token.COLON):
-                parser.next_token()
-                param_type = parser.get_token()
-                print(f"Parameters Type is Specified as : {param_type}")
-
-
-            if parser.has_tokens_remaining():    
-                parameters.append("int " + parser.get_token())
-
-        """
-
         print(f"{parameters}")
 
         code = ""
