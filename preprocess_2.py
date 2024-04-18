@@ -197,25 +197,8 @@ class Struct:
         self.template_defination_variable = ""
         self.macro_definations = []
 
-    def resolve_template_types_for_fn_names(self, p_instance_templated_data_type):
-        if self.template_defination_variable == "":
-            return
-
-        for i in range(len(self.member_functions)):
-            fn = self.member_functions[i]
-            # ['int capacity', 'T value']
-            parameters = fn.fn_arguments
-
-            params_copy = []
-
-            for param in parameters:
-                data_type, param_name = param.split(" ")
-                if data_type == self.template_defination_variable:
-                    data_type = p_instance_templated_data_type
-                params_copy.append(data_type + " " + param_name)
-            parameters = params_copy
-
-            self.member_functions[i].fn_arguments = params_copy
+    def is_templated(self) -> bool:
+        return self.template_defination_variable != ""
 
     def has_generic_member(self) -> bool:
         return any(member.is_generic for member in self.members)
@@ -232,9 +215,8 @@ class Struct:
     def get_return_type_of_fn(self, p_fn_name) -> str:
         for fn in self.member_functions:
             if fn.fn_name == p_fn_name:
-                is_templated = (self.template_defination_variable != "") and (
-                    self.templated_data_type != ""
-                )
+                is_templated = self.is_templated() and (self.templated_data_type != "")
+
                 if is_templated:
                     if fn.return_type == self.template_defination_variable:
                         return self.templated_data_type
@@ -724,25 +706,21 @@ while index < len(Lines):
             if StructInfo != None:
                 defined_struct = StructInfo
                 for fn in defined_struct.member_functions:
-                    # ['int capacity', 'T value']
                     parameters = fn.fn_arguments
-                    print(templated_data_type)
+                    fn_name = fn.fn_name
+                    return_type = fn.return_type
 
                     # resolve templated fn params.
-                    if not defined_struct.template_defination_variable == "":
+                    if defined_struct.is_templated():
                         params_copy = []
                         for param in parameters:
-                            data_type, param_name = param.split(" ")
+                            data_type = param.data_type
+                            param_name = param.member
                             if data_type == defined_struct.template_defination_variable:
                                 data_type = templated_data_type
                             params_copy.append(data_type + " " + param_name)
                         parameters = params_copy
 
-                    print(parameters)
-                    fn_name = fn.fn_name
-                    return_type = fn.return_type
-                    # return_type can be templated as well.
-                    if not defined_struct.template_defination_variable == "":
                         if return_type == defined_struct.template_defination_variable:
                             return_type = templated_data_type
 
@@ -854,7 +832,7 @@ while index < len(Lines):
             fn_args = []
             for fn in StructInfo.member_functions:
                 if fn.fn_name == fn_name_unmangled:
-                    fn_args = [arg for arg in fn.fn_arguments]
+                    fn_args = [arg.data_type for arg in fn.fn_arguments]
                     print(fn_args)
 
             # Store the promotion code for char to strings.
@@ -1216,7 +1194,7 @@ while index < len(Lines):
                 fn_args = []
                 for fn in StructInfo.member_functions:
                     if fn.fn_name == fn_name:
-                        fn_args = [arg for arg in fn.fn_arguments]
+                        fn_args = [arg.data_type for arg in fn.fn_arguments]
                         print(fn_args)
 
                 print(f"struct_name : {parsed_member}, fn_name : {fn_name}")
@@ -2012,6 +1990,7 @@ while index < len(Lines):
         # impl String __init__ text : str, capacity : int
 
         parameters = []
+        parameters_combined_list = []
 
         while parser.has_tokens_remaining():
             # impl Vector __contains__ value -> bool
@@ -2035,7 +2014,8 @@ while index < len(Lines):
             if param_type == "str":
                 param_type = "char*"
 
-            parameters.append(f"{param_type} {param_name}")
+            parameters.append(MemberDataType(param_type, param_name, False))
+            parameters_combined_list.append(f"{param_type} {param_name}")
 
         print(f"{parameters}")
 
@@ -2059,7 +2039,7 @@ while index < len(Lines):
                 return_type = f"struct {return_type}"
 
             if len(parameters) > 0:
-                parameters_str = ",".join(parameters)
+                parameters_str = ",".join(parameters_combined_list)
                 code = f"{return_type} {fn_name}(struct {struct_name} *this, {parameters_str}) {{\n"
             else:
                 code = f"{return_type} {fn_name}(struct {struct_name} *this) {{\n"
