@@ -193,15 +193,13 @@ class Struct:
         self.name = p_struct_name
         self.members = p_members
         self.member_functions = []
+        self.macro_definations = []
+        self.is_class_templated = False
         self.templated_data_type = ""
         self.template_defination_variable = ""
-        self.macro_definations = []
 
     def is_templated(self) -> bool:
-        return self.template_defination_variable != ""
-
-    def has_generic_member(self) -> bool:
-        return any(member.is_generic for member in self.members)
+        return self.is_class_templated
 
     def has_destructor(self) -> bool:
         return any(fn.is_destructor() for fn in self.member_functions)
@@ -261,7 +259,7 @@ class StructInstance:
 
     def is_templated_instance(self) -> bool:
         struct_defination = get_struct_defination_of_type(self.struct_type)
-        return struct_defination.has_generic_member()
+        return struct_defination.is_templated()
 
     def get_destructor_fn_name(self) -> str:
         destructor_name = ""
@@ -312,10 +310,6 @@ def is_class_already_instantiated(p_struct_name, p_is_templated, p_templated_dat
     return False
 
 
-def is_struct_type_templated(p_struct_type: str) -> bool:
-    return False
-
-
 def get_struct_defination_of_type(p_struct_type: str) -> Optional[Struct]:
     for defined_struct in struct_definations:
         if defined_struct.name == p_struct_type:
@@ -347,7 +341,7 @@ def is_instance_of_templated_struct(p_instance_name: str):
         struct_name = structs.struct_name
         if struct_name == p_instance_name:
             info = get_struct_defination_of_type(struct_type)
-            if info.has_generic_member():
+            if info.is_templated():
                 return True
     return False
 
@@ -1892,10 +1886,13 @@ while index < len(Lines):
         parser.consume_token(lexer.Token.STRUCT)
         struct_name = parser.get_token()
 
+        is_struct_templated = False
+
         generic_data_types = []
 
         if parser.check_token(lexer.Token.SMALLER_THAN):
             parser.next_token()
+            is_struct_templated = True
             print("Generic Struct")
             # struct GenericStruct<X>{X a, float b};
             #                      ^
@@ -1940,18 +1937,15 @@ while index < len(Lines):
 
         struct_data = Struct(struct_name, struct_members_list)
 
-        if len(generic_data_types) > 0:
+        if is_struct_templated:
+            struct_data.is_class_templated = True
             struct_data.template_defination_variable = generic_data_types[0]
-
-        struct_definations.append(struct_data)
-
-        # Dont immediately instantiate structs which are generic.
-        has_generic_member = struct_data.has_generic_member()
-
-        if not has_generic_member:
+        else:
+            # Dont immediately instantiate structs which are generic.
             struct_code = struct_data.get_struct_initialization_code()
             GlobalStructInitCode += struct_code
 
+        struct_definations.append(struct_data)
         # Non generic structs shouldn't be written out early, but since the impl blocks write out functions despite being templated we leave the base templated struct defined, so that the funtions generated don't have defination error.
         # GlobalStructInitCode += struct_code
 
@@ -1972,7 +1966,7 @@ while index < len(Lines):
         struct_members_list = StructInfo.members
         print(StructInfo.members)  # [['X', 'a', True], ['float', 'b', False]]
 
-        has_generic_member = StructInfo.has_generic_member()
+        is_struct_templated = StructInfo.is_templated()
 
         parser.next_token()
         fn_name = parser.current_token()
@@ -2031,7 +2025,9 @@ while index < len(Lines):
 
         unmangled_name = fn_name
 
-        if not has_generic_member:  # not is_struct_type_templated(struct_name):
+        if is_struct_templated:
+            should_write_fn_body = False
+        else:
             fn_name = get_mangled_fn_name(struct_name, fn_name)
 
             StructInfo = get_struct_defination_of_type(return_type)
@@ -2043,9 +2039,6 @@ while index < len(Lines):
                 code = f"{return_type} {fn_name}(struct {struct_name} *this, {parameters_str}) {{\n"
             else:
                 code = f"{return_type} {fn_name}(struct {struct_name} *this) {{\n"
-
-        if has_generic_member:
-            should_write_fn_body = False
 
         currently_reading_fn_name = unmangled_name
         currently_reading_fn_parent_struct = struct_name
