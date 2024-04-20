@@ -65,8 +65,6 @@ match_struct_type_info = []
 
 struct_definations = []
 instanced_struct_names = []
-# Just a cache of instanced struct names and the type of variables they have templated.
-instanced_struct_template_type_pair = []
 GlobalStructInitCode = ""
 
 string_variable_names = []
@@ -249,29 +247,46 @@ class Struct:
 
 
 class StructInstance:
-    def __init__(self, p_struct_type, p_struct_name) -> None:
+    def __init__(
+        self,
+        p_struct_type,
+        p_struct_name,
+        p_is_templated: bool,
+        p_templated_data_type: str,
+    ) -> None:
         self.struct_type = p_struct_type
         self.struct_name = p_struct_name
-
-    def struct_type_has_destructor(self) -> bool:
-        struct_defination = get_struct_defination_of_type(self.struct_type)
-        return struct_defination.has_destructor()
+        self.is_templated = p_is_templated
+        self.templated_data_type = p_templated_data_type
 
     def is_templated_instance(self) -> bool:
-        struct_defination = get_struct_defination_of_type(self.struct_type)
-        return struct_defination.is_templated()
+        return self.is_templated
 
-    def get_destructor_fn_name(self) -> str:
-        destructor_name = ""
+    def get_struct_defination(self) -> Optional[Struct]:
+        StructInfo = get_struct_defination_of_type(self.struct_type)
+        return StructInfo
+
+    def struct_type_has_destructor(self) -> bool:
+        return self.get_struct_defination().has_destructor()
+
+    def _validate_template_type(self):
+        if self.templated_data_type == "":
+            # Shouldn't happen, as this validation is called if is_templated_instance() is true.
+            raise Exception(
+                "[Fatal Error] Struct is templated but it's type isn't Registered."
+            )
+
+    def get_mangled_function_name(self, p_fn_name: str) -> str:
         if self.is_templated_instance():
-            templated_data_type = get_templated_type_of_struct(self.struct_name)
-            destructor_name = get_templated_mangled_fn_name(
-                self.struct_type, "__del__", templated_data_type
+            self._validate_template_type()
+            return get_templated_mangled_fn_name(
+                self.struct_type, p_fn_name, self.templated_data_type
             )
         else:
-            destructor_name = get_mangled_fn_name(self.struct_type, "__del__")
+            return get_mangled_fn_name(self.struct_type, p_fn_name)
 
-        return destructor_name
+    def get_destructor_fn_name(self) -> str:
+        return self.get_mangled_function_name("__del__")
 
 
 class ObjectInstance:
@@ -321,29 +336,17 @@ def is_instanced_struct(p_struct_name: str):
     return any(struct.struct_name == p_struct_name for struct in instanced_struct_names)
 
 
+def get_instanced_struct(p_struct_name) -> Optional[StructInstance]:
+    for struct in instanced_struct_names:
+        if struct.struct_name == p_struct_name:
+            return struct
+    return None
+
+
 def get_struct_type_of_instanced_struct(p_struct_name):
     for struct in instanced_struct_names:
         if struct.struct_name == p_struct_name:
             return struct.struct_type
-
-
-def get_templated_type_of_struct(p_struct_name: str) -> Optional[str]:
-    for instance_info in instanced_struct_template_type_pair:
-        m_struct_name, templated_data_type = instance_info
-        if m_struct_name == p_struct_name:
-            return templated_data_type
-    return None
-
-
-def is_instance_of_templated_struct(p_instance_name: str):
-    for structs in instanced_struct_names:
-        struct_type = structs.struct_type
-        struct_name = structs.struct_name
-        if struct_name == p_instance_name:
-            info = get_struct_defination_of_type(struct_type)
-            if info.is_templated():
-                return True
-    return False
 
 
 def add_fn_member_to_struct(p_struct_name: str, p_fn: MemberFunction):
@@ -381,25 +384,6 @@ def get_templated_mangled_fn_name(
     p_struct_type: str, p_fn_name: str, p_templated_data_type: str
 ) -> str:
     return p_struct_type + "_" + p_templated_data_type + p_fn_name
-
-
-def mangled_function_name(p_struct_name: str, p_fn_name: str) -> str:
-    struct_type = get_struct_type_of_instanced_struct(p_struct_name)
-
-    if is_instance_of_templated_struct(p_struct_name):
-        templated_data_type = get_templated_type_of_struct(p_struct_name)
-
-        if templated_data_type is not None:
-            return get_templated_mangled_fn_name(
-                struct_type, p_fn_name, templated_data_type
-            )
-        else:
-            # Shouldn't happen.
-            raise Exception(
-                "[Fatal Error] Struct is templated but it's type isn't Registered."
-            )
-    else:
-        return get_mangled_fn_name(struct_type, p_fn_name)
 
 
 class DataType:
@@ -541,8 +525,12 @@ while index < len(Lines):
         )
 
     def create_array_iterator_from_struct(array_name, current_array_value_variable):
-        struct_type = get_struct_type_of_instanced_struct(array_name)
-        StructInfo = get_struct_defination_of_type(struct_type)
+        instanced_struct_info = get_instanced_struct(array_name)
+        if instanced_struct_info == None:
+            # Shouldn't happen, as the caller function validates it before calling this function.
+            raise Exception("Undefined struct.")
+
+        StructInfo = instanced_struct_info.get_struct_defination()
 
         getter_fn = "__getitem__"
         len_fn = "len"
@@ -553,11 +541,13 @@ while index < len(Lines):
 
         return_type = StructInfo.get_return_type_of_fn(getter_fn)
 
-        getter_fn_name = mangled_function_name(array_name, getter_fn)
-        length_fn_name = mangled_function_name(array_name, len_fn)
+        getter_fn_name = instanced_struct_info.get_mangled_function_name(getter_fn)
+        length_fn_name = instanced_struct_info.get_mangled_function_name(len_fn)
 
-        if is_instance_of_templated_struct(array_name):
-            return_type = get_templated_type_of_struct(array_name)
+        if instanced_struct_info.is_templated_instance():
+            # For Vector<char>, the return type is char.
+            # This return type, is used for individual loop item.
+            return_type = instanced_struct_info.templated_data_type
 
         global temp_arr_length_variable_count
         global LinesCache
@@ -616,13 +606,16 @@ while index < len(Lines):
         is_templated_struct = False
         templated_data_type = ""
 
+        StructInfo = get_struct_defination_of_type(struct_type)
+        if StructInfo is None:
+            raise ValueError(f'Struct type "{struct_type}" undefined.')
+
         if parser.check_token(lexer.Token.SMALLER_THAN):
             parser.next_token()
             templated_data_type = parser.current_token()
             print(f"Templated struct of data type : {templated_data_type}")
-            StructInfo = get_struct_defination_of_type(struct_type)
             struct_members_list = StructInfo.members
-            print(StructInfo.members)  # [['X', 'a', True], ['float', 'b', False]]
+            # print(StructInfo.members)  # [['X', 'a', True], ['float', 'b', False]]
 
             # Recreate Generic Structs on instantiation.
             struct_code = f"struct {struct_type}__{templated_data_type}  {{\n"
@@ -642,22 +635,16 @@ while index < len(Lines):
 
             is_templated_struct = True
 
-            global instanced_struct_template_type_pair
-            instanced_struct_template_type_pair.append(
-                [struct_name, templated_data_type]
-            )
-
             parser.next_token()
 
             parser.consume_token(lexer.Token.GREATER_THAN)
 
-        StructInfo = get_struct_defination_of_type(struct_type)
-        print(StructInfo)
-        if StructInfo is None:
-            raise ValueError("Struct undefined.")
+        instanced_struct_info = StructInstance(
+            struct_type, struct_name, is_templated_struct, templated_data_type
+        )
 
         global instanced_struct_names
-        instanced_struct_names.append(StructInstance(struct_type, struct_name))
+        instanced_struct_names.append(instanced_struct_info)
 
         class_already_instantiated = is_class_already_instantiated(
             struct_type, is_templated_struct, templated_data_type
@@ -762,13 +749,9 @@ while index < len(Lines):
         if has_constuctor:
             # __init__Vector
             # Primitive Name Mangling.
-            constructor_name = get_mangled_fn_name(struct_type, "__init__")
-
-            if is_templated_struct:
-                # Templated struct name mangling.
-                constructor_name = get_templated_mangled_fn_name(
-                    struct_type, "__init__", templated_data_type
-                )
+            constructor_name = instanced_struct_info.get_mangled_function_name(
+                "__init__"
+            )
 
             if len(values_list) > 0:
                 values_str = ",".join(values_list)
@@ -786,13 +769,11 @@ while index < len(Lines):
         LinesCache.append(code)
 
     def parse_access_struct_member(var_name, target):
-        if not is_instanced_struct(target):
+        instanced_struct_info = get_instanced_struct(target)
+        if instanced_struct_info == None:
             raise ValueError(f"Target Struct {target} is undefined.")
 
-        # TODO : Make those nested functions into one.
-        StructInfo = get_struct_defination_of_type(
-            get_struct_type_of_instanced_struct(target)
-        )
+        StructInfo = instanced_struct_info.get_struct_defination()
 
         # print(StructInfo.print_member_fn_info())
 
@@ -825,9 +806,7 @@ while index < len(Lines):
 
         # for dict end
 
-        fn_name = get_mangled_fn_name(
-            get_struct_type_of_instanced_struct(target), fn_name_unmangled
-        )
+        fn_name = instanced_struct_info.get_mangled_function_name(fn_name_unmangled)
 
         StructInfo.ensure_has_function(fn_name_unmangled, target)
 
@@ -840,7 +819,7 @@ while index < len(Lines):
             for fn in StructInfo.member_functions:
                 if fn.fn_name == fn_name_unmangled:
                     fn_args = [arg.data_type for arg in fn.fn_arguments]
-                    print(fn_args)
+                    # print(fn_args)
 
             # Store the promotion code for char to strings.
             char_to_string_promotion_code = ""
@@ -922,7 +901,7 @@ while index < len(Lines):
         #    raise ValueError("Struct undefined.")
         if "struct" in return_type:
             global instanced_struct_names
-            instanced_struct_names.append(StructInstance("String", var_name))
+            instanced_struct_names.append(StructInstance("String", var_name, False, ""))
         else:
             REGISTER_VARIABLE(var_name, return_type)
 
@@ -1147,7 +1126,10 @@ while index < len(Lines):
     if len(parser.tokens) > 0:
         parsed_member = parser.current_token()
 
-        if is_instanced_struct(parsed_member):
+        instanced_struct_info = get_instanced_struct(parsed_member)
+        is_instanced_struct_ = instanced_struct_info != None
+
+        if is_instanced_struct_:
             # This is to handle function calls on struct members.
             # tokens.push "A"
 
@@ -1184,9 +1166,7 @@ while index < len(Lines):
                 # TODO : get datatype and check the arguments.
                 # so we can write '' or "".
                 # this is required for adding key value in dictionary.
-                struct_type = get_struct_type_of_instanced_struct(parsed_member)
-                StructInfo = get_struct_defination_of_type(struct_type)
-                # StructInfo.print_member_fn_info()
+                StructInfo = instanced_struct_info.get_struct_defination()
 
                 # macro type functinons
                 if StructInfo.has_macro(fn_name):
@@ -1202,7 +1182,7 @@ while index < len(Lines):
                 for fn in StructInfo.member_functions:
                     if fn.fn_name == fn_name:
                         fn_args = [arg.data_type for arg in fn.fn_arguments]
-                        print(fn_args)
+                        # print(fn_args)
 
                 print(f"struct_name : {parsed_member}, fn_name : {fn_name}")
 
@@ -1263,11 +1243,11 @@ while index < len(Lines):
 
                     param_count += 1
 
-                print(f"{parameters}")
+                # print(f"{parameters}")
 
                 code = ""
 
-                fn_name = mangled_function_name(parsed_member, fn_name)
+                fn_name = instanced_struct_info.get_mangled_function_name(fn_name)
 
                 if len(parameters) > 0:
                     parameters_str = ",".join(parameters)
@@ -1307,14 +1287,13 @@ while index < len(Lines):
                 add_fn = "__add__"
                 fns_required_for_addition = [add_fn]
 
-                struct_type = get_struct_type_of_instanced_struct(parsed_member)
-                StructInfo = get_struct_defination_of_type(struct_type)
+                StructInfo = instanced_struct_info.get_struct_defination()
 
                 if struct_type == "String":
                     for fn in fns_required_for_addition:
                         StructInfo.ensure_has_function(fn, parsed_member)
 
-                fn_name = get_mangled_fn_name(struct_type, add_fn)
+                fn_name = instanced_struct_info.get_mangled_function_name(add_fn)
                 fn_name_unmangled = add_fn
 
                 gen_code = ""
@@ -1373,14 +1352,14 @@ while index < len(Lines):
                 reassign_fn = "__reassign__"
                 fns_required_for_reassignment = [reassign_fn]
 
-                struct_type = get_struct_type_of_instanced_struct(parsed_member)
-                StructInfo = get_struct_defination_of_type(struct_type)
+                struct_type = instanced_struct_info.struct_type
+                StructInfo = instanced_struct_info.get_struct_defination()
 
                 if struct_type == "String":
                     for fn in fns_required_for_reassignment:
                         StructInfo.ensure_has_function(fn, parsed_member)
 
-                fn_name = get_mangled_fn_name(struct_type, reassign_fn)
+                fn_name = instanced_struct_info.get_mangled_function_name(reassign_fn)
                 fn_name_unmangled = reassign_fn
 
                 gen_code = ""
@@ -1782,18 +1761,21 @@ while index < len(Lines):
             string = parser.extract_string_literal()
 
             comparision_code = ""
-            if is_instanced_struct(var_to_check_against):
+
+            instanced_struct_info = get_instanced_struct(var_to_check_against)
+            is_instanced_struct_ = instanced_struct_info != None
+            if is_instanced_struct_:
                 eq_fn = "__eq__"
                 fns_required_for_equality = [eq_fn]
 
-                struct_type = get_struct_type_of_instanced_struct(var_to_check_against)
-                StructInfo = get_struct_defination_of_type(struct_type)
+                struct_type = instanced_struct_info.struct_type
+                StructInfo = instanced_struct_info.get_struct_defination()
 
                 if struct_type == "String":
                     for fn in fns_required_for_equality:
                         StructInfo.ensure_has_function(fn, var_to_check_against)
 
-                fn_name = get_mangled_fn_name(struct_type, eq_fn)
+                fn_name = instanced_struct_info.get_mangled_function_name(eq_fn)
                 comparision_code = f'{fn_name}(&{var_to_check_against}, "{string}")'
 
                 if negation_boolean_expression:
@@ -1841,9 +1823,14 @@ while index < len(Lines):
 
                 gen_code = ""
 
-                if is_instanced_struct(var_to_check_against):
-                    fn_name = mangled_function_name(
-                        var_to_check_against, "__contains__"
+                instanced_struct_info = get_instanced_struct(var_to_check_against)
+                if instanced_struct_info == None:
+                    raise ValueError(
+                        f"Target Struct {var_to_check_against} is undefined."
+                    )
+                else:
+                    fn_name = instanced_struct_info.get_mangled_function_name(
+                        "__contains__"
                     )
 
                     if var_to_check_type == "str":
@@ -1995,7 +1982,7 @@ while index < len(Lines):
 
         StructInfo = get_struct_defination_of_type(struct_name)
         struct_members_list = StructInfo.members
-        print(StructInfo.members)  # [['X', 'a', True], ['float', 'b', False]]
+        # print(StructInfo.members)  # [['X', 'a', True], ['float', 'b', False]]
 
         is_struct_templated = StructInfo.is_templated()
 
@@ -2042,7 +2029,7 @@ while index < len(Lines):
             parameters.append(MemberDataType(param_type, param_name, False))
             parameters_combined_list.append(f"{param_type} {param_name}")
 
-        print(f"{parameters}")
+        # print(f"{parameters}")
 
         code = ""
 
