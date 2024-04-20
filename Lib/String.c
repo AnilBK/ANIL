@@ -107,6 +107,16 @@ impl String __add__ pstring : str
   strcat(this->arr, pstring);
 endfunc
 
+impl String __reassign__ pstring : str
+  this->arr = (char *)realloc(this->arr, (strlen(pstring) + 1) * sizeof(char));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory Re-Allocation Error.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  strcpy(this->arr, pstring);
+endfunc
 
 ///*///
 

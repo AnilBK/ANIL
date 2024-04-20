@@ -104,12 +104,29 @@ void String__add__(struct String *this, char *pstring) {
   strcat(this->arr, pstring);
 }
 
+void String__reassign__(struct String *this, char *pstring) {
+  this->arr = (char *)realloc(this->arr, (strlen(pstring) + 1) * sizeof(char));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory Re-Allocation Error.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  strcpy(this->arr, pstring);
+}
+
 int main() {
 
   ///*///
 
   struct String str;
   String__init__(&str, "Hello World");
+  StringprintLn(&str);
+
+  String__reassign__(&str, "Reassign");
+  StringprintLn(&str);
+
+  String__reassign__(&str, "");
   StringprintLn(&str);
 
   struct String str2;
@@ -139,10 +156,12 @@ int main() {
   String__add__(&str, "New message appended at the end. ");
   StringprintLn(&str);
 
-  Stringclear(&str);
+  // str.clear
+  String__reassign__(&str, "");
 
   size_t len4 = Stringlen(&str);
   printf("Length of the string is : %llu. \n ", len4);
+  StringprintLn(&str);
 
   String__del__(&str3);
   String__del__(&str2);

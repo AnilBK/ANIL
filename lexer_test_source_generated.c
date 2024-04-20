@@ -191,6 +191,17 @@ void String__add__(struct String *this, char *pstring) {
   strcat(this->arr, pstring);
 }
 
+void String__reassign__(struct String *this, char *pstring) {
+  this->arr = (char *)realloc(this->arr, (strlen(pstring) + 1) * sizeof(char));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory Re-Allocation Error.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  strcpy(this->arr, pstring);
+}
+
 struct Dictionary {
   int added_values;
   KeyValuePairs pairs;
@@ -639,7 +650,7 @@ int main() {
         char *tk1 = Stringc_str(&token);
         Listappend_str(&tokens, tk1);
 
-        Stringclear(&token);
+        String__reassign__(&token, "");
 
         if (Vector_char__contains__(&character_tokens, Char)) {
           char Char_promoted_2[2] = {Char, '\0'};
@@ -682,8 +693,7 @@ int main() {
       } else {
         Listappend_str(&tokens, tk4);
       }
-      Stringclear(&token);
-
+      String__reassign__(&token, "");
     } else {
 
       if (Vector_char__contains__(&character_tokens, Char)) {
@@ -703,8 +713,7 @@ int main() {
         int int_tk = Dictionary__getitem__(&TOKEN_MAP, Char_promoted_5);
         Listappend_int(&tokens, int_tk);
 
-        Stringclear(&token);
-
+        String__reassign__(&token, "");
         continue;
       }
 
@@ -719,8 +728,7 @@ int main() {
           int int_tk = Dictionary__getitem__(&TOKEN_MAP, tk6_promoted_6);
           Listappend_int(&tokens, int_tk);
 
-          Stringclear(&token);
-
+          String__reassign__(&token, "");
           continue;
         }
       }

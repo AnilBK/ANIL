@@ -18,7 +18,13 @@ int main() {
 
   let str = String{"Hello World"};
   str.printLn
- 
+  
+  str = "Reassign"
+  str.printLn
+
+  str = ""
+  str.printLn
+
   let str2 = String{"Hi \n"};
   str2.print
 
@@ -43,28 +49,31 @@ int main() {
   str += "New message appended at the end. "
   str.printLn
 
-  str.clear
+  #str.clear
+  str = ""
+
   let len4 = str.len
   print(f "Length of the string is : {len4}. \n");
-
+  str.printLn
+  
   // DESTRUCTOR_CODE //
 
 
   ///*///
-  // clang-format on
-  // let str = String{"Hello World"};
-  // let str2 = str.strip();
-  /*
+      // clang-format on
+      // let str = String{"Hello World"};
+      // let str2 = str.strip();
+      /*
 
-  Note : Two Templated Structs in a class causes error when writing
-  __init__.
-  TODO ??
+      Note : Two Templated Structs in a class causes error when writing
+      __init__.
+      TODO ??
 
-  let string = Vector<char>{10};
-  string.push 65
-  string.push 66
-  string.push 67
-  string.print
-  */
-  return 0;
+      let string = Vector<char>{10};
+      string.push 65
+      string.push 66
+      string.push 67
+      string.print
+      */
+      return 0;
 }

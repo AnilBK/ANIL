@@ -8,9 +8,9 @@ import os
 # source_file = "examples\\vector_source.c"
 # source_file = "examples\\unique_ptr_source.c"
 # source_file = "examples\\string_class_source.c"
-# source_file = "lexer_test_source.c"
+source_file = "lexer_test_source.c"
 # source_file = "examples\\initializer_list.c"
-source_file = "examples\\Reflection.c"
+# source_file = "examples\\Reflection.c"
 # source_file = "examples\\vector_class_macros_test.c"
 # source_file = "examples\\List.c"
 # source_file = "examples\\constexpr_dict.c"
@@ -1349,6 +1349,50 @@ while index < len(Lines):
 
                 LinesCache.append(f"{gen_code}\n")
                 continue
+            elif parser.check_token(lexer.Token.EQUALS):
+                # str = "Reassign"
+                parser.consume_token(lexer.Token.EQUALS)
+
+                parsed_string_variable = False
+
+                if parser.check_token(lexer.Token.QUOTE):
+                    # str = "Reassign"
+                    parser.consume_token(lexer.Token.QUOTE)
+                    parsed_string_variable = False
+                else:
+                    # token = Char #TODO : Not implemented properly.
+                    parsed_string_variable = True
+
+                string = parser.current_token()
+                parser.next_token()
+                print(f"Obtained String : {string}")
+
+                reassign_fn = "__reassign__"
+                fns_required_for_reassignment = [reassign_fn]
+
+                struct_type = get_struct_type_of_instanced_struct(parsed_member)
+                StructInfo = get_struct_defination_of_type(struct_type)
+
+                if struct_type == "String":
+                    for fn in fns_required_for_reassignment:
+                        StructInfo.ensure_has_function(fn, parsed_member)
+
+                fn_name = get_mangled_fn_name(struct_type, reassign_fn)
+                fn_name_unmangled = reassign_fn
+
+                gen_code = ""
+
+                if parsed_string_variable:
+                    # token = Char
+                    raise Exception(
+                        "Reassignment operator is only implemented for string arguments."
+                    )
+                else:
+                    gen_code = f'{fn_name}(&{parsed_member}, "{string}");'
+
+                LinesCache.append(f"{gen_code}\n")
+                continue
+
         elif is_macro_name(parsed_member):
             # add_token_raw "="
             parse_macro(parsed_member, "NORMAL_MACRO")

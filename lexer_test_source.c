@@ -50,7 +50,7 @@ void CustomPrint(int data) {
 
 int main() {
 
-  // clang-format off
+// clang-format off
 
   ///*///
   import String
@@ -150,7 +150,7 @@ int main() {
         let tk1 = token.c_str
         add_token_raw tk1
 
-        token.clear
+        token = ""
 
         if Char in character_tokens{
           let tk2 = TOKEN_MAP[Char]
@@ -178,7 +178,7 @@ int main() {
 
         let tk4 = token.c_str
         add_token tk4
-        token.clear
+        token = ""
     }else{
       if Char in character_tokens{
         if token != ""{
@@ -187,7 +187,7 @@ int main() {
         }
         let int_tk = TOKEN_MAP[Char]
         add_int_token int_tk
-        token.clear
+        token = ""
         continue;
       }
 
@@ -200,7 +200,7 @@ int main() {
       if tk6 in character_tokens{
         let int_tk = TOKEN_MAP[tk6]
         add_int_token int_tk
-        token.clear
+        token = ""
         continue;
       }
       }
