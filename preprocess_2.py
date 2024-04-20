@@ -557,12 +557,6 @@ while index < len(Lines):
         length_fn_name = mangled_function_name(array_name, len_fn)
 
         if is_instance_of_templated_struct(array_name):
-            getter_fn_name = get_templated_mangled_fn_name(
-                struct_type, getter_fn, templated_data_type
-            )
-            length_fn_name = get_templated_mangled_fn_name(
-                struct_type, len_fn, templated_data_type
-            )
             return_type = get_templated_type_of_struct(array_name)
 
         global temp_arr_length_variable_count
