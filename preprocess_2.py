@@ -383,6 +383,25 @@ def get_templated_mangled_fn_name(
     return p_struct_type + "_" + p_templated_data_type + p_fn_name
 
 
+def mangled_function_name(p_struct_name: str, p_fn_name: str) -> str:
+    struct_type = get_struct_type_of_instanced_struct(p_struct_name)
+
+    if is_instance_of_templated_struct(p_struct_name):
+        templated_data_type = get_templated_type_of_struct(p_struct_name)
+
+        if templated_data_type is not None:
+            return get_templated_mangled_fn_name(
+                struct_type, p_fn_name, templated_data_type
+            )
+        else:
+            # Shouldn't happen.
+            raise Exception(
+                "[Fatal Error] Struct is templated but it's type isn't Registered."
+            )
+    else:
+        return get_mangled_fn_name(struct_type, p_fn_name)
+
+
 class DataType:
     def __init__(self, p_name: str, p_type: str):
         self.name = p_name
@@ -534,8 +553,8 @@ while index < len(Lines):
 
         return_type = StructInfo.get_return_type_of_fn(getter_fn)
 
-        getter_fn_name = get_mangled_fn_name(struct_type, getter_fn)
-        length_fn_name = get_mangled_fn_name(struct_type, len_fn)
+        getter_fn_name = mangled_function_name(array_name, getter_fn)
+        length_fn_name = mangled_function_name(array_name, len_fn)
 
         if is_instance_of_templated_struct(array_name):
             getter_fn_name = get_templated_mangled_fn_name(
@@ -1254,17 +1273,7 @@ while index < len(Lines):
 
                 code = ""
 
-                # if we need to call fn of templated class..
-                if is_instance_of_templated_struct(parsed_member):
-                    print(f"{parsed_member} is instance of templated struct.")
-
-                    templated_data_type = get_templated_type_of_struct(parsed_member)
-                    if templated_data_type is not None:
-                        fn_name = get_templated_mangled_fn_name(
-                            struct_type, fn_name, templated_data_type
-                        )
-                else:
-                    fn_name = get_mangled_fn_name(struct_type, fn_name)
+                fn_name = mangled_function_name(parsed_member, fn_name)
 
                 if len(parameters) > 0:
                     parameters_str = ",".join(parameters)
@@ -1839,25 +1848,9 @@ while index < len(Lines):
                 gen_code = ""
 
                 if is_instanced_struct(var_to_check_against):
-                    fn_name = "__contains__"
-                    struct_type = get_struct_type_of_instanced_struct(
-                        var_to_check_against
+                    fn_name = mangled_function_name(
+                        var_to_check_against, "__contains__"
                     )
-
-                    templated_type = ""
-                    templated_data_type = get_templated_type_of_struct(
-                        var_to_check_against
-                    )
-                    if templated_data_type is not None:
-                        templated_type = templated_data_type
-                        print(f"Templated type : {templated_data_type}")
-
-                    if templated_type != "":
-                        fn_name = get_templated_mangled_fn_name(
-                            struct_type, fn_name, templated_data_type
-                        )
-                    else:
-                        fn_name = get_mangled_fn_name(struct_type, fn_name)
 
                     if var_to_check_type == "str":
                         gen_code = (
