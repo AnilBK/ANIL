@@ -1077,6 +1077,22 @@ while index < len(Lines):
         global Lines
         Lines = Lines[:index_to_insert_at] + new_code + Lines[index_to_insert_at:]
 
+    def parse_constexpr_dictionary(p_dict_name):
+        parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)
+        key = parser.extract_string_literal()
+        parser.consume_token(lexer.Token.RIGHT_SQUARE_BRACKET)
+
+        for dict in constexpr_dictionaries:
+            if dict.dict_name == p_dict_name:
+                try:
+                    return dict.dictionary[key]
+                except KeyError:
+                    print(
+                        f'[Error] Key "{key}" wasn\'t found in the constexpr dictionary {p_dict_name}.'
+                    )
+        # Shouldn't happen as the caller functions have already verified the presence of the dictionaries.
+        raise ValueError(f"Constexpr dictionary {p_dict_name} is undefined.")
+
     if is_inside_struct_impl and not "endfunc" in Line:
         currently_reading_fn_body += Line
         if should_write_fn_body:
@@ -1701,27 +1717,7 @@ while index < len(Lines):
                     if is_constexpr_dict:
                         #  let color = Color["Red"]
                         #                   ^
-                        parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)
-
-                        variable_requested = parser.extract_string_literal()
-
-                        parser.consume_token(lexer.Token.RIGHT_SQUARE_BRACKET)
-
-                        actual_value = ""
-
-                        key = variable_requested
-
-                        for m_dict in constexpr_dictionaries:
-                            if m_dict.dict_name == target:
-                                try:
-                                    actual_value = m_dict.dictionary[key]
-                                    break
-                                except KeyError:
-                                    print(
-                                        f'[Error] Key "{key}" wasn\'t found in the constexpr dictionary<{target}>.'
-                                    )
-                                    exit(1)
-
+                        actual_value = parse_constexpr_dictionary(target)
                         LinesCache.append(f"int {var_name} = {actual_value};\n")
                     else:
                         parse_access_struct_member(var_name, target)
