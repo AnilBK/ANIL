@@ -26,7 +26,7 @@ typedef struct {
 
 // We don't have arrays inside our custom struct datatype,so vvv.
 typedef struct {
-  KeyValuePair pair[30];
+  KeyValuePair pair[45];
 } KeyValuePairs;
 
 ///*///
@@ -464,41 +464,67 @@ char Vector_char__getitem__(struct Vector__char *this, int index) {
 void CustomPrint(int data) {
   // printf("This is a custom print wrapper. [%d]\n", data);
 
-#define print_token(tk_string, tk_value)                                       \
-  do {                                                                         \
-    if (data == tk_value) {                                                    \
-      char *tk = tk_string;                                                    \
-      printf("Token: %s", tk);                                                 \
-    }                                                                          \
-  } while (0)
+  // The macro is in str, val pair because it is in this format in TOKEN_MAP
+  // below.
 
-  print_token("=", 1);
-  print_token("[", 2);
-  print_token("]", 3);
-  print_token(";", 4);
-  print_token(",", 5);
-  print_token("%", 6);
-  print_token("{", 7);
-  print_token("}", 8);
-  print_token("struct", 9);
-  print_token("match", 10);
-  print_token("for", 11);
-  print_token("if", 12);
-  print_token("in", 13);
-  print_token("Option", 14);
-  print_token("<", 15);
-  print_token(">", 16);
-  print_token("enumerate", 17);
-  print_token("+", 18);
-  print_token("fn", 19);
-  print_token("(", 20);
-  print_token(")", 21);
-  print_token(":", 22);
-  print_token(".", 23);
-  print_token("*", 24);
-  print_token("-", 25);
+#define token_case(str, val)                                                   \
+  case val:                                                                    \
+    msg = str;                                                                 \
+    break
 
-#undef print_token
+  char *msg;
+
+  switch (data) {
+    token_case("LET", 0);
+    token_case("EQUALS", 1);
+    token_case("LEFT_SQUARE_BRACKET", 2);
+    token_case("RIGHT_SQUARE_BRACKET", 3);
+    token_case("SEMICOLON", 4);
+    token_case("COMMA", 5);
+    token_case("PERCENT", 6);
+    token_case("LEFT_CURLY", 7);
+    token_case("RIGHT_CURLY", 8);
+    token_case("STRUCT", 9);
+    token_case("MATCH", 10);
+    token_case("FOR", 11);
+    token_case("IF", 12);
+    token_case("IN", 13);
+    token_case("OPTION", 14);
+    token_case("SMALLER_THAN", 15);
+    token_case("GREATER_THAN", 16);
+    token_case("ENUMERATE", 17);
+    token_case("QUOTE", 18);
+    token_case("PLUS", 19);
+    token_case("LEFT_ROUND_BRACKET", 21);
+    token_case("RIGHT_ROUND_BRACKET", 22);
+    token_case("COLON", 23);
+    token_case("DOT", 24);
+    token_case("ASTERISK", 25);
+    token_case("MINUS", 26);
+    token_case("DEF", 27);
+    token_case("IMPL", 28);
+    token_case("ENDDEF", 29);
+    token_case("ENDFN", 30);
+    token_case("ELSE", 31);
+    token_case("TRUE", 32);
+    token_case("FALSE", 33);
+    token_case("CONSTEXPR", 34);
+    token_case("HASH", 35);
+    token_case("INCLUDE", 36);
+    token_case("AT", 37);
+    token_case("APPLY_HOOK", 38);
+    token_case("HOOK_BEGIN", 39);
+    token_case("HOOK_END", 40);
+    token_case("EXCLAMATION", 41);
+  default: {
+    msg = "UNDEFINED: ";
+    break;
+  }
+  }
+
+  printf("Token : %s", msg);
+
+#undef token_case
 }
 
 int main() {
@@ -507,7 +533,9 @@ int main() {
 
   struct Dictionary TOKEN_MAP;
   Dictionary__init__(&TOKEN_MAP);
-  Dictionaryadd_key_value(&TOKEN_MAP, "let", 0);
+
+  // TOKEN_MAP.add_key_value "let" 0
+  Dictionary__setitem__(&TOKEN_MAP, "let", 0);
 
   Dictionary__setitem__(&TOKEN_MAP, "=", 1);
 
@@ -547,22 +575,52 @@ int main() {
 
   Dictionary__setitem__(&TOKEN_MAP, "fn", 19);
 
-  Dictionary__setitem__(&TOKEN_MAP, "(", 20);
+  Dictionary__setitem__(&TOKEN_MAP, "(", 21);
 
-  Dictionary__setitem__(&TOKEN_MAP, ")", 21);
+  Dictionary__setitem__(&TOKEN_MAP, ")", 22);
 
-  Dictionary__setitem__(&TOKEN_MAP, ":", 22);
+  Dictionary__setitem__(&TOKEN_MAP, ":", 23);
 
-  Dictionary__setitem__(&TOKEN_MAP, ".", 23);
+  Dictionary__setitem__(&TOKEN_MAP, ".", 24);
 
-  Dictionary__setitem__(&TOKEN_MAP, "*", 24);
+  Dictionary__setitem__(&TOKEN_MAP, "*", 25);
 
-  Dictionary__setitem__(&TOKEN_MAP, "-", 25);
+  Dictionary__setitem__(&TOKEN_MAP, "-", 26);
+
+  Dictionary__setitem__(&TOKEN_MAP, "def", 27);
+
+  Dictionary__setitem__(&TOKEN_MAP, "impl", 28);
+
+  Dictionary__setitem__(&TOKEN_MAP, "enddef", 29);
+
+  Dictionary__setitem__(&TOKEN_MAP, "endfunc", 30);
+
+  Dictionary__setitem__(&TOKEN_MAP, "else", 31);
+
+  Dictionary__setitem__(&TOKEN_MAP, "True", 32);
+
+  Dictionary__setitem__(&TOKEN_MAP, "False", 33);
+
+  Dictionary__setitem__(&TOKEN_MAP, "constexpr", 34);
+
+  Dictionary__setitem__(&TOKEN_MAP, "#", 35);
+
+  Dictionary__setitem__(&TOKEN_MAP, "include", 36);
+
+  Dictionary__setitem__(&TOKEN_MAP, "@", 37);
+
+  Dictionary__setitem__(&TOKEN_MAP, "apply_hook", 38);
+
+  Dictionary__setitem__(&TOKEN_MAP, "hook_begin", 39);
+
+  Dictionary__setitem__(&TOKEN_MAP, "hook_end", 40);
+
+  Dictionary__setitem__(&TOKEN_MAP, "!", 41);
 
   struct Vector__char character_tokens;
   Vector_char__init__(&character_tokens, 1);
   // Class Macro.
-  Vector_charallocate_more(&character_tokens, 16);
+  Vector_charallocate_more(&character_tokens, 19);
 
   Vector_charpush_unchecked(&character_tokens, '=');
 
@@ -595,6 +653,12 @@ int main() {
   Vector_charpush_unchecked(&character_tokens, '*');
 
   Vector_charpush_unchecked(&character_tokens, '-');
+
+  Vector_charpush_unchecked(&character_tokens, '#');
+
+  Vector_charpush_unchecked(&character_tokens, '@');
+
+  Vector_charpush_unchecked(&character_tokens, '!');
 
   struct String line_org;
   String__init__(&line_org, "  let arr = [ 1, 2, 3, 4 , 5 ]; } let");

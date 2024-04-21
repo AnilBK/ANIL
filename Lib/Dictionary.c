@@ -14,7 +14,7 @@ typedef struct  {
 
 //We don't have arrays inside our custom struct datatype,so vvv.
 typedef struct  {
-    KeyValuePair pair[30];
+    KeyValuePair pair[45];
 }KeyValuePairs;
 
 

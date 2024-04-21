@@ -1234,7 +1234,20 @@ while index < len(Lines):
                             parser.consume_token(lexer.Token.EQUALS)
 
                             value_for_set_item_func = parser.current_token()
-                            parameters.append(value_for_set_item_func)
+                            # parameters.append(value_for_set_item_func)
+
+                            is_constexpr_dict = any(
+                                m_dict.dict_name == value_for_set_item_func
+                                for m_dict in constexpr_dictionaries
+                            )
+
+                            if is_constexpr_dict:
+                                parser.next_token()
+                                parameters.append(
+                                    parse_constexpr_dictionary(value_for_set_item_func)
+                                )
+                            else:
+                                parameters.append(value_for_set_item_func)
                             break
                     # for dict end
 
