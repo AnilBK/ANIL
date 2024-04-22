@@ -469,6 +469,8 @@ def insert_string(original_string, index, string_to_insert) -> str:
 
 constexpr_dictionaries = []
 
+def is_constexpr_dictionary(p_dict_name) -> bool:
+    return any(m_dict.dict_name == p_dict_name for m_dict in constexpr_dictionaries)
 
 class ConstexprDictionaryType:
     def __init__(self, p_dict_name: str, p_dictionary: dict) -> None:
@@ -1236,11 +1238,7 @@ while index < len(Lines):
                             value_for_set_item_func = parser.current_token()
                             # parameters.append(value_for_set_item_func)
 
-                            is_constexpr_dict = any(
-                                m_dict.dict_name == value_for_set_item_func
-                                for m_dict in constexpr_dictionaries
-                            )
-
+                            is_constexpr_dict = is_constexpr_dictionary(value_for_set_item_func)
                             if is_constexpr_dict:
                                 parser.next_token()
                                 parameters.append(
@@ -1722,10 +1720,8 @@ while index < len(Lines):
                     var_name = struct_name
                     target = struct_type
 
-                    is_constexpr_dict = any(
-                        m_dict.dict_name == target for m_dict in constexpr_dictionaries
-                    )
-
+                    is_constexpr_dict = is_constexpr_dictionary(target)
+                    
                     #  let color = Color["Red"]
                     if is_constexpr_dict:
                         #  let color = Color["Red"]
