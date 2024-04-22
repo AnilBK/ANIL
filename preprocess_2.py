@@ -8,7 +8,7 @@ import os
 # source_file = "examples\\vector_source.c"
 # source_file = "examples\\unique_ptr_source.c"
 # source_file = "examples\\string_class_source.c"
-source_file = "lexer_test_source.c"
+# source_file = "lexer_test_source.c"
 # source_file = "examples\\initializer_list.c"
 # source_file = "examples\\Reflection.c"
 # source_file = "examples\\vector_class_macros_test.c"
@@ -16,6 +16,7 @@ source_file = "lexer_test_source.c"
 # source_file = "examples\\constexpr_dict.c"
 # source_file = "examples\\decorators_inside_fn_body.c"
 # source_file = "examples\\enumerate_source.c"
+source_file = "examples\\parser_tests.c"
 
 # source_file = "examples\\Vector.c"
 # source_file = "examples\\struct_source.c"
@@ -469,8 +470,10 @@ def insert_string(original_string, index, string_to_insert) -> str:
 
 constexpr_dictionaries = []
 
+
 def is_constexpr_dictionary(p_dict_name) -> bool:
     return any(m_dict.dict_name == p_dict_name for m_dict in constexpr_dictionaries)
+
 
 class ConstexprDictionaryType:
     def __init__(self, p_dict_name: str, p_dictionary: dict) -> None:
@@ -579,6 +582,26 @@ while index < len(Lines):
             f"int {current_array_value_variable} = {array_name}_enumerator.val;\n"
         )
 
+    def parse_number():
+        # COLOR["Red"]
+        # ^^^^^^^^^^^^ Constexpr Dictionary.
+        # 10
+        # ^^ Number.
+        # line.len
+        #      ^^^ function returning a number(int).
+
+        # TODO : Functions and struct member access still not supported.
+        # TODO : Use this function more consistently in various parts of the parser.
+
+        expr1 = parser.get_token()
+
+        if is_constexpr_dictionary(expr1):
+            return parse_constexpr_dictionary(expr1)
+        else:
+            if not expr1.isdigit():
+                raise ValueError(f"{expr1} isnot a number.")
+            return expr1
+
     def parse_let(type_name, array_name):
         parser.consume_token(lexer.Token.EQUALS)
         parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)
@@ -586,7 +609,10 @@ while index < len(Lines):
         array_values = []
 
         while parser.current_token() != lexer.Token.RIGHT_SQUARE_BRACKET:
-            arr_value = parser.get_token()
+            if type_name == "int":
+                arr_value = parse_number()
+            else:
+                arr_value = parser.get_token()
             array_values.append(arr_value)
             print(f"Array Value : {arr_value}")
             if parser.check_token(lexer.Token.COMMA):
@@ -1238,7 +1264,9 @@ while index < len(Lines):
                             value_for_set_item_func = parser.current_token()
                             # parameters.append(value_for_set_item_func)
 
-                            is_constexpr_dict = is_constexpr_dictionary(value_for_set_item_func)
+                            is_constexpr_dict = is_constexpr_dictionary(
+                                value_for_set_item_func
+                            )
                             if is_constexpr_dict:
                                 parser.next_token()
                                 parameters.append(
@@ -1721,7 +1749,7 @@ while index < len(Lines):
                     target = struct_type
 
                     is_constexpr_dict = is_constexpr_dictionary(target)
-                    
+
                     #  let color = Color["Red"]
                     if is_constexpr_dict:
                         #  let color = Color["Red"]
