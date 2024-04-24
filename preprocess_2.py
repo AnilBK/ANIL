@@ -81,12 +81,29 @@ def is_variable_of_type(p_var_name, p_type):
     return False
 
 
+def is_variable(p_var_name) -> bool:
+    for item_variable, return_type in instanced_variables:
+        if item_variable == p_var_name:
+            return True
+    return False
+
+
 def is_variable_char_type(p_var_name):
     return is_variable_of_type(p_var_name, "char")
 
 
+def is_variable_str_type(p_var_name):
+    return is_variable_of_type(p_var_name, "str") or is_variable_of_type(
+        p_var_name, "char*"
+    )
+
+
 def is_variable_boolean_type(p_var_name):
     return is_variable_of_type(p_var_name, "bool")
+
+
+def is_variable_int_type(p_var_name):
+    return is_variable_of_type(p_var_name, "int")
 
 
 # If any structs have __init__ method, then we register them here.
@@ -455,10 +472,9 @@ def REGISTER_VARIABLE(p_var_name: str, p_var_data_type: str) -> None:
     if debugDuplicatedVariables:
         # Variables inside def will be duplicated and they will also raise this error.
         # Use this flag for other local variables.
-        for var_name, _var_data_type in instanced_variables:
-            if var_name == p_var_name:
-                print(f"{instanced_variables}")
-                raise ValueError(f"{p_var_name} is already defined.")
+        if is_variable(p_var_name):
+            print(f"{instanced_variables}")
+            raise ValueError(f"{p_var_name} is already defined.")
 
     instanced_variables.append([p_var_name, p_var_data_type])
 
