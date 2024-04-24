@@ -1,14 +1,15 @@
-from typing import Optional
 import Parser
-import re
 import lexer
 
+from typing import Optional
+from enum import Enum
+import re
 import os
 
 # source_file = "examples\\vector_source.c"
 # source_file = "examples\\unique_ptr_source.c"
 # source_file = "examples\\string_class_source.c"
-# source_file = "lexer_test_source.c"
+source_file = "lexer_test_source.c"
 # source_file = "examples\\initializer_list.c"
 # source_file = "examples\\Reflection.c"
 # source_file = "examples\\vector_class_macros_test.c"
@@ -16,7 +17,7 @@ import os
 # source_file = "examples\\constexpr_dict.c"
 # source_file = "examples\\decorators_inside_fn_body.c"
 # source_file = "examples\\enumerate_source.c"
-source_file = "examples\\parser_tests.c"
+# source_file = "examples\\parser_tests.c"
 
 # source_file = "examples\\Vector.c"
 # source_file = "examples\\struct_source.c"
@@ -814,137 +815,159 @@ while index < len(Lines):
         global LinesCache
         LinesCache.append(code)
 
+    class ParameterType(Enum):
+        UNDEFINED = -1
+        RAW_STRING = 0
+        CHAR_OR_STR_TYPE = 1
+        NUMBER = 2
+
+    class Parameter:
+        def __init__(self, p_param, p_param_type: ParameterType) -> None:
+            self.param = p_param
+            self.param_type = p_param_type
+
+    def _read_a_parameter():
+        # Parse a number or string..
+        # In any case, just a single symbol.
+        parameter = None
+        parameter_type = ParameterType.UNDEFINED
+
+        tk = parser.current_token()
+        if tk == lexer.Token.QUOTE:
+            parameter = parser.extract_string_literal()
+            parameter_type = ParameterType.RAW_STRING
+        elif is_variable_str_type(tk) or is_variable_char_type(tk):
+            parameter = tk
+            parameter_type = ParameterType.CHAR_OR_STR_TYPE
+            parser.next_token()
+        else:
+            parameter = parse_number()
+            parameter_type = ParameterType.NUMBER
+
+        return Parameter(parameter, parameter_type)
+
+    def _read_parameters_within_round_brackets():
+        # Parse n number of parameters within two round brackets.
+        # (param1)
+        # (param1,param2...paramN)
+        parameters = []
+
+        parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
+        while parser.has_tokens_remaining():
+            curr_param = parser.current_token()
+            if curr_param == lexer.Token.RIGHT_ROUND_BRACKET:
+                break
+
+            parameters.append(_read_a_parameter())
+
+            curr_param = parser.current_token()
+            if curr_param != lexer.Token.RIGHT_ROUND_BRACKET:
+                # There are few other tokens rather than ).
+                # That should be a comma to indicate next parameter.
+                parser.consume_token(lexer.Token.COMMA)
+        parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
+
+        return parameters
+
     def parse_access_struct_member(var_name, target):
         instanced_struct_info = get_instanced_struct(target)
         if instanced_struct_info == None:
             raise ValueError(f"Target Struct {target} is undefined.")
-
         StructInfo = instanced_struct_info.get_struct_defination()
 
-        # print(StructInfo.print_member_fn_info())
+        fn_name_unmangled = ""
+
+        # Parameters provided to a given function call.
+        # stra.__contains__(strb)
+        #                   ^^^^ parameters
+        # For indexed member acess:
+        # let str = str2[0]
+        #                ^  parameters
+        parameters = []
 
         if parser.check_token(lexer.Token.LEFT_SQUARE_BRACKET):
-            # left sq. bracket is function name if we are acessing indexed variable.
-            # so we don't need to parse next token.
-            # parser.next_token()
-            pass
+            # For Dictionary Like items member acess.
+            # let test = TOKEN_MAP["Option"]
+
+            # let str = str2[0]
+            #               ^
+            fn_name_unmangled = "__getitem__"
+            parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)
+            parameters = [_read_a_parameter()]
+            parser.consume_token(lexer.Token.RIGHT_SQUARE_BRACKET)
         elif parser.check_token(lexer.Token.DOT):
+            # let str3 = str2.strip()
+            #                 ^^^^^   fn_name_unmangled
             parser.next_token()
+            fn_name_unmangled = parser.get_token()
+            parameters = _read_parameters_within_round_brackets()
         else:
-            print("Unimplemented Let Case.")
-            exit(0)
-
-        # parser.match_token(lexer.Token.DOT)
-        # parser.next_token()
-
-        fn_name_unmangled = parser.current_token()
-
-        # For Dictionary Like Data Items.
-        # let test = TOKEN_MAP["Option"]
-
-        # for dict begin
-        reading_operator_fn = False
-        if fn_name_unmangled == lexer.Token.LEFT_SQUARE_BRACKET:
-            if parser.tokens[-1] == lexer.Token.RIGHT_SQUARE_BRACKET:
-                reading_operator_fn = True
-                fn_name_unmangled = "__getitem__"
-                StructInfo.ensure_has_function(fn_name_unmangled, target)
-
-        # for dict end
-
-        fn_name = instanced_struct_info.get_mangled_function_name(fn_name_unmangled)
+            raise Exception("Unimplemented Let Case.")
 
         StructInfo.ensure_has_function(fn_name_unmangled, target)
-
         return_type = StructInfo.get_return_type_of_fn(fn_name_unmangled)
+        fn_name = instanced_struct_info.get_mangled_function_name(fn_name_unmangled)
 
-        if parser.has_tokens_remaining():
-            parser.next_token()
+        fn_args = []
+        for fn in StructInfo.member_functions:
+            if fn.fn_name == fn_name_unmangled:
+                fn_args = [arg.data_type for arg in fn.fn_arguments]
+                break
 
-            fn_args = []
-            for fn in StructInfo.member_functions:
-                if fn.fn_name == fn_name_unmangled:
-                    fn_args = [arg.data_type for arg in fn.fn_arguments]
-                    # print(fn_args)
+        if len(fn_args) != len(parameters):
+            raise ValueError(
+                f'Expected {len(fn_args)} arguments for function "{fn_name}" but provided {len(parameters)} arguments.'
+            )
 
-            # Store the promotion code for char to strings.
-            char_to_string_promotion_code = ""
+        parameters_quoted = []
+        for arg, parameter in zip(fn_args, parameters):
+            param = parameter.param
+            param_type = parameter.param_type
 
-            # Other tokens are arguments.
-            parameters = []
-
-            param_count = 0
-
-            while parser.has_tokens_remaining():
-                current_param_index = param_count
-
-                if parser.check_token(lexer.Token.QUOTE):
-                    parser.next_token()
-
-                    string = parser.current_token()
-
-                    parser.next_token()
-                    if parser.check_token(lexer.Token.QUOTE):
-                        parser.next_token()
-
-                        if "char*" in fn_args[current_param_index]:
-                            parameters.append(f'"{string}"')
-                        else:
-                            parameters.append(f"'{string}'")
-
-                        param_count += 1
-                        continue
-
-                # for dict begin
-                if reading_operator_fn:
-                    if len(parser.tokens) == 1:
-                        # the last thing is ']'.
-                        break
-                # for dict end
-
-                curr_param = parser.get_token()
-
-                # Implicit Conversion of char to char* if a function parameter expects a char*.
-                if is_variable_char_type(curr_param):
-                    if (
-                        "char*" in fn_args[current_param_index]
-                        or "str" in fn_args[current_param_index]
-                    ):
-                        global temp_char_promoted_to_string_variable_count
-                        promoted_char_var_name = f"{curr_param}_promoted_{temp_char_promoted_to_string_variable_count}"
-                        # Create a string from char.
-                        promoted_char_var_code = f"char {promoted_char_var_name}[2] = {{ {curr_param}, '\\0'}};"
-                        char_to_string_promotion_code += promoted_char_var_code
-                        temp_char_promoted_to_string_variable_count += 1
-
-                        # This new string replaces the old char param.
-                        curr_param = promoted_char_var_name
-
-                parameters.append(curr_param)
-
-                param_count += 1
-
-            print(f"{parameters}")
-
-            code = ""
-
-            global LinesCache
-
-            if char_to_string_promotion_code != "":
-                LinesCache.append(f"{char_to_string_promotion_code}\n")
-
-            if len(parameters) > 0:
-                parameters_str = ",".join(parameters)
-                LinesCache.append(
-                    f"{return_type} {var_name} = {fn_name}(&{target}, {parameters_str});\n"
-                )
+            if param_type == ParameterType.RAW_STRING:
+                if ("char*" in arg) or ("str" in arg):
+                    param = f'"{param}"'
+                else:
+                    param = f"'{param}'"
+                parameters_quoted.append(Parameter(param, param_type))
             else:
-                LinesCache.append(f"{return_type} {var_name} = {fn_name}(&{target});\n")
+                parameters_quoted.append(parameter)
+        parameters = parameters_quoted
 
-        # StructInfo = get_struct_defination_of_type(struct_type)
-        # print(StructInfo)
-        # if StructInfo is None:
-        #    raise ValueError("Struct undefined.")
+        # Promotion of char to char* when char is provided to a function that expects a char*.
+        char_to_string_promotion_code = ""
+        for i, (arg, parameter) in enumerate(zip(fn_args, parameters)):
+            param = parameter.param
+            if is_variable_char_type(param):
+                if ("char*" in arg) or ("str" in arg):
+                    global temp_char_promoted_to_string_variable_count
+                    promoted_char_var_name = f"{param}_promoted_{temp_char_promoted_to_string_variable_count}"
+                    # Create a string from char.
+                    promoted_char_var_code = (
+                        f"char {promoted_char_var_name}[2] = {{ {param}, '\\0'}};"
+                    )
+                    REGISTER_VARIABLE(f"{promoted_char_var_name}", "str")
+
+                    char_to_string_promotion_code += promoted_char_var_code
+                    temp_char_promoted_to_string_variable_count += 1
+
+                    # This new string replaces the old char param.
+                    parameters[i].param = promoted_char_var_name
+
+        global LinesCache
+
+        if char_to_string_promotion_code != "":
+            LinesCache.append(f"{char_to_string_promotion_code}\n")
+
+        if len(parameters) > 0:
+            params = [parameter.param for parameter in parameters]
+            parameters_str = ",".join(params)
+            LinesCache.append(
+                f"{return_type} {var_name} = {fn_name}(&{target}, {parameters_str});\n"
+            )
+        else:
+            LinesCache.append(f"{return_type} {var_name} = {fn_name}(&{target});\n")
+
         if "struct" in return_type:
             global instanced_struct_names
             instanced_struct_names.append(StructInstance("String", var_name, False, ""))
@@ -1245,8 +1268,6 @@ while index < len(Lines):
                     if fn.fn_name == fn_name:
                         fn_args = [arg.data_type for arg in fn.fn_arguments]
                         # print(fn_args)
-
-                print(f"struct_name : {parsed_member}, fn_name : {fn_name}")
 
                 # Other tokens are arguments.
                 parameters = []
@@ -1762,7 +1783,7 @@ while index < len(Lines):
                     # We are creating a struct type.
                     parse_create_struct(struct_type, struct_name)
                 else:
-                    # let str3 = str2.strip
+                    # let str3 = str2.strip()
                     var_name = struct_name
                     target = struct_type
 
