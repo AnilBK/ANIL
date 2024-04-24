@@ -613,6 +613,8 @@ while index < len(Lines):
 
         if is_constexpr_dictionary(expr1):
             return parse_constexpr_dictionary(expr1)
+        elif is_variable_int_type(expr1):
+            return expr1
         else:
             if not expr1.isdigit():
                 raise ValueError(f"{expr1} isnot a number.")
