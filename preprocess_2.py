@@ -870,6 +870,13 @@ while index < len(Lines):
         return parameters
 
     def parse_access_struct_member(var_name, target):
+        # let str = str2[0]
+        #     ^^^   ^^^^ ^
+        #     |     |    |
+        #     |     |    .________ parameters
+        #     |     ._____________ target
+        #     .___________________ varname
+
         instanced_struct_info = get_instanced_struct(target)
         if instanced_struct_info == None:
             raise ValueError(f"Target Struct {target} is undefined.")
@@ -878,8 +885,8 @@ while index < len(Lines):
         fn_name_unmangled = ""
 
         # Parameters provided to a given function call.
-        # stra.__contains__(strb)
-        #                   ^^^^ parameters
+        # let str = stra.__contains__(strb)
+        #                             ^^^^ parameters
         # For indexed member acess:
         # let str = str2[0]
         #                ^  parameters
