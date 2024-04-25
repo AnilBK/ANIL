@@ -76,7 +76,7 @@ void CustomPrint(int data) {
 
 int main() {
 
-  // clang-format off
+// clang-format off
 
   ///*///
   import String
@@ -135,8 +135,8 @@ int main() {
   character_tokens.pushn "=" "[" "]" ";" "," "{" "}" "<" ">" "+" "(" ")" ":" "." "*" "-" "#" "@" "!"
 
   let line_org = String{"  let arr = [ 1, 2, 3, 4 , 5 ]; } let"};
-  let line = line_org.strip
-  let length = line.len
+  let line = line_org.strip()
+  let length = line.len()
 
   let token = String{""};
   
@@ -191,7 +191,7 @@ int main() {
         # so we use the following method.
         # "=" the inner equals to shouldn't be tokenized.
 
-        let tk1 = token.c_str
+        let tk1 = token.c_str()
         add_token_raw tk1
 
         token = ""
@@ -220,13 +220,13 @@ int main() {
           continue;
         }
 
-        let tk4 = token.c_str
+        let tk4 = token.c_str()
         add_token tk4
         token = ""
     }else{
       if Char in character_tokens{
         if token != ""{
-          let tk5 = token.c_str
+          let tk5 = token.c_str()
           add_token tk5
         }
         let int_tk = TOKEN_MAP[Char]
@@ -235,7 +235,7 @@ int main() {
         continue;
       }
 
-      let is_single_character = token.is_of_length 1
+      let is_single_character = token.is_of_length(1)
 
       if is_single_character{
       let tk6 = token[0]
@@ -257,7 +257,7 @@ int main() {
 
   # Process the last token.
   if token != ""{
-    let tk = token.c_str
+    let tk = token.c_str()
     add_token tk
   }
 

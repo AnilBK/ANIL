@@ -156,12 +156,16 @@ int main() {
   String__add__(&str, "New message appended at the end. ");
   StringprintLn(&str);
 
-  // str.clear
   String__reassign__(&str, "");
 
   size_t len4 = Stringlen(&str);
   printf("Length of the string is : %llu. \n ", len4);
   StringprintLn(&str);
+
+  bool is_5_characters_long = Stringis_of_length(&str, 5);
+
+  char second_char = String__getitem__(&str, 1);
+  printf("Second character is : %c. \n ", second_char);
 
   String__del__(&str3);
   String__del__(&str2);
