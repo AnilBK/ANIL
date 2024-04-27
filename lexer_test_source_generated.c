@@ -686,7 +686,6 @@ int main() {
       if (Char == '"') {
 
         char Char_promoted_0[2] = {Char, '\0'};
-
         String__add__(&token, Char_promoted_0);
 
         escape_back_slash = false;
@@ -696,7 +695,6 @@ int main() {
       } else {
 
         char Char_promoted_1[2] = {Char, '\0'};
-
         String__add__(&token, Char_promoted_1);
 
         escape_back_slash = false;
@@ -739,7 +737,6 @@ int main() {
       }
 
       char Char_promoted_4[2] = {Char, '\0'};
-
       String__add__(&token, Char_promoted_4);
 
     } else if (Char == ' ') {
@@ -798,7 +795,6 @@ int main() {
       }
 
       char Char_promoted_7[2] = {Char, '\0'};
-
       String__add__(&token, Char_promoted_7);
     }
   }

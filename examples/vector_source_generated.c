@@ -46,10 +46,23 @@ void Vector_intpush(struct Vector__int *this, int value) {
     this->capacity *= 2;
     this->arr = (int *)realloc(this->arr, this->capacity * sizeof(int));
     if (this->arr == NULL) {
-      fprintf(stderr, "Memory reallocation failed\n");
+      fprintf(stderr, "Memory reallocation failed.\n");
       exit(EXIT_FAILURE);
     }
   }
+  this->arr[this->size++] = value;
+}
+
+void Vector_intallocate_more(struct Vector__int *this, int n) {
+  this->capacity += n;
+  this->arr = (int *)realloc(this->arr, this->capacity * sizeof(int));
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory reallocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+}
+
+void Vector_intpush_unchecked(struct Vector__int *this, int value) {
   this->arr[this->size++] = value;
 }
 
@@ -65,7 +78,7 @@ void Vector_intprint(struct Vector__int *this) {
   }
   */
 
-  printf("Dynamic Array (size=%zu, capacity=%zu): [", this->size,
+  printf("Dynamic Array (size = %zu, capacity = %zu) : [", this->size,
          this->capacity);
   for (size_t i = 0; i < this->size; ++i) {
     const char *type = "int";
@@ -91,6 +104,12 @@ bool Vector_int__contains__(struct Vector__int *this, int value) {
     }
   }
   return false;
+}
+
+size_t Vector_intlen(struct Vector__int *this) { return this->size; }
+
+int Vector_int__getitem__(struct Vector__int *this, int index) {
+  return *(this->arr + index);
 }
 
 // template <int> }
@@ -129,10 +148,23 @@ void Vector_floatpush(struct Vector__float *this, float value) {
     this->capacity *= 2;
     this->arr = (float *)realloc(this->arr, this->capacity * sizeof(float));
     if (this->arr == NULL) {
-      fprintf(stderr, "Memory reallocation failed\n");
+      fprintf(stderr, "Memory reallocation failed.\n");
       exit(EXIT_FAILURE);
     }
   }
+  this->arr[this->size++] = value;
+}
+
+void Vector_floatallocate_more(struct Vector__float *this, int n) {
+  this->capacity += n;
+  this->arr = (float *)realloc(this->arr, this->capacity * sizeof(float));
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory reallocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+}
+
+void Vector_floatpush_unchecked(struct Vector__float *this, float value) {
   this->arr[this->size++] = value;
 }
 
@@ -148,7 +180,7 @@ void Vector_floatprint(struct Vector__float *this) {
   }
   */
 
-  printf("Dynamic Array (size=%zu, capacity=%zu): [", this->size,
+  printf("Dynamic Array (size = %zu, capacity = %zu) : [", this->size,
          this->capacity);
   for (size_t i = 0; i < this->size; ++i) {
     const char *type = "float";
@@ -174,6 +206,12 @@ bool Vector_float__contains__(struct Vector__float *this, float value) {
     }
   }
   return false;
+}
+
+size_t Vector_floatlen(struct Vector__float *this) { return this->size; }
+
+float Vector_float__getitem__(struct Vector__float *this, int index) {
+  return *(this->arr + index);
 }
 
 // template <float> }
@@ -212,10 +250,23 @@ void Vector_charpush(struct Vector__char *this, char value) {
     this->capacity *= 2;
     this->arr = (char *)realloc(this->arr, this->capacity * sizeof(char));
     if (this->arr == NULL) {
-      fprintf(stderr, "Memory reallocation failed\n");
+      fprintf(stderr, "Memory reallocation failed.\n");
       exit(EXIT_FAILURE);
     }
   }
+  this->arr[this->size++] = value;
+}
+
+void Vector_charallocate_more(struct Vector__char *this, int n) {
+  this->capacity += n;
+  this->arr = (char *)realloc(this->arr, this->capacity * sizeof(char));
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory reallocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+}
+
+void Vector_charpush_unchecked(struct Vector__char *this, char value) {
   this->arr[this->size++] = value;
 }
 
@@ -231,7 +282,7 @@ void Vector_charprint(struct Vector__char *this) {
   }
   */
 
-  printf("Dynamic Array (size=%zu, capacity=%zu): [", this->size,
+  printf("Dynamic Array (size = %zu, capacity = %zu) : [", this->size,
          this->capacity);
   for (size_t i = 0; i < this->size; ++i) {
     const char *type = "char";
@@ -257,6 +308,12 @@ bool Vector_char__contains__(struct Vector__char *this, char value) {
     }
   }
   return false;
+}
+
+size_t Vector_charlen(struct Vector__char *this) { return this->size; }
+
+char Vector_char__getitem__(struct Vector__char *this, int index) {
+  return *(this->arr + index);
 }
 
 // template <char> }

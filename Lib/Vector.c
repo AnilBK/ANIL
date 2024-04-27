@@ -101,8 +101,8 @@ impl Vector __getitem__ index : int -> T
 endfunc
 
 def pushn(X...) for Vector:
-  self.allocate_more X.size
-	forall x: self.push_unchecked x 
+  self.allocate_more(X.size)
+	forall x: self.push_unchecked(x)
 enddef  
 ///*///
 

@@ -41,10 +41,10 @@ int main() {
 
   let node = Node{10};
 
-  node.print
+  node.print()
 
   @apply_hook("custom_integer_printer", CustomIntPrint)
-  node.print
+  node.print()
 
   // DESTRUCTOR_CODE //
   ///*///

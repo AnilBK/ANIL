@@ -27,8 +27,8 @@ int main() {
   printf("XXXXX = %d", this->x);
   endfunc
 
-  p1.say
-  p1.shout
+  p1.say()
+  p1.shout()
 
   struct Rectangle{float l, float b};
   impl Rectangle Area
@@ -36,7 +36,7 @@ int main() {
   endfunc
 
   let rect1 = Rectangle{20,10};
-  rect1.Area
+  rect1.Area()
 
   let arr<float> = [1,2,3,4,5];
 

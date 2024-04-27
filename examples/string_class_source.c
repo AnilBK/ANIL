@@ -17,19 +17,19 @@ int main() {
   import String
 
   let str = String{"Hello World"};
-  str.printLn
+  str.printLn()
   
   str = "Reassign"
-  str.printLn
+  str.printLn()
 
   str = ""
-  str.printLn
+  str.printLn()
 
   let str2 = String{"Hi \n"};
-  str2.print
+  str2.print()
 
   let str3 = str2.strip()
-  str3.printLn
+  str3.printLn()
 
   let len = str3.len()
   print(f "Length of the string is : {len}. \n");
@@ -47,13 +47,13 @@ int main() {
   }
 
   str += "New message appended at the end. "
-  str.printLn
+  str.printLn()
 
   str = ""
 
   let len4 = str.len()
   print(f "Length of the string is : {len4}. \n");
-  str.printLn
+  str.printLn()
 
   let is_5_characters_long = str.is_of_length(5)
   

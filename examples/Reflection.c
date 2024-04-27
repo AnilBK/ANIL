@@ -21,9 +21,9 @@ int main() {
   let list_instances = List{};
 
   def reflection():
-    forall x in members_of(Vector): vector_class_members.append_str x 
-    forall x in member_functions_of(Vector): vector_class_member_functions.append_str x 
-    forall x in instances_of_class(List): list_instances.append_str x
+    forall x in members_of(Vector): vector_class_members.append_str(x)
+    forall x in member_functions_of(Vector): vector_class_member_functions.append_str(x) 
+    forall x in instances_of_class(List): list_instances.append_str(x)
   enddef  
   reflection
 
@@ -33,7 +33,7 @@ int main() {
   # so, we unquote that using UNQUOTE in macro as belows.
   
   def reflective_print():
-    forall x in instances_of_class(List) UNQUOTE: x.print
+    forall x in instances_of_class(List) UNQUOTE: x.print()
   enddef
   reflective_print
 

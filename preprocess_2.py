@@ -12,17 +12,14 @@ import os
 source_file = "lexer_test_source.c"
 # source_file = "examples\\initializer_list.c"
 # source_file = "examples\\Reflection.c"
-# source_file = "examples\\vector_class_macros_test.c"
 # source_file = "examples\\List.c"
 # source_file = "examples\\constexpr_dict.c"
 # source_file = "examples\\decorators_inside_fn_body.c"
 # source_file = "examples\\enumerate_source.c"
 # source_file = "examples\\parser_tests.c"
 
-# source_file = "examples\\Vector.c"
 # source_file = "examples\\struct_source.c"
 # source_file = "examples\\string_source.c"
-# source_file = "examples\\iterator_test.c"
 output_file_name = source_file.split(".")[0] + "_generated.c"
 
 file = open(source_file, "r")

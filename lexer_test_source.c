@@ -146,15 +146,15 @@ int main() {
   let escape_back_slash = False
 
   def add_token_raw(p_token):
-    tokens.append_str p_token
+    tokens.append_str(p_token)
   enddef  
 
   def add_int_token(p_token):
-    tokens.append_int p_token
+    tokens.append_int(p_token)
   enddef  
 
   def add_string_token(p_token):
-    tokens.append_str p_token
+    tokens.append_str(p_token)
   enddef  
 
   def add_token(p_token):
@@ -166,7 +166,7 @@ int main() {
     }
   enddef
 
-  line.printLn
+  line.printLn()
 
   for Char in line{
     #print(f "{Char}");
@@ -198,14 +198,14 @@ int main() {
 
         if Char in character_tokens{
           let tk2 = TOKEN_MAP[Char]
-          tokens.append_int tk2            
+          tokens.append_int(tk2)
         }
       }else{
         # Start of string.
         inside_string = True
         if Char in character_tokens{
           let tk3 = TOKEN_MAP[Char]
-          tokens.append_int tk3            
+          tokens.append_int(tk3)
         }
       }
     } else if inside_string{
@@ -262,7 +262,7 @@ int main() {
   }
 
   @apply_hook("custom_integer_printer", CustomPrint)
-  tokens.print
+  tokens.print()
   
 
   // DESTRUCTOR_CODE //
