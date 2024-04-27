@@ -869,7 +869,7 @@ while index < len(Lines):
 
         return parameters
 
-    def parse_access_struct_member(var_name, target):
+    def _parse_function_call(target):
         # let str = str2[0]
         #     ^^^   ^^^^ ^
         #     |     |    |
@@ -961,25 +961,50 @@ while index < len(Lines):
                     # This new string replaces the old char param.
                     parameters[i].param = promoted_char_var_name
 
-        global LinesCache
-
         if char_to_string_promotion_code != "":
+            global LinesCache
             LinesCache.append(f"{char_to_string_promotion_code}\n")
-
-        if len(parameters) > 0:
-            params = [parameter.param for parameter in parameters]
-            parameters_str = ",".join(params)
-            LinesCache.append(
-                f"{return_type} {var_name} = {fn_name}(&{target}, {parameters_str});\n"
-            )
-        else:
-            LinesCache.append(f"{return_type} {var_name} = {fn_name}(&{target});\n")
 
         if "struct" in return_type:
             global instanced_struct_names
             instanced_struct_names.append(StructInstance("String", var_name, False, ""))
         else:
             REGISTER_VARIABLE(var_name, return_type)
+
+        parameters_str = ""
+        has_parameters = len(parameters) > 0
+        if has_parameters:
+            params = [parameter.param for parameter in parameters]
+            parameters_str = ",".join(params)
+
+        return {
+            "fn_name": fn_name,
+            "return_type": return_type,
+            "has_parameters": has_parameters,
+            "parameters_str": parameters_str,
+        }
+
+    def parse_access_struct_member(var_name, target):
+        # let str = str2[0]
+        #     ^^^   ^^^^ ^
+        #     |     |    |
+        #     |     |    .________ parameters
+        #     |     ._____________ target
+        #     .___________________ varname
+
+        parse_result = _parse_function_call(target)
+        fn_name = parse_result["fn_name"]
+        return_type = parse_result["return_type"]
+
+        assignment_code = f"{return_type} {var_name} = {fn_name}(&{target}"
+
+        if parse_result["has_parameters"]:
+            parameters_str = parse_result["parameters_str"]
+            assignment_code += f", {parameters_str}\n"
+        assignment_code += ");"
+
+        global LinesCache
+        LinesCache.append(f"{assignment_code}\n")
 
     def parse_macro(parsed_member, p_macro_type, p_macro_fn_name=""):
         # p_macro_type -> NORMAL_MACRO | CLASS_MACRO
@@ -1233,138 +1258,79 @@ while index < len(Lines):
             # Store the promotion code for char to strings.
             char_to_string_promotion_code = ""
 
+            fn_name = ""
+
             if indexed_member_request or parser.check_token(lexer.Token.DOT):
-                # This should parse
-                # TOKEN_MAP["="] = 1
-                # And, Also
-                #  TOKEN_MAP.add_key_value "let" 0
-
-                parser.next_token()
-
-                reading_operator_fn = False
-                fn_name = ""
-
                 if indexed_member_request:
+                    # This should parse
+                    # TOKEN_MAP["="] = 1
+                    #                  ^____ Value
+                    #           ^^^_________ Key
+
+                    parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)
+                    parameters = [_read_a_parameter()]
+                    parser.consume_token(lexer.Token.RIGHT_SQUARE_BRACKET)
+                    parser.consume_token(lexer.Token.EQUALS)
+
+                    parameters.append(_read_a_parameter())
+
                     # For Dictionary Like Data Items.
                     # TOKEN_MAP["="] = 1
-                    reading_operator_fn = True
                     fn_name = "__setitem__"
-                else:
-                    # So, we are accessing a struct member.
-                    # As, of now, we assume this is function call.
-                    #  TOKEN_MAP.add_key_value "let" 0
-                    fn_name = parser.get_token()
+                    fn_name = instanced_struct_info.get_mangled_function_name(fn_name)
 
-                # TODO : get datatype and check the arguments.
-                # so we can write '' or "".
-                # this is required for adding key value in dictionary.
-                StructInfo = instanced_struct_info.get_struct_defination()
+                    code = ""
+                    if len(parameters) > 0:
+                        params = []
+                        for parameter in parameters:
+                            if parameter.param_type == ParameterType.RAW_STRING:
+                                params.append(f'"{parameter.param}"')
+                            else:
+                                params.append(parameter.param)
 
-                # macro type functinons
-                if StructInfo.has_macro(fn_name):
-                    struct_name = parsed_member
-                    parse_macro(parsed_member, "CLASS_MACRO", fn_name)
+                        parameters_str = ",".join(params)
+                        code = f"{fn_name}(&{parsed_member}, {parameters_str});\n\n"
 
-                    LinesCache.append(f"//Class Macro.\n")
-                    continue
+                    if char_to_string_promotion_code != "":
+                        LinesCache.append(f"{char_to_string_promotion_code}\n")
 
-                StructInfo.ensure_has_function(fn_name, parsed_member)
+                    LinesCache.append(f"{code}\n")
+                elif parser.check_token(lexer.Token.DOT):
+                    var_name = parsed_member
+                    parser.next_token()
 
-                fn_args = []
-                for fn in StructInfo.member_functions:
-                    if fn.fn_name == fn_name:
-                        fn_args = [arg.data_type for arg in fn.fn_arguments]
-                        # print(fn_args)
+                    fn_name_tmp = parser.current_token()
 
-                # Other tokens are arguments.
-                parameters = []
-                param_count = 0
-                while parser.has_tokens_remaining():
-                    current_param_index = param_count
+                    StructInfo = instanced_struct_info.get_struct_defination()
 
-                    if parser.check_token(lexer.Token.QUOTE):
-                        string = parser.extract_string_literal()
+                    # macro type functinons
+                    if StructInfo.has_macro(fn_name_tmp):
+                        struct_name = parsed_member
+                        parse_macro(parsed_member, "CLASS_MACRO", fn_name_tmp)
 
-                        """
-                        if len(string) == 1:
-                            # Scanned Char character.
-                            parameters.append(f"'{string}'")
-                        else:
-                            # Scanned entire string.
-                            parameters.append(f'"{string}"')
-                        """
-                        if "char*" in fn_args[current_param_index]:
-                            parameters.append(f'"{string}"')
-                        else:
-                            parameters.append(f"'{string}'")
-
-                        param_count += 1
+                        LinesCache.append(f"//Class Macro.\n")
                         continue
 
-                    # for dict begin
-                    if reading_operator_fn:
-                        if parser.check_token(lexer.Token.RIGHT_SQUARE_BRACKET):
-                            parser.next_token()
-                            parser.consume_token(lexer.Token.EQUALS)
+                    parser = Parser.Parser(Line)
+                    # ctok.push(10)
+                    parser.next_token()
 
-                            value_for_set_item_func = parser.current_token()
-                            # parameters.append(value_for_set_item_func)
+                    parse_result = _parse_function_call(parsed_member)
+                    fn_name = parse_result["fn_name"]
+                    return_type = parse_result["return_type"]
 
-                            is_constexpr_dict = is_constexpr_dictionary(
-                                value_for_set_item_func
-                            )
-                            if is_constexpr_dict:
-                                parser.next_token()
-                                parameters.append(
-                                    parse_constexpr_dictionary(value_for_set_item_func)
-                                )
-                            else:
-                                parameters.append(value_for_set_item_func)
-                            break
-                    # for dict end
-
-                    curr_param = parser.get_token()
-
-                    # Implicit Conversion of char to char* if a function parameter expects a char*.
-                    if is_variable_char_type(curr_param):
-                        if (
-                            "char*" in fn_args[current_param_index]
-                            or "str" in fn_args[current_param_index]
-                        ):
-                            promoted_char_var_name = f"{curr_param}_promoted_{temp_char_promoted_to_string_variable_count}"
-                            # Create a string from char.
-                            promoted_char_var_code = f"char {promoted_char_var_name}[2] = {{ {curr_param}, '\\0'}}; \n"
-                            char_to_string_promotion_code += promoted_char_var_code
-                            temp_char_promoted_to_string_variable_count += 1
-
-                            # This new string replaces the old char param.
-                            curr_param = promoted_char_var_name
-
-                    parameters.append(curr_param)
-
-                    param_count += 1
-
-                # print(f"{parameters}")
-
-                code = ""
-
-                fn_name = instanced_struct_info.get_mangled_function_name(fn_name)
-
-                if len(parameters) > 0:
-                    parameters_str = ",".join(parameters)
-                    code = f"{fn_name}(&{parsed_member}, {parameters_str});\n\n"
-                else:
-                    if HOOKS_hook_fn_name != "":
-                        code = f"{fn_name}_hooked_{hook_fn_name}(&{parsed_member},{HOOKS_target_fn});\n"
-                        HOOKS_hook_fn_name = ""
-                        HOOKS_target_fn = ""
+                    if parse_result["has_parameters"]:
+                        parameters_str = parse_result["parameters_str"]
+                        code = f"{fn_name}(&{var_name}, {parameters_str});\n"
                     else:
-                        code = f"{fn_name}(&{parsed_member});\n"
+                        if HOOKS_hook_fn_name != "":
+                            code = f"{fn_name}_hooked_{hook_fn_name}(&{var_name},{HOOKS_target_fn});\n"
+                            HOOKS_hook_fn_name = ""
+                            HOOKS_target_fn = ""
+                        else:
+                            code = f"{fn_name}(&{var_name});\n"
 
-                if char_to_string_promotion_code != "":
-                    LinesCache.append(f"{char_to_string_promotion_code}\n")
-
-                LinesCache.append(f"{code}\n")
+                    LinesCache.append(f"{code}\n")
                 continue
             elif parser.check_token(lexer.Token.PLUS):
                 # str += "World"
@@ -1420,7 +1386,7 @@ while index < len(Lines):
                         # Emit CPL code and that code handles this promotion automatically.
 
                         new_line = (
-                            f"{parsed_member}.{fn_name_unmangled} {string_variable}"
+                            f"{parsed_member}.{fn_name_unmangled}({string_variable})"
                         )
                         index_to_insert_at = index
                         Lines.insert(index_to_insert_at, new_line)
