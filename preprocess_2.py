@@ -108,6 +108,15 @@ def is_variable_int_type(p_var_name):
     return is_variable_of_type(p_var_name, "int")
 
 
+def is_variable_array_type(p_var_name):
+    var_type = get_type_of_variable(p_var_name)
+    if var_type == None:
+        return False
+
+    is_array_type = var_type[0] == "[" and var_type[-1] == "]"
+    return is_array_type
+
+
 # If any structs have __init__ method, then we register them here.
 structs_with_constructors = []
 
@@ -380,6 +389,10 @@ def add_fn_member_to_struct(p_struct_name: str, p_fn: MemberFunction):
 def get_format_specifier(p_type: str) -> str:
     db = {"char": "c", "int": "d", "float": "f", "size_t": "llu"}
 
+    is_array_type = p_type[0] == "[" and p_type[-1] == "]"
+    if is_array_type:
+        p_type = p_type[1:-1]
+
     if p_type in db.keys():
         return db[p_type]
     else:
@@ -463,6 +476,7 @@ is_inside_struct_impl = False
 
 instanced_variables = []
 temp_arr_length_variable_count = 0
+temp_arr_search_variable_count = 0
 temp_char_promoted_to_string_variable_count = 0
 
 
@@ -542,10 +556,20 @@ while index < len(Lines):
 
     def create_normal_array_iterator(array_name, current_array_value_variable):
         global LinesCache
+
+        # The variable type is in format '[int]'.
+        array_type = get_type_of_variable(array_name)
+        if array_type == None:
+            raise Exception(f"{array_type} isn't a registered array type.")
+
+        array_type = array_type[1:-1]
+
         LinesCache.append(
             f"for (unsigned int i = 0; i < {array_name}_array_size; i++){{\n"
-            f"int {current_array_value_variable} = {array_name}[i];\n"
+            f"{array_type} {current_array_value_variable} = {array_name}[i];\n"
         )
+
+        REGISTER_VARIABLE(current_array_value_variable, array_type)
 
     def create_array_iterator_from_struct(array_name, current_array_value_variable):
         instanced_struct_info = get_instanced_struct(array_name)
@@ -649,6 +673,9 @@ while index < len(Lines):
         LinesCache.append(
             f"unsigned int {array_name}_array_size = {array_element_count};\n\n"
         )
+
+        # register variable as '[int]' to indicate the array of type int.
+        REGISTER_VARIABLE(array_name, f"[{type_name}]")
 
     def parse_create_struct(struct_type, struct_name):
         is_templated_struct = False
@@ -821,6 +848,7 @@ while index < len(Lines):
         RAW_STRING = 0
         CHAR_OR_STR_TYPE = 1
         NUMBER = 2
+        VARIABLE = 3
 
     class Parameter:
         def __init__(self, p_param, p_param_type: ParameterType) -> None:
@@ -837,9 +865,12 @@ while index < len(Lines):
         if tk == lexer.Token.QUOTE:
             parameter = parser.extract_string_literal()
             parameter_type = ParameterType.RAW_STRING
-        elif is_variable_str_type(tk) or is_variable_char_type(tk):
+        elif is_variable(tk):
             parameter = tk
-            parameter_type = ParameterType.CHAR_OR_STR_TYPE
+            if is_variable_str_type(tk) or is_variable_char_type(tk):
+                parameter_type = ParameterType.CHAR_OR_STR_TYPE
+            else:
+                parameter_type = ParameterType.VARIABLE
             parser.next_token()
         else:
             parameter = parse_number()
@@ -1869,9 +1900,29 @@ while index < len(Lines):
 
                 instanced_struct_info = get_instanced_struct(var_to_check_against)
                 if instanced_struct_info == None:
-                    raise ValueError(
-                        f"Target Struct {var_to_check_against} is undefined."
-                    )
+                    if is_variable_array_type(var_to_check_against):
+                        array_type = get_type_of_variable(var_to_check_against)
+
+                        search_variable = f"{var_to_check_against}__contains__{var_to_check}_{temp_arr_search_variable_count}"
+
+                        LinesCache.append(
+                            f"bool {search_variable} = false;\n"
+                            f"for (unsigned int i = 0; i < {var_to_check_against}_array_size; i++){{\n"
+                            f"  if ({var_to_check_against}[i] == {var_to_check}){{\n"
+                            f"      {search_variable} = true;\n"
+                            f"      break;\n"
+                            f"  }}\n"
+                            f" }}\n"
+                        )
+
+                        temp_arr_search_variable_count += 1
+                        gen_code = f"{search_variable}"
+                        REGISTER_VARIABLE(search_variable, f"bool")
+
+                    else:
+                        raise ValueError(
+                            f"Target variable {var_to_check_against} is undefined. \n It is neither an array nor a struct."
+                        )
                 else:
                     fn_name = instanced_struct_info.get_mangled_function_name(
                         "__contains__"

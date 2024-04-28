@@ -1,15 +1,11 @@
 #include <stdbool.h>
 #include <stdio.h>
-#include <string.h>
 
-bool array_contains(int *arr, int size, int query) {
-  for (int i = 0; i < size; i++) {
-    if (arr[i] == query) {
-      return true;
-    }
-  }
-  return false;
-}
+// IMPORTS //
+
+// OPTIONAL_INIT_CODE //
+
+// STRUCT_DEFINATIONS //
 
 int main() {
 
@@ -19,37 +15,43 @@ int main() {
 
   import String
   
-  let str = "Hello";
-  puts(str);
-
+  let str = String{"Hello"};
+  str.printLn()
+  
   for value in str{
-   putchar(value);
-  %}
+    print(f "{value}.\n"); 
+  }
 
   if str == "Hello"{
-      puts("Str is hello.");
-  %}
+    print(f "Str is hello.\n"); 
+  }
 
   str += " World";
-  puts(str);
+  str.printLn()
   
   str += " Its me Anil"
-  puts(str);
+  str.printLn()
 
-  if "xxx" in str { 
-    print(f "xxx is in the given string\n"); 
-  %}
+  if "Anil" in str { 
+    print(f "Anil is in the given string.\n"); 
+  }
 
-  let arr = [1, 2, 3, 4, 5];
+  let arr<int> = [1, 2, 3, 4, 5, 10];
 
   if 10 in arr{
-    print(f "10 is in arr.");
-  %}
+    print(f "10 is in arr. \n");
+  }
 
-  for value in arr{
-   print(f "{value} \n"); 
-  %}
+  for value2 in arr{
+    print(f "{value2} \n"); 
+  }
 
+  let arr2<float> = [1, 2, 3, 4, 5, 10];
+  for value3 in arr2{
+    print(f "{value3} \n"); 
+  }
+
+  // DESTRUCTOR_CODE //
   ///*///
   // clang-format on
 
