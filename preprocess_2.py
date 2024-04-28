@@ -71,19 +71,23 @@ string_variable_names = []
 optional_types_to_register = set()
 
 
+def get_type_of_variable(p_var_name):
+    for var_name, return_type in instanced_variables:
+        if var_name == p_var_name:
+            return return_type
+    return None
+
+
 def is_variable_of_type(p_var_name, p_type):
-    for item_variable, return_type in instanced_variables:
-        if item_variable == p_var_name:
-            if return_type == p_type:
-                return True
-    return False
+    var_type = get_type_of_variable(p_var_name)
+    if var_type == None:
+        return False
+
+    return var_type == p_type
 
 
 def is_variable(p_var_name) -> bool:
-    for item_variable, return_type in instanced_variables:
-        if item_variable == p_var_name:
-            return True
-    return False
+    return get_type_of_variable(p_var_name) != None
 
 
 def is_variable_char_type(p_var_name):
@@ -1651,11 +1655,9 @@ while index < len(Lines):
             elif char == "}":
                 braces_open = False
                 format_specifier = "d"
-                for ranged_index_item_variable, return_type in instanced_variables:
-                    if extracted_var_name == ranged_index_item_variable:
-                        format_specifier = get_format_specifier(return_type)
-                        break
-
+                return_type = get_type_of_variable(extracted_var_name)
+                if return_type != None:
+                    format_specifier = get_format_specifier(return_type)
                 str_text += f"%{format_specifier}"
                 extracted_var_name_list.append(extracted_var_name)
             elif braces_open:
