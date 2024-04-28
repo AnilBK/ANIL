@@ -809,7 +809,7 @@ while index < len(Lines):
         else:
             for struct_member, values in struct_var_values_pairs:
                 # type = struct_member[0]
-                mem = struct_member[1]
+                mem = struct_member.member
 
                 code += f"{struct_name}.{mem} = {values};\n"
 
