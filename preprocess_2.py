@@ -540,9 +540,6 @@ while index < len(Lines):
     parser = Parser.Parser(Line)
 
     def check_token(token: lexer.Token):
-        if len(parser.tokens) == 0:
-            return False
-
         return parser.check_token(token)
 
     def create_string_iterator(array_name):
@@ -1498,8 +1495,9 @@ while index < len(Lines):
                 LinesCache.append(f"{parsed_member} = false; \n")
             else:
                 raise ValueError("Expected a boolean value.")
-
             continue
+    else:
+        continue
 
     if check_token(lexer.Token.RIGHT_CURLY):
 
