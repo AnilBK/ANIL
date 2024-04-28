@@ -1,6 +1,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+// IMPORTS //
+
 // OPTIONAL_INIT_CODE //
 
 // STRUCT_DEFINATIONS //
@@ -18,13 +20,13 @@ int main() {
   let p1 = Point{20, 50};
 
   impl Point say
-  // We write normal C code inside impl.
-  // Use this-> pointer to access member variables.
-  printf("x : %d , y : %d \n", this->x, this->y);
+    // We write normal C code inside impl.
+    // Use this-> pointer to access member variables.
+    printf("x : %d , y : %d \n", this->x, this->y);
   endfunc
 
   impl Point shout
-  printf("XXXXX = %d", this->x);
+    printf("Shouting Point Values, x = %d.\n", this->x);
   endfunc
 
   p1.say()
@@ -32,7 +34,7 @@ int main() {
 
   struct Rectangle{float l, float b};
   impl Rectangle Area
-  printf("Area is : %d \n", this->l * this->b);
+    printf("Area is : %f.\n", this->l * this->b);
   endfunc
 
   let rect1 = Rectangle{20,10};
@@ -52,8 +54,10 @@ int main() {
   struct Vector<T>{T* arr,int size,int capacity};
 
   let vec2 = Vector<int>{NULL, 10, 20};
-  let vec2 = Vector<float>{NULL, 10, 20};
+  let vec3 = Vector<float>{NULL, 10, 20};
 
+
+  // DESTRUCTOR_CODE //
   ///*///
   // clang-format on
 
