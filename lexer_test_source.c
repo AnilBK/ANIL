@@ -159,8 +159,8 @@ int main() {
 
   def add_token(p_token):
     if p_token in TOKEN_MAP{
-      let token = TOKEN_MAP[p_token]
-      add_int_token token
+      let mtk = TOKEN_MAP[p_token]
+      add_int_token mtk
     }else{  
       add_string_token p_token
     }

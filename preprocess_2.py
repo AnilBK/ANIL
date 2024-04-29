@@ -72,10 +72,10 @@ optional_types_to_register = set()
 
 
 def get_type_of_variable(p_var_name):
-    for var_name, return_type in instanced_variables:
-        if var_name == p_var_name:
-            return return_type
-    return None
+    if p_var_name in instanced_variables:
+        return instanced_variables[p_var_name]
+    else:
+        return None
 
 
 def is_variable_of_type(p_var_name, p_type):
@@ -131,6 +131,26 @@ class NestingLevel(Enum):
 
 
 nesting_levels = []
+
+variable_scope = 0
+
+
+def increment_scope():
+    global variable_scope
+    variable_scope += 1
+
+
+def decrement_scope():
+    global variable_scope
+    global instanced_variables_scoped
+
+    if variable_scope in instanced_variables_scoped:
+        del instanced_variables_scoped[variable_scope]
+
+    variable_scope -= 1
+
+
+increment_scope()
 
 
 def has_constructors(p_struct_type: str) -> bool:
@@ -474,10 +494,28 @@ currently_reading_def_body = ""
 is_inside_new_code = False
 is_inside_struct_impl = False
 
-instanced_variables = []
+instanced_variables = {}
+# Same as above but stores just the names of the instances with respective scopes.
+# {"1":[var1,var2,var3],"2":[var4]..}
+instanced_variables_scoped = {}
 temp_arr_length_variable_count = 0
 temp_arr_search_variable_count = 0
 temp_char_promoted_to_string_variable_count = 0
+
+
+def is_variable_already_defined_in_scope(p_var_name):
+    global variable_scope
+    # Is Variable defined in the current scope.
+    if variable_scope in instanced_variables_scoped:
+        if p_var_name in instanced_variables_scoped[variable_scope]:
+            return True
+
+    # Check the previous scope variables.
+    for _, value in instanced_variables_scoped.items():
+        if p_var_name in value:
+            return True
+
+    return False
 
 
 def REGISTER_VARIABLE(p_var_name: str, p_var_data_type: str) -> None:
@@ -492,7 +530,22 @@ def REGISTER_VARIABLE(p_var_name: str, p_var_data_type: str) -> None:
             print(f"{instanced_variables}")
             raise ValueError(f"{p_var_name} is already defined.")
 
-    instanced_variables.append([p_var_name, p_var_data_type])
+    # if p_var_name in instanced_variables:
+    #    print(f"Instanced variables : {instanced_variables}")
+    #    pass
+
+    if is_variable_already_defined_in_scope(p_var_name):
+        raise Exception(f"{p_var_name} is already defined in previous scopes.")
+        # print(f"----Collision--- for {p_var_name}")
+        # raise ValueError(f"{p_var_name} is already defined.")
+
+    global variable_scope
+    if variable_scope in instanced_variables_scoped:
+        instanced_variables_scoped[variable_scope].append(p_var_name)
+    else:
+        instanced_variables_scoped[variable_scope] = [p_var_name]
+
+    instanced_variables[p_var_name] = p_var_data_type
 
 
 # Insert a string at a given index in another string.
@@ -717,6 +770,8 @@ while index < len(Lines):
 
         global instanced_struct_names
         instanced_struct_names.append(instanced_struct_info)
+
+        REGISTER_VARIABLE(struct_name, struct_type)
 
         class_already_instantiated = is_class_already_instantiated(
             struct_type, is_templated_struct, templated_data_type
@@ -1504,6 +1559,7 @@ while index < len(Lines):
                 raise ValueError("Expected a boolean value.")
             continue
     else:
+        LinesCache.append("\n")
         continue
 
     if check_token(lexer.Token.RIGHT_CURLY):
@@ -1512,9 +1568,11 @@ while index < len(Lines):
 
         if top_of_stack == NestingLevel.FOR_LOOP:
             _ = nesting_levels.pop(-1)
+            decrement_scope()
             LinesCache.append("}\n")
         elif top_of_stack == NestingLevel.IF_STATEMENT:
             _ = nesting_levels.pop(-1)
+            decrement_scope()
             LinesCache.append("}\n")
 
             if len(parser.tokens) >= 2:
@@ -1543,9 +1601,10 @@ while index < len(Lines):
                         # normal else branch.
                         LinesCache.append("{\n")
                         nesting_levels.append(NestingLevel.ELSE_STATEMENT)
-
+                       decrement_scope()
         elif top_of_stack == NestingLevel.ELSE_STATEMENT:
             _ = nesting_levels.pop(-1)
+            decrement_scope()
             LinesCache.append("}\n")
         else:
             raise Exception("UnImplemented Right Curly.")
@@ -1807,6 +1866,7 @@ while index < len(Lines):
                         parse_access_struct_member(var_name, target)
     elif check_token(lexer.Token.IF):
         nesting_levels.append(NestingLevel.IF_STATEMENT)
+        increment_scope()
 
         parser = Parser.Parser(Line)
 
@@ -1957,6 +2017,7 @@ while index < len(Lines):
         # Enumerated loops.
         # for ranged_index_item_variable,current_array_value_variable in enumerate array_name{
         nesting_levels.append(NestingLevel.FOR_LOOP)
+        increment_scope()
 
         parser.consume_token(lexer.Token.FOR)
 

@@ -749,12 +749,16 @@ int main() {
       char *tk4 = Stringc_str(&token);
 
       if (Dictionary__contains__(&TOKEN_MAP, tk4)) {
-        int token = Dictionary__getitem__(&TOKEN_MAP, tk4);
-        Listappend_int(&tokens, token);
+
+        int mtk = Dictionary__getitem__(&TOKEN_MAP, tk4);
+
+        Listappend_int(&tokens, mtk);
 
       } else {
+
         Listappend_str(&tokens, tk4);
       }
+
       String__reassign__(&token, "");
     } else {
 
@@ -764,10 +768,13 @@ int main() {
           char *tk5 = Stringc_str(&token);
 
           if (Dictionary__contains__(&TOKEN_MAP, tk5)) {
-            int token = Dictionary__getitem__(&TOKEN_MAP, tk5);
-            Listappend_int(&tokens, token);
+
+            int mtk = Dictionary__getitem__(&TOKEN_MAP, tk5);
+
+            Listappend_int(&tokens, mtk);
 
           } else {
+
             Listappend_str(&tokens, tk5);
           }
         }
@@ -806,10 +813,13 @@ int main() {
     char *tk = Stringc_str(&token);
 
     if (Dictionary__contains__(&TOKEN_MAP, tk)) {
-      int token = Dictionary__getitem__(&TOKEN_MAP, tk);
-      Listappend_int(&tokens, token);
+
+      int mtk = Dictionary__getitem__(&TOKEN_MAP, tk);
+
+      Listappend_int(&tokens, mtk);
 
     } else {
+
       Listappend_str(&tokens, tk);
     }
   }
