@@ -898,13 +898,16 @@ while index < len(Lines):
 
         return parameters
 
-    def _parse_function_call(target):
+    def _parse_function_call(target, assignment_fn_call=True):
         # let str = str2[0]
         #     ^^^   ^^^^ ^
         #     |     |    |
         #     |     |    .________ parameters
         #     |     ._____________ target
         #     .___________________ varname
+
+        # assignment_fn_call to hint its let X = A.Y();
+        # And not, just a function call like A.X();
 
         instanced_struct_info = get_instanced_struct(target)
         if instanced_struct_info == None:
@@ -994,11 +997,15 @@ while index < len(Lines):
             global LinesCache
             LinesCache.append(f"{char_to_string_promotion_code}\n")
 
-        if "struct" in return_type:
-            global instanced_struct_names
-            instanced_struct_names.append(StructInstance("String", var_name, False, ""))
-        else:
-            REGISTER_VARIABLE(var_name, return_type)
+        if assignment_fn_call:
+            if "struct" in return_type:
+                global instanced_struct_names
+                instanced_struct_names.append(
+                    StructInstance("String", var_name, False, "")
+                )
+                REGISTER_VARIABLE(var_name, "String")
+            else:
+                REGISTER_VARIABLE(var_name, return_type)
 
         parameters_str = ""
         has_parameters = len(parameters) > 0
@@ -1344,7 +1351,7 @@ while index < len(Lines):
                     # ctok.push(10)
                     parser.next_token()
 
-                    parse_result = _parse_function_call(parsed_member)
+                    parse_result = _parse_function_call(parsed_member, False)
                     fn_name = parse_result["fn_name"]
                     return_type = parse_result["return_type"]
 
