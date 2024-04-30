@@ -44,33 +44,7 @@ class Token(Enum):
     HOOK_END = 40
     EXCLAMATION = 41
 
-
-CHARACTER_TOKENS = [
-    "=",
-    "[",
-    "]",
-    ";",
-    ",",
-    "%",
-    "{",
-    "}",
-    "<",
-    ">",
-    '"',
-    "+",
-    "(",
-    ")",
-    ":",
-    ".",
-    "*",
-    "-",
-    "#",
-    "@",
-    "!",
-]
-
-TOKEN_MAP = {
-    "let": Token.LET,
+CHARACTER_TOKENS = {
     "=": Token.EQUALS,
     "[": Token.LEFT_SQUARE_BRACKET,
     "]": Token.RIGHT_SQUARE_BRACKET,
@@ -79,15 +53,8 @@ TOKEN_MAP = {
     "%": Token.PERCENT,
     "{": Token.LEFT_CURLY,
     "}": Token.RIGHT_CURLY,
-    "struct": Token.STRUCT,
-    "match": Token.MATCH,
-    "for": Token.FOR,
-    "if": Token.IF,
-    "in": Token.IN,
-    "Option": Token.OPTION,
     "<": Token.SMALLER_THAN,
     ">": Token.GREATER_THAN,
-    "enumerate": Token.ENUMERATE,
     '"': Token.QUOTE,
     "+": Token.PLUS,
     "(": Token.LEFT_ROUND_BRACKET,
@@ -96,6 +63,21 @@ TOKEN_MAP = {
     ".": Token.DOT,
     "*": Token.ASTERISK,
     "-": Token.MINUS,
+    "#": Token.HASH,
+    "@": Token.AT,
+    "!": Token.EXCLAMATION,
+}
+
+
+KEYWORD_TOKENS = {
+    "let": Token.LET,
+    "struct": Token.STRUCT,
+    "match": Token.MATCH,
+    "for": Token.FOR,
+    "if": Token.IF,
+    "in": Token.IN,
+    "Option": Token.OPTION,
+    "enumerate": Token.ENUMERATE,
     "def": Token.DEF,
     "impl": Token.IMPL,
     "enddef": Token.ENDDEF,
@@ -104,13 +86,10 @@ TOKEN_MAP = {
     "True": Token.TRUE,
     "False": Token.FALSE,
     "constexpr": Token.CONSTEXPR,
-    "#": Token.HASH,
     "include": Token.INCLUDE,
-    "@": Token.AT,
     "apply_hook": Token.APPLY_HOOK,
     "hook_begin": Token.HOOK_BEGIN,
     "hook_end": Token.HOOK_END,
-    "!": Token.EXCLAMATION,
 }
 
 
@@ -127,8 +106,10 @@ def get_tokens(line):
         tokens.append(p_token)
 
     def add_token(p_token):
-        if p_token in TOKEN_MAP.keys():
-            tokens.append(TOKEN_MAP[p_token])
+        if p_token in KEYWORD_TOKENS.keys():
+            tokens.append(KEYWORD_TOKENS[p_token])
+        elif p_token in CHARACTER_TOKENS.keys():
+            tokens.append(CHARACTER_TOKENS[p_token])
         else:
             # "=" the inner equals to shouldn't be tokenized.
             add_token_raw(p_token)
@@ -159,15 +140,10 @@ def get_tokens(line):
                 add_token_raw(token)
 
                 token = ""
-
-                if char in CHARACTER_TOKENS:
-                    tokens.append(TOKEN_MAP[char])
-
             else:
                 # Start of string.
                 inside_string = True
-                if char in CHARACTER_TOKENS:
-                    tokens.append(TOKEN_MAP[char])
+            tokens.append(Token.QUOTE)
         elif inside_string:
             # \"
             if char == "\\":
@@ -184,12 +160,12 @@ def get_tokens(line):
             if char in CHARACTER_TOKENS:
                 if token != "":
                     add_token(token)
-                tokens.append(TOKEN_MAP[char])
+                tokens.append(CHARACTER_TOKENS[char])
                 token = ""
                 continue
 
             if token in CHARACTER_TOKENS:
-                tokens.append(TOKEN_MAP[token])
+                tokens.append(CHARACTER_TOKENS[token])
                 token = ""
                 continue
             token += char
@@ -211,11 +187,11 @@ if __name__ == "__main__":
     tk = get_tokens(line)
     print(tk)
 
-    exit(0)
-
     line = "  let arr = [ 1, 2, 3, 4 , 5 ]; } let"
-    _ = get_tokens(line)
+    tk = get_tokens(line)
+    print(tk)
 
     # let p1 = Point{10, 20};
     line = "let p1 = Point {10, 20};"
-    _ = get_tokens(line)
+    tk = get_tokens(line)
+    print(tk)
