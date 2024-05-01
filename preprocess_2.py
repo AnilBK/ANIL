@@ -2452,8 +2452,6 @@ while index < len(Lines):
 
             value = parser.get_token()
 
-            print(f'{{"{key}" : {value}}}')
-
             dict[key] = value
 
             if parser.check_token(lexer.Token.RIGHT_CURLY):
