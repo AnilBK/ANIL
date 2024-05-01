@@ -2002,6 +2002,32 @@ while index < len(Lines):
                         "__contains__"
                     )
 
+                    if is_variable_char_type(var_to_check):
+                        # if var_to_check in var_to_check_against {
+                        #    ^^^^^^^^^^^^ this is a char
+                        # but the function signature for "__contains__" expects a char*/str.
+                        # So, promote the char variable to a string.
+                        contains_fn_args = instanced_struct_info.get_fn_arguments(
+                            "__contains__"
+                        )
+                        # Get the data type for the first function argument.
+                        param_type = contains_fn_args[0].data_type
+
+                        if param_type == "char*" or param_type == "str":
+                            char_to_string_promotion_code = ""
+
+                            promoted_char_var_name = f"{var_to_check}_promoted_{temp_char_promoted_to_string_variable_count}"
+                            # Create a string from char.
+                            promoted_char_var_code = f"char {promoted_char_var_name}[2] = {{ {var_to_check}, '\\0'}};"
+                            REGISTER_VARIABLE(f"{promoted_char_var_name}", "str")
+
+                            char_to_string_promotion_code += promoted_char_var_code
+                            temp_char_promoted_to_string_variable_count += 1
+
+                            LinesCache.append(f"{char_to_string_promotion_code}\n")
+
+                            var_to_check = promoted_char_var_name
+
                     if var_to_check_type == "str":
                         gen_code = (
                             f'{fn_name}(&{var_to_check_against}, "{var_to_check}")'
