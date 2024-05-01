@@ -1384,7 +1384,10 @@ while index < len(Lines):
                         params = []
                         for parameter in parameters:
                             if parameter.param_type == ParameterType.RAW_STRING:
-                                params.append(f'"{parameter.param}"')
+                                m_param = f"{parameter.param}"
+                                if m_param == '"':
+                                    m_param = '\\"'
+                                params.append(f'"{m_param}"')
                             else:
                                 params.append(parameter.param)
 
