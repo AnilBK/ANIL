@@ -325,6 +325,12 @@ class StructInstance:
         StructInfo = get_struct_defination_of_type(self.struct_type)
         return StructInfo
 
+    def get_fn_arguments(self, p_fn_name):
+        fn_args = self.get_struct_defination().get_function_arguments(p_fn_name)
+        if fn_args == None:
+            raise Exception(f"Arguments for function {p_fn_name} not found.")
+        return fn_args
+
     def struct_type_has_destructor(self) -> bool:
         return self.get_struct_defination().has_destructor()
 
