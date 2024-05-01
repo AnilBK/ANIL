@@ -80,59 +80,55 @@ int main() {
 
   ///*///
   import String
-  import Vector
   import Dictionary
   import List
 
   constexpr Token = {"LET" : 0, "EQUALS" : 1, "LEFT_SQUARE_BRACKET" : 2, "RIGHT_SQUARE_BRACKET" : 3, "SEMICOLON" : 4, "COMMA" : 5, "PERCENT" : 6, "LEFT_CURLY" : 7, "RIGHT_CURLY" : 8, "STRUCT" : 9, "MATCH" : 10, "FOR" : 11, "IF" : 12, "IN" : 13, "OPTION" : 14, "SMALLER_THAN" : 15, "GREATER_THAN" : 16, "ENUMERATE" : 17, "QUOTE" : 18, "PLUS" : 19, "LEFT_ROUND_BRACKET" : 21, "RIGHT_ROUND_BRACKET" : 22, "COLON" : 23, "DOT" : 24, "ASTERISK" : 25, "MINUS" : 26, "DEF" : 27, "IMPL" : 28, "ENDDEF" : 29, "ENDFN" : 30, "ELSE" : 31, "TRUE" : 32, "FALSE" : 33, "CONSTEXPR" : 34, "HASH" : 35, "INCLUDE" : 36, "AT" : 37, "APPLY_HOOK" : 38, "HOOK_BEGIN" : 39, "HOOK_END" : 40, "EXCLAMATION" : 41}
 
-  let TOKEN_MAP = Dictionary{};
+  let CHARACTER_TOKENS = Dictionary{};
+  CHARACTER_TOKENS["="] = Token["EQUALS"]
+  CHARACTER_TOKENS["["] = Token["LEFT_SQUARE_BRACKET"]
+  CHARACTER_TOKENS["]"] = Token["RIGHT_SQUARE_BRACKET"]
+  CHARACTER_TOKENS[";"] = Token["SEMICOLON"]
+  CHARACTER_TOKENS[","] = Token["COMMA"]
+  CHARACTER_TOKENS["%"] = Token["PERCENT"]
+  CHARACTER_TOKENS["{"] = Token["LEFT_CURLY"]
+  CHARACTER_TOKENS["}"] = Token["RIGHT_CURLY"]
+  CHARACTER_TOKENS["<"] = Token["SMALLER_THAN"]
+  CHARACTER_TOKENS[">"] = Token["GREATER_THAN"]
+  CHARACTER_TOKENS["\""] = Token["QUOTE"]
+  CHARACTER_TOKENS["+"] = Token["PLUS"]
+  CHARACTER_TOKENS["("] = Token["LEFT_ROUND_BRACKET"]
+  CHARACTER_TOKENS[")"] = Token["RIGHT_ROUND_BRACKET"]
+  CHARACTER_TOKENS[":"] = Token["COLON"]
+  CHARACTER_TOKENS["."] = Token["DOT"]
+  CHARACTER_TOKENS["*"] = Token["ASTERISK"]
+  CHARACTER_TOKENS["-"] = Token["MINUS"]
+  CHARACTER_TOKENS["#"] = Token["HASH"]
+  CHARACTER_TOKENS["@"] = Token["AT"]
+  CHARACTER_TOKENS["!"] = Token["EXCLAMATION"]
 
-  // TOKEN_MAP.add_key_value "let" 0
-  TOKEN_MAP["let"] = Token["LET"]
-  TOKEN_MAP["="] = Token["EQUALS"]
-  TOKEN_MAP["["] = Token["LEFT_SQUARE_BRACKET"]
-  TOKEN_MAP["]"] = Token["RIGHT_SQUARE_BRACKET"]
-  TOKEN_MAP[";"] = Token["SEMICOLON"]
-  TOKEN_MAP[","] = Token["COMMA"]
-  TOKEN_MAP["%"] = Token["PERCENT"]
-  TOKEN_MAP["{"] = Token["LEFT_CURLY"]
-  TOKEN_MAP["}"] = Token["RIGHT_CURLY"]
-  TOKEN_MAP["struct"] = Token["STRUCT"]
-  TOKEN_MAP["match"] = Token["MATCH"]
-  TOKEN_MAP["for"] = Token["FOR"]
-  TOKEN_MAP["if"] = Token["IF"]
-  TOKEN_MAP["in"] = Token["IN"]
-  TOKEN_MAP["Option"] = Token["OPTION"]
-  TOKEN_MAP["<"] = Token["SMALLER_THAN"]
-  TOKEN_MAP[">"] = Token["GREATER_THAN"]
-  TOKEN_MAP["enumerate"] = Token["ENUMERATE"]
-  TOKEN_MAP["+"] = Token["QUOTE"]
-  TOKEN_MAP["fn"] = Token["PLUS"]
-  TOKEN_MAP["("] = Token["LEFT_ROUND_BRACKET"]
-  TOKEN_MAP[")"] = Token["RIGHT_ROUND_BRACKET"]
-  TOKEN_MAP[":"] = Token["COLON"]
-  TOKEN_MAP["."] = Token["DOT"]
-  TOKEN_MAP["*"] = Token["ASTERISK"]
-  TOKEN_MAP["-"] = Token["MINUS"]
-  TOKEN_MAP["def"] = Token["DEF"]
-  TOKEN_MAP["impl"] = Token["IMPL"]
-  TOKEN_MAP["enddef"] = Token["ENDDEF"]
-  TOKEN_MAP["endfunc"] = Token["ENDFN"]
-  TOKEN_MAP["else"] = Token["ELSE"]
-  TOKEN_MAP["True"] = Token["TRUE"]
-  TOKEN_MAP["False"] = Token["FALSE"]
-  TOKEN_MAP["constexpr"] = Token["CONSTEXPR"]
-  TOKEN_MAP["#"] = Token["HASH"]
-  TOKEN_MAP["include"] = Token["INCLUDE"]
-  TOKEN_MAP["@"] = Token["AT"]
-  TOKEN_MAP["apply_hook"] = Token["APPLY_HOOK"]
-  TOKEN_MAP["hook_begin"] = Token["HOOK_BEGIN"]
-  TOKEN_MAP["hook_end"] = Token["HOOK_END"]
-  TOKEN_MAP["!"] = Token["EXCLAMATION"]
-
-  let character_tokens = Vector<char>{1};
-  character_tokens.pushn "=" "[" "]" ";" "," "{" "}" "<" ">" "+" "(" ")" ":" "." "*" "-" "#" "@" "!"
+  let KEYWORD_TOKENS = Dictionary{};
+  KEYWORD_TOKENS["let"] = Token["LET"]
+  KEYWORD_TOKENS["struct"] = Token["STRUCT"]
+  KEYWORD_TOKENS["match"] = Token["MATCH"]
+  KEYWORD_TOKENS["for"] = Token["FOR"]
+  KEYWORD_TOKENS["if"] = Token["IF"]
+  KEYWORD_TOKENS["in"] = Token["IN"]
+  KEYWORD_TOKENS["Option"] = Token["OPTION"]
+  KEYWORD_TOKENS["enumerate"] = Token["ENUMERATE"]
+  KEYWORD_TOKENS["def"] = Token["DEF"]
+  KEYWORD_TOKENS["impl"] = Token["IMPL"]
+  KEYWORD_TOKENS["enddef"] = Token["ENDDEF"]
+  KEYWORD_TOKENS["endfunc"] = Token["ENDFN"]
+  KEYWORD_TOKENS["else"] = Token["ELSE"]
+  KEYWORD_TOKENS["True"] = Token["TRUE"]
+  KEYWORD_TOKENS["False"] = Token["FALSE"]
+  KEYWORD_TOKENS["constexpr"] = Token["CONSTEXPR"]
+  KEYWORD_TOKENS["include"] = Token["INCLUDE"]
+  KEYWORD_TOKENS["apply_hook"] = Token["APPLY_HOOK"]
+  KEYWORD_TOKENS["hook_begin"] = Token["HOOK_BEGIN"]
+  KEYWORD_TOKENS["hook_end"] = Token["HOOK_END"]
 
   let line_org = String{"  let arr = [ 1, 2, 3, 4 , 5 ]; } let"};
   let line = line_org.strip()
@@ -158,11 +154,14 @@ int main() {
   enddef  
 
   def add_token(p_token):
-    if p_token in TOKEN_MAP{
-      let mtk = TOKEN_MAP[p_token]
-      add_int_token mtk
+    if p_token in KEYWORD_TOKENS{
+      let ktk = KEYWORD_TOKENS[p_token]
+      add_int_token ktk
+    }else if p_token in CHARACTER_TOKENS{
+      let ctk = CHARACTER_TOKENS[p_token]
+      add_int_token ctk
     }else{  
-      add_string_token p_token
+      add_token_raw p_token
     }
   enddef
 
@@ -190,24 +189,15 @@ int main() {
         # Single character tokens like = are tokenized by add_token(),
         # so we use the following method.
         # "=" the inner equals to shouldn't be tokenized.
-
-        let tk1 = token.c_str()
-        add_token_raw tk1
+        let tk = token.c_str()
+        add_token_raw tk
 
         token = ""
-
-        if Char in character_tokens{
-          let tk2 = TOKEN_MAP[Char]
-          tokens.append_int(tk2)
-        }
       }else{
         # Start of string.
         inside_string = True
-        if Char in character_tokens{
-          let tk3 = TOKEN_MAP[Char]
-          tokens.append_int(tk3)
-        }
       }
+      tokens.append_int(Token["QUOTE"])
     } else if inside_string{
         if Char == "\\"{
           escape_back_slash = True
@@ -220,33 +210,27 @@ int main() {
           continue;
         }
 
-        let tk4 = token.c_str()
-        add_token tk4
+        let tk = token.c_str()
+        add_token tk
         token = ""
     }else{
-      if Char in character_tokens{
+      if Char in CHARACTER_TOKENS{
         if token != ""{
-          let tk5 = token.c_str()
-          add_token tk5
+          let tk = token.c_str()
+          add_token tk
         }
-        let int_tk = TOKEN_MAP[Char]
+        let int_tk = CHARACTER_TOKENS[Char]
         add_int_token int_tk
         token = ""
         continue;
       }
 
-      let is_single_character = token.is_of_length(1)
-
-      if is_single_character{
-      let tk6 = token[0]
-      # 'character_tokens' expect a char but token is char*, so do this hack.
-
-      if tk6 in character_tokens{
-        let int_tk = TOKEN_MAP[tk6]
+      let token_str = token.c_str()
+      if token_str in CHARACTER_TOKENS{
+        let int_tk = CHARACTER_TOKENS[token_str]
         add_int_token int_tk
         token = ""
         continue;
-      }
       }
 
       token += Char

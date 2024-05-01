@@ -6,14 +6,6 @@
 
 ///*///
 
-///*///
-
-#include <string.h>
-
-///////////////////////////////////////////
-
-///*///
-
 #include <string.h>
 
 typedef struct {
@@ -360,108 +352,6 @@ void Listappend_str(struct List *this, char *p_str) {
   this->tail = string_node;
 }
 
-struct Vector__char {
-  char *arr;
-  int size;
-  int capacity;
-};
-
-// template <char> {
-void Vector_char__init__(struct Vector__char *this, int capacity) {
-  // if we want to use instanced template type in fn body, we use following
-  // syntax.
-  // @ TEMPLATED_DATA_TYPE @
-  this->arr = (char *)malloc(capacity * sizeof(char));
-
-  if (this->arr == NULL) {
-    fprintf(stderr, "Memory allocation failed.\n");
-    exit(EXIT_FAILURE);
-  }
-  this->size = 0;
-  this->capacity = capacity;
-}
-
-void Vector_char__del__(struct Vector__char *this) {
-  // Python Version of destructor.
-  free(this->arr);
-  this->arr = NULL;
-  this->size = 0;
-  this->capacity = 0;
-}
-
-void Vector_charpush(struct Vector__char *this, char value) {
-  if (this->size == this->capacity) {
-    this->capacity *= 2;
-    this->arr = (char *)realloc(this->arr, this->capacity * sizeof(char));
-    if (this->arr == NULL) {
-      fprintf(stderr, "Memory reallocation failed.\n");
-      exit(EXIT_FAILURE);
-    }
-  }
-  this->arr[this->size++] = value;
-}
-
-void Vector_charallocate_more(struct Vector__char *this, int n) {
-  this->capacity += n;
-  this->arr = (char *)realloc(this->arr, this->capacity * sizeof(char));
-  if (this->arr == NULL) {
-    fprintf(stderr, "Memory reallocation failed.\n");
-    exit(EXIT_FAILURE);
-  }
-}
-
-void Vector_charpush_unchecked(struct Vector__char *this, char value) {
-  this->arr[this->size++] = value;
-}
-
-void Vector_charprint(struct Vector__char *this) {
-  // maybe print instanced vec name.
-  // instanced name should be passed as fn parameter ig.
-  // or add instance_name member silently to the struct itself.
-  // printf("@INSTANCE_NAME@\n");
-  /*
-
-  void Vector_print(struct Vector* this, const char* p_instance_name){
-  printf("%s\n", p_instance_name);
-  }
-  */
-
-  printf("Dynamic Array (size = %zu, capacity = %zu) : [", this->size,
-         this->capacity);
-  for (size_t i = 0; i < this->size; ++i) {
-    const char *type = "char";
-    if (strcmp(type, "float") == 0) {
-      printf("%f", this->arr[i]);
-    } else if (strcmp(type, "int") == 0) {
-      printf("%d", this->arr[i]);
-    } else if (strcmp(type, "char") == 0) {
-      printf("%c", this->arr[i]);
-    }
-    if (i < this->size - 1) {
-      printf(", ");
-    }
-  }
-  printf("]\n");
-}
-
-bool Vector_char__contains__(struct Vector__char *this, char value) {
-  // this returns bool.
-  for (size_t i = 0; i < this->size; ++i) {
-    if (this->arr[i] == value) {
-      return true;
-    }
-  }
-  return false;
-}
-
-size_t Vector_charlen(struct Vector__char *this) { return this->size; }
-
-char Vector_char__getitem__(struct Vector__char *this, int index) {
-  return *(this->arr + index);
-}
-
-// template <char> }
-
 void CustomPrint(int data) {
   // printf("This is a custom print wrapper. [%d]\n", data);
 
@@ -532,134 +422,91 @@ int main() {
 
   ///*///
 
-  struct Dictionary TOKEN_MAP;
-  Dictionary__init__(&TOKEN_MAP);
+  struct Dictionary CHARACTER_TOKENS;
+  Dictionary__init__(&CHARACTER_TOKENS);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "=", 1);
 
-  // TOKEN_MAP.add_key_value "let" 0
-  Dictionary__setitem__(&TOKEN_MAP, "let", 0);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "[", 2);
 
-  Dictionary__setitem__(&TOKEN_MAP, "=", 1);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "]", 3);
 
-  Dictionary__setitem__(&TOKEN_MAP, "[", 2);
+  Dictionary__setitem__(&CHARACTER_TOKENS, ";", 4);
 
-  Dictionary__setitem__(&TOKEN_MAP, "]", 3);
+  Dictionary__setitem__(&CHARACTER_TOKENS, ",", 5);
 
-  Dictionary__setitem__(&TOKEN_MAP, ";", 4);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "%", 6);
 
-  Dictionary__setitem__(&TOKEN_MAP, ",", 5);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "{", 7);
 
-  Dictionary__setitem__(&TOKEN_MAP, "%", 6);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "}", 8);
 
-  Dictionary__setitem__(&TOKEN_MAP, "{", 7);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "<", 15);
 
-  Dictionary__setitem__(&TOKEN_MAP, "}", 8);
+  Dictionary__setitem__(&CHARACTER_TOKENS, ">", 16);
 
-  Dictionary__setitem__(&TOKEN_MAP, "struct", 9);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "\"", 18);
 
-  Dictionary__setitem__(&TOKEN_MAP, "match", 10);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "+", 19);
 
-  Dictionary__setitem__(&TOKEN_MAP, "for", 11);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "(", 21);
 
-  Dictionary__setitem__(&TOKEN_MAP, "if", 12);
+  Dictionary__setitem__(&CHARACTER_TOKENS, ")", 22);
 
-  Dictionary__setitem__(&TOKEN_MAP, "in", 13);
+  Dictionary__setitem__(&CHARACTER_TOKENS, ":", 23);
 
-  Dictionary__setitem__(&TOKEN_MAP, "Option", 14);
+  Dictionary__setitem__(&CHARACTER_TOKENS, ".", 24);
 
-  Dictionary__setitem__(&TOKEN_MAP, "<", 15);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "*", 25);
 
-  Dictionary__setitem__(&TOKEN_MAP, ">", 16);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "-", 26);
 
-  Dictionary__setitem__(&TOKEN_MAP, "enumerate", 17);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "#", 35);
 
-  Dictionary__setitem__(&TOKEN_MAP, "+", 18);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "@", 37);
 
-  Dictionary__setitem__(&TOKEN_MAP, "fn", 19);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "!", 41);
 
-  Dictionary__setitem__(&TOKEN_MAP, "(", 21);
+  struct Dictionary KEYWORD_TOKENS;
+  Dictionary__init__(&KEYWORD_TOKENS);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "let", 0);
 
-  Dictionary__setitem__(&TOKEN_MAP, ")", 22);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "struct", 9);
 
-  Dictionary__setitem__(&TOKEN_MAP, ":", 23);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "match", 10);
 
-  Dictionary__setitem__(&TOKEN_MAP, ".", 24);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "for", 11);
 
-  Dictionary__setitem__(&TOKEN_MAP, "*", 25);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "if", 12);
 
-  Dictionary__setitem__(&TOKEN_MAP, "-", 26);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "in", 13);
 
-  Dictionary__setitem__(&TOKEN_MAP, "def", 27);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "Option", 14);
 
-  Dictionary__setitem__(&TOKEN_MAP, "impl", 28);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "enumerate", 17);
 
-  Dictionary__setitem__(&TOKEN_MAP, "enddef", 29);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "def", 27);
 
-  Dictionary__setitem__(&TOKEN_MAP, "endfunc", 30);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "impl", 28);
 
-  Dictionary__setitem__(&TOKEN_MAP, "else", 31);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "enddef", 29);
 
-  Dictionary__setitem__(&TOKEN_MAP, "True", 32);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "endfunc", 30);
 
-  Dictionary__setitem__(&TOKEN_MAP, "False", 33);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "else", 31);
 
-  Dictionary__setitem__(&TOKEN_MAP, "constexpr", 34);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "True", 32);
 
-  Dictionary__setitem__(&TOKEN_MAP, "#", 35);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "False", 33);
 
-  Dictionary__setitem__(&TOKEN_MAP, "include", 36);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "constexpr", 34);
 
-  Dictionary__setitem__(&TOKEN_MAP, "@", 37);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "include", 36);
 
-  Dictionary__setitem__(&TOKEN_MAP, "apply_hook", 38);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "apply_hook", 38);
 
-  Dictionary__setitem__(&TOKEN_MAP, "hook_begin", 39);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "hook_begin", 39);
 
-  Dictionary__setitem__(&TOKEN_MAP, "hook_end", 40);
-
-  Dictionary__setitem__(&TOKEN_MAP, "!", 41);
-
-  struct Vector__char character_tokens;
-  Vector_char__init__(&character_tokens, 1);
-  // Class Macro.
-  Vector_charallocate_more(&character_tokens, 19);
-
-  Vector_charpush_unchecked(&character_tokens, '=');
-
-  Vector_charpush_unchecked(&character_tokens, '[');
-
-  Vector_charpush_unchecked(&character_tokens, ']');
-
-  Vector_charpush_unchecked(&character_tokens, ';');
-
-  Vector_charpush_unchecked(&character_tokens, ',');
-
-  Vector_charpush_unchecked(&character_tokens, '{');
-
-  Vector_charpush_unchecked(&character_tokens, '}');
-
-  Vector_charpush_unchecked(&character_tokens, '<');
-
-  Vector_charpush_unchecked(&character_tokens, '>');
-
-  Vector_charpush_unchecked(&character_tokens, '+');
-
-  Vector_charpush_unchecked(&character_tokens, '(');
-
-  Vector_charpush_unchecked(&character_tokens, ')');
-
-  Vector_charpush_unchecked(&character_tokens, ':');
-
-  Vector_charpush_unchecked(&character_tokens, '.');
-
-  Vector_charpush_unchecked(&character_tokens, '*');
-
-  Vector_charpush_unchecked(&character_tokens, '-');
-
-  Vector_charpush_unchecked(&character_tokens, '#');
-
-  Vector_charpush_unchecked(&character_tokens, '@');
-
-  Vector_charpush_unchecked(&character_tokens, '!');
+  Dictionary__setitem__(&KEYWORD_TOKENS, "hook_end", 40);
 
   struct String line_org;
   String__init__(&line_org, "  let arr = [ 1, 2, 3, 4 , 5 ]; } let");
@@ -709,27 +556,16 @@ int main() {
         // Single character tokens like = are tokenized by add_token(),
         // so we use the following method.
         // "=" the inner equals to shouldn't be tokenized.
-
-        char *tk1 = Stringc_str(&token);
-        Listappend_str(&tokens, tk1);
+        char *tk = Stringc_str(&token);
+        Listappend_str(&tokens, tk);
 
         String__reassign__(&token, "");
-
-        if (Vector_char__contains__(&character_tokens, Char)) {
-          char Char_promoted_2[2] = {Char, '\0'};
-          int tk2 = Dictionary__getitem__(&TOKEN_MAP, Char_promoted_2);
-          Listappend_int(&tokens, tk2);
-        }
       } else {
         // Start of string.
         inside_string = true;
-
-        if (Vector_char__contains__(&character_tokens, Char)) {
-          char Char_promoted_3[2] = {Char, '\0'};
-          int tk3 = Dictionary__getitem__(&TOKEN_MAP, Char_promoted_3);
-          Listappend_int(&tokens, tk3);
-        }
       }
+      Listappend_int(&tokens, 18);
+
     } else if (inside_string) {
 
       if (Char == '\\') {
@@ -737,8 +573,8 @@ int main() {
         continue;
       }
 
-      char Char_promoted_4[2] = {Char, '\0'};
-      String__add__(&token, Char_promoted_4);
+      char Char_promoted_2[2] = {Char, '\0'};
+      String__add__(&token, Char_promoted_2);
 
     } else if (Char == ' ') {
 
@@ -746,64 +582,71 @@ int main() {
         continue;
       }
 
-      char *tk4 = Stringc_str(&token);
+      char *tk = Stringc_str(&token);
 
-      if (Dictionary__contains__(&TOKEN_MAP, tk4)) {
+      if (Dictionary__contains__(&KEYWORD_TOKENS, tk)) {
 
-        int mtk = Dictionary__getitem__(&TOKEN_MAP, tk4);
+        int ktk = Dictionary__getitem__(&KEYWORD_TOKENS, tk);
 
-        Listappend_int(&tokens, mtk);
+        Listappend_int(&tokens, ktk);
+
+      } else if (Dictionary__contains__(&CHARACTER_TOKENS, tk)) {
+
+        int ctk = Dictionary__getitem__(&CHARACTER_TOKENS, tk);
+
+        Listappend_int(&tokens, ctk);
 
       } else {
 
-        Listappend_str(&tokens, tk4);
+        Listappend_str(&tokens, tk);
       }
 
       String__reassign__(&token, "");
     } else {
+      char Char_promoted_3[2] = {Char, '\0'};
 
-      if (Vector_char__contains__(&character_tokens, Char)) {
+      if (Dictionary__contains__(&CHARACTER_TOKENS, Char_promoted_3)) {
 
         if (!String__eq__(&token, "")) {
-          char *tk5 = Stringc_str(&token);
+          char *tk = Stringc_str(&token);
 
-          if (Dictionary__contains__(&TOKEN_MAP, tk5)) {
+          if (Dictionary__contains__(&KEYWORD_TOKENS, tk)) {
 
-            int mtk = Dictionary__getitem__(&TOKEN_MAP, tk5);
+            int ktk = Dictionary__getitem__(&KEYWORD_TOKENS, tk);
 
-            Listappend_int(&tokens, mtk);
+            Listappend_int(&tokens, ktk);
+
+          } else if (Dictionary__contains__(&CHARACTER_TOKENS, tk)) {
+
+            int ctk = Dictionary__getitem__(&CHARACTER_TOKENS, tk);
+
+            Listappend_int(&tokens, ctk);
 
           } else {
 
-            Listappend_str(&tokens, tk5);
+            Listappend_str(&tokens, tk);
           }
         }
-        char Char_promoted_5[2] = {Char, '\0'};
-        int int_tk = Dictionary__getitem__(&TOKEN_MAP, Char_promoted_5);
+        char Char_promoted_4[2] = {Char, '\0'};
+        int int_tk = Dictionary__getitem__(&CHARACTER_TOKENS, Char_promoted_4);
         Listappend_int(&tokens, int_tk);
 
         String__reassign__(&token, "");
         continue;
       }
 
-      bool is_single_character = Stringis_of_length(&token, 1);
+      char *token_str = Stringc_str(&token);
 
-      if (is_single_character) {
-        char tk6 = String__getitem__(&token, 0);
-        // 'character_tokens' expect a char but token is char*, so do this hack.
+      if (Dictionary__contains__(&CHARACTER_TOKENS, token_str)) {
+        int int_tk = Dictionary__getitem__(&CHARACTER_TOKENS, token_str);
+        Listappend_int(&tokens, int_tk);
 
-        if (Vector_char__contains__(&character_tokens, tk6)) {
-          char tk6_promoted_6[2] = {tk6, '\0'};
-          int int_tk = Dictionary__getitem__(&TOKEN_MAP, tk6_promoted_6);
-          Listappend_int(&tokens, int_tk);
-
-          String__reassign__(&token, "");
-          continue;
-        }
+        String__reassign__(&token, "");
+        continue;
       }
 
-      char Char_promoted_7[2] = {Char, '\0'};
-      String__add__(&token, Char_promoted_7);
+      char Char_promoted_5[2] = {Char, '\0'};
+      String__add__(&token, Char_promoted_5);
     }
   }
 
@@ -812,11 +655,17 @@ int main() {
   if (!String__eq__(&token, "")) {
     char *tk = Stringc_str(&token);
 
-    if (Dictionary__contains__(&TOKEN_MAP, tk)) {
+    if (Dictionary__contains__(&KEYWORD_TOKENS, tk)) {
 
-      int mtk = Dictionary__getitem__(&TOKEN_MAP, tk);
+      int ktk = Dictionary__getitem__(&KEYWORD_TOKENS, tk);
 
-      Listappend_int(&tokens, mtk);
+      Listappend_int(&tokens, ktk);
+
+    } else if (Dictionary__contains__(&CHARACTER_TOKENS, tk)) {
+
+      int ctk = Dictionary__getitem__(&CHARACTER_TOKENS, tk);
+
+      Listappend_int(&tokens, ctk);
 
     } else {
 
@@ -830,7 +679,6 @@ int main() {
   String__del__(&token);
   String__del__(&line);
   String__del__(&line_org);
-  Vector_char__del__(&character_tokens);
   ///*///
 
   return 0;
