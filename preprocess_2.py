@@ -439,12 +439,6 @@ def get_templated_mangled_fn_name(
     return p_struct_type + "_" + p_templated_data_type + p_fn_name
 
 
-class DataType:
-    def __init__(self, p_name: str, p_type: str):
-        self.name = p_name
-        self.type = p_type
-
-
 contexpr_functions = [
     "members_of",
     "member_functions_of",
