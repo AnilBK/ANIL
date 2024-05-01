@@ -530,8 +530,6 @@ def REGISTER_VARIABLE(p_var_name: str, p_var_data_type: str) -> None:
 
     if is_variable_already_defined_in_scope(p_var_name):
         raise Exception(f"{p_var_name} is already defined in previous scopes.")
-        # print(f"----Collision--- for {p_var_name}")
-        # raise ValueError(f"{p_var_name} is already defined.")
 
     global variable_scope
     if variable_scope in instanced_variables_scoped:
@@ -715,7 +713,7 @@ while index < len(Lines):
             else:
                 arr_value = parser.get_token()
             array_values.append(arr_value)
-            print(f"Array Value : {arr_value}")
+            # print(f"Array Value : {arr_value}")
             if parser.check_token(lexer.Token.COMMA):
                 parser.next_token()
 
@@ -745,7 +743,7 @@ while index < len(Lines):
         if parser.check_token(lexer.Token.SMALLER_THAN):
             parser.next_token()
             templated_data_type = parser.current_token()
-            print(f"Templated struct of data type : {templated_data_type}")
+            # print(f"Templated struct of data type : {templated_data_type}")
             struct_members_list = StructInfo.members
             # print(StructInfo.members)  # [['X', 'a', True], ['float', 'b', False]]
 
@@ -809,7 +807,7 @@ while index < len(Lines):
             else:
                 arr_value = parser.get_token()
             values_list.append(arr_value)
-            print(f"Array Value : {arr_value}")
+            # print(f"Array Value : {arr_value}")
             if parser.check_token(lexer.Token.COMMA):
                 parser.next_token()
 
@@ -1176,14 +1174,14 @@ while index < len(Lines):
             # end def
             size_str = f"{macro_def.first_param}.size"
             if size_str in code:
-                print(params)
+                # print(params)
                 length = str(len(params))
                 code = code.replace(size_str, length)
 
         if macro_has_parameter:
             code = code.replace(macro_def.first_param, remaining_tokens)
         code_list = code.split("\n")
-        print(code_list)
+        # print(code_list)
 
         new_code = []
         for line in code_list:
@@ -1435,7 +1433,7 @@ while index < len(Lines):
 
                 string = parser.current_token()
                 parser.next_token()
-                print(f"Obtained String : {string}")
+                # print(f"Obtained String : {string}")
 
                 add_fn = "__add__"
                 fns_required_for_addition = [add_fn]
@@ -1500,7 +1498,7 @@ while index < len(Lines):
 
                 string = parser.current_token()
                 parser.next_token()
-                print(f"Obtained String : {string}")
+                # print(f"Obtained String : {string}")
 
                 reassign_fn = "__reassign__"
                 fns_required_for_reassignment = [reassign_fn]
@@ -1701,7 +1699,7 @@ while index < len(Lines):
                     assignment_list.append(f"int {conds} = {name}.{memb};")
                     # print(f"float {conds} = {name}.{memb};")
 
-            print(" && ".join(condition_list))
+            # print(" && ".join(condition_list))
             conditions_joined = " && ".join(condition_list)
 
             # Bug: #(x,y,z) condition works only on the last arm of match.
@@ -1727,12 +1725,12 @@ while index < len(Lines):
             match_condition_count += 1
     elif 'print(f "' in Line:
         #   % print(f "Hello {meaning}");
-        print("Procesing [Print]")
+        # print("Procesing [Print]")
         rhs = Line.split("print(f ")[1]
         # print(rhs)
         string = rhs.split('");')
         actual_str = string[0].strip('"')
-        print(actual_str)
+        # print(actual_str)
 
         braces_open = False
         str_text = ""
@@ -1755,19 +1753,19 @@ while index < len(Lines):
             else:
                 str_text += char
 
-        print(str_text)
-        print(extracted_var_name_list)
+        # print(str_text)
+        # print(extracted_var_name_list)
         str_to_write = f'printf("{str_text} "'
         if len(extracted_var_name_list) != 0:
             str_to_write += "," + ",".join(extracted_var_name_list)
         str_to_write += ");\n"
-        print(str_to_write)
+        # print(str_to_write)
         LinesCache.append(str_to_write)
     elif check_token(lexer.Token.MATCH):
         # % match x{
         parser.consume_token(lexer.Token.MATCH)
         match_variable_name = parser.get_token()
-        print(f"Matching variable {match_variable_name}")
+        # print(f"Matching variable {match_variable_name}")
         parser.match_token(lexer.Token.LEFT_CURLY)
 
         inside_match_loop = True
@@ -1795,7 +1793,7 @@ while index < len(Lines):
         parser.consume_token(lexer.Token.LET)
 
         array_name = parser.get_token()
-        print(f"Obtained array name = {array_name}")
+        # print(f"Obtained array name = {array_name}")
 
         # Custom templated array.
         # let arr<T> = [ 1, 2, 3, 4, 5 ];
@@ -1804,7 +1802,7 @@ while index < len(Lines):
             parser.consume_token(lexer.Token.SMALLER_THAN)
 
             type_name = parser.get_token()
-            print(f"Obtained array type = {type_name}")
+            # print(f"Obtained array type = {type_name}")
             parser.consume_token(lexer.Token.GREATER_THAN)
 
             parse_let(type_name, array_name)
@@ -1818,7 +1816,7 @@ while index < len(Lines):
                 # let str = "Hello World";
                 #           ^
                 string = parser.extract_string_literal()
-                print(f"Obtained String : {string}")
+                # print(f"Obtained String : {string}")
                 LinesCache.append(f'char {array_name}[{len(string)+1}] = "{string}";\n')
                 string_variable_names.append(array_name)
             elif parser.check_token(lexer.Token.TRUE) or parser.check_token(
@@ -1838,7 +1836,7 @@ while index < len(Lines):
                 struct_name = array_name
 
                 struct_type = parser.get_token()
-                print(f"struct type = {struct_type}")
+                # print(f"struct type = {struct_type}")
 
                 StructInfo = get_struct_defination_of_type(struct_type)
                 if StructInfo != None:
@@ -1872,7 +1870,7 @@ while index < len(Lines):
             # if str != "Hello"
 
             var_to_check_against = parser.get_token()
-            print(f"Obtained String : {var_to_check_against}")
+            # print(f"Obtained String : {var_to_check_against}")
 
             negation_boolean_expression = False
 
@@ -1945,14 +1943,14 @@ while index < len(Lines):
             else:
                 var_to_check = parser.get_token()
 
-            print(f"var to check = {var_to_check}")
+            # print(f"var to check = {var_to_check}")
 
             # if var_to_check in var_to_check_against {
             if parser.check_token(lexer.Token.IN):
                 parser.consume_token(lexer.Token.IN)
 
                 var_to_check_against = parser.get_token()
-                print(f"var to check against= {var_to_check_against}")
+                # print(f"var to check against= {var_to_check_against}")
 
                 parser.match_token(lexer.Token.LEFT_CURLY)
 
@@ -2067,16 +2065,16 @@ while index < len(Lines):
         if parser.check_token(lexer.Token.SMALLER_THAN):
             parser.next_token()
             is_struct_templated = True
-            print("Generic Struct")
+            # print("Generic Struct")
             # struct GenericStruct<X>{X a, float b};
             #                      ^
             generic_data_type = parser.current_token()
             generic_data_types.append(generic_data_type)
-            print(f"Generic type : {generic_data_type}")
+            # print(f"Generic type : {generic_data_type}")
             parser.next_token()
             parser.consume_token(lexer.Token.GREATER_THAN)
 
-        print(f"Found Struct Defination : {struct_name}")
+        # print(f"Found Struct Defination : {struct_name}")
 
         parser.consume_token(lexer.Token.LEFT_CURLY)
 
@@ -2093,14 +2091,14 @@ while index < len(Lines):
             is_generic = False
             if pointerless_struct_member_type in generic_data_types:
                 is_generic = True
-                print(f"{pointerless_struct_member_type} is generic.")
+                # print(f"{pointerless_struct_member_type} is generic.")
 
             struct_members_list.append(
                 MemberDataType(struct_member_type, struct_member, is_generic)
             )
-            print(
-                f"Type : {struct_member_type} Generic : {is_generic} Struct Member : {struct_member} "
-            )
+            # print(
+            # f"Type : {struct_member_type} Generic : {is_generic} Struct Member : {struct_member} "
+            # )
 
             parser.next_token()
             if parser.check_token(lexer.Token.COMMA):
@@ -2145,7 +2143,7 @@ while index < len(Lines):
         parser.next_token()
         fn_name = parser.current_token()
 
-        print(f"struct_name : {struct_name}, fn_name : {fn_name}")
+        # print(f"struct_name : {struct_name}, fn_name : {fn_name}")
 
         parser.next_token()
 
@@ -2169,14 +2167,14 @@ while index < len(Lines):
                     return_type = parser.get_token()
                     if return_type == "str":
                         return_type = "char*"
-                    print(f"Function Return Type is : {return_type}")
+                    # print(f"Function Return Type is : {return_type}")
                     break
 
             param_name = parser.current_token()
             parser.next_token()
             parser.next_token()
             param_type = parser.get_token()
-            print(f"Param Name : {param_name}, type : {param_type}")
+            # print(f"Param Name : {param_name}, type : {param_type}")
 
             # Just str means built in String class, so.
             if param_type == "str":
@@ -2368,8 +2366,7 @@ while index < len(Lines):
             should_write_fn_body = True
             is_inside_struct_impl = False
         else:
-            print("End impl without being in impl block.")
-            exit(0)
+            raise Exception("End impl without being in impl block.")
     elif check_token(lexer.Token.DEF):
         # This is used to define function like macros.
         # This macros are just replaced in place.
@@ -2392,7 +2389,7 @@ while index < len(Lines):
         if parser.current_token() != lexer.Token.RIGHT_ROUND_BRACKET:
             # This macro defination has a parameter.
             param1 = parser.current_token()
-            print(f"Obtained First param : {param1}")
+            # print(f"Obtained First param : {param1}")
 
             parser.next_token()
 
@@ -2425,7 +2422,7 @@ while index < len(Lines):
 
             target_class = parser.get_token()
             parser.consume_token(lexer.Token.COLON)
-            print(f"The macro is defined for {target_class} class.")
+            # print(f"The macro is defined for {target_class} class.")
 
         is_inside_def = True
         currently_reading_def_name = fn_name
@@ -2437,7 +2434,7 @@ while index < len(Lines):
         parser.consume_token(lexer.Token.CONSTEXPR)
 
         dict_name = parser.get_token()
-        print(f"Obtained Constexpr Dictionary name = {dict_name}")
+        # print(f"Obtained Constexpr Dictionary name = {dict_name}")
 
         parser.consume_token(lexer.Token.EQUALS)
 
@@ -2487,17 +2484,17 @@ for i in range(len(LinesCache)):
     elif "// STRUCT_DEFINATIONS //" in LinesCache[i]:
         LinesCache[i] = GlobalStructInitCode
     elif "// DESTRUCTOR_CODE //" in LinesCache[i]:
-        print("-----------------------------------")
-        print("List of Objects With Destructors : ")
+        # print("-----------------------------------")
+        # print("List of Objects With Destructors : ")
         destructor_code = ""
         # Write destructors in reverse order of construction.
         for instanced_struct in instanced_struct_names[::-1]:
             struct_type = instanced_struct.struct_type
             struct_name = instanced_struct.struct_name
             if instanced_struct.struct_type_has_destructor():
-                print(
-                    "Struct Type : " + struct_type + " & Struct Name : " + struct_name
-                )
+                # print(
+                # "Struct Type : " + struct_type + " & Struct Name : " + struct_name
+                # )
                 destructor_name = instanced_struct.get_destructor_fn_name()
                 destructor_code += f"{destructor_name}(&{struct_name});\n"
 
