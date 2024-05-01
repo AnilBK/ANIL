@@ -590,6 +590,19 @@ while index < len(Lines):
 
     Line = Line.strip(" ")
 
+    if is_inside_struct_impl and not "endfunc" in Line:
+        currently_reading_fn_body += Line
+        if should_write_fn_body:
+            GlobalStructInitCode += Line
+        continue
+    elif is_inside_def and not "enddef" in Line:
+        currently_reading_def_body += Line
+        # Newlines are stripped while parsing 'Line'.
+        # We add these newlines, so that 'currently_reading_def_body' can be splitted using newlines later.
+        # That distinguishes unique lines.
+        currently_reading_def_body += "\n"
+        continue
+
     parser = Parser.Parser(Line)
 
     def check_token(token: lexer.Token):
@@ -1285,19 +1298,7 @@ while index < len(Lines):
         # Shouldn't happen as the caller functions have already verified the presence of the dictionaries.
         raise ValueError(f"Constexpr dictionary {p_dict_name} is undefined.")
 
-    if is_inside_struct_impl and not "endfunc" in Line:
-        currently_reading_fn_body += Line
-        if should_write_fn_body:
-            GlobalStructInitCode += Line
-        continue
-    elif is_inside_def and not "enddef" in Line:
-        currently_reading_def_body += Line
-        # Newlines are stripped while parsing 'Line'.
-        # We add these newlines, so that 'currently_reading_def_body' can be splitted using newlines later.
-        # That distinguishes unique lines.
-        currently_reading_def_body += "\n"
-        continue
-    elif is_inside_def and "enddef" in Line:
+    if is_inside_def and "enddef" in Line:
         if check_token(lexer.Token.ENDDEF):
             is_inside_def = False
 
