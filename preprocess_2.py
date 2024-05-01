@@ -72,10 +72,13 @@ optional_types_to_register = set()
 
 
 def get_type_of_variable(p_var_name):
+    """
     if p_var_name in instanced_variables:
         return instanced_variables[p_var_name]
     else:
         return None
+    """
+    return instanced_variables.get(p_var_name)
 
 
 def is_variable_of_type(p_var_name, p_type):
