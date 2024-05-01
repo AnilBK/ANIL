@@ -270,6 +270,13 @@ class Struct:
                         return self.templated_data_type
                 return fn.return_type
 
+    def get_function_arguments(self, p_fn_name):
+        for fn in self.member_functions:
+            if fn.fn_name == p_fn_name:
+                return fn.fn_arguments
+        return None
+        # raise Exception(f"Function {p_fn_name} not found.")
+
     def print_member_fn_info(self):
         for fn in self.member_functions:
             fn.print_info()
@@ -1011,10 +1018,10 @@ while index < len(Lines):
         fn_name = instanced_struct_info.get_mangled_function_name(fn_name_unmangled)
 
         fn_args = []
-        for fn in StructInfo.member_functions:
-            if fn.fn_name == fn_name_unmangled:
-                fn_args = [arg.data_type for arg in fn.fn_arguments]
-                break
+
+        args = StructInfo.get_function_arguments(fn_name_unmangled)
+        if args != None:
+            fn_args = [arg.data_type for arg in args]
 
         if len(fn_args) != len(parameters):
             raise ValueError(
