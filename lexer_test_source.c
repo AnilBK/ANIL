@@ -142,7 +142,8 @@ int main() {
   let escape_back_slash = False
 
   def add_token_raw(p_token):
-    tokens.append_str(p_token)
+    let token_str = p_token.c_str()
+    tokens.append_str(token_str)
   enddef  
 
   def add_int_token(p_token):
@@ -189,8 +190,7 @@ int main() {
         # Single character tokens like = are tokenized by add_token(),
         # so we use the following method.
         # "=" the inner equals to shouldn't be tokenized.
-        let tk = token.c_str()
-        add_token_raw tk
+        add_token_raw token
 
         token = ""
       }else{
@@ -210,14 +210,12 @@ int main() {
           continue;
         }
 
-        let tk = token.c_str()
-        add_token tk
+        add_token token
         token = ""
     }else{
       if Char in CHARACTER_TOKENS{
         if token != ""{
-          let tk = token.c_str()
-          add_token tk
+          add_token token
         }
         let int_tk = CHARACTER_TOKENS[Char]
         add_int_token int_tk
@@ -240,8 +238,7 @@ int main() {
 
   # Process the last token.
   if token != ""{
-    let tk = token.c_str()
-    add_token tk
+    add_token token
   }
 
   @apply_hook("custom_integer_printer", CustomPrint)

@@ -556,8 +556,9 @@ int main() {
         // Single character tokens like = are tokenized by add_token(),
         // so we use the following method.
         // "=" the inner equals to shouldn't be tokenized.
-        char *tk = Stringc_str(&token);
-        Listappend_str(&tokens, tk);
+        char *token_str = Stringc_str(&token);
+
+        Listappend_str(&tokens, token_str);
 
         String__reassign__(&token, "");
       } else {
@@ -582,23 +583,24 @@ int main() {
         continue;
       }
 
-      char *tk = Stringc_str(&token);
+      if (Dictionary__contains__(&KEYWORD_TOKENS, Stringc_str(&token))) {
 
-      if (Dictionary__contains__(&KEYWORD_TOKENS, tk)) {
-
-        int ktk = Dictionary__getitem__(&KEYWORD_TOKENS, tk);
+        int ktk = Dictionary__getitem__(&KEYWORD_TOKENS, Stringc_str(&token));
 
         Listappend_int(&tokens, ktk);
 
-      } else if (Dictionary__contains__(&CHARACTER_TOKENS, tk)) {
+      } else if (Dictionary__contains__(&CHARACTER_TOKENS,
+                                        Stringc_str(&token))) {
 
-        int ctk = Dictionary__getitem__(&CHARACTER_TOKENS, tk);
+        int ctk = Dictionary__getitem__(&CHARACTER_TOKENS, Stringc_str(&token));
 
         Listappend_int(&tokens, ctk);
 
       } else {
 
-        Listappend_str(&tokens, tk);
+        char *token_str = Stringc_str(&token);
+
+        Listappend_str(&tokens, token_str);
       }
 
       String__reassign__(&token, "");
@@ -608,23 +610,27 @@ int main() {
       if (Dictionary__contains__(&CHARACTER_TOKENS, Char_promoted_3)) {
 
         if (!String__eq__(&token, "")) {
-          char *tk = Stringc_str(&token);
 
-          if (Dictionary__contains__(&KEYWORD_TOKENS, tk)) {
+          if (Dictionary__contains__(&KEYWORD_TOKENS, Stringc_str(&token))) {
 
-            int ktk = Dictionary__getitem__(&KEYWORD_TOKENS, tk);
+            int ktk =
+                Dictionary__getitem__(&KEYWORD_TOKENS, Stringc_str(&token));
 
             Listappend_int(&tokens, ktk);
 
-          } else if (Dictionary__contains__(&CHARACTER_TOKENS, tk)) {
+          } else if (Dictionary__contains__(&CHARACTER_TOKENS,
+                                            Stringc_str(&token))) {
 
-            int ctk = Dictionary__getitem__(&CHARACTER_TOKENS, tk);
+            int ctk =
+                Dictionary__getitem__(&CHARACTER_TOKENS, Stringc_str(&token));
 
             Listappend_int(&tokens, ctk);
 
           } else {
 
-            Listappend_str(&tokens, tk);
+            char *token_str = Stringc_str(&token);
+
+            Listappend_str(&tokens, token_str);
           }
         }
         char Char_promoted_4[2] = {Char, '\0'};
@@ -652,23 +658,24 @@ int main() {
   // Process the last token.
 
   if (!String__eq__(&token, "")) {
-    char *tk = Stringc_str(&token);
 
-    if (Dictionary__contains__(&KEYWORD_TOKENS, tk)) {
+    if (Dictionary__contains__(&KEYWORD_TOKENS, Stringc_str(&token))) {
 
-      int ktk = Dictionary__getitem__(&KEYWORD_TOKENS, tk);
+      int ktk = Dictionary__getitem__(&KEYWORD_TOKENS, Stringc_str(&token));
 
       Listappend_int(&tokens, ktk);
 
-    } else if (Dictionary__contains__(&CHARACTER_TOKENS, tk)) {
+    } else if (Dictionary__contains__(&CHARACTER_TOKENS, Stringc_str(&token))) {
 
-      int ctk = Dictionary__getitem__(&CHARACTER_TOKENS, tk);
+      int ctk = Dictionary__getitem__(&CHARACTER_TOKENS, Stringc_str(&token));
 
       Listappend_int(&tokens, ctk);
 
     } else {
 
-      Listappend_str(&tokens, tk);
+      char *token_str = Stringc_str(&token);
+
+      Listappend_str(&tokens, token_str);
     }
   }
 
