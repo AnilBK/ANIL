@@ -1010,6 +1010,33 @@ while index < len(Lines):
             parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)
             parameters = [_read_a_parameter()]
             parser.consume_token(lexer.Token.RIGHT_SQUARE_BRACKET)
+
+            # [BEGIN] Automatic Conversion for String class
+            is_parameter_string_object = False
+            param_struct_info = get_instanced_struct(parameters[0].param)
+            if param_struct_info != None:
+                is_parameter_string_object = param_struct_info.struct_type == "String"
+
+            if is_parameter_string_object:
+                get_item_fn_args = instanced_struct_info.get_fn_arguments("__getitem__")
+                # Get the data type for the first function argument.
+                param_type = get_item_fn_args[0].data_type
+                expects_string_argument = param_type == "char*" or param_type == "str"
+
+                if expects_string_argument:
+                    c_str_fn_name = param_struct_info.get_mangled_function_name("c_str")
+                    # Recreate the obtained parameter as,
+                    # Dictionary__getitem__(&CHARACTER_TOKENS, token)
+                    #                                          ^^^^^
+                    # to
+                    # Dictionary__getitem__(&CHARACTER_TOKENS, Stringc_str(&token))
+                    #                                          ^^^^^^^^^^^^^^^^^^^
+                    m_param = f"{c_str_fn_name}(&{parameters[0].param})"
+                    m_param_type = ParameterType.VARIABLE
+                    #                            ^^^^^^^^^ Just a placeholder,nothing special.
+                    param = Parameter(m_param, m_param_type)
+                    parameters = [param]
+            # [END] Automatic Conversion for String class
         elif parser.check_token(lexer.Token.DOT):
             # let str3 = str2.strip()
             #                 ^^^^^   fn_name_unmangled

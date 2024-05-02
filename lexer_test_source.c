@@ -226,8 +226,7 @@ int main() {
       }
 
       if token in CHARACTER_TOKENS{
-        let token_str = token.c_str()
-        let int_tk = CHARACTER_TOKENS[token_str]
+        let int_tk = CHARACTER_TOKENS[token]
         add_int_token int_tk
         token = ""
         continue;
