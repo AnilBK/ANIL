@@ -2005,18 +2005,28 @@ while index < len(Lines):
                         "__contains__"
                     )
 
+                    is_var_to_check_string_object = False
+                    var_to_check_struct_info = get_instanced_struct(var_to_check)
+                    if var_to_check_struct_info != None:
+                        is_var_to_check_string_object = (
+                            var_to_check_struct_info.struct_type == "String"
+                        )
+
+                    contains_fn_args = instanced_struct_info.get_fn_arguments(
+                        "__contains__"
+                    )
+                    # Get the data type for the first function argument.
+                    param_type = contains_fn_args[0].data_type
+                    expects_string_argument = (
+                        param_type == "char*" or param_type == "str"
+                    )
+
                     if is_variable_char_type(var_to_check):
                         # if var_to_check in var_to_check_against {
                         #    ^^^^^^^^^^^^ this is a char
                         # but the function signature for "__contains__" expects a char*/str.
                         # So, promote the char variable to a string.
-                        contains_fn_args = instanced_struct_info.get_fn_arguments(
-                            "__contains__"
-                        )
-                        # Get the data type for the first function argument.
-                        param_type = contains_fn_args[0].data_type
-
-                        if param_type == "char*" or param_type == "str":
+                        if expects_string_argument:
                             char_to_string_promotion_code = ""
 
                             promoted_char_var_name = f"{var_to_check}_promoted_{temp_char_promoted_to_string_variable_count}"
@@ -2035,6 +2045,18 @@ while index < len(Lines):
                         gen_code = (
                             f'{fn_name}(&{var_to_check_against}, "{var_to_check}")'
                         )
+                    elif expects_string_argument and is_var_to_check_string_object:
+                        # For Automatic Conversion for String class.
+                        # for token in Character_Tokens:
+                        #     ^^^^     ^^^^^^^^^^^^^^^^
+                        #         String               Dictionary
+                        # The __contains__ for Dictionary expects a string,
+                        # And the string class has a c_str method that returns char*,
+                        # so implement this for String Class. Could be extended to any classes with c_str() method. Food for thought :)
+                        c_str_fn_name = (
+                            var_to_check_struct_info.get_mangled_function_name("c_str")
+                        )
+                        gen_code = f"{fn_name}(&{var_to_check_against}, {c_str_fn_name}(&{var_to_check}))"
                     else:
                         gen_code = f"{fn_name}(&{var_to_check_against}, {var_to_check})"
 

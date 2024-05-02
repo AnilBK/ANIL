@@ -635,9 +635,8 @@ int main() {
         continue;
       }
 
-      char *token_str = Stringc_str(&token);
-
-      if (Dictionary__contains__(&CHARACTER_TOKENS, token_str)) {
+      if (Dictionary__contains__(&CHARACTER_TOKENS, Stringc_str(&token))) {
+        char *token_str = Stringc_str(&token);
         int int_tk = Dictionary__getitem__(&CHARACTER_TOKENS, token_str);
         Listappend_int(&tokens, int_tk);
 

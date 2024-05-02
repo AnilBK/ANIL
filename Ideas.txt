@@ -116,3 +116,15 @@ April 2 :: Macros to class Macros
 ^^^^ Add it to the class itself.
 
 -------------------------------------------------
+
+May 1: Automatically fetch strings from Class Objects.
+
+      if token in CHARACTER_TOKENS{
+        let int_tk = CHARACTER_TOKENS[token]
+      Here token is of String class.
+      But 'in' expects a str and CHARACTER_TOKENS[] expects a str.
+      Since, the string class has a c_str method, we should be able to pass the String Class Object 'token'
+      and the compiler handles fetching the c string, something like belows.
+
+      if token_str.c_str() in CHARACTER_TOKENS{
+        let int_tk = CHARACTER_TOKENS[token_str.c_str()]
