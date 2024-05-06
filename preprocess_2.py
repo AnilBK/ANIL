@@ -129,9 +129,6 @@ def has_constructors(p_struct_type: str) -> bool:
     return p_struct_type in structs_with_constructors.keys()
 
 
-from enum import Enum
-
-
 class NestingLevel(Enum):
     FOR_LOOP = 0
     IF_STATEMENT = 1
