@@ -121,7 +121,12 @@ def is_variable_array_type(p_var_name):
 
 
 # If any structs have __init__ method, then we register them here.
-structs_with_constructors = []
+# {struct_type:parameters}
+structs_with_constructors = {}
+
+
+def has_constructors(p_struct_type: str) -> bool:
+    return p_struct_type in structs_with_constructors.keys()
 
 
 from enum import Enum
@@ -154,17 +159,6 @@ def decrement_scope():
 
 
 increment_scope()
-
-
-def has_constructors(p_struct_type: str) -> bool:
-    for struct_with_init_method in structs_with_constructors:
-        init_struct_name, _init_parameters = struct_with_init_method
-
-        if init_struct_name == p_struct_type:
-            return True
-
-    return False
-
 
 # From where did the function body write started.
 # We have to insert function hooks later here.
@@ -2287,7 +2281,7 @@ while index < len(Lines):
         # Primitive Name Mangling.
         if is_fn_constructor_type:
             # fn_name = fn_name + struct_name
-            structs_with_constructors.append([struct_name, parameters])
+            structs_with_constructors[struct_name] = parameters
 
         unmangled_name = fn_name
 
