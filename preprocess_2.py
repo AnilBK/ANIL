@@ -71,6 +71,40 @@ string_variable_names = []
 optional_types_to_register = set()
 
 
+# UTILS BEGIN
+
+
+# Insert a string at a given index in another string.
+def insert_string(original_string, index, string_to_insert) -> str:
+    return original_string[:index] + string_to_insert + original_string[index:]
+
+
+def get_format_specifier(p_type: str) -> str:
+    db = {"char": "c", "int": "d", "float": "f", "size_t": "llu"}
+
+    is_array_type = p_type[0] == "[" and p_type[-1] == "]"
+    if is_array_type:
+        p_type = p_type[1:-1]
+
+    if p_type in db.keys():
+        return db[p_type]
+    else:
+        return "d"
+
+
+def get_mangled_fn_name(p_struct_type: str, p_fn_name: str) -> str:
+    return p_struct_type + p_fn_name
+
+
+def get_templated_mangled_fn_name(
+    p_struct_type: str, p_fn_name: str, p_templated_data_type: str
+) -> str:
+    return p_struct_type + "_" + p_templated_data_type + p_fn_name
+
+
+# UTILS END
+
+
 instanced_variables = {}
 # Same as above but stores just the names of the instances with respective scopes.
 # {"1":[var1,var2,var3],"2":[var4]..}
@@ -461,19 +495,6 @@ def add_fn_member_to_struct(p_struct_name: str, p_fn: MemberFunction):
         struct_defination.member_functions.append(p_fn)
 
 
-def get_format_specifier(p_type: str) -> str:
-    db = {"char": "c", "int": "d", "float": "f", "size_t": "llu"}
-
-    is_array_type = p_type[0] == "[" and p_type[-1] == "]"
-    if is_array_type:
-        p_type = p_type[1:-1]
-
-    if p_type in db.keys():
-        return db[p_type]
-    else:
-        return "d"
-
-
 def add_fnbody_to_member_to_struct(p_struct_name: str, p_fn_name: str, p_fn_body: str):
     struct_defination = get_struct_defination_of_type(p_struct_name)
     if struct_defination is None:
@@ -482,16 +503,6 @@ def add_fnbody_to_member_to_struct(p_struct_name: str, p_fn_name: str, p_fn_body
         for fn in struct_defination.member_functions:
             if fn.fn_name == p_fn_name:
                 fn.fn_body = p_fn_body
-
-
-def get_mangled_fn_name(p_struct_type: str, p_fn_name: str) -> str:
-    return p_struct_type + p_fn_name
-
-
-def get_templated_mangled_fn_name(
-    p_struct_type: str, p_fn_name: str, p_templated_data_type: str
-) -> str:
-    return p_struct_type + "_" + p_templated_data_type + p_fn_name
 
 
 contexpr_functions = [
@@ -547,11 +558,6 @@ is_inside_struct_impl = False
 temp_arr_length_variable_count = 0
 temp_arr_search_variable_count = 0
 temp_char_promoted_to_string_variable_count = 0
-
-
-# Insert a string at a given index in another string.
-def insert_string(original_string, index, string_to_insert) -> str:
-    return original_string[:index] + string_to_insert + original_string[index:]
 
 
 constexpr_dictionaries = []
