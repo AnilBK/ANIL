@@ -71,6 +71,11 @@ string_variable_names = []
 optional_types_to_register = set()
 
 
+instanced_variables = {}
+# Same as above but stores just the names of the instances with respective scopes.
+# {"1":[var1,var2,var3],"2":[var4]..}
+instanced_variables_scoped = {}
+
 def get_type_of_variable(p_var_name):
     """
     if p_var_name in instanced_variables:
@@ -118,6 +123,49 @@ def is_variable_array_type(p_var_name):
 
     is_array_type = var_type[0] == "[" and var_type[-1] == "]"
     return is_array_type
+
+
+def is_variable_already_defined_in_scope(p_var_name):
+    global variable_scope
+    # Is Variable defined in the current scope.
+    if variable_scope in instanced_variables_scoped:
+        if p_var_name in instanced_variables_scoped[variable_scope]:
+            return True
+
+    # Check the previous scope variables.
+    for _, value in instanced_variables_scoped.items():
+        if p_var_name in value:
+            return True
+
+    return False
+
+
+def REGISTER_VARIABLE(p_var_name: str, p_var_data_type: str) -> None:
+    global instanced_variables
+
+    debugDuplicatedVariables = False
+
+    if debugDuplicatedVariables:
+        # Variables inside def will be duplicated and they will also raise this error.
+        # Use this flag for other local variables.
+        if is_variable(p_var_name):
+            print(f"{instanced_variables}")
+            raise ValueError(f"{p_var_name} is already defined.")
+
+    # if p_var_name in instanced_variables:
+    #    print(f"Instanced variables : {instanced_variables}")
+    #    pass
+
+    if is_variable_already_defined_in_scope(p_var_name):
+        raise Exception(f"{p_var_name} is already defined in previous scopes.")
+
+    global variable_scope
+    if variable_scope in instanced_variables_scoped:
+        instanced_variables_scoped[variable_scope].append(p_var_name)
+    else:
+        instanced_variables_scoped[variable_scope] = [p_var_name]
+
+    instanced_variables[p_var_name] = p_var_data_type
 
 
 # If any structs have __init__ method, then we register them here.
@@ -495,56 +543,10 @@ currently_reading_def_body = ""
 is_inside_new_code = False
 is_inside_struct_impl = False
 
-instanced_variables = {}
-# Same as above but stores just the names of the instances with respective scopes.
-# {"1":[var1,var2,var3],"2":[var4]..}
-instanced_variables_scoped = {}
+
 temp_arr_length_variable_count = 0
 temp_arr_search_variable_count = 0
 temp_char_promoted_to_string_variable_count = 0
-
-
-def is_variable_already_defined_in_scope(p_var_name):
-    global variable_scope
-    # Is Variable defined in the current scope.
-    if variable_scope in instanced_variables_scoped:
-        if p_var_name in instanced_variables_scoped[variable_scope]:
-            return True
-
-    # Check the previous scope variables.
-    for _, value in instanced_variables_scoped.items():
-        if p_var_name in value:
-            return True
-
-    return False
-
-
-def REGISTER_VARIABLE(p_var_name: str, p_var_data_type: str) -> None:
-    global instanced_variables
-
-    debugDuplicatedVariables = False
-
-    if debugDuplicatedVariables:
-        # Variables inside def will be duplicated and they will also raise this error.
-        # Use this flag for other local variables.
-        if is_variable(p_var_name):
-            print(f"{instanced_variables}")
-            raise ValueError(f"{p_var_name} is already defined.")
-
-    # if p_var_name in instanced_variables:
-    #    print(f"Instanced variables : {instanced_variables}")
-    #    pass
-
-    if is_variable_already_defined_in_scope(p_var_name):
-        raise Exception(f"{p_var_name} is already defined in previous scopes.")
-
-    global variable_scope
-    if variable_scope in instanced_variables_scoped:
-        instanced_variables_scoped[variable_scope].append(p_var_name)
-    else:
-        instanced_variables_scoped[variable_scope] = [p_var_name]
-
-    instanced_variables[p_var_name] = p_var_data_type
 
 
 # Insert a string at a given index in another string.
