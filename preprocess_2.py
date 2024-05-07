@@ -20,6 +20,9 @@ source_file = "lexer_test_source.c"
 
 # source_file = "examples\\struct_source.c"
 # source_file = "examples\\string_source.c"
+source_file = "examples\\fileexample.c"
+
+
 output_file_name = source_file.split(".")[0] + "_generated.c"
 
 file = open(source_file, "r")

@@ -1,43 +1,43 @@
-// clang-format off
 ///*///
 
-#include <string.h>
-#include <stdlib.h>
 #include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
 
-struct String{char* arr};
+///*///
 
-impl String __init__ text : str
+#include <stdbool.h>
+#include <stdio.h>
+
+// IMPORTS //
+
+struct String {
+  char *arr;
+};
+
+void String__init__(struct String *this, char *text) {
   this->arr = (char *)malloc((strlen(text) + 1) * sizeof(char));
 
   if (this->arr == NULL) {
-      fprintf(stderr, "Memory allocation failed.\n");
-      exit(EXIT_FAILURE);
+    fprintf(stderr, "Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
   }
 
   strcpy(this->arr, text);
-endfunc
+}
 
-
-impl String clear
+void Stringclear(struct String *this) {
   this->arr = (char *)realloc(this->arr, 1);
   this->arr[0] = '\0';
-endfunc
+}
 
-impl String print
-  printf("%s", this->arr);
-endfunc
+void Stringprint(struct String *this) { printf("%s", this->arr); }
 
-impl String printLn
-  printf("%s\n", this->arr);
-endfunc
+void StringprintLn(struct String *this) { printf("%s\n", this->arr); }
 
+void String__del__(struct String *this) { free(this->arr); }
 
-impl String __del__
-  free(this->arr);
-endfunc
-
-impl String strip -> String:
+struct String Stringstrip(struct String *this) {
   //  char *str = "  Hello ";
   char *str = this->arr;
 
@@ -70,33 +70,29 @@ impl String strip -> String:
   text.arr[new_length] = '\0';
 
   return text;
-endfunc
+}
 
-impl String len -> size_t:
-  return strlen(this->arr);
-endfunc
+size_t Stringlen(struct String *this) { return strlen(this->arr); }
 
-impl String __getitem__ index : int -> char
+char String__getitem__(struct String *this, int index) {
   return *(this->arr + index);
-endfunc
+}
 
-impl String __contains__ substring : str -> bool
+bool String__contains__(struct String *this, char *substring) {
   return strstr(this->arr, substring) != NULL;
-endfunc
+}
 
-impl String __eq__ pstring : str -> bool
+bool String__eq__(struct String *this, char *pstring) {
   return strcmp(this->arr, pstring) == 0;
-endfunc
+}
 
-impl String is_of_length p_len : int -> bool
+bool Stringis_of_length(struct String *this, int p_len) {
   return strlen(this->arr) == p_len;
-endfunc
+}
 
-impl String c_str -> str:
-  return this->arr;
-endfunc
+char *Stringc_str(struct String *this) { return this->arr; }
 
-impl String __add__ pstring : str
+void String__add__(struct String *this, char *pstring) {
   size_t new_length = strlen(this->arr) + strlen(pstring) + 1;
 
   this->arr = (char *)realloc(this->arr, new_length);
@@ -106,9 +102,9 @@ impl String __add__ pstring : str
   }
 
   strcat(this->arr, pstring);
-endfunc
+}
 
-impl String __reassign__ pstring : str
+void String__reassign__(struct String *this, char *pstring) {
   this->arr = (char *)realloc(this->arr, (strlen(pstring) + 1) * sizeof(char));
 
   if (this->arr == NULL) {
@@ -117,30 +113,49 @@ impl String __reassign__ pstring : str
   }
 
   strcpy(this->arr, pstring);
-endfunc
+}
 
-impl String set_to_file_contents pfilename : str
+void Stringset_to_file_contents(struct String *this, char *pfilename) {
   // Read from the file & store the contents to this string.
 
   // TODO: Use CPL to generate this, because the function below is a mangled
   // function name.
   Stringclear(this);
 
-  FILE* ptr;
- 
+  FILE *ptr;
+
   ptr = fopen(pfilename, "r");
- 
+
   if (ptr == NULL) {
     printf("File can't be opened.\n");
     exit(0);
   }
- 
+
   char myString[256];
   while (fgets(myString, 256, ptr)) {
     String__add__(this, myString);
   }
 
   fclose(ptr);
-endfunc
-///*///
+}
 
+int main() {
+
+  ///*///
+
+  struct String str;
+  String__init__(&str, "Hello");
+  StringprintLn(&str);
+
+  Stringset_to_file_contents(&str, "fileexample.c");
+
+  size_t len = Stringlen(&str);
+  printf("String length is : %llu ", len);
+
+  StringprintLn(&str);
+
+  String__del__(&str);
+  ///*///
+
+  return 0;
+}
