@@ -5,10 +5,11 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-struct String{char* arr};
+struct String{char* arr, int length, int capacity};
 
 impl String __init__ text : str
-  this->arr = (char *)malloc((strlen(text) + 1) * sizeof(char));
+  size_t p_text_length = strlen(text);
+  this->arr = (char *)malloc((p_text_length + 1) * sizeof(char));
 
   if (this->arr == NULL) {
       fprintf(stderr, "Memory allocation failed.\n");
@@ -16,12 +17,17 @@ impl String __init__ text : str
   }
 
   strcpy(this->arr, text);
+
+  this->length = p_text_length;
+  this->capacity = p_text_length;
 endfunc
 
 
 impl String clear
-  this->arr = (char *)realloc(this->arr, 1);
+  this->arr = (char *)realloc(this->arr, sizeof(char));
   this->arr[0] = '\0';
+  this->length = 0;
+  this->capacity = 1;
 endfunc
 
 impl String print
@@ -73,7 +79,7 @@ impl String strip -> String:
 endfunc
 
 impl String len -> size_t:
-  return strlen(this->arr);
+  return this->length;
 endfunc
 
 impl String __getitem__ index : int -> char
@@ -99,13 +105,27 @@ endfunc
 impl String __add__ pstring : str
   size_t new_length = strlen(this->arr) + strlen(pstring) + 1;
 
-  this->arr = (char *)realloc(this->arr, new_length);
+  if(new_length > this->capacity){
+    size_t new_capacity;
+    if(this->capacity == 0){
+      new_capacity = new_length * 2;
+    }else{
+      new_capacity = this->capacity;
+      while(new_capacity <= new_length){
+        new_capacity *= 2;
+      }
+    }
+    this->arr = (char *)realloc(this->arr, new_capacity * sizeof(char));
+    this->capacity = new_capacity;
+  }
+
   if (this->arr == NULL) {
     fprintf(stderr, "Memory Re-Allocation Error.\n");
     exit(EXIT_FAILURE);
   }
 
   strcat(this->arr, pstring);
+  this->length = new_length;
 endfunc
 
 impl String __reassign__ pstring : str
@@ -117,6 +137,9 @@ impl String __reassign__ pstring : str
   }
 
   strcpy(this->arr, pstring);
+
+  this->length = strlen(this->arr);
+  this->capacity = this->length;
 endfunc
 
 impl String set_to_file_contents pfilename : str
