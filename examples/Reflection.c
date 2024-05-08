@@ -27,7 +27,7 @@ int main() {
   enddef  
   reflection
 
-  print(f "We print the different instances of class List using Reflection as follows: \n");
+  print("We print the different instances of class List using Reflection as follows: \n")
 
   # 'instances_of_class' returns name of the instances in "string" form,
   # so, we unquote that using UNQUOTE in macro as belows.

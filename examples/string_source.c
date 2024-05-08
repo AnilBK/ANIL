@@ -19,11 +19,11 @@ int main() {
   str.printLn()
   
   for value in str{
-    print(f "{value}.\n"); 
+    print("{value}.\n")
   }
 
   if str == "Hello"{
-    print(f "Str is hello.\n"); 
+    print("Str is hello.\n")
   }
 
   str += " World";
@@ -33,22 +33,22 @@ int main() {
   str.printLn()
 
   if "Anil" in str { 
-    print(f "Anil is in the given string.\n"); 
+    print("Anil is in the given string.\n")
   }
 
   let arr<int> = [1, 2, 3, 4, 5, 10];
 
   if 10 in arr{
-    print(f "10 is in arr. \n");
+    print("10 is in arr. \n")
   }
 
   for value2 in arr{
-    print(f "{value2} \n"); 
+    print("{value2} \n")
   }
 
   let arr2<float> = [1, 2, 3, 4, 5, 10];
   for value3 in arr2{
-    print(f "{value3} \n"); 
+    print("{value3} \n")
   }
 
   // DESTRUCTOR_CODE //

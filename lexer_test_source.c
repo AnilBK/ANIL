@@ -169,7 +169,7 @@ int main() {
   line.printLn()
 
   for Char in line{
-    #print(f "{Char}");
+    #print("{Char}")
 
     if escape_back_slash{
       if Char == "\""{

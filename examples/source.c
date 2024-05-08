@@ -51,7 +51,7 @@ int main() {
   // clang-format off
 
   ///*///
-  print(f "Hello {meaning} , {meaning}");
+  print("Hello {meaning} , {meaning}")
 
   Option<int> value;
   Option<float> float_value;
@@ -73,11 +73,11 @@ int main() {
 
   let arr<int> = [ 1, 2, 3, 4, 5 ];
   for value in arr{
-   print(f "{value} \n"); 
+   print("{value} \n")
   %}
 
   if meaning in arr { 
-    print(f "{meaning} was found in array.\n"); 
+    print("{meaning} was found in array.\n")
   %}
 
   match meaning {

@@ -52,7 +52,7 @@ int main() {
 
   let arr<int> = [ 1, 2, 3, 4, 5 ];
   for index,value in enumerate arr{
-    print(f "index : {index} value : {value} \n"); 
+    print("index : {index} value : {value} \n")
   }
 
 

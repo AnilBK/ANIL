@@ -24,7 +24,7 @@ int main() {
   a.print()
 
   if 10 in a{
-    print(f "10 is in the vector. \n");
+    print("10 is in the vector. \n")
   }
 
 

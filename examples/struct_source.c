@@ -14,7 +14,7 @@ int main() {
   // clang-format off
 
   ///*///
-  print(f "Hello {meaning} , {meaning} \n");
+  print("Hello {meaning} , {meaning} \n")
 
   struct Point {int x, int y};
   let p1 = Point{20, 50};
@@ -43,7 +43,7 @@ int main() {
   let arr<float> = [1,2,3,4,5];
 
   for val in arr{
-    print(f "{val}\n");
+    print("{val}\n")
   }
   
   struct GenericStruct<X>{X a, float b};
