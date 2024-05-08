@@ -13,10 +13,13 @@
 
 struct String {
   char *arr;
+  int length;
+  int capacity;
 };
 
 void String__init__(struct String *this, char *text) {
-  this->arr = (char *)malloc((strlen(text) + 1) * sizeof(char));
+  size_t p_text_length = strlen(text);
+  this->arr = (char *)malloc((p_text_length + 1) * sizeof(char));
 
   if (this->arr == NULL) {
     fprintf(stderr, "Memory allocation failed.\n");
@@ -24,11 +27,16 @@ void String__init__(struct String *this, char *text) {
   }
 
   strcpy(this->arr, text);
+
+  this->length = p_text_length;
+  this->capacity = p_text_length;
 }
 
 void Stringclear(struct String *this) {
-  this->arr = (char *)realloc(this->arr, 1);
+  this->arr = (char *)realloc(this->arr, sizeof(char));
   this->arr[0] = '\0';
+  this->length = 0;
+  this->capacity = 1;
 }
 
 void Stringprint(struct String *this) { printf("%s", this->arr); }
@@ -72,7 +80,7 @@ struct String Stringstrip(struct String *this) {
   return text;
 }
 
-size_t Stringlen(struct String *this) { return strlen(this->arr); }
+size_t Stringlen(struct String *this) { return this->length; }
 
 char String__getitem__(struct String *this, int index) {
   return *(this->arr + index);
@@ -95,13 +103,27 @@ char *Stringc_str(struct String *this) { return this->arr; }
 void String__add__(struct String *this, char *pstring) {
   size_t new_length = strlen(this->arr) + strlen(pstring) + 1;
 
-  this->arr = (char *)realloc(this->arr, new_length);
+  if (new_length > this->capacity) {
+    size_t new_capacity;
+    if (this->capacity == 0) {
+      new_capacity = new_length * 2;
+    } else {
+      new_capacity = this->capacity;
+      while (new_capacity <= new_length) {
+        new_capacity *= 2;
+      }
+    }
+    this->arr = (char *)realloc(this->arr, new_capacity * sizeof(char));
+    this->capacity = new_capacity;
+  }
+
   if (this->arr == NULL) {
     fprintf(stderr, "Memory Re-Allocation Error.\n");
     exit(EXIT_FAILURE);
   }
 
   strcat(this->arr, pstring);
+  this->length = new_length;
 }
 
 void String__reassign__(struct String *this, char *pstring) {
@@ -113,6 +135,9 @@ void String__reassign__(struct String *this, char *pstring) {
   }
 
   strcpy(this->arr, pstring);
+
+  this->length = strlen(this->arr);
+  this->capacity = this->length;
 }
 
 void Stringset_to_file_contents(struct String *this, char *pfilename) {
