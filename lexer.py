@@ -127,6 +127,7 @@ def get_tokens(line):
                 token += "\\\\"
                 escape_back_slash = False
             else:
+                token += "\\"
                 token += char
                 escape_back_slash = False
         elif char == '"':
