@@ -115,6 +115,30 @@ void String__reassign__(struct String *this, char *pstring) {
   strcpy(this->arr, pstring);
 }
 
+void Stringset_to_file_contents(struct String *this, char *pfilename) {
+  // Read from the file & store the contents to this string.
+
+  // TODO: Use CPL to generate this, because the function below is a mangled
+  // function name.
+  Stringclear(this);
+
+  FILE *ptr;
+
+  ptr = fopen(pfilename, "r");
+
+  if (ptr == NULL) {
+    printf("File can't be opened.\n");
+    exit(0);
+  }
+
+  char myString[256];
+  while (fgets(myString, 256, ptr)) {
+    String__add__(this, myString);
+  }
+
+  fclose(ptr);
+}
+
 int main() {
 
   ///*///
