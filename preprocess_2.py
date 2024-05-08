@@ -1771,14 +1771,13 @@ while index < len(Lines):
             LinesCache.append(f"    {statements} \n}}\n")
 
             match_condition_count += 1
-    elif 'print(f "' in Line:
-        #   % print(f "Hello {meaning}");
-        # print("Procesing [Print]")
-        rhs = Line.split("print(f ")[1]
-        # print(rhs)
-        string = rhs.split('");')
-        actual_str = string[0].strip('"')
-        # print(actual_str)
+    elif parser.current_token() == "print":
+        # print("Hello {meaning}")
+        parser.next_token()
+
+        parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
+        actual_str = parser.extract_string_literal()
+        parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
 
         braces_open = False
         str_text = ""
