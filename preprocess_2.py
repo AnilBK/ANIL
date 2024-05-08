@@ -1800,13 +1800,10 @@ while index < len(Lines):
             else:
                 str_text += char
 
-        # print(str_text)
-        # print(extracted_var_name_list)
         str_to_write = f'printf("{str_text} "'
         if len(extracted_var_name_list) != 0:
             str_to_write += "," + ",".join(extracted_var_name_list)
         str_to_write += ");\n"
-        # print(str_to_write)
         LinesCache.append(str_to_write)
     elif check_token(lexer.Token.MATCH):
         # % match x{
