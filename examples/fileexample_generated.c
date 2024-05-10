@@ -124,6 +124,8 @@ struct String Stringstrip(struct String *this) {
 
   struct String text;
   text.arr = (char *)malloc((new_length + 1) * sizeof(char));
+  text.length = new_length;
+  text.capacity = new_length;
 
   if (text.arr == NULL) {
     fprintf(stderr, "Memory allocation failed.\n");
