@@ -13,6 +13,7 @@ int main() {
   // clang-format off
 
   ///*///
+  import UniquePtr
 
   let ptr = UniquePtr<char>{100};
 

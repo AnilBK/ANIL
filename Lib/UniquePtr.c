@@ -3,7 +3,7 @@
 
 struct UniquePtr<T>{T *arr};
 
-impl UniquePtr __init__ capacity
+impl UniquePtr __init__ capacity : int
   this->arr = (@TEMPLATED_DATA_TYPE@ *)malloc(capacity * sizeof(@TEMPLATED_DATA_TYPE@));
 
   if (this->arr == NULL) {
