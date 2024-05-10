@@ -142,8 +142,7 @@ int main() {
   let escape_back_slash = False
 
   def add_token_raw(p_token):
-    let token_str = p_token.c_str()
-    tokens.append_str(token_str)
+    tokens.append_str(p_token)
   enddef  
 
   def add_int_token(p_token):

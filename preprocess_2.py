@@ -139,6 +139,13 @@ def is_variable_char_type(p_var_name):
     return is_variable_of_type(p_var_name, "char")
 
 
+def is_variable_string_class(p_var_name):
+    struct_info = get_instanced_struct(p_var_name)
+    if struct_info != None:
+        return struct_info.struct_type == "String"
+    return False
+
+
 def is_variable_str_type(p_var_name):
     return is_variable_of_type(p_var_name, "str") or is_variable_of_type(
         p_var_name, "char*"
@@ -921,9 +928,10 @@ while index < len(Lines):
     class ParameterType(Enum):
         UNDEFINED = -1
         RAW_STRING = 0
-        CHAR_OR_STR_TYPE = 1
-        NUMBER = 2
-        VARIABLE = 3
+        CHAR_TYPE = 1
+        STR_TYPE = 2
+        NUMBER = 3
+        VARIABLE = 4
 
     class Parameter:
         def __init__(self, p_param, p_param_type: ParameterType) -> None:
@@ -942,8 +950,10 @@ while index < len(Lines):
             parameter_type = ParameterType.RAW_STRING
         elif is_variable(tk):
             parameter = tk
-            if is_variable_str_type(tk) or is_variable_char_type(tk):
-                parameter_type = ParameterType.CHAR_OR_STR_TYPE
+            if is_variable_str_type(tk) or is_variable_string_class(tk):
+                parameter_type = ParameterType.STR_TYPE
+            elif is_variable_char_type(tk):
+                parameter_type = ParameterType.CHAR_TYPE
             else:
                 parameter_type = ParameterType.VARIABLE
             parser.next_token()
@@ -1082,8 +1092,11 @@ while index < len(Lines):
         char_to_string_promotion_code = ""
         for i, (arg, parameter) in enumerate(zip(fn_args, parameters)):
             param = parameter.param
-            if is_variable_char_type(param):
-                if ("char*" in arg) or ("str" in arg):
+            param_type = parameter.param_type
+
+            expects_string_argument = ("char*" in arg) or ("str" in arg)
+            if expects_string_argument:
+                if param_type == ParameterType.CHAR_TYPE:
                     global temp_char_promoted_to_string_variable_count
                     promoted_char_var_name = f"{param}_promoted_{temp_char_promoted_to_string_variable_count}"
                     # Create a string from char.
@@ -1097,6 +1110,14 @@ while index < len(Lines):
 
                     # This new string replaces the old char param.
                     parameters[i].param = promoted_char_var_name
+                elif param_type == ParameterType.STR_TYPE:
+                    param_struct_info = get_instanced_struct(param)
+                    c_str_fn_name = param_struct_info.get_mangled_function_name("c_str")
+                    # A function expects a string, & we provided a String class object.
+                    # So, we perform getting string from String Class object.
+                    # var -> Stringc_str(&var)
+                    # ^^^ String Object.
+                    parameters[i].param = f"{c_str_fn_name}(&{parameters[i].param})"
 
         if char_to_string_promotion_code != "":
             global LinesCache

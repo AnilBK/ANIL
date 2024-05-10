@@ -340,8 +340,7 @@ int main() {
     char c = String__getitem__(&str, i);
 
     if (c == '\n') {
-      char *c_str = Stringc_str(&l);
-      Listappend_str(&line, c_str);
+      Listappend_str(&line, Stringc_str(&l));
 
       String__reassign__(&l, "");
       continue;

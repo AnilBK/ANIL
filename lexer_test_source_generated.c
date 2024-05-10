@@ -607,9 +607,7 @@ int main() {
         // Single character tokens like = are tokenized by add_token(),
         // so we use the following method.
         // "=" the inner equals to shouldn't be tokenized.
-        char *token_str = Stringc_str(&token);
-
-        Listappend_str(&tokens, token_str);
+        Listappend_str(&tokens, Stringc_str(&token));
 
         String__reassign__(&token, "");
       } else {
@@ -649,9 +647,7 @@ int main() {
 
       } else {
 
-        char *token_str = Stringc_str(&token);
-
-        Listappend_str(&tokens, token_str);
+        Listappend_str(&tokens, Stringc_str(&token));
       }
 
       String__reassign__(&token, "");
@@ -679,9 +675,7 @@ int main() {
 
           } else {
 
-            char *token_str = Stringc_str(&token);
-
-            Listappend_str(&tokens, token_str);
+            Listappend_str(&tokens, Stringc_str(&token));
           }
         }
         char Char_promoted_4[2] = {Char, '\0'};
@@ -724,9 +718,7 @@ int main() {
 
     } else {
 
-      char *token_str = Stringc_str(&token);
-
-      Listappend_str(&tokens, token_str);
+      Listappend_str(&tokens, Stringc_str(&token));
     }
   }
 

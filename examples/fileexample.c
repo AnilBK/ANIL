@@ -30,8 +30,7 @@ int main() {
 
   for c in str{
     if c == "\n"{
-      let c_str = l.c_str()
-      line.append_str(c_str)
+      line.append_str(l)
       l = ""
       continue;
     }
