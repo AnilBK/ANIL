@@ -39,6 +39,12 @@ int main() {
     
   }
 
+  # Add the remaining strings which don't end with \n.
+  if l != ""{
+    line.append_str(l)
+    l = ""
+  }
+
   line.print()
 
   // DESTRUCTOR_CODE //
