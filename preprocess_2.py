@@ -6,6 +6,13 @@ from enum import Enum
 import re
 import os
 
+import argparse
+
+# We don't typically pass filenames through command line, this is mostly for batch compile operations.
+filename_parser = argparse.ArgumentParser()
+filename_parser.add_argument("--filename", help="Name of source file to be compiled.")
+args = filename_parser.parse_args()
+
 # source_file = "examples\\vector_source.c"
 # source_file = "examples\\unique_ptr_source.c"
 # source_file = "examples\\string_class_source.c"
@@ -21,6 +28,9 @@ source_file = "lexer_test_source.c"
 # source_file = "examples\\struct_source.c"
 # source_file = "examples\\string_source.c"
 # source_file = "examples\\fileexample.c"
+
+if args.filename:
+    source_file = args.filename
 
 
 output_file_name = source_file.split(".")[0] + "_generated.c"
