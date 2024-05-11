@@ -57,12 +57,9 @@ if len(imported_modules) > 0:
 LinesCache = []
 
 inside_match_loop = False
-
-
 match_condition_count = 0
 match_variable_name = ""
 match_type = "variable"  # variable,struct
-
 match_struct_type_info = []
 
 struct_definations = []
@@ -70,7 +67,6 @@ instanced_struct_names = []
 GlobalStructInitCode = ""
 
 string_variable_names = []
-
 optional_types_to_register = set()
 
 
@@ -225,13 +221,10 @@ class NestingLevel(Enum):
     FOR_LOOP = 0
     IF_STATEMENT = 1
     ELSE_STATEMENT = 2
-
-
 nesting_levels = []
 
+
 variable_scope = 0
-
-
 def increment_scope():
     global variable_scope
     variable_scope += 1
@@ -265,32 +258,11 @@ HOOKS_hook_fn_name = ""
 HOOKS_target_fn = ""
 
 
-class HookInfo:
-    # @hook_begin("custom_integer_printer" "int" data)
-    #              ^ p_hook_fn_name              ^ p_hook_var_name
-    #                                       ^ p_hook_fn_arg_type
-    # The hook fn 'p_hook_fn_name' uses 'p_hook_var_name' of type 'p_hook_fn_arg_type'.
-    def __init__(self, p_hook_fn_name, p_hook_fn_arg_type, p_hook_var_name) -> None:
-        self.hook_fn_name = p_hook_fn_name
-        self.hook_fn_arg_type = p_hook_fn_arg_type
-        self.hook_var_name = p_hook_var_name
-
-
-def parse_hook_info(p_hook_body) -> HookInfo:
-    # @hook_begin("custom_integer_printer" "int" data)
-    hook_parser = Parser.Parser(p_hook_body)
-
-    hook_parser.consume_token(lexer.Token.AT)
-    hook_parser.consume_token(lexer.Token.HOOK_BEGIN)
-    hook_parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
-
-    hook_fn_name = hook_parser.extract_string_literal()
-    hook_fn_arg_type = hook_parser.extract_string_literal()
-    hook_var_name = hook_parser.get_token()
-
-    hook_parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
-
-    return HookInfo(hook_fn_name, hook_fn_arg_type, hook_var_name)
+class MemberDataType:
+    def __init__(self, p_data_type, p_member, p_is_generic) -> None:
+        self.data_type = p_data_type
+        self.member = p_member
+        self.is_generic = p_is_generic
 
 
 class MemberFunction:
@@ -312,13 +284,6 @@ class MemberFunction:
         print(f"Function Body : \n{self.fn_body}")
         print(f"Return Type: \n{self.return_type}")
         print("--------------------------------------------------")
-
-
-class MemberDataType:
-    def __init__(self, p_data_type, p_member, p_is_generic) -> None:
-        self.data_type = p_data_type
-        self.member = p_member
-        self.is_generic = p_is_generic
 
 
 class Struct:
@@ -437,42 +402,6 @@ class StructInstance:
         return self.get_mangled_function_name("__del__")
 
 
-class ObjectInstance:
-    def __init__(
-        self, p_struct_name, p_is_templated, p_templated_data_type=None
-    ) -> None:
-        self.struct_name = p_struct_name
-        self.is_templated = p_is_templated
-        self.templated_data_type = p_templated_data_type
-
-
-# This stores which structs are instanced, so to fix redefination error while generating C code.
-ObjectInstances = []
-
-
-def is_class_already_instantiated(p_struct_name, p_is_templated, p_templated_data_type):
-    for ObjInstance in ObjectInstances:
-        struct_name = ObjInstance.struct_name
-        is_templated = ObjInstance.is_templated
-        templated_data_type = ObjInstance.templated_data_type
-
-        struct_name_matches = struct_name == p_struct_name
-        template_matches = False
-
-        # Both the template and the templated type matches.
-        if is_templated and p_is_templated:
-            if templated_data_type == p_templated_data_type:
-                template_matches = True
-
-        # Normal, untemplated classes.
-        if (not is_templated) and (not p_is_templated):
-            template_matches = True
-
-        if struct_name_matches and template_matches:
-            return True
-    return False
-
-
 def get_struct_defination_of_type(p_struct_type: str) -> Optional[Struct]:
     for defined_struct in struct_definations:
         if defined_struct.name == p_struct_type:
@@ -515,11 +444,40 @@ def add_fnbody_to_member_to_struct(p_struct_name: str, p_fn_name: str, p_fn_body
                 fn.fn_body = p_fn_body
 
 
-contexpr_functions = [
-    "members_of",
-    "member_functions_of",
-    "instances_of_class",
-]
+class ObjectInstance:
+    def __init__(
+        self, p_struct_name, p_is_templated, p_templated_data_type=None
+    ) -> None:
+        self.struct_name = p_struct_name
+        self.is_templated = p_is_templated
+        self.templated_data_type = p_templated_data_type
+
+
+# This stores which structs are instanced, so to fix redefination error while generating C code.
+ObjectInstances = []
+
+
+def is_class_already_instantiated(p_struct_name, p_is_templated, p_templated_data_type):
+    for ObjInstance in ObjectInstances:
+        struct_name = ObjInstance.struct_name
+        is_templated = ObjInstance.is_templated
+        templated_data_type = ObjInstance.templated_data_type
+
+        struct_name_matches = struct_name == p_struct_name
+        template_matches = False
+
+        # Both the template and the templated type matches.
+        if is_templated and p_is_templated:
+            if templated_data_type == p_templated_data_type:
+                template_matches = True
+
+        # Normal, untemplated classes.
+        if (not is_templated) and (not p_is_templated):
+            template_matches = True
+
+        if struct_name_matches and template_matches:
+            return True
+    return False
 
 
 class MacroDefination:
@@ -570,6 +528,21 @@ temp_arr_search_variable_count = 0
 temp_char_promoted_to_string_variable_count = 0
 
 
+# Constant Expressions Related Stuffs.
+
+contexpr_functions = [
+    "members_of",
+    "member_functions_of",
+    "instances_of_class",
+]
+
+
+class ConstexprDictionaryType:
+    def __init__(self, p_dict_name: str, p_dictionary: dict) -> None:
+        self.dict_name = p_dict_name
+        self.dictionary = p_dictionary
+
+
 constexpr_dictionaries = []
 
 
@@ -577,10 +550,36 @@ def is_constexpr_dictionary(p_dict_name) -> bool:
     return any(m_dict.dict_name == p_dict_name for m_dict in constexpr_dictionaries)
 
 
-class ConstexprDictionaryType:
-    def __init__(self, p_dict_name: str, p_dictionary: dict) -> None:
-        self.dict_name = p_dict_name
-        self.dictionary = p_dictionary
+##############################################################################################
+class HookInfo:
+    # @hook_begin("custom_integer_printer" "int" data)
+    #              ^ p_hook_fn_name              ^ p_hook_var_name
+    #                                       ^ p_hook_fn_arg_type
+    # The hook fn 'p_hook_fn_name' uses 'p_hook_var_name' of type 'p_hook_fn_arg_type'.
+    def __init__(self, p_hook_fn_name, p_hook_fn_arg_type, p_hook_var_name) -> None:
+        self.hook_fn_name = p_hook_fn_name
+        self.hook_fn_arg_type = p_hook_fn_arg_type
+        self.hook_var_name = p_hook_var_name
+
+
+def parse_hook_info(p_hook_body) -> HookInfo:
+    # @hook_begin("custom_integer_printer" "int" data)
+    hook_parser = Parser.Parser(p_hook_body)
+
+    hook_parser.consume_token(lexer.Token.AT)
+    hook_parser.consume_token(lexer.Token.HOOK_BEGIN)
+    hook_parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
+
+    hook_fn_name = hook_parser.extract_string_literal()
+    hook_fn_arg_type = hook_parser.extract_string_literal()
+    hook_var_name = hook_parser.get_token()
+
+    hook_parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
+
+    return HookInfo(hook_fn_name, hook_fn_arg_type, hook_var_name)
+
+
+##############################################################################################
 
 
 index = 0
