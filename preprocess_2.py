@@ -20,7 +20,7 @@ source_file = "lexer_test_source.c"
 
 # source_file = "examples\\struct_source.c"
 # source_file = "examples\\string_source.c"
-source_file = "examples\\fileexample.c"
+# source_file = "examples\\fileexample.c"
 
 
 output_file_name = source_file.split(".")[0] + "_generated.c"
@@ -2571,6 +2571,8 @@ while index < len(Lines):
             else:
                 raise ValueError("Incorrect Constexpr Dictionary Format.")
 
+        if is_constexpr_dictionary(dict_name):
+            raise NameError(f'Constexpr dictionary "{dict_name}" already defined.')
         m_dict = ConstexprDictionaryType(dict_name, dict)
         constexpr_dictionaries.append(m_dict)
     elif check_token(lexer.Token.AT):
