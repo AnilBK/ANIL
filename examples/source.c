@@ -20,8 +20,6 @@
   }
 */
 
-// OPTIONAL_INIT_CODE //
-
 // STRUCT_DEFINATIONS //
 
 bool array_contains(int *arr, int size, int query) {

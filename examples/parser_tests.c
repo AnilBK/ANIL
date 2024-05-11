@@ -4,8 +4,6 @@
 
 // IMPORTS //
 
-// OPTIONAL_INIT_CODE //
-
 // STRUCT_DEFINATIONS //
 
 int main() {

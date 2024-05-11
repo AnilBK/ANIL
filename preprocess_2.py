@@ -77,8 +77,6 @@ instanced_struct_names = []
 GlobalStructInitCode = ""
 
 string_variable_names = []
-optional_types_to_register = set()
-
 
 # UTILS BEGIN
 
@@ -2597,15 +2595,8 @@ while index < len(Lines):
     else:
         LinesCache.append(Line)
 
-OptionalInitCode = ""
-for data_type in optional_types_to_register:
-    # // typedef Option(int) Optional_int;
-    OptionalInitCode += f"typedef Option({data_type}) Optional_{data_type};\n"
-
 for i in range(len(LinesCache)):
-    if "// OPTIONAL_INIT_CODE //" in LinesCache[i]:
-        LinesCache[i] = OptionalInitCode
-    elif "// STRUCT_DEFINATIONS //" in LinesCache[i]:
+    if "// STRUCT_DEFINATIONS //" in LinesCache[i]:
         LinesCache[i] = GlobalStructInitCode
     elif "// DESTRUCTOR_CODE //" in LinesCache[i]:
         # print("-----------------------------------")
