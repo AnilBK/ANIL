@@ -1821,7 +1821,7 @@ while index < len(Lines):
             else:
                 str_text += char
 
-        str_to_write = f'printf("{str_text} "'
+        str_to_write = f'printf("{str_text}"'
         if len(extracted_var_name_list) != 0:
             str_to_write += "," + ",".join(extracted_var_name_list)
         str_to_write += ");\n"
