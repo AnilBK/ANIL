@@ -1161,7 +1161,7 @@ while index < len(Lines):
 
         if parse_result["has_parameters"]:
             parameters_str = parse_result["parameters_str"]
-            assignment_code += f", {parameters_str}\n"
+            assignment_code += f", {parameters_str}"
         assignment_code += ");"
 
         global LinesCache
@@ -1473,14 +1473,14 @@ while index < len(Lines):
 
                     if parse_result["has_parameters"]:
                         parameters_str = parse_result["parameters_str"]
-                        code = f"{fn_name}(&{var_name}, {parameters_str});\n"
+                        code = f"{fn_name}(&{var_name}, {parameters_str});"
                     else:
                         if HOOKS_hook_fn_name != "":
-                            code = f"{fn_name}_hooked_{hook_fn_name}(&{var_name},{HOOKS_target_fn});\n"
+                            code = f"{fn_name}_hooked_{hook_fn_name}(&{var_name},{HOOKS_target_fn});"
                             HOOKS_hook_fn_name = ""
                             HOOKS_target_fn = ""
                         else:
-                            code = f"{fn_name}(&{var_name});\n"
+                            code = f"{fn_name}(&{var_name});"
 
                     LinesCache.append(f"{code}\n")
                 continue

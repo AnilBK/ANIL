@@ -66,14 +66,13 @@ int main() {
   int meaning = 42;
 
   ///*///
-  printf("Hello %d , %d \n ", meaning, meaning);
+  printf("Hello %d , %d \n", meaning, meaning);
 
   struct Point p1;
   p1.x = 20;
   p1.y = 50;
 
   Pointsay(&p1);
-
   Pointshout(&p1);
 
   struct Rectangle rect1;
@@ -86,7 +85,7 @@ int main() {
 
   for (unsigned int i = 0; i < arr_array_size; i++) {
     float val = arr[i];
-    printf("%f\n ", val);
+    printf("%f\n", val);
   }
 
   struct GenericStruct__float t1;

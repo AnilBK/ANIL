@@ -341,13 +341,19 @@ int main() {
 
     if (c == '\n') {
       Listappend_str(&line, Stringc_str(&l));
-
       String__reassign__(&l, "");
       continue;
     }
 
     char c_promoted_0[2] = {c, '\0'};
     String__add__(&l, c_promoted_0);
+  }
+
+  // Add the remaining strings which don't end with \n.
+
+  if (!String__eq__(&l, "")) {
+    Listappend_str(&line, Stringc_str(&l));
+    String__reassign__(&l, "");
   }
 
   Listprint(&line);

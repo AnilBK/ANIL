@@ -161,19 +161,13 @@ int main() {
   struct List test_list;
   List__init__(&test_list);
   Listappend_str(&test_list, "Hello");
-
   Listappend_str(&test_list, "World");
-
   Listappend_str(&test_list, "Puppy");
 
   Listappend_int(&test_list, 10);
-
   Listappend_int(&test_list, 20);
-
   Listappend_int(&test_list, 30);
-
   Listappend_int(&test_list, 40);
-
   Listappend_int(&test_list, 50);
 
   Listprint(&test_list);

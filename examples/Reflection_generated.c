@@ -174,45 +174,31 @@ int main() {
   List__init__(&list_instances);
 
   Listappend_str(&vector_class_members, "arr");
-
   Listappend_str(&vector_class_members, "size");
-
   Listappend_str(&vector_class_members, "capacity");
 
   Listappend_str(&vector_class_member_functions, "__init__");
-
   Listappend_str(&vector_class_member_functions, "__del__");
-
   Listappend_str(&vector_class_member_functions, "push");
-
   Listappend_str(&vector_class_member_functions, "allocate_more");
-
   Listappend_str(&vector_class_member_functions, "push_unchecked");
-
   Listappend_str(&vector_class_member_functions, "print");
-
   Listappend_str(&vector_class_member_functions, "__contains__");
-
   Listappend_str(&vector_class_member_functions, "len");
-
   Listappend_str(&vector_class_member_functions, "__getitem__");
 
   Listappend_str(&list_instances, "vector_class_members");
-
   Listappend_str(&list_instances, "vector_class_member_functions");
-
   Listappend_str(&list_instances, "list_instances");
 
   printf("We print the different instances of class List using Reflection as "
-         "follows: \n ");
+         "follows: \n");
 
   // 'instances_of_class' returns name of the instances in "string" form,
   // so, we unquote that using UNQUOTE in macro as belows.
 
   Listprint(&vector_class_members);
-
   Listprint(&vector_class_member_functions);
-
   Listprint(&list_instances);
 
   List__del__(&list_instances);

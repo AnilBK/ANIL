@@ -58,7 +58,7 @@ int main() {
   while (enumerate(&arr_iter, &arr_enumerator)) {
     int index = arr_enumerator.index;
     int value = arr_enumerator.val;
-    printf("index : %d value : %d \n ", index, value);
+    printf("index : %d value : %d \n", index, value);
   }
 
   ///*///

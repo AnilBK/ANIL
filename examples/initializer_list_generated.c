@@ -121,37 +121,23 @@ int main() {
   struct Vector__int values;
   Vector_int__init__(&values, 8);
   Vector_intpush(&values, 1);
-
   Vector_intpush(&values, 2);
-
   Vector_intpush(&values, 3);
-
   Vector_intpush(&values, 4);
-
   Vector_intpush(&values, 5);
-
   Vector_intpush(&values, 6);
-
   Vector_intpush(&values, 7);
-
   Vector_intpush(&values, 8);
 
   Vector_intallocate_more(&values, 8);
 
   Vector_intpush_unchecked(&values, 10);
-
   Vector_intpush_unchecked(&values, 20);
-
   Vector_intpush_unchecked(&values, 30);
-
   Vector_intpush_unchecked(&values, 40);
-
   Vector_intpush_unchecked(&values, 50);
-
   Vector_intpush_unchecked(&values, 60);
-
   Vector_intpush_unchecked(&values, 70);
-
   Vector_intpush_unchecked(&values, 80);
 
   Vector_int__del__(&values);

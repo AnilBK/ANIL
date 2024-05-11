@@ -586,7 +586,6 @@ int main() {
 
         char Char_promoted_0[2] = {Char, '\0'};
         String__add__(&token, Char_promoted_0);
-
         escape_back_slash = false;
       } else if (Char == '\\') {
         String__add__(&token, "\\\\");
@@ -595,7 +594,6 @@ int main() {
 
         char Char_promoted_1[2] = {Char, '\0'};
         String__add__(&token, Char_promoted_1);
-
         escape_back_slash = false;
       }
     } else if (Char == '"') {
@@ -615,7 +613,6 @@ int main() {
         inside_string = true;
       }
       Listappend_int(&tokens, 18);
-
     } else if (inside_string) {
 
       if (Char == '\\') {
@@ -625,7 +622,6 @@ int main() {
 
       char Char_promoted_2[2] = {Char, '\0'};
       String__add__(&token, Char_promoted_2);
-
     } else if (Char == ' ') {
 
       if (String__eq__(&token, "")) {

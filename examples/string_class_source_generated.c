@@ -186,16 +186,16 @@ int main() {
   StringprintLn(&str3);
 
   size_t len = Stringlen(&str3);
-  printf("Length of the string is : %llu. \n ", len);
+  printf("Length of the string is : %llu. \n", len);
 
   size_t tmp_len_0 = Stringlen(&str);
   for (size_t i = 0; i < tmp_len_0; i++) {
     char val = String__getitem__(&str, i);
-    printf("%c \n ", val);
+    printf("%c \n", val);
   }
 
   if (String__contains__(&str, "Wor")) {
-    printf("Wor is in str. \n ");
+    printf("Wor is in str. \n");
   }
 
   if (String__eq__(&str, "Hello World")) {
@@ -208,7 +208,7 @@ int main() {
   String__reassign__(&str, "");
 
   size_t len4 = Stringlen(&str);
-  printf("Length of the string is : %llu. \n ", len4);
+  printf("Length of the string is : %llu. \n", len4);
   StringprintLn(&str);
 
   String__del__(&str3);

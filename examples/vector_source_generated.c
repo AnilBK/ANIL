@@ -325,41 +325,29 @@ int main() {
   struct Vector__int a;
   Vector_int__init__(&a, 10);
   Vector_intpush(&a, 10);
-
   Vector_intpush(&a, 20);
-
   Vector_intpush(&a, 30);
-
   Vector_intpush(&a, 40);
-
   Vector_intpush(&a, 50);
-
   Vector_intprint(&a);
 
   if (Vector_int__contains__(&a, 10)) {
-    printf("10 is in the vector. \n ");
+    printf("10 is in the vector. \n");
   }
 
   struct Vector__float b;
   Vector_float__init__(&b, 10);
   Vector_floatpush(&b, 10);
-
   Vector_floatpush(&b, 40);
-
   Vector_floatpush(&b, 50);
-
   Vector_floatprint(&b);
 
   struct Vector__char string;
   Vector_char__init__(&string, 10);
   Vector_charpush(&string, 'A');
-
   Vector_charpush(&string, 'N');
-
   Vector_charpush(&string, 'I');
-
   Vector_charpush(&string, 'L');
-
   Vector_charprint(&string);
 
   Vector_char__del__(&string);

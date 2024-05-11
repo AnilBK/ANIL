@@ -177,11 +177,11 @@ int main() {
   size_t tmp_len_0 = Stringlen(&str);
   for (size_t i = 0; i < tmp_len_0; i++) {
     char value = String__getitem__(&str, i);
-    printf("%c.\n ", value);
+    printf("%c.\n", value);
   }
 
   if (String__eq__(&str, "Hello")) {
-    printf("Str is hello.\n ");
+    printf("Str is hello.\n");
   }
 
   String__add__(&str, " World");
@@ -191,7 +191,7 @@ int main() {
   StringprintLn(&str);
 
   if (String__contains__(&str, "Anil")) {
-    printf("Anil is in the given string.\n ");
+    printf("Anil is in the given string.\n");
   }
 
   int arr[] = {1, 2, 3, 4, 5, 10};
@@ -206,12 +206,12 @@ int main() {
   }
 
   if (arr__contains__10_0) {
-    printf("10 is in arr. \n ");
+    printf("10 is in arr. \n");
   }
 
   for (unsigned int i = 0; i < arr_array_size; i++) {
     int value2 = arr[i];
-    printf("%d \n ", value2);
+    printf("%d \n", value2);
   }
 
   float arr2[] = {1, 2, 3, 4, 5, 10};
@@ -219,7 +219,7 @@ int main() {
 
   for (unsigned int i = 0; i < arr2_array_size; i++) {
     float value3 = arr2[i];
-    printf("%f \n ", value3);
+    printf("%f \n", value3);
   }
 
   String__del__(&str);
