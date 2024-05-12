@@ -32,16 +32,16 @@ struct GenericStruct__float {
   float b;
 };
 
-// template <float> {
-// template <float> }
+// template GenericStruct<float> {
+// template GenericStruct<float> }
 
 struct GenericStruct__int {
   int a;
   float b;
 };
 
-// template <int> {
-// template <int> }
+// template GenericStruct<int> {
+// template GenericStruct<int> }
 
 struct Vector__int {
   int *arr;
@@ -49,8 +49,8 @@ struct Vector__int {
   int capacity;
 };
 
-// template <int> {
-// template <int> }
+// template Vector<int> {
+// template Vector<int> }
 
 struct Vector__float {
   float *arr;
@@ -58,8 +58,8 @@ struct Vector__float {
   int capacity;
 };
 
-// template <float> {
-// template <float> }
+// template Vector<float> {
+// template Vector<float> }
 
 int main() {
 

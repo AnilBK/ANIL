@@ -859,7 +859,7 @@ while index < len(Lines):
         if is_templated_struct and (not class_already_instantiated):
             GlobalStructInitCode += struct_code
 
-            templated_fn_code = f"//template <{templated_data_type}> {{\n"
+            templated_fn_code = f"//template {struct_type}<{templated_data_type}> {{\n"
 
             if StructInfo != None:
                 defined_struct = StructInfo
@@ -896,7 +896,9 @@ while index < len(Lines):
                     else:
                         templated_fn_code += f"{return_type} {fn_name}(struct {templated_struct_name} *this) {{\n"
                     templated_fn_code += f"{fn.fn_body} }}\n\n"
-                templated_fn_code += f"//template <{templated_data_type}> }}\n\n"
+                templated_fn_code += (
+                    f"//template {struct_type}<{templated_data_type}> }}\n\n"
+                )
 
                 # if we want to use template type in fn body, we use following syntax.
                 # @TEMPLATED_DATA_TYPE@

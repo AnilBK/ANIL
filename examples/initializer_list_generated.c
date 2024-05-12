@@ -18,7 +18,7 @@ struct Vector__int {
   int capacity;
 };
 
-// template <int> {
+// template Vector<int> {
 void Vector_int__init__(struct Vector__int *this, int capacity) {
   // if we want to use instanced template type in fn body, we use following
   // syntax.
@@ -112,7 +112,7 @@ int Vector_int__getitem__(struct Vector__int *this, int index) {
   return *(this->arr + index);
 }
 
-// template <int> }
+// template Vector<int> }
 
 int main() {
 

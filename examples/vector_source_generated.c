@@ -18,7 +18,7 @@ struct Vector__int {
   int capacity;
 };
 
-// template <int> {
+// template Vector<int> {
 void Vector_int__init__(struct Vector__int *this, int capacity) {
   // if we want to use instanced template type in fn body, we use following
   // syntax.
@@ -112,7 +112,7 @@ int Vector_int__getitem__(struct Vector__int *this, int index) {
   return *(this->arr + index);
 }
 
-// template <int> }
+// template Vector<int> }
 
 struct Vector__float {
   float *arr;
@@ -120,7 +120,7 @@ struct Vector__float {
   int capacity;
 };
 
-// template <float> {
+// template Vector<float> {
 void Vector_float__init__(struct Vector__float *this, int capacity) {
   // if we want to use instanced template type in fn body, we use following
   // syntax.
@@ -214,7 +214,7 @@ float Vector_float__getitem__(struct Vector__float *this, int index) {
   return *(this->arr + index);
 }
 
-// template <float> }
+// template Vector<float> }
 
 struct Vector__char {
   char *arr;
@@ -222,7 +222,7 @@ struct Vector__char {
   int capacity;
 };
 
-// template <char> {
+// template Vector<char> {
 void Vector_char__init__(struct Vector__char *this, int capacity) {
   // if we want to use instanced template type in fn body, we use following
   // syntax.
@@ -316,7 +316,7 @@ char Vector_char__getitem__(struct Vector__char *this, int index) {
   return *(this->arr + index);
 }
 
-// template <char> }
+// template Vector<char> }
 
 int main() {
 

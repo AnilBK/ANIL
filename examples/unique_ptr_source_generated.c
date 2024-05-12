@@ -11,7 +11,7 @@ struct UniquePtr__char {
   char *arr;
 };
 
-// template <char> {
+// template UniquePtr<char> {
 void UniquePtr_char__init__(struct UniquePtr__char *this, int capacity) {
   this->arr = (char *)malloc(capacity * sizeof(char));
 
@@ -23,7 +23,7 @@ void UniquePtr_char__init__(struct UniquePtr__char *this, int capacity) {
 
 void UniquePtr_char__del__(struct UniquePtr__char *this) { free(this->arr); }
 
-// template <char> }
+// template UniquePtr<char> }
 
 int main() {
 
