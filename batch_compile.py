@@ -13,6 +13,7 @@ file_names = [
     "examples\\struct_source.c",
     "examples\\string_source.c",
     "examples\\fileexample.c",
+    "examples\\vector_of_strings.c",
 ]
 
 import subprocess

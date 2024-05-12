@@ -28,6 +28,7 @@ source_file = "lexer_test_source.c"
 # source_file = "examples\\struct_source.c"
 # source_file = "examples\\string_source.c"
 # source_file = "examples\\fileexample.c"
+source_file = "examples\\vector_of_strings.c"
 
 if args.filename:
     source_file = args.filename
@@ -214,6 +215,11 @@ def REGISTER_VARIABLE(p_var_name: str, p_var_data_type: str) -> None:
         instanced_variables_scoped[variable_scope] = [p_var_name]
 
     instanced_variables[p_var_name] = p_var_data_type
+
+
+def is_data_type_struct_object(p_data_type):
+    struct_info = get_struct_defination_of_type(p_data_type)
+    return struct_info != None
 
 
 # If any structs have __init__ method, then we register them here.
@@ -791,6 +797,10 @@ while index < len(Lines):
                         type = templated_data_type + "*"
                     else:
                         type = templated_data_type
+
+                    if is_data_type_struct_object(templated_data_type):
+                        type = f"struct {type}"
+
                 struct_code += f"{type} {mem};\n"
             struct_code += f"}};\n\n"
             # GlobalStructInitCode += struct_code
@@ -876,11 +886,16 @@ while index < len(Lines):
                             param_name = param.member
                             if data_type == defined_struct.template_defination_variable:
                                 data_type = templated_data_type
+                                if is_data_type_struct_object(data_type):
+                                    data_type = "struct " + data_type
+
                             params_copy.append(data_type + " " + param_name)
                         parameters = params_copy
 
                         if return_type == defined_struct.template_defination_variable:
                             return_type = templated_data_type
+                            if is_data_type_struct_object(return_type):
+                                return_type = "struct " + return_type
 
                     templated_struct_name = (
                         defined_struct.name + f"__{templated_data_type}"
@@ -903,8 +918,12 @@ while index < len(Lines):
                 # if we want to use template type in fn body, we use following syntax.
                 # @TEMPLATED_DATA_TYPE@
                 if "@TEMPLATED_DATA_TYPE@" in templated_fn_code:
+                    m_templated_data_type = templated_data_type
+                    if is_data_type_struct_object(templated_data_type):
+                        m_templated_data_type = "struct " + m_templated_data_type
+
                     templated_fn_code = templated_fn_code.replace(
-                        "@TEMPLATED_DATA_TYPE@", templated_data_type
+                        "@TEMPLATED_DATA_TYPE@", m_templated_data_type
                     )
 
                 GlobalStructInitCode += templated_fn_code
