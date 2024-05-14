@@ -336,33 +336,9 @@ void Vector_Stringpush_unchecked(struct Vector__String *this,
 }
 
 void Vector_Stringprint(struct Vector__String *this) {
-  // maybe print instanced vec name.
-  // instanced name should be passed as fn parameter ig.
-  // or add instance_name member silently to the struct itself.
-  // printf("@INSTANCE_NAME@\n");
-  /*
-
-  void Vector_print(struct Vector* this, const char* p_instance_name){
-  printf("%s\n", p_instance_name);
-  }
-  */
-
-  printf("Dynamic Array (size = %zu, capacity = %zu) : [", this->size,
-         this->capacity);
   for (size_t i = 0; i < this->size; ++i) {
-    const char *type = "struct String";
-    if (strcmp(type, "float") == 0) {
-      printf("%f", this->arr[i]);
-    } else if (strcmp(type, "int") == 0) {
-      printf("%d", this->arr[i]);
-    } else if (strcmp(type, "char") == 0) {
-      printf("%c", this->arr[i]);
-    }
-    if (i < this->size - 1) {
-      printf(", ");
-    }
+    printf("%s\n", this->arr[i].arr);
   }
-  printf("]\n");
 }
 
 bool Vector_String__contains__(struct Vector__String *this,
@@ -395,13 +371,31 @@ int main() {
   Vector_charpush(&string, 'L');
   Vector_charprint(&string);
 
+  struct String str;
+  String__init__(&str, "Hello");
+  struct String str2;
+  String__init__(&str2, "World");
+  struct String str3;
+  String__init__(&str3, "Honey");
+  struct String str4;
+  String__init__(&str4, "Bunny");
+
   struct Vector__String test;
   Vector_String__init__(&test, 5);
+  Vector_Stringpush(&test, str);
+  Vector_Stringpush(&test, str2);
+  Vector_Stringpush(&test, str3);
+  Vector_Stringpush(&test, str4);
+  Vector_Stringprint(&test);
 
   // let split = string.split(",");
   //  TODO : implement this
 
   Vector_String__del__(&test);
+  String__del__(&str4);
+  String__del__(&str3);
+  String__del__(&str2);
+  String__del__(&str);
   Vector_char__del__(&string);
   ///*///
   ;

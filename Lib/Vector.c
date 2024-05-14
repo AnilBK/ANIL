@@ -53,7 +53,7 @@ impl Vector push_unchecked value : T
   this->arr[this->size++] = value;
 endfunc
 
-impl Vector print
+impl Vector<> print
   //maybe print instanced vec name.
   //instanced name should be passed as fn parameter ig.
   //or add instance_name member silently to the struct itself.
@@ -80,6 +80,12 @@ impl Vector print
       }
   }
   printf("]\n");
+endfunc
+
+impl Vector<String> print
+  for (size_t i = 0; i < this->size; ++i) {
+    printf("%s\n",this->arr[i].arr);
+  }    
 endfunc
 
 impl Vector<> __contains__ value : T -> bool
