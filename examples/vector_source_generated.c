@@ -97,7 +97,8 @@ void Vector_intprint(struct Vector__int *this) {
 }
 
 bool Vector_int__contains__(struct Vector__int *this, int value) {
-  // this returns bool.
+  // This function is an overloaded function.
+  // Here <> in function defination means the base overload.
   for (size_t i = 0; i < this->size; ++i) {
     if (this->arr[i] == value) {
       return true;
@@ -199,7 +200,8 @@ void Vector_floatprint(struct Vector__float *this) {
 }
 
 bool Vector_float__contains__(struct Vector__float *this, float value) {
-  // this returns bool.
+  // This function is an overloaded function.
+  // Here <> in function defination means the base overload.
   for (size_t i = 0; i < this->size; ++i) {
     if (this->arr[i] == value) {
       return true;
@@ -301,7 +303,8 @@ void Vector_charprint(struct Vector__char *this) {
 }
 
 bool Vector_char__contains__(struct Vector__char *this, char value) {
-  // this returns bool.
+  // This function is an overloaded function.
+  // Here <> in function defination means the base overload.
   for (size_t i = 0; i < this->size; ++i) {
     if (this->arr[i] == value) {
       return true;

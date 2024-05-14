@@ -184,6 +184,7 @@ int main() {
   Listappend_str(&vector_class_member_functions, "push_unchecked");
   Listappend_str(&vector_class_member_functions, "print");
   Listappend_str(&vector_class_member_functions, "__contains__");
+  Listappend_str(&vector_class_member_functions, "__contains__");
   Listappend_str(&vector_class_member_functions, "len");
   Listappend_str(&vector_class_member_functions, "__getitem__");
 

@@ -82,8 +82,9 @@ impl Vector print
   printf("]\n");
 endfunc
 
-impl Vector __contains__ value : T -> bool
-  // this returns bool.
+impl Vector<> __contains__ value : T -> bool
+  // This function is an overloaded function.
+  // Here <> in function defination means the base overload.
   for (size_t i = 0; i < this->size; ++i) {
       if(this->arr[i] == value){
         return true;
@@ -91,6 +92,16 @@ impl Vector __contains__ value : T -> bool
   }    
   return false;  
 endfunc
+
+impl Vector<String> __contains__ value : T -> bool
+  for (size_t i = 0; i < this->size; ++i) {
+      if(strcmp(this->arr[i].arr,value.arr) == 0){
+        return true;
+      }
+  }    
+  return false;  
+endfunc
+
 
 impl Vector len -> size_t:
   return this->size;

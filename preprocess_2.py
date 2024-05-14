@@ -288,6 +288,9 @@ class MemberFunction:
         self.fn_body = ""
         self.return_type = p_return_type
 
+        self.is_overloaded_function = False
+        self.overload_for_template_type = ""
+
     def is_destructor(self):
         return self.fn_name == "__del__"
 
@@ -453,9 +456,13 @@ def add_fnbody_to_member_to_struct(p_struct_name: str, p_fn_name: str, p_fn_body
     if struct_defination is None:
         raise ValueError(f"Struct type {p_struct_name} doesn't exist.")
     else:
-        for fn in struct_defination.member_functions:
+        # If not reversed, this will always find the first function and set the fn body to that.
+        # because we have overloaded functions, all those functions have same name.
+        # This function should set function body to the function which has been recently registered to the struct defination.
+        for fn in reversed(struct_defination.member_functions):
             if fn.fn_name == p_fn_name:
                 fn.fn_body = p_fn_body
+                break
 
 
 class ObjectInstance:
@@ -878,8 +885,46 @@ while index < len(Lines):
                     fn_name = fn.fn_name
                     return_type = fn.return_type
 
+                    if fn.is_overloaded_function:
+                        # print("======================================")
+                        # print(f"For struct {defined_struct.name}")
+                        # print(
+                        # f"fn {fn_name} is overloaded for class {fn.overload_for_template_type}"
+                        # )
+
+                        use_this_overload = False
+                        if fn.overload_for_template_type == templated_data_type:
+                            # This current fn is the suitable overload.
+                            use_this_overload = True
+                        else:
+                            has_suitable_overload = False
+                            for m_fn in defined_struct.member_functions:
+                                if m_fn.fn_name != fn_name:
+                                    continue
+
+                                if (
+                                    m_fn.overload_for_template_type
+                                    == templated_data_type
+                                ):
+                                    has_suitable_overload = True
+
+                            if has_suitable_overload:
+                                use_this_overload = False
+                            else:
+                                # TODO: We don't warn if there is no base overload.
+                                if fn.overload_for_template_type == "#BASE#":
+                                    # No other suitable overloads found,
+                                    # and this fn is the base overload.
+                                    # Use this current fn to overload.
+                                    use_this_overload = True
+
+                        if not use_this_overload:
+                            continue
+
                     # resolve templated fn params.
                     if defined_struct.is_templated():
+                        # print(f"Template type {templated_data_type}")
+
                         params_copy = []
                         for param in parameters:
                             data_type = param.data_type
@@ -2269,9 +2314,9 @@ while index < len(Lines):
         # void say(struct Point *this) { printf("x : %d , y : %d \n", this->x, this->y); }
 
         # Skip "impl", its not a keyword, just a placeholder to identify a function call.
-        parser.next_token()
+        parser.consume_token(lexer.Token.IMPL)
 
-        struct_name = parser.current_token()
+        struct_name = parser.get_token()
 
         should_write_fn_body = True
 
@@ -2281,7 +2326,28 @@ while index < len(Lines):
 
         is_struct_templated = StructInfo.is_templated()
 
-        parser.next_token()
+        is_overloaded_fn = False
+        overload_for_type = ""
+
+        # impl Vector<String> __contains__ value : T -> bool
+        #            ^^^^^^^^ This is custom overload for __contains__ for the template type 'String'.
+        if parser.current_token() == lexer.Token.SMALLER_THAN:
+            parser.next_token()
+
+            # impl Vector< > __contains__ value : T -> bool
+            #             ^ indicates an overloaded function(the base overload)
+            curr_token = parser.current_token()
+            custom_template_type = "#BASE#"
+            if curr_token == lexer.Token.GREATER_THAN:
+                pass
+            else:
+                custom_template_type = parser.get_token()
+            # print(f"Custom template for class {custom_template_type}")
+            overload_for_type = custom_template_type
+            is_overloaded_fn = True
+
+            parser.consume_token(lexer.Token.GREATER_THAN)
+
         fn_name = parser.current_token()
 
         # print(f"struct_name : {struct_name}, fn_name : {fn_name}")
@@ -2359,9 +2425,11 @@ while index < len(Lines):
         currently_reading_fn_name_unmangled = unmangled_name
         currently_reading_return_type = return_type
 
-        add_fn_member_to_struct(
-            struct_name, MemberFunction(unmangled_name, parameters, return_type)
-        )
+        fn = MemberFunction(unmangled_name, parameters, return_type)
+        fn.is_overloaded_function = is_overloaded_fn
+        fn.overload_for_template_type = overload_for_type
+
+        add_fn_member_to_struct(struct_name, fn)
 
         impl_body_start_pos = len(GlobalStructInitCode)
 

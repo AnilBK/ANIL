@@ -97,7 +97,8 @@ void Vector_intprint(struct Vector__int *this) {
 }
 
 bool Vector_int__contains__(struct Vector__int *this, int value) {
-  // this returns bool.
+  // This function is an overloaded function.
+  // Here <> in function defination means the base overload.
   for (size_t i = 0; i < this->size; ++i) {
     if (this->arr[i] == value) {
       return true;

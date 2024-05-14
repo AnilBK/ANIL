@@ -260,7 +260,8 @@ void Vector_charprint(struct Vector__char *this) {
 }
 
 bool Vector_char__contains__(struct Vector__char *this, char value) {
-  // this returns bool.
+  // This function is an overloaded function.
+  // Here <> in function defination means the base overload.
   for (size_t i = 0; i < this->size; ++i) {
     if (this->arr[i] == value) {
       return true;
@@ -366,9 +367,8 @@ void Vector_Stringprint(struct Vector__String *this) {
 
 bool Vector_String__contains__(struct Vector__String *this,
                                struct String value) {
-  // this returns bool.
   for (size_t i = 0; i < this->size; ++i) {
-    if (this->arr[i] == value) {
+    if (strcmp(this->arr[i].arr, value.arr) == 0) {
       return true;
     }
   }
