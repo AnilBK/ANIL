@@ -724,6 +724,58 @@ while index < len(Lines):
             f"int {current_array_value_variable} = {array_name}_enumerator.val;\n"
         )
 
+    def parse_data_type(inner=False):
+        # inner is used as a tag for name mangling during recursive data parsing.
+
+        # String,Vector<String>
+        # This all should be parsed.
+        # String
+        # ^^^^^^
+        data_type = parser.get_token()
+
+        if data_type == "str":
+            # str is an alias for char*, even though in most places we have checks for both "char*" and "str".
+            data_type = "char*"
+
+        data_type_str = data_type
+
+        struct_defination = get_struct_defination_of_type(data_type)
+        is_struct_type = struct_defination != None
+
+        if is_struct_type:
+            if not inner:
+                data_type_str = f"struct {data_type_str}"
+
+        # Vector<String>
+        #       ^
+        if parser.has_tokens_remaining() and parser.check_token(
+            lexer.Token.SMALLER_THAN
+        ):
+            # This has_tokens_remaining() could probably integrated inside check_token() maybe.
+            parser.consume_token(lexer.Token.SMALLER_THAN)
+            #      Vector<Vector<String>>
+            #             ^^^^^^^^^^^^^^
+            # Hope, this case is recursively parsed as well.
+
+            # TODO:Since, we don't immediately instantiate templates structs.They aren't registered here.
+            # So, these checks fail, but these checks are important .
+            """
+            # Only a templated struct can be used to create a data type.
+            if not is_struct_type:
+                raise ValueError(f"Struct type {data_type} doesn't exist.")
+                
+            if not struct_defination.is_templated():
+                raise Exception(
+                    f"Struct type {data_type} isn't a template class and can't be used to instantiate new data types."
+                )
+            """
+
+            inner_data_type = parse_data_type(inner=True)
+            data_type_str += f"_{inner_data_type}"
+            parser.consume_token(lexer.Token.GREATER_THAN)
+
+        return data_type_str
+
     def parse_number():
         # COLOR["Red"]
         # ^^^^^^^^^^^^ Constexpr Dictionary.
@@ -2371,9 +2423,7 @@ while index < len(Lines):
                 parser.next_token()
                 if parser.check_token(lexer.Token.GREATER_THAN):
                     parser.next_token()
-                    return_type = parser.get_token()
-                    if return_type == "str":
-                        return_type = "char*"
+                    return_type = parse_data_type()
                     # print(f"Function Return Type is : {return_type}")
                     break
 
