@@ -7,19 +7,25 @@
 
 struct String{char* arr, int length, int capacity};
 
-impl String __init__ text : str
-  size_t p_text_length = strlen(text);
+impl String __init__from_charptr text : str p_text_length : int
+  // p_text_length : Length of the string without the null terminator.
   this->arr = (char *)malloc((p_text_length + 1) * sizeof(char));
 
   if (this->arr == NULL) {
-      fprintf(stderr, "Memory allocation failed.\n");
-      exit(EXIT_FAILURE);
+    fprintf(stderr, "Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
   }
 
-  strcpy(this->arr, text);
+  strncpy(this->arr, text, p_text_length);
+  this->arr[p_text_length] = '\0';
 
   this->length = p_text_length;
-  this->capacity = p_text_length;
+  this->capacity = p_text_length + 1;
+endfunc
+
+impl String __init__ text : str
+  size_t p_text_length = strlen(text);
+  String__init__from_charptr(this, text, p_text_length);
 endfunc
 
 
@@ -62,21 +68,7 @@ impl String strip -> String:
   int new_length = end - begin + 1;
 
   struct String text;
-  text.arr = (char *)malloc((new_length + 1) * sizeof(char));
-  text.length = new_length;
-  text.capacity = new_length;
-
-  if (text.arr == NULL) {
-    fprintf(stderr, "Memory allocation failed.\n");
-    exit(EXIT_FAILURE);
-  }
-
-  // Copy the substring to the new variable
-  strncpy(text.arr, begin, new_length);
-
-  // Null-terminate the new string
-  text.arr[new_length] = '\0';
-
+  String__init__from_charptr(&text, begin, new_length);
   return text;
 endfunc
 
