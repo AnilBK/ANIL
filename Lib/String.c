@@ -72,6 +72,42 @@ impl String strip -> String:
   return text;
 endfunc
 
+impl String split -> Vector<String>:
+  // TODO: Because of this function, before import String, we require import Vector.
+  char delimeter = '.';
+
+  struct Vector__String result;
+  Vector_String__init__(&result, 2);
+
+  int delim_location = -1;
+
+  int len = this->length;
+  for (int i = 0; i < len; i++) {
+    if (this->arr[i] == delimeter) {
+      int length = i - (delim_location + 1);
+
+      struct String text;
+      String__init__from_charptr(&text, &this->arr[delim_location + 1], length);
+      Vector_Stringpush(&result, text);
+
+      delim_location = i;
+    }
+  }
+
+  // Add remaining string.
+  if (delim_location + 1 < len) {
+    char *remaining = &this->arr[delim_location + 1];
+
+    struct String text;
+    String__init__(&text, remaining);
+    Vector_Stringpush(&result, text);
+  }
+
+  Vector_Stringprint(&result);
+
+  return result;
+endfunc
+
 impl String len -> size_t:
   return this->length;
 endfunc
