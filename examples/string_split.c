@@ -18,7 +18,8 @@ int main() {
   str.printLn()
 
 
-  let split = str.split();
+  let split = str.split()
+  split.print();
 
 
   // DESTRUCTOR_CODE //

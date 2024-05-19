@@ -83,14 +83,14 @@ struct String Stringstrip(struct String *this) {
   return text;
 }
 
-struct Vector__String {
+struct Vector_String {
   struct String *arr;
   int size;
   int capacity;
 };
 
 // template Vector<String> {
-void Vector_String__init__(struct Vector__String *this, int capacity) {
+void Vector_String__init__(struct Vector_String *this, int capacity) {
   // if we want to use instanced template type in fn body, we use following
   // syntax.
   // @ TEMPLATED_DATA_TYPE @
@@ -104,7 +104,7 @@ void Vector_String__init__(struct Vector__String *this, int capacity) {
   this->capacity = capacity;
 }
 
-void Vector_String__del__(struct Vector__String *this) {
+void Vector_String__del__(struct Vector_String *this) {
   // Python Version of destructor.
   free(this->arr);
   this->arr = NULL;
@@ -112,7 +112,7 @@ void Vector_String__del__(struct Vector__String *this) {
   this->capacity = 0;
 }
 
-void Vector_Stringpush(struct Vector__String *this, struct String value) {
+void Vector_Stringpush(struct Vector_String *this, struct String value) {
   if (this->size == this->capacity) {
     this->capacity *= 2;
     this->arr = (struct String *)realloc(this->arr, this->capacity *
@@ -125,7 +125,7 @@ void Vector_Stringpush(struct Vector__String *this, struct String value) {
   this->arr[this->size++] = value;
 }
 
-void Vector_Stringallocate_more(struct Vector__String *this, int n) {
+void Vector_Stringallocate_more(struct Vector_String *this, int n) {
   this->capacity += n;
   this->arr = (struct String *)realloc(this->arr,
                                        this->capacity * sizeof(struct String));
@@ -135,18 +135,18 @@ void Vector_Stringallocate_more(struct Vector__String *this, int n) {
   }
 }
 
-void Vector_Stringpush_unchecked(struct Vector__String *this,
+void Vector_Stringpush_unchecked(struct Vector_String *this,
                                  struct String value) {
   this->arr[this->size++] = value;
 }
 
-void Vector_Stringprint(struct Vector__String *this) {
+void Vector_Stringprint(struct Vector_String *this) {
   for (size_t i = 0; i < this->size; ++i) {
     printf("%s\n", this->arr[i].arr);
   }
 }
 
-bool Vector_String__contains__(struct Vector__String *this,
+bool Vector_String__contains__(struct Vector_String *this,
                                struct String value) {
   for (size_t i = 0; i < this->size; ++i) {
     if (strcmp(this->arr[i].arr, value.arr) == 0) {
@@ -156,18 +156,18 @@ bool Vector_String__contains__(struct Vector__String *this,
   return false;
 }
 
-size_t Vector_Stringlen(struct Vector__String *this) { return this->size; }
+size_t Vector_Stringlen(struct Vector_String *this) { return this->size; }
 
-struct String Vector_String__getitem__(struct Vector__String *this, int index) {
+struct String Vector_String__getitem__(struct Vector_String *this, int index) {
   return *(this->arr + index);
 }
 
 // template Vector<String> }
 
-struct Vector__String Stringsplit(struct String *this) {
+struct Vector_String Stringsplit(struct String *this) {
   char delimeter = '.';
 
-  struct Vector__String result;
+  struct Vector_String result;
   Vector_String__init__(&result, 2);
 
   int delim_location = -1;
@@ -193,8 +193,6 @@ struct Vector__String Stringsplit(struct String *this) {
     String__init__(&text, remaining);
     Vector_Stringpush(&result, text);
   }
-
-  Vector_Stringprint(&result);
 
   return result;
 }
@@ -291,9 +289,10 @@ int main() {
   String__init__(&str, "Hello.World.Split.test");
   StringprintLn(&str);
 
-  struct Vector__String split = Stringsplit(&str);
+  struct Vector_String split = Stringsplit(&str);
+  Vector_Stringprint(&split);
 
-  String__del__(&split);
+  Vector_String__del__(&split);
   String__del__(&str);
   ///*///
 

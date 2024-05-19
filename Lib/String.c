@@ -76,7 +76,7 @@ impl String split -> Vector<String>:
   // TODO: Because of this function, before import String, we require import Vector.
   char delimeter = '.';
 
-  struct Vector__String result;
+  struct Vector_String result;
   Vector_String__init__(&result, 2);
 
   int delim_location = -1;
@@ -102,8 +102,6 @@ impl String split -> Vector<String>:
     String__init__(&text, remaining);
     Vector_Stringpush(&result, text);
   }
-
-  Vector_Stringprint(&result);
 
   return result;
 endfunc
