@@ -193,5 +193,41 @@ impl String set_to_file_contents pfilename : str
 
   fclose(ptr);
 endfunc
+
+impl String readlinesFrom pfilename : str -> Vector<String>:
+  Stringset_to_file_contents(this, pfilename);
+
+  // Uses the same implementation as Split.
+  char delimeter = '\n';
+
+  struct Vector_String result;
+  Vector_String__init__(&result, 10);
+
+  int delim_location = -1;
+
+  int len = this->length;
+  for (int i = 0; i < len; i++) {
+    if (this->arr[i] == delimeter) {
+      int length = i - (delim_location + 1);
+
+      struct String text;
+      String__init__from_charptr(&text, &this->arr[delim_location + 1], length);
+      Vector_Stringpush(&result, text);
+
+      delim_location = i;
+    }
+  }
+
+  // Add remaining string.
+  if (delim_location + 1 < len) {
+    char *remaining = &this->arr[delim_location + 1];
+
+    struct String text;
+    String__init__(&text, remaining);
+    Vector_Stringpush(&result, text);
+  }
+
+  return result;
+endfunc
 ///*///
 
