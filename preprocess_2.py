@@ -842,6 +842,12 @@ while index < len(Lines):
 
         # Recreate Generic Structs on instantiation.
         m_struct_name = f"{struct_type}_{templated_data_type}"
+        m_struct_info = get_struct_defination_of_type(m_struct_name)
+        if m_struct_info != None:
+            # This struct has already been defined.
+            # So, we don't need to instantiate again.
+            return
+
         struct_code = f"struct {m_struct_name}  {{\n"
 
         struct_members_list = StructInfo.members
