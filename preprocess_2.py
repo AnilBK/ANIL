@@ -771,7 +771,7 @@ while index < len(Lines):
             """
 
             inner_data_type = parse_data_type(inner=True)
-            data_type_str += f"__{inner_data_type}"
+            data_type_str += f"_{inner_data_type}"
             parser.consume_token(lexer.Token.GREATER_THAN)
 
             instantiate_template(data_type, inner_data_type)
@@ -841,7 +841,8 @@ while index < len(Lines):
         global GlobalStructInitCode
 
         # Recreate Generic Structs on instantiation.
-        struct_code = f"struct {struct_type}__{templated_data_type}  {{\n"
+        m_struct_name = f"{struct_type}_{templated_data_type}"
+        struct_code = f"struct {m_struct_name}  {{\n"
 
         struct_members_list = StructInfo.members
         for struct_member in struct_members_list:
@@ -861,6 +862,9 @@ while index < len(Lines):
             struct_code += f"{type} {mem};\n"
         struct_code += f"}};\n\n"
 
+        # Register this templated struct in order to insantiate the same generic type in the future.
+        struct_data = Struct(m_struct_name, struct_members_list)
+
         GlobalStructInitCode += struct_code
 
         templated_fn_code = f"//template {struct_type}<{templated_data_type}> {{\n"
@@ -871,6 +875,9 @@ while index < len(Lines):
                 parameters = fn.fn_arguments
                 fn_name = fn.fn_name
                 return_type = fn.return_type
+
+                # This is just a raw unmodified copy, we need this to recreate the function defination, otherwise these parameters are modified below.
+                parameters_copy = parameters
 
                 if fn.is_overloaded_function:
                     # print("======================================")
@@ -926,7 +933,15 @@ while index < len(Lines):
                         if is_data_type_struct_object(return_type):
                             return_type = "struct " + return_type
 
-                templated_struct_name = defined_struct.name + f"__{templated_data_type}"
+                    # Register this function, but if it is templated, resolved the templated type and write the function.
+                    m_fn = MemberFunction(fn_name, parameters_copy, return_type)
+                    # m_fn.is_overloaded_function = is_overloaded_fn
+                    # m_fn.overload_for_template_type = overload_for_type
+                    struct_data.member_functions.append(m_fn)
+                else:
+                    struct_data.member_functions.append(fn)
+
+                templated_struct_name = defined_struct.name + f"_{templated_data_type}"
 
                 fn_name = get_templated_mangled_fn_name(
                     defined_struct.name, fn_name, templated_data_type
@@ -954,6 +969,9 @@ while index < len(Lines):
                 )
 
             GlobalStructInitCode += templated_fn_code
+
+            global struct_definations
+            struct_definations.append(struct_data)
 
     def parse_create_struct(struct_type, struct_name):
         is_templated_struct = False
@@ -1261,11 +1279,17 @@ while index < len(Lines):
 
         if assignment_fn_call:
             if "struct" in return_type:
+                #              "struct Vector__String"
+                # return type   ^^^^^^^^^^^^^^^^^^^^^
+                # raw_return_type      ^^^^^^^^^^^^^^
+                raw_return_type = return_type.split("struct")[1].strip()
+
                 global instanced_struct_names
                 instanced_struct_names.append(
-                    StructInstance("String", var_name, False, "")
+                    StructInstance(raw_return_type, var_name, False, "")
                 )
-                REGISTER_VARIABLE(var_name, "String")
+
+                REGISTER_VARIABLE(var_name, return_type)
             else:
                 REGISTER_VARIABLE(var_name, return_type)
 
