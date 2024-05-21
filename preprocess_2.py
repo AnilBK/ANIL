@@ -706,6 +706,17 @@ while index < len(Lines):
             f"{return_type} {current_array_value_variable} = {getter_fn_name}(&{array_name}, i);\n"
         )
 
+        if "struct" in return_type:
+            #               struct String
+            # return type   ^^^^^^^^^^^^^
+            # raw_return_type      ^^^^^^
+            raw_return_type = return_type.split("struct")[1].strip()
+
+            global instanced_struct_names
+            instanced_struct_names.append(
+                StructInstance(raw_return_type, current_array_value_variable, False, "")
+            )
+
         REGISTER_VARIABLE(current_array_value_variable, return_type)
         # TODO : Important :: This should be freed after current scope.
 
