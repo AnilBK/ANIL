@@ -244,7 +244,29 @@ def increment_scope():
     variable_scope += 1
 
 
-def decrement_scope():
+def get_destructor_code_for_current_scope() -> str:
+    global variable_scope
+    global instanced_variables_scoped
+
+    destructor_code = ""
+
+    if variable_scope in instanced_variables_scoped:
+        for struct in instanced_struct_names[::-1]:
+            struct_name = struct.struct_name
+            if struct_name in instanced_variables_scoped[variable_scope]:
+                if struct.struct_type_has_destructor():
+                    destructor_fn_name = struct.get_destructor_fn_name()
+                    destructor_code += f"{destructor_fn_name}(&{struct_name});\n"
+
+    return destructor_code
+
+
+def decrement_scope(write_destructors=True):
+    if write_destructors:
+        destructor_code = get_destructor_code_for_current_scope()
+        if destructor_code != "":
+            LinesCache.append(destructor_code)
+
     global variable_scope
     global instanced_variables_scoped
 
@@ -252,6 +274,19 @@ def decrement_scope():
         del instanced_variables_scoped[variable_scope]
 
     variable_scope -= 1
+
+
+def remaining_destructor_code() -> str:
+    global variable_scope
+
+    destructor_code = ""
+    while variable_scope >= 0:
+        destructor_code += get_destructor_code_for_current_scope()
+        # We don't want to write destructors to LinesCache.
+        # So, we just decrement scope & get all destructors from those individual scopes.
+        # And, write the destructors at once.
+        decrement_scope(write_destructors=False)
+    return destructor_code
 
 
 increment_scope()
@@ -2790,21 +2825,8 @@ for i in range(len(LinesCache)):
     if "// STRUCT_DEFINATIONS //" in LinesCache[i]:
         LinesCache[i] = GlobalStructInitCode
     elif "// DESTRUCTOR_CODE //" in LinesCache[i]:
-        # print("-----------------------------------")
-        # print("List of Objects With Destructors : ")
-        destructor_code = ""
-        # Write destructors in reverse order of construction.
-        for instanced_struct in instanced_struct_names[::-1]:
-            struct_type = instanced_struct.struct_type
-            struct_name = instanced_struct.struct_name
-            if instanced_struct.struct_type_has_destructor():
-                # print(
-                # "Struct Type : " + struct_type + " & Struct Name : " + struct_name
-                # )
-                destructor_name = instanced_struct.get_destructor_fn_name()
-                destructor_code += f"{destructor_name}(&{struct_name});\n"
+        LinesCache[i] = remaining_destructor_code()
 
-        LinesCache[i] = destructor_code
 
 outputFile = open(output_file_name, "w")
 for Line in LinesCache:
