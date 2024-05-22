@@ -12,14 +12,14 @@
 
 // IMPORTS //
 
-struct Vector__int {
+struct Vector_int {
   int *arr;
   int size;
   int capacity;
 };
 
 // template Vector<int> {
-void Vector_int__init__(struct Vector__int *this, int capacity) {
+void Vector_int__init__(struct Vector_int *this, int capacity) {
   // if we want to use instanced template type in fn body, we use following
   // syntax.
   // @ TEMPLATED_DATA_TYPE @
@@ -33,7 +33,7 @@ void Vector_int__init__(struct Vector__int *this, int capacity) {
   this->capacity = capacity;
 }
 
-void Vector_int__del__(struct Vector__int *this) {
+void Vector_int__del__(struct Vector_int *this) {
   // Python Version of destructor.
   free(this->arr);
   this->arr = NULL;
@@ -41,7 +41,7 @@ void Vector_int__del__(struct Vector__int *this) {
   this->capacity = 0;
 }
 
-void Vector_intpush(struct Vector__int *this, int value) {
+void Vector_intpush(struct Vector_int *this, int value) {
   if (this->size == this->capacity) {
     this->capacity *= 2;
     this->arr = (int *)realloc(this->arr, this->capacity * sizeof(int));
@@ -53,7 +53,7 @@ void Vector_intpush(struct Vector__int *this, int value) {
   this->arr[this->size++] = value;
 }
 
-void Vector_intallocate_more(struct Vector__int *this, int n) {
+void Vector_intallocate_more(struct Vector_int *this, int n) {
   this->capacity += n;
   this->arr = (int *)realloc(this->arr, this->capacity * sizeof(int));
   if (this->arr == NULL) {
@@ -62,11 +62,11 @@ void Vector_intallocate_more(struct Vector__int *this, int n) {
   }
 }
 
-void Vector_intpush_unchecked(struct Vector__int *this, int value) {
+void Vector_intpush_unchecked(struct Vector_int *this, int value) {
   this->arr[this->size++] = value;
 }
 
-void Vector_intprint(struct Vector__int *this) {
+void Vector_intprint(struct Vector_int *this) {
   // maybe print instanced vec name.
   // instanced name should be passed as fn parameter ig.
   // or add instance_name member silently to the struct itself.
@@ -96,7 +96,7 @@ void Vector_intprint(struct Vector__int *this) {
   printf("]\n");
 }
 
-bool Vector_int__contains__(struct Vector__int *this, int value) {
+bool Vector_int__contains__(struct Vector_int *this, int value) {
   // This function is an overloaded function.
   // Here <> in function defination means the base overload.
   for (size_t i = 0; i < this->size; ++i) {
@@ -107,9 +107,9 @@ bool Vector_int__contains__(struct Vector__int *this, int value) {
   return false;
 }
 
-size_t Vector_intlen(struct Vector__int *this) { return this->size; }
+size_t Vector_intlen(struct Vector_int *this) { return this->size; }
 
-int Vector_int__getitem__(struct Vector__int *this, int index) {
+int Vector_int__getitem__(struct Vector_int *this, int index) {
   return *(this->arr + index);
 }
 
@@ -119,7 +119,7 @@ int main() {
 
   ///*///
 
-  struct Vector__int values;
+  struct Vector_int values;
   Vector_int__init__(&values, 8);
   Vector_intpush(&values, 1);
   Vector_intpush(&values, 2);

@@ -10,8 +10,8 @@ int main() {
 // clang-format off
 
   ///*///
-  import String
   import Vector
+  import String
   
   let string = Vector<char>{10};
   string.push("A")

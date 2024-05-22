@@ -7,12 +7,12 @@
 
 // IMPORTS //
 
-struct UniquePtr__char {
+struct UniquePtr_char {
   char *arr;
 };
 
 // template UniquePtr<char> {
-void UniquePtr_char__init__(struct UniquePtr__char *this, int capacity) {
+void UniquePtr_char__init__(struct UniquePtr_char *this, int capacity) {
   this->arr = (char *)malloc(capacity * sizeof(char));
 
   if (this->arr == NULL) {
@@ -21,7 +21,7 @@ void UniquePtr_char__init__(struct UniquePtr__char *this, int capacity) {
   }
 }
 
-void UniquePtr_char__del__(struct UniquePtr__char *this) { free(this->arr); }
+void UniquePtr_char__del__(struct UniquePtr_char *this) { free(this->arr); }
 
 // template UniquePtr<char> }
 
@@ -29,7 +29,7 @@ int main() {
 
   ///*///
 
-  struct UniquePtr__char ptr;
+  struct UniquePtr_char ptr;
   UniquePtr_char__init__(&ptr, 100);
 
   UniquePtr_char__del__(&ptr);

@@ -12,14 +12,14 @@
 
 // IMPORTS //
 
-struct Vector__int {
+struct Vector_int {
   int *arr;
   int size;
   int capacity;
 };
 
 // template Vector<int> {
-void Vector_int__init__(struct Vector__int *this, int capacity) {
+void Vector_int__init__(struct Vector_int *this, int capacity) {
   // if we want to use instanced template type in fn body, we use following
   // syntax.
   // @ TEMPLATED_DATA_TYPE @
@@ -33,7 +33,7 @@ void Vector_int__init__(struct Vector__int *this, int capacity) {
   this->capacity = capacity;
 }
 
-void Vector_int__del__(struct Vector__int *this) {
+void Vector_int__del__(struct Vector_int *this) {
   // Python Version of destructor.
   free(this->arr);
   this->arr = NULL;
@@ -41,7 +41,7 @@ void Vector_int__del__(struct Vector__int *this) {
   this->capacity = 0;
 }
 
-void Vector_intpush(struct Vector__int *this, int value) {
+void Vector_intpush(struct Vector_int *this, int value) {
   if (this->size == this->capacity) {
     this->capacity *= 2;
     this->arr = (int *)realloc(this->arr, this->capacity * sizeof(int));
@@ -53,7 +53,7 @@ void Vector_intpush(struct Vector__int *this, int value) {
   this->arr[this->size++] = value;
 }
 
-void Vector_intallocate_more(struct Vector__int *this, int n) {
+void Vector_intallocate_more(struct Vector_int *this, int n) {
   this->capacity += n;
   this->arr = (int *)realloc(this->arr, this->capacity * sizeof(int));
   if (this->arr == NULL) {
@@ -62,11 +62,11 @@ void Vector_intallocate_more(struct Vector__int *this, int n) {
   }
 }
 
-void Vector_intpush_unchecked(struct Vector__int *this, int value) {
+void Vector_intpush_unchecked(struct Vector_int *this, int value) {
   this->arr[this->size++] = value;
 }
 
-void Vector_intprint(struct Vector__int *this) {
+void Vector_intprint(struct Vector_int *this) {
   // maybe print instanced vec name.
   // instanced name should be passed as fn parameter ig.
   // or add instance_name member silently to the struct itself.
@@ -96,7 +96,7 @@ void Vector_intprint(struct Vector__int *this) {
   printf("]\n");
 }
 
-bool Vector_int__contains__(struct Vector__int *this, int value) {
+bool Vector_int__contains__(struct Vector_int *this, int value) {
   // This function is an overloaded function.
   // Here <> in function defination means the base overload.
   for (size_t i = 0; i < this->size; ++i) {
@@ -107,22 +107,22 @@ bool Vector_int__contains__(struct Vector__int *this, int value) {
   return false;
 }
 
-size_t Vector_intlen(struct Vector__int *this) { return this->size; }
+size_t Vector_intlen(struct Vector_int *this) { return this->size; }
 
-int Vector_int__getitem__(struct Vector__int *this, int index) {
+int Vector_int__getitem__(struct Vector_int *this, int index) {
   return *(this->arr + index);
 }
 
 // template Vector<int> }
 
-struct Vector__float {
+struct Vector_float {
   float *arr;
   int size;
   int capacity;
 };
 
 // template Vector<float> {
-void Vector_float__init__(struct Vector__float *this, int capacity) {
+void Vector_float__init__(struct Vector_float *this, int capacity) {
   // if we want to use instanced template type in fn body, we use following
   // syntax.
   // @ TEMPLATED_DATA_TYPE @
@@ -136,7 +136,7 @@ void Vector_float__init__(struct Vector__float *this, int capacity) {
   this->capacity = capacity;
 }
 
-void Vector_float__del__(struct Vector__float *this) {
+void Vector_float__del__(struct Vector_float *this) {
   // Python Version of destructor.
   free(this->arr);
   this->arr = NULL;
@@ -144,7 +144,7 @@ void Vector_float__del__(struct Vector__float *this) {
   this->capacity = 0;
 }
 
-void Vector_floatpush(struct Vector__float *this, float value) {
+void Vector_floatpush(struct Vector_float *this, float value) {
   if (this->size == this->capacity) {
     this->capacity *= 2;
     this->arr = (float *)realloc(this->arr, this->capacity * sizeof(float));
@@ -156,7 +156,7 @@ void Vector_floatpush(struct Vector__float *this, float value) {
   this->arr[this->size++] = value;
 }
 
-void Vector_floatallocate_more(struct Vector__float *this, int n) {
+void Vector_floatallocate_more(struct Vector_float *this, int n) {
   this->capacity += n;
   this->arr = (float *)realloc(this->arr, this->capacity * sizeof(float));
   if (this->arr == NULL) {
@@ -165,11 +165,11 @@ void Vector_floatallocate_more(struct Vector__float *this, int n) {
   }
 }
 
-void Vector_floatpush_unchecked(struct Vector__float *this, float value) {
+void Vector_floatpush_unchecked(struct Vector_float *this, float value) {
   this->arr[this->size++] = value;
 }
 
-void Vector_floatprint(struct Vector__float *this) {
+void Vector_floatprint(struct Vector_float *this) {
   // maybe print instanced vec name.
   // instanced name should be passed as fn parameter ig.
   // or add instance_name member silently to the struct itself.
@@ -199,7 +199,7 @@ void Vector_floatprint(struct Vector__float *this) {
   printf("]\n");
 }
 
-bool Vector_float__contains__(struct Vector__float *this, float value) {
+bool Vector_float__contains__(struct Vector_float *this, float value) {
   // This function is an overloaded function.
   // Here <> in function defination means the base overload.
   for (size_t i = 0; i < this->size; ++i) {
@@ -210,22 +210,22 @@ bool Vector_float__contains__(struct Vector__float *this, float value) {
   return false;
 }
 
-size_t Vector_floatlen(struct Vector__float *this) { return this->size; }
+size_t Vector_floatlen(struct Vector_float *this) { return this->size; }
 
-float Vector_float__getitem__(struct Vector__float *this, int index) {
+float Vector_float__getitem__(struct Vector_float *this, int index) {
   return *(this->arr + index);
 }
 
 // template Vector<float> }
 
-struct Vector__char {
+struct Vector_char {
   char *arr;
   int size;
   int capacity;
 };
 
 // template Vector<char> {
-void Vector_char__init__(struct Vector__char *this, int capacity) {
+void Vector_char__init__(struct Vector_char *this, int capacity) {
   // if we want to use instanced template type in fn body, we use following
   // syntax.
   // @ TEMPLATED_DATA_TYPE @
@@ -239,7 +239,7 @@ void Vector_char__init__(struct Vector__char *this, int capacity) {
   this->capacity = capacity;
 }
 
-void Vector_char__del__(struct Vector__char *this) {
+void Vector_char__del__(struct Vector_char *this) {
   // Python Version of destructor.
   free(this->arr);
   this->arr = NULL;
@@ -247,7 +247,7 @@ void Vector_char__del__(struct Vector__char *this) {
   this->capacity = 0;
 }
 
-void Vector_charpush(struct Vector__char *this, char value) {
+void Vector_charpush(struct Vector_char *this, char value) {
   if (this->size == this->capacity) {
     this->capacity *= 2;
     this->arr = (char *)realloc(this->arr, this->capacity * sizeof(char));
@@ -259,7 +259,7 @@ void Vector_charpush(struct Vector__char *this, char value) {
   this->arr[this->size++] = value;
 }
 
-void Vector_charallocate_more(struct Vector__char *this, int n) {
+void Vector_charallocate_more(struct Vector_char *this, int n) {
   this->capacity += n;
   this->arr = (char *)realloc(this->arr, this->capacity * sizeof(char));
   if (this->arr == NULL) {
@@ -268,11 +268,11 @@ void Vector_charallocate_more(struct Vector__char *this, int n) {
   }
 }
 
-void Vector_charpush_unchecked(struct Vector__char *this, char value) {
+void Vector_charpush_unchecked(struct Vector_char *this, char value) {
   this->arr[this->size++] = value;
 }
 
-void Vector_charprint(struct Vector__char *this) {
+void Vector_charprint(struct Vector_char *this) {
   // maybe print instanced vec name.
   // instanced name should be passed as fn parameter ig.
   // or add instance_name member silently to the struct itself.
@@ -302,7 +302,7 @@ void Vector_charprint(struct Vector__char *this) {
   printf("]\n");
 }
 
-bool Vector_char__contains__(struct Vector__char *this, char value) {
+bool Vector_char__contains__(struct Vector_char *this, char value) {
   // This function is an overloaded function.
   // Here <> in function defination means the base overload.
   for (size_t i = 0; i < this->size; ++i) {
@@ -313,9 +313,9 @@ bool Vector_char__contains__(struct Vector__char *this, char value) {
   return false;
 }
 
-size_t Vector_charlen(struct Vector__char *this) { return this->size; }
+size_t Vector_charlen(struct Vector_char *this) { return this->size; }
 
-char Vector_char__getitem__(struct Vector__char *this, int index) {
+char Vector_char__getitem__(struct Vector_char *this, int index) {
   return *(this->arr + index);
 }
 
@@ -325,7 +325,7 @@ int main() {
 
   ///*///
 
-  struct Vector__int a;
+  struct Vector_int a;
   Vector_int__init__(&a, 10);
   Vector_intpush(&a, 10);
   Vector_intpush(&a, 20);
@@ -338,14 +338,14 @@ int main() {
     printf("10 is in the vector. \n");
   }
 
-  struct Vector__float b;
+  struct Vector_float b;
   Vector_float__init__(&b, 10);
   Vector_floatpush(&b, 10);
   Vector_floatpush(&b, 40);
   Vector_floatpush(&b, 50);
   Vector_floatprint(&b);
 
-  struct Vector__char string;
+  struct Vector_char string;
   Vector_char__init__(&string, 10);
   Vector_charpush(&string, 'A');
   Vector_charpush(&string, 'N');

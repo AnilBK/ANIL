@@ -27,7 +27,7 @@ void RectangleArea(struct Rectangle *this) {
   printf("Area is : %f.\n", this->l * this->b);
 }
 
-struct GenericStruct__float {
+struct GenericStruct_float {
   float a;
   float b;
 };
@@ -35,7 +35,7 @@ struct GenericStruct__float {
 // template GenericStruct<float> {
 // template GenericStruct<float> }
 
-struct GenericStruct__int {
+struct GenericStruct_int {
   int a;
   float b;
 };
@@ -43,7 +43,7 @@ struct GenericStruct__int {
 // template GenericStruct<int> {
 // template GenericStruct<int> }
 
-struct Vector__int {
+struct Vector_int {
   int *arr;
   int size;
   int capacity;
@@ -52,7 +52,7 @@ struct Vector__int {
 // template Vector<int> {
 // template Vector<int> }
 
-struct Vector__float {
+struct Vector_float {
   float *arr;
   int size;
   int capacity;
@@ -88,18 +88,18 @@ int main() {
     printf("%f\n", val);
   }
 
-  struct GenericStruct__float t1;
+  struct GenericStruct_float t1;
   t1.a = 10;
   t1.b = 20;
-  struct GenericStruct__int t2;
+  struct GenericStruct_int t2;
   t2.a = 10;
   t2.b = 20;
 
-  struct Vector__int vec2;
+  struct Vector_int vec2;
   vec2.arr = NULL;
   vec2.size = 10;
   vec2.capacity = 20;
-  struct Vector__float vec3;
+  struct Vector_float vec3;
   vec3.arr = NULL;
   vec3.size = 10;
   vec3.capacity = 20;

@@ -10,7 +10,7 @@ int main() {
   // clang-format off
 
   ///*/// 
-
+  import Vector
   import String
   
   let str = String{"Hello"};
