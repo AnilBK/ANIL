@@ -1096,7 +1096,7 @@ while index < len(Lines):
         code = ""
 
         if is_templated_struct:
-            code += f"struct {struct_type}__{templated_data_type} {struct_name};\n"
+            code += f"struct {struct_type}_{templated_data_type} {struct_name};\n"
         else:
             code += f"struct {struct_type} {struct_name};\n"
 
