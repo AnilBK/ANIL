@@ -1875,7 +1875,7 @@ while index < len(Lines):
                         # normal else branch.
                         LinesCache.append("{\n")
                         nesting_levels.append(NestingLevel.ELSE_STATEMENT)
-                        decrement_scope()
+                        increment_scope()
         elif top_of_stack == NestingLevel.ELSE_STATEMENT:
             _ = nesting_levels.pop(-1)
             decrement_scope()
