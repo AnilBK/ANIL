@@ -49,6 +49,10 @@ impl String __del__
   free(this->arr);
 endfunc
 
+impl String startswith prefix : str -> bool
+	return strncmp(this->arr, prefix, strlen(prefix)) == 0;
+endfunc
+
 impl String strip -> String:
   //  char *str = "  Hello ";
   char *str = this->arr;
