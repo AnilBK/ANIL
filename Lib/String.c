@@ -76,10 +76,8 @@ impl String strip -> String:
   return text;
 endfunc
 
-impl String split -> Vector<String>:
+impl String split delimeter : char -> Vector<String>:
   // TODO: Because of this function, before import String, we require import Vector.
-  char delimeter = '.';
-
   struct Vector_String result;
   Vector_String__init__(&result, 2);
 

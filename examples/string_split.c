@@ -14,13 +14,19 @@ int main() {
   import Vector
   import String
   
-  let str = String{"Hello.World.Split.test"};
+  print("Split Test: \n")
+
+  let str = String{"Splitting.with.dots."};
   str.printLn()
 
-
-  let split = str.split()
+  let split = str.split(".")
   split.print();
 
+  let str2 = String{"Splitting with Spaces."};
+  str2.printLn()
+
+  let space_split = str2.split(" ")
+  space_split.print();
 
   // DESTRUCTOR_CODE //
   ///*///

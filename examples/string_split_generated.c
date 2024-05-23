@@ -60,6 +60,10 @@ void StringprintLn(struct String *this) { printf("%s\n", this->arr); }
 
 void String__del__(struct String *this) { free(this->arr); }
 
+bool Stringstartswith(struct String *this, char *prefix) {
+  return strncmp(this->arr, prefix, strlen(prefix)) == 0;
+}
+
 struct String Stringstrip(struct String *this) {
   //  char *str = "  Hello ";
   char *str = this->arr;
@@ -164,9 +168,9 @@ struct String Vector_String__getitem__(struct Vector_String *this, int index) {
 
 // template Vector<String> }
 
-struct Vector_String Stringsplit(struct String *this) {
-  char delimeter = '.';
-
+struct Vector_String Stringsplit(struct String *this, char delimeter) {
+  // TODO: Because of this function, before import String, we require import
+  // Vector.
   struct Vector_String result;
   Vector_String__init__(&result, 2);
 
@@ -281,17 +285,64 @@ void Stringset_to_file_contents(struct String *this, char *pfilename) {
   fclose(ptr);
 }
 
+struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename) {
+  Stringset_to_file_contents(this, pfilename);
+
+  // Uses the same implementation as Split.
+  char delimeter = '\n';
+
+  struct Vector_String result;
+  Vector_String__init__(&result, 10);
+
+  int delim_location = -1;
+
+  int len = this->length;
+  for (int i = 0; i < len; i++) {
+    if (this->arr[i] == delimeter) {
+      int length = i - (delim_location + 1);
+
+      struct String text;
+      String__init__from_charptr(&text, &this->arr[delim_location + 1], length);
+      Vector_Stringpush(&result, text);
+
+      delim_location = i;
+    }
+  }
+
+  // Add remaining string.
+  if (delim_location + 1 < len) {
+    char *remaining = &this->arr[delim_location + 1];
+
+    struct String text;
+    String__init__(&text, remaining);
+    Vector_Stringpush(&result, text);
+  }
+
+  return result;
+}
+
 int main() {
 
   ///*///
 
+  printf("Split Test: \n");
+
   struct String str;
-  String__init__(&str, "Hello.World.Split.test");
+  String__init__(&str, "Splitting.with.dots.");
   StringprintLn(&str);
 
-  struct Vector_String split = Stringsplit(&str);
+  struct Vector_String split = Stringsplit(&str, '.');
   Vector_Stringprint(&split);
 
+  struct String str2;
+  String__init__(&str2, "Splitting with Spaces.");
+  StringprintLn(&str2);
+
+  struct Vector_String space_split = Stringsplit(&str2, ' ');
+  Vector_Stringprint(&space_split);
+
+  Vector_String__del__(&space_split);
+  String__del__(&str2);
   Vector_String__del__(&split);
   String__del__(&str);
   ///*///
