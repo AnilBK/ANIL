@@ -43,11 +43,12 @@ file.close()
 imported_modules = []
 
 for Line in Lines:
-    if "import" in Line:
+    Line = Line.strip()
+    if Line.startswith("import"):
         # import String
         # import Vector
         # import UniquePtr
-        _, module_name = Line.strip().split()
+        _, module_name = Line.split()
         imported_modules.append(module_name)
 
 if len(imported_modules) > 0:
@@ -641,26 +642,23 @@ def parse_hook_info(p_hook_body) -> HookInfo:
 index = 0
 
 while index < len(Lines):
-    Line = Lines[index]
+    # Just strip away spaces and not other kinds of whitespaces, as that messes up final code generation.
+    Line = Lines[index].strip(" ")
     index += 1
 
-    # for Line in Lines:
-    if "// clang-format off" in Line:
+    if Line.startswith("// clang-format off"):
         continue
-    elif "// clang-format on" in Line:
+    elif Line.startswith("// clang-format on"):
         continue
-    elif "import" in Line:
+    elif Line.startswith("import"):
         continue
-
-    if "///*///" in Line:
+    elif Line.startswith("///*///"):
         is_inside_new_code = not is_inside_new_code
 
     if not is_inside_new_code:
         # Normal C code, so just write that.
         LinesCache.append(Line)
         continue
-
-    Line = Line.strip(" ")
 
     if is_inside_struct_impl and not "endfunc" in Line:
         currently_reading_fn_body += Line
