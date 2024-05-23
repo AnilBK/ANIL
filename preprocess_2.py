@@ -44,7 +44,7 @@ imported_modules = []
 
 for Line in Lines:
     Line = Line.strip()
-    if Line.startswith("import"):
+    if Line.startswith("import "):
         # import String
         # import Vector
         # import UniquePtr
@@ -650,7 +650,7 @@ while index < len(Lines):
         continue
     elif Line.startswith("// clang-format on"):
         continue
-    elif Line.startswith("import"):
+    elif Line.startswith("import "):
         continue
     elif Line.startswith("///*///"):
         is_inside_new_code = not is_inside_new_code
