@@ -20,7 +20,7 @@ int main() {
   str.printLn()
 
   let split = str.split(".")
-  split.print();
+  split.print()
 
   let str2 = String{"Splitting with Spaces."};
   str2.printLn()
