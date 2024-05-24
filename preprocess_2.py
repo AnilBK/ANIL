@@ -2219,9 +2219,30 @@ while index < len(Lines):
                 var_to_check = parser.get_token()
 
             # print(f"var to check = {var_to_check}")
+            instanced_struct_info = get_instanced_struct(var_to_check)
+            is_struct_type = instanced_struct_info != None
 
+            # if Line.startswith("import"){
+            if is_struct_type and parser.check_token(lexer.Token.DOT):
+                # parser.next_token()
+
+                parser = Parser.Parser(Line)
+                # if Line.startswith("import"){
+                parser.next_token()
+                parser.next_token()
+
+                parse_result = _parse_function_call(var_to_check, False)
+                fn_name = parse_result["fn_name"]
+                return_type = parse_result["return_type"]
+
+                if parse_result["has_parameters"]:
+                    parameters_str = parse_result["parameters_str"]
+                    code = f"{fn_name}(&{var_to_check}, {parameters_str})"
+                else:
+                    code = f"{fn_name}(&{var_to_check})"
+                LinesCache.append(f"\nif({code}){{\n")
             # if var_to_check in var_to_check_against {
-            if parser.check_token(lexer.Token.IN):
+            elif parser.check_token(lexer.Token.IN):
                 parser.consume_token(lexer.Token.IN)
 
                 var_to_check_against = parser.get_token()
