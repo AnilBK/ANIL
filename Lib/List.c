@@ -82,14 +82,16 @@ So this function will be emitted earlier than the actual List struct causing for
 Temporarily we replace the entire function body at all the needed callsites.
 
 void ListinsertEnd(struct List *this, Node *newNode) {
-  if (this->head == NULL) {
-    this->head = newNode;
-    this->tail = newNode;
-    return;
-  }
-
-  this->tail->next = newNode;
-  this->tail = newNode;
+// Add // to everyline because without it the code generated below,
+// all goes to left & isn't formatted.
+//  if (this->head == NULL) {
+//    this->head = newNode;
+//    this->tail = newNode;
+//    return;
+//  }
+//
+//  this->tail->next = newNode;
+//  this->tail = newNode;
 }
 */
 
