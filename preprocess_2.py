@@ -1600,6 +1600,273 @@ while index < len(Lines):
             currently_reading_def_body = ""
         continue
 
+    def parse_term():
+        """Parse a variable(a single term)"""
+
+        # TODO: _read_a_parameter() morever has this functionality, so maybe use that.
+
+        global parser
+
+        term_type = "UNDEFINED"
+        variable = ""
+        output_code = ""
+
+        if parser.check_token(lexer.Token.QUOTE):
+            variable = parser.extract_string_literal()
+            term_type = "string_literal"
+        else:
+            variable = parser.get_token()
+
+            if is_variable_boolean_type(variable):
+                term_type = "bool"
+            elif is_variable_char_type(variable):
+                term_type = "char"
+            else:
+                instanced_struct_info = get_instanced_struct(variable)
+                if instanced_struct_info != None:
+                    # Struct type.
+                    # if Line.startswith("import"){
+                    if parser.check_token(lexer.Token.DOT):
+                        # parser.next_token()
+
+                        parser = Parser.Parser(Line)
+                        # if Line.startswith("import"){
+                        parser.next_token()
+                        parser.next_token()
+
+                        parse_result = _parse_function_call(variable, False)
+                        fn_name = parse_result["fn_name"]
+                        return_type = parse_result["return_type"]
+
+                        if parse_result["has_parameters"]:
+                            parameters_str = parse_result["parameters_str"]
+                            output_code = f"{fn_name}(&{variable}, {parameters_str})"
+                        else:
+                            output_code = f"{fn_name}(&{variable})"
+                        term_type = "struct_function_call"
+                    else:
+                        term_type = "struct"
+                else:
+                    # TODO: Maybe use parse_number() ???
+                    term_type = "variable"
+
+        if output_code == "":
+            output_code = variable
+
+        return {
+            "type": term_type,
+            "output_code": output_code,
+            "variable_name": variable,
+        }
+
+    def get_comparision_operator():
+        """Read comparision operator (if any) which includes >, <, >=, <=, ==, !=, in"""
+        has_comparision_operator = False
+        operators_as_str = ""
+
+        global parser
+
+        if parser.has_tokens_remaining():
+            token_map = {
+                lexer.Token.GREATER_THAN: ">",
+                lexer.Token.SMALLER_THAN: "<",
+                lexer.Token.EQUALS: "=",
+                lexer.Token.EXCLAMATION: "!",
+            }
+
+            token = parser.current_token()
+
+            if token in token_map:
+                parser.consume_token(token)
+
+                has_comparision_operator = True
+                operators_as_str = token_map[token]
+
+                if (
+                    parser.has_tokens_remaining()
+                    and parser.current_token() == lexer.Token.EQUALS
+                ):
+                    parser.consume_token(lexer.Token.EQUALS)
+                    operators_as_str += "="
+            elif token == lexer.Token.IN:
+                parser.consume_token(lexer.Token.IN)
+
+                has_comparision_operator = True
+                operators_as_str = "in"
+
+        return {
+            "has_comparision_operator": has_comparision_operator,
+            "operators_as_str": operators_as_str,
+        }
+
+    def boolean_expression():
+        lhs = parse_term()
+
+        comparision_operation = get_comparision_operator()
+        if comparision_operation["has_comparision_operator"]:
+            operators_as_str = comparision_operation["operators_as_str"]
+
+            rhs = parse_term()
+
+            global parser
+            parser.consume_token(lexer.Token.LEFT_CURLY)
+
+            if operators_as_str == "==" or operators_as_str == "!=":
+                negation_boolean_expression = operators_as_str == "!="
+
+                var_to_check_against = lhs["variable_name"]
+                var_to_check = rhs["variable_name"]
+
+                if rhs["type"] == "string_literal":
+                    comparision_code = ""
+
+                    if lhs["type"] == "struct":
+                        # if str == "Hello"
+                        #           ^^^^^^^ String Literal
+                        # if str != "Hello"
+                        #    ^^^ String struct
+                        eq_fn = "__eq__"
+                        fns_required_for_equality = [eq_fn]
+
+                        instanced_struct_info = get_instanced_struct(
+                            var_to_check_against
+                        )
+
+                        struct_type = instanced_struct_info.struct_type
+                        StructInfo = instanced_struct_info.get_struct_defination()
+
+                        if struct_type == "String":
+                            for fn in fns_required_for_equality:
+                                StructInfo.ensure_has_function(fn, var_to_check_against)
+
+                        fn_name = instanced_struct_info.get_mangled_function_name(eq_fn)
+                        comparision_code = (
+                            f'{fn_name}(&{var_to_check_against}, "{var_to_check}")'
+                        )
+                        # This entire if & return is redundant, as it is peformed below anyways,
+                        # but if we do it here, we don't emit an extra ().
+                        if negation_boolean_expression:
+                            comparision_code = f"!{comparision_code}"
+                        return comparision_code
+
+                    elif lhs["type"] == "char":
+                        comparision_code = f"{var_to_check_against} {operators_as_str} '{var_to_check}'"
+                    else:
+                        # if Char == "\""
+                        if var_to_check == '"':
+                            comparision_code = f'{var_to_check_against} {operators_as_str} "\\{var_to_check}"'
+                        else:
+                            comparision_code = (
+                                f'{var_to_check_against} == "{var_to_check}"'
+                            )
+
+                    if negation_boolean_expression:
+                        comparision_code = f"!({comparision_code})"
+
+                    return comparision_code
+            elif operators_as_str == "in":
+                # if var_to_check in var_to_check_against {
+                var_to_check = lhs["variable_name"]
+                var_to_check_against = rhs["variable_name"]
+
+                if rhs["type"] == "struct":
+                    instanced_struct_info = get_instanced_struct(var_to_check_against)
+                    # ^^^^^^^^^^^^^^^^^^^ This always returns sth. because it is already verified in term() as rhs["type"] == "struct".
+
+                    fn_name = instanced_struct_info.get_mangled_function_name(
+                        "__contains__"
+                    )
+
+                    is_var_to_check_string_object = False
+                    var_to_check_struct_info = get_instanced_struct(var_to_check)
+                    if var_to_check_struct_info != None:
+                        is_var_to_check_string_object = (
+                            var_to_check_struct_info.struct_type == "String"
+                        )
+
+                    contains_fn_args = instanced_struct_info.get_fn_arguments(
+                        "__contains__"
+                    )
+
+                    # Get the data type for the first function argument.
+                    param_type = contains_fn_args[0].data_type
+                    expects_string_argument = (
+                        param_type == "char*" or param_type == "str"
+                    )
+
+                    if lhs["type"] == "char":
+                        gen_code = ""
+                        # if var_to_check in var_to_check_against {
+                        #    ^^^^^^^^^^^^ this is a char
+                        # but the function signature for "__contains__" expects a char*/str.
+                        # So, promote the char variable to a string.
+                        if expects_string_argument:
+                            char_to_string_promotion_code = ""
+                            global temp_char_promoted_to_string_variable_count
+                            promoted_char_var_name = f"{var_to_check}_promoted_{temp_char_promoted_to_string_variable_count}"
+                            # Create a string from char.
+                            promoted_char_var_code = f"char {promoted_char_var_name}[2] = {{ {var_to_check}, '\\0'}};"
+                            REGISTER_VARIABLE(f"{promoted_char_var_name}", "str")
+
+                            char_to_string_promotion_code += promoted_char_var_code
+                            temp_char_promoted_to_string_variable_count += 1
+
+                            LinesCache.append(f"{char_to_string_promotion_code}\n")
+
+                            var_to_check = promoted_char_var_name
+
+                    if lhs["type"] == "string_literal":
+                        gen_code = (
+                            f'{fn_name}(&{var_to_check_against}, "{var_to_check}")'
+                        )
+                    elif expects_string_argument and is_var_to_check_string_object:
+                        # For Automatic Conversion for String class.
+                        # for token in Character_Tokens:
+                        #     ^^^^     ^^^^^^^^^^^^^^^^
+                        #         String               Dictionary
+                        # The __contains__ for Dictionary expects a string,
+                        # And the string class has a c_str method that returns char*,
+                        # so implement this for String Class. Could be extended to any classes with c_str() method. Food for thought :)
+                        c_str_fn_name = (
+                            var_to_check_struct_info.get_mangled_function_name("c_str")
+                        )
+                        gen_code = f"{fn_name}(&{var_to_check_against}, {c_str_fn_name}(&{var_to_check}))"
+                    else:
+                        gen_code = f"{fn_name}(&{var_to_check_against}, {var_to_check})"
+                    return gen_code
+                else:
+                    if is_variable_array_type(var_to_check_against):
+                        array_type = get_type_of_variable(var_to_check_against)
+                        global temp_arr_search_variable_count
+
+                        search_variable = f"{var_to_check_against}__contains__{var_to_check}_{temp_arr_search_variable_count}"
+
+                        LinesCache.append(
+                            f"bool {search_variable} = false;\n"
+                            f"for (unsigned int i = 0; i < {var_to_check_against}_array_size; i++){{\n"
+                            f"  if ({var_to_check_against}[i] == {var_to_check}){{\n"
+                            f"      {search_variable} = true;\n"
+                            f"      break;\n"
+                            f"  }}\n"
+                            f" }}\n"
+                        )
+
+                        temp_arr_search_variable_count += 1
+                        REGISTER_VARIABLE(search_variable, f"bool")
+                        gen_code = f"{search_variable}"
+                        return gen_code
+
+                    else:
+                        raise ValueError(
+                            f"Target variable {var_to_check_against} is undefined. \n It is neither an array nor a struct."
+                        )
+
+            return (
+                lhs["output_code"] + " " + operators_as_str + " " + rhs["output_code"]
+            )
+
+        return lhs["output_code"]
+
     if len(parser.tokens) > 0:
         parsed_member = parser.current_token()
 
@@ -2136,217 +2403,11 @@ while index < len(Lines):
         nesting_levels.append(NestingLevel.IF_STATEMENT)
         increment_scope()
 
-        parser = Parser.Parser(Line)
-
         parser.consume_token(lexer.Token.IF)
 
-        if "==" in Line or "!=" in Line:
-            # if str == "Hello"
-            # if str != "Hello"
+        code = boolean_expression()
 
-            var_to_check_against = parser.get_token()
-            # print(f"Obtained String : {var_to_check_against}")
-
-            negation_boolean_expression = False
-
-            curr_token = parser.current_token()
-
-            if curr_token == lexer.Token.EXCLAMATION:
-                # For !=
-                parser.next_token()
-                negation_boolean_expression = True
-            elif curr_token == lexer.Token.EQUALS:
-                # For ==
-                parser.next_token()
-                negation_boolean_expression = False
-
-            comparision_operation = "=="
-            if negation_boolean_expression:
-                comparision_operation = "!="
-
-            parser.consume_token(lexer.Token.EQUALS)
-
-            string = parser.extract_string_literal()
-
-            comparision_code = ""
-
-            instanced_struct_info = get_instanced_struct(var_to_check_against)
-            is_instanced_struct_ = instanced_struct_info != None
-            if is_instanced_struct_:
-                eq_fn = "__eq__"
-                fns_required_for_equality = [eq_fn]
-
-                struct_type = instanced_struct_info.struct_type
-                StructInfo = instanced_struct_info.get_struct_defination()
-
-                if struct_type == "String":
-                    for fn in fns_required_for_equality:
-                        StructInfo.ensure_has_function(fn, var_to_check_against)
-
-                fn_name = instanced_struct_info.get_mangled_function_name(eq_fn)
-                comparision_code = f'{fn_name}(&{var_to_check_against}, "{string}")'
-
-                if negation_boolean_expression:
-                    comparision_code = "!" + comparision_code
-            else:
-                if is_variable_char_type(var_to_check_against):
-                    comparision_code = (
-                        f"{var_to_check_against} {comparision_operation} '{string}'"
-                    )
-                else:
-                    # if Char == "\""
-                    if string == '"':
-                        comparision_code = f'{var_to_check_against} {comparision_operation} "\\{string}"'
-                    else:
-                        comparision_code = f'{var_to_check_against} == "{string}"'
-                        if negation_boolean_expression:
-                            comparision_code = f"!({comparision_code})"
-
-            LinesCache.append(f"\nif({comparision_code}){{\n")
-
-        else:
-            # if bool_to_check {
-            # if var_to_check in var_to_check_against {
-            # if,var_to_check,in,var_to_check_against,{
-
-            var_to_check = ""
-            var_to_check_type = "int"
-
-            if parser.check_token(lexer.Token.QUOTE):
-                var_to_check_type = "str"
-                var_to_check = parser.extract_string_literal()
-            else:
-                var_to_check = parser.get_token()
-
-            # print(f"var to check = {var_to_check}")
-            instanced_struct_info = get_instanced_struct(var_to_check)
-            is_struct_type = instanced_struct_info != None
-
-            # if Line.startswith("import"){
-            if is_struct_type and parser.check_token(lexer.Token.DOT):
-                # parser.next_token()
-
-                parser = Parser.Parser(Line)
-                # if Line.startswith("import"){
-                parser.next_token()
-                parser.next_token()
-
-                parse_result = _parse_function_call(var_to_check, False)
-                fn_name = parse_result["fn_name"]
-                return_type = parse_result["return_type"]
-
-                if parse_result["has_parameters"]:
-                    parameters_str = parse_result["parameters_str"]
-                    code = f"{fn_name}(&{var_to_check}, {parameters_str})"
-                else:
-                    code = f"{fn_name}(&{var_to_check})"
-                LinesCache.append(f"\nif({code}){{\n")
-            # if var_to_check in var_to_check_against {
-            elif parser.check_token(lexer.Token.IN):
-                parser.consume_token(lexer.Token.IN)
-
-                var_to_check_against = parser.get_token()
-                # print(f"var to check against= {var_to_check_against}")
-
-                parser.match_token(lexer.Token.LEFT_CURLY)
-
-                gen_code = ""
-
-                instanced_struct_info = get_instanced_struct(var_to_check_against)
-                if instanced_struct_info == None:
-                    if is_variable_array_type(var_to_check_against):
-                        array_type = get_type_of_variable(var_to_check_against)
-
-                        search_variable = f"{var_to_check_against}__contains__{var_to_check}_{temp_arr_search_variable_count}"
-
-                        LinesCache.append(
-                            f"bool {search_variable} = false;\n"
-                            f"for (unsigned int i = 0; i < {var_to_check_against}_array_size; i++){{\n"
-                            f"  if ({var_to_check_against}[i] == {var_to_check}){{\n"
-                            f"      {search_variable} = true;\n"
-                            f"      break;\n"
-                            f"  }}\n"
-                            f" }}\n"
-                        )
-
-                        temp_arr_search_variable_count += 1
-                        gen_code = f"{search_variable}"
-                        REGISTER_VARIABLE(search_variable, f"bool")
-
-                    else:
-                        raise ValueError(
-                            f"Target variable {var_to_check_against} is undefined. \n It is neither an array nor a struct."
-                        )
-                else:
-                    fn_name = instanced_struct_info.get_mangled_function_name(
-                        "__contains__"
-                    )
-
-                    is_var_to_check_string_object = False
-                    var_to_check_struct_info = get_instanced_struct(var_to_check)
-                    if var_to_check_struct_info != None:
-                        is_var_to_check_string_object = (
-                            var_to_check_struct_info.struct_type == "String"
-                        )
-
-                    contains_fn_args = instanced_struct_info.get_fn_arguments(
-                        "__contains__"
-                    )
-                    # Get the data type for the first function argument.
-                    param_type = contains_fn_args[0].data_type
-                    expects_string_argument = (
-                        param_type == "char*" or param_type == "str"
-                    )
-
-                    if is_variable_char_type(var_to_check):
-                        # if var_to_check in var_to_check_against {
-                        #    ^^^^^^^^^^^^ this is a char
-                        # but the function signature for "__contains__" expects a char*/str.
-                        # So, promote the char variable to a string.
-                        if expects_string_argument:
-                            char_to_string_promotion_code = ""
-
-                            promoted_char_var_name = f"{var_to_check}_promoted_{temp_char_promoted_to_string_variable_count}"
-                            # Create a string from char.
-                            promoted_char_var_code = f"char {promoted_char_var_name}[2] = {{ {var_to_check}, '\\0'}};"
-                            REGISTER_VARIABLE(f"{promoted_char_var_name}", "str")
-
-                            char_to_string_promotion_code += promoted_char_var_code
-                            temp_char_promoted_to_string_variable_count += 1
-
-                            LinesCache.append(f"{char_to_string_promotion_code}\n")
-
-                            var_to_check = promoted_char_var_name
-
-                    if var_to_check_type == "str":
-                        gen_code = (
-                            f'{fn_name}(&{var_to_check_against}, "{var_to_check}")'
-                        )
-                    elif expects_string_argument and is_var_to_check_string_object:
-                        # For Automatic Conversion for String class.
-                        # for token in Character_Tokens:
-                        #     ^^^^     ^^^^^^^^^^^^^^^^
-                        #         String               Dictionary
-                        # The __contains__ for Dictionary expects a string,
-                        # And the string class has a c_str method that returns char*,
-                        # so implement this for String Class. Could be extended to any classes with c_str() method. Food for thought :)
-                        c_str_fn_name = (
-                            var_to_check_struct_info.get_mangled_function_name("c_str")
-                        )
-                        gen_code = f"{fn_name}(&{var_to_check_against}, {c_str_fn_name}(&{var_to_check}))"
-                    else:
-                        gen_code = f"{fn_name}(&{var_to_check_against}, {var_to_check})"
-
-                LinesCache.append(f"\nif({gen_code}){{\n")
-            elif parser.check_token(lexer.Token.LEFT_CURLY):
-                # if bool_to_check {
-                parser.match_token(lexer.Token.LEFT_CURLY)
-                bool_to_check = var_to_check
-
-                if is_variable_boolean_type(bool_to_check):
-                    LinesCache.append(f"\nif({bool_to_check}){{\n")
-                else:
-                    raise ValueError(f"{bool_to_check} isn't a valid boolean.")
+        LinesCache.append(f"\nif({code}){{\n")
     elif check_token(lexer.Token.FOR):
         # Normal, Un-Enumerated loops.
         # for current_array_value_variable in array_name{
