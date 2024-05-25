@@ -61,6 +61,10 @@ void StringprintLn(struct String *this) { printf("%s\n", this->arr); }
 
 void String__del__(struct String *this) { free(this->arr); }
 
+bool Stringstartswith(struct String *this, char *prefix) {
+  return strncmp(this->arr, prefix, strlen(prefix)) == 0;
+}
+
 struct String Stringstrip(struct String *this) {
   //  char *str = "  Hello ";
   char *str = this->arr;
@@ -165,9 +169,9 @@ struct String Vector_String__getitem__(struct Vector_String *this, int index) {
 
 // template Vector<String> }
 
-struct Vector_String Stringsplit(struct String *this) {
-  char delimeter = '.';
-
+struct Vector_String Stringsplit(struct String *this, char delimeter) {
+  // TODO: Because of this function, before import String, we require import
+  // Vector.
   struct Vector_String result;
   Vector_String__init__(&result, 2);
 
