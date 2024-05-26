@@ -2,7 +2,6 @@ file_names = [
     "examples\\vector_source.c",
     "examples\\unique_ptr_source.c",
     "examples\\string_class_source.c",
-    "lexer_test_source.c",
     "examples\\initializer_list.c",
     "examples\\Reflection.c",
     "examples\\List.c",
@@ -14,6 +13,8 @@ file_names = [
     "examples\\string_source.c",
     "examples\\fileexample.c",
     "examples\\vector_of_strings.c",
+    "Bootstrap\\lexer_test.c",
+    "Bootstrap\\preprocess_test.c",
 ]
 
 import subprocess

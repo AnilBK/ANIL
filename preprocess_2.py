@@ -16,7 +16,6 @@ args = filename_parser.parse_args()
 # source_file = "examples\\vector_source.c"
 # source_file = "examples\\unique_ptr_source.c"
 # source_file = "examples\\string_class_source.c"
-source_file = "lexer_test_source.c"
 # source_file = "examples\\initializer_list.c"
 # source_file = "examples\\Reflection.c"
 # source_file = "examples\\List.c"
@@ -27,8 +26,12 @@ source_file = "lexer_test_source.c"
 
 # source_file = "examples\\struct_source.c"
 # source_file = "examples\\string_source.c"
+# source_file = "examples\\string_split.c"
 # source_file = "examples\\fileexample.c"
-source_file = "examples\\vector_of_strings.c"
+# source_file = "examples\\vector_of_strings.c"
+
+# source_file = "Bootstrap\\lexer_test.c"
+source_file = "Bootstrap\\preprocess_test.c"
 
 if args.filename:
     source_file = args.filename
