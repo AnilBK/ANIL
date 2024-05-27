@@ -27,7 +27,7 @@ impl Vector __del__
   this->capacity = 0;
 endfunc
 
-impl Vector push value : T
+impl Vector<> push value : T
    if (this->size == this->capacity) {
       this->capacity *= 2;
       this->arr = (@TEMPLATED_DATA_TYPE@ *)realloc(this->arr, this->capacity * sizeof(@TEMPLATED_DATA_TYPE@));
@@ -39,6 +39,23 @@ impl Vector push value : T
   this->arr[this->size++] = value;
 endfunc
 
+impl Vector<String> push value : T
+  // Vector<String> Specialization: 
+  // Duplicate a string object, to prevent dangling pointers,
+  // as when a string moves out of a scope, it is freed.
+  struct String str;
+  String__init__(&str, value.arr);
+
+   if (this->size == this->capacity) {
+      this->capacity *= 2;
+      this->arr = (@TEMPLATED_DATA_TYPE@ *)realloc(this->arr, this->capacity * sizeof(@TEMPLATED_DATA_TYPE@));
+      if (this->arr == NULL) {
+          fprintf(stderr, "Memory reallocation failed.\n");
+          exit(EXIT_FAILURE);
+      }
+  }
+  this->arr[this->size++] = str;
+endfunc
 
 impl Vector allocate_more n : int
   this->capacity += n;
