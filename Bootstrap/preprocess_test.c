@@ -52,9 +52,19 @@ int main() {
 
   
   if imported_modules.len() > 0{
-    let ImportedCodeLines = Vector<String>{10};
+    for module_name in imported_modules{
+      let relative_path = String{"Lib\\"};
 
+      # We cant add String to String, so do this.
+      # Our parser doesnt support the following.
+      #relative_path += module_name.c_str() 
 
+      let mod_name = module_name.c_str() 
+      relative_path += mod_name
+      relative_path += ".c"
+
+      relative_path.printLn()
+    }
   }
   
 
