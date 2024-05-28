@@ -750,6 +750,11 @@ while index < len(Lines):
             # This return type, is used for individual loop item.
             return_type = instanced_struct_info.templated_data_type
 
+            if is_data_type_struct_object(return_type):
+                # For Vector<String>, the String here is of struct type.
+                # TODO : templated_data_type should probably be 'struct String' instead of just 'String' to avoid all this comparision.
+                return_type = f"struct {return_type}"
+
         global temp_arr_length_variable_count
         global LinesCache
 
@@ -935,6 +940,9 @@ while index < len(Lines):
 
         # Register this templated struct in order to insantiate the same generic type in the future.
         struct_data = Struct(m_struct_name, struct_members_list)
+        # struct_data.is_class_templated = True
+        # if is_data_type_struct_object(templated_data_type):
+        #     struct_data.templated_data_type = f"struct {templated_data_type}"
 
         GlobalStructInitCode += struct_code
 
