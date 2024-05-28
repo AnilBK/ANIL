@@ -255,9 +255,27 @@ def get_destructor_code_for_current_scope() -> str:
     destructor_code = ""
 
     if variable_scope in instanced_variables_scoped:
+        destructors_written = []
         for struct in instanced_struct_names[::-1]:
             struct_name = struct.struct_name
             if struct_name in instanced_variables_scoped[variable_scope]:
+
+                """
+                'instanced_struct_names' stores all struct instances from all scopes.
+                Since, multiple items in 'instanced_struct_names' can have a same struct name,
+                the destructors will be called for every structs if the struct name matches.
+                We are accessing the array in reverse. So the first item obtained is the one,
+                whose destructor has to be written. All other structs with same name were created in previous
+                scopes. Those destructors shouldn't be written.
+                TODO : The alternative would be do remove respective 'instanced_struct_names' items after scope decrement,
+                but that would probably mess up the reflection system.
+                TODO : Investigate these issues.
+                """
+                if struct_name in destructors_written:
+                    continue
+                else:
+                    destructors_written.append(struct_name)
+
                 if struct.struct_type_has_destructor():
                     destructor_fn_name = struct.get_destructor_fn_name()
                     destructor_code += f"{destructor_fn_name}(&{struct_name});\n"
