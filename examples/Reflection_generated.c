@@ -182,6 +182,7 @@ int main() {
   Listappend_str(&vector_class_member_functions, "__init__");
   Listappend_str(&vector_class_member_functions, "__del__");
   Listappend_str(&vector_class_member_functions, "push");
+  Listappend_str(&vector_class_member_functions, "push");
   Listappend_str(&vector_class_member_functions, "allocate_more");
   Listappend_str(&vector_class_member_functions, "push_unchecked");
   Listappend_str(&vector_class_member_functions, "print");

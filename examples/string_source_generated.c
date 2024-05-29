@@ -117,6 +117,12 @@ void Vector_String__del__(struct Vector_String *this) {
 }
 
 void Vector_Stringpush(struct Vector_String *this, struct String value) {
+  // Vector<String> Specialization:
+  // Duplicate a string object, to prevent dangling pointers,
+  // as when a string moves out of a scope, it is freed.
+  struct String str;
+  String__init__(&str, value.arr);
+
   if (this->size == this->capacity) {
     this->capacity *= 2;
     this->arr = (struct String *)realloc(this->arr, this->capacity *
@@ -126,7 +132,7 @@ void Vector_Stringpush(struct Vector_String *this, struct String value) {
       exit(EXIT_FAILURE);
     }
   }
-  this->arr[this->size++] = value;
+  this->arr[this->size++] = str;
 }
 
 void Vector_Stringallocate_more(struct Vector_String *this, int n) {
