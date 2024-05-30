@@ -2029,6 +2029,7 @@ while index < len(Lines):
                     string_variable = string
 
                     is_char_type = is_variable_char_type(string_variable)
+                    is_string_type = is_variable_string_class(string_variable)
 
                     if is_char_type:
                         """
@@ -2049,7 +2050,14 @@ while index < len(Lines):
                         )
                         index_to_insert_at = index
                         Lines.insert(index_to_insert_at, new_line)
-
+                    elif is_string_type:
+                        # 'instanced_struct_info' has same struct defination as for "string" variable which both are String classes, so we can use that defination to get the mangled function name.
+                        c_str_fn_name = instanced_struct_info.get_mangled_function_name(
+                            "c_str"
+                        )
+                        gen_code = (
+                            f"{fn_name}(&{parsed_member}, {c_str_fn_name}(&{string}));"
+                        )
                     else:
                         gen_code = f"{fn_name}(&{parsed_member}, {string});"
                 else:

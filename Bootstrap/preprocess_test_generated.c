@@ -384,13 +384,7 @@ int main() {
           Vector_String__getitem__(&imported_modules, i);
       struct String relative_path;
       String__init__(&relative_path, "Lib\\");
-
-      // We cant add String to String, so do this.
-      // Our parser doesnt support the following.
-      // relative_path += module_name.c_str()
-
-      char *mod_name = Stringc_str(&module_name);
-      String__add__(&relative_path, mod_name);
+      String__add__(&relative_path, Stringc_str(&module_name));
       String__add__(&relative_path, ".c");
 
       StringprintLn(&relative_path);
