@@ -746,7 +746,6 @@ int main() {
     if (escape_back_slash) {
 
       if (Char == '"') {
-
         char Char_promoted_0[2] = {Char, '\0'};
         String__add__(&token, Char_promoted_0);
         escape_back_slash = false;
@@ -754,7 +753,6 @@ int main() {
         String__add__(&token, "\\\\");
         escape_back_slash = false;
       } else {
-
         char Char_promoted_1[2] = {Char, '\0'};
         String__add__(&token, Char_promoted_1);
         escape_back_slash = false;

@@ -1996,15 +1996,15 @@ while index < len(Lines):
                 parser.next_token()
                 parser.consume_token(lexer.Token.EQUALS)
 
-                parsed_string_variable = False
+                is_string_literal = False
 
                 if parser.check_token(lexer.Token.QUOTE):
                     # str += "World"
                     parser.consume_token(lexer.Token.QUOTE)
-                    parsed_string_variable = False
+                    is_string_literal = True
                 else:
                     # token += Char
-                    parsed_string_variable = True
+                    is_string_literal = False
 
                 string = parser.current_token()
                 parser.next_token()
@@ -2019,51 +2019,24 @@ while index < len(Lines):
                     for fn in fns_required_for_addition:
                         StructInfo.ensure_has_function(fn, parsed_member)
 
-                fn_name = instanced_struct_info.get_mangled_function_name(add_fn)
-                fn_name_unmangled = add_fn
+                # fn_name = instanced_struct_info.get_mangled_function_name(add_fn)
+                # fn_name_unmangled = add_fn
 
                 gen_code = ""
 
-                if parsed_string_variable:
-                    # token += Char
-                    string_variable = string
-
-                    is_char_type = is_variable_char_type(string_variable)
-                    is_string_type = is_variable_string_class(string_variable)
-
-                    if is_char_type:
-                        """
-                        # chars have to be converted to char* so.
-                        # as __add__ method expects a char*.
-                        # Create a char* by using the char and a null terminator
-                        string_var_name = f"{string_variable}_promoted_{temp_char_promoted_to_string_variable_count}"
-                        #gen_code = f"// Create a char* by using the char<{string_variable}> and a null terminator as __add__ method expects a char*. \n"
-                        gen_code += f"char {string_var_name}[2] = {{ {string_variable}, '\\0'  }}; \n"
-                        gen_code += f"{fn_name}(&{parsed_member}, {string_var_name});"
-                        temp_char_promoted_to_string_variable_count += 1
-                        """
-                        # Same as above, but the compiler does in next line compile.
-                        # Emit CPL code and that code handles this promotion automatically.
-
-                        new_line = (
-                            f"{parsed_member}.{fn_name_unmangled}({string_variable})"
-                        )
-                        index_to_insert_at = index
-                        Lines.insert(index_to_insert_at, new_line)
-                    elif is_string_type:
-                        # 'instanced_struct_info' has same struct defination as for "string" variable which both are String classes, so we can use that defination to get the mangled function name.
-                        c_str_fn_name = instanced_struct_info.get_mangled_function_name(
-                            "c_str"
-                        )
-                        gen_code = (
-                            f"{fn_name}(&{parsed_member}, {c_str_fn_name}(&{string}));"
-                        )
-                    else:
-                        gen_code = f"{fn_name}(&{parsed_member}, {string});"
+                # Emit CPL code to perform addition.
+                # This line will be parsed by the compiler in next line.
+                # The conversion of String class to char*, char to char*,
+                # all these are handled by the compiler during function call parse.
+                if is_string_literal:
+                    # relative_path.__add__(".c")
+                    gen_code = f'{parsed_member}.{add_fn}("{string}")'
                 else:
-                    gen_code = f'{fn_name}(&{parsed_member}, "{string}");'
+                    # relative_path.__add__(module_name)
+                    gen_code = f"{parsed_member}.{add_fn}({string})"
 
-                LinesCache.append(f"{gen_code}\n")
+                index_to_insert_at = index
+                Lines.insert(index_to_insert_at, gen_code)
                 continue
             elif parser.check_token(lexer.Token.EQUALS):
                 # str = "Reassign"
