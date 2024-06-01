@@ -29,9 +29,10 @@ args = filename_parser.parse_args()
 # source_file = "examples\\string_split.c"
 # source_file = "examples\\fileexample.c"
 # source_file = "examples\\vector_of_strings.c"
+source_file = "examples\\function_example.c"
 
 # source_file = "Bootstrap\\lexer_test.c"
-source_file = "Bootstrap\\preprocess_test.c"
+# source_file = "Bootstrap\\preprocess_test.c"
 
 if args.filename:
     source_file = args.filename
@@ -2951,6 +2952,76 @@ while index < len(Lines):
         parser.consume_token(lexer.Token.COMMA)
         HOOKS_target_fn = parser.get_token()
         parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
+    elif check_token(lexer.Token.FUNCTION):
+        # function say()
+        # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
+        # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN) -> return_type
+        parser.consume_token(lexer.Token.FUNCTION)
+        function_name = parser.get_token()
+        parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
+
+        return_type = "void"
+
+        parameters = []
+        parameters_combined_list = []
+
+        while parser.has_tokens_remaining():
+            # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
+            #                                                               ^
+            if parser.check_token(lexer.Token.RIGHT_ROUND_BRACKET):
+                # function say()
+                #              ^
+                break
+
+            # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
+            #              ^
+            param_name = parser.get_token()
+
+            # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
+            #                     ^
+            parser.consume_token(lexer.Token.COLON)
+
+            # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
+            #                       ^
+            param_type = parse_data_type()
+            print(f"Function Param Name : {param_name}, type : {param_type}")
+
+            if parser.has_tokens_remaining():
+                # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
+                #                            ^
+                # function say(Param1 : type1)
+                #                            ^
+                # If not reached the closing ), then expect a comma, to read another parameter.
+
+                if not parser.check_token(lexer.Token.RIGHT_ROUND_BRACKET):
+                    parser.consume_token(lexer.Token.COMMA)
+
+            parameters.append(MemberDataType(param_type, param_name, False))
+            parameters_combined_list.append(f"{param_type} {param_name}")
+
+        parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
+
+        # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN) -> return_type
+        if parser.has_tokens_remaining():
+            if parser.check_token(lexer.Token.MINUS):
+                parser.consume_token(lexer.Token.MINUS)
+                parser.consume_token(lexer.Token.GREATER_THAN)
+                return_type = parse_data_type()
+
+        print(f"Function return type : {return_type}")
+
+        code = ""
+        if len(parameters) > 0:
+            parameters_str = ",".join(parameters_combined_list)
+            code = f"{return_type} {function_name}({parameters_str}) {{\n"
+        else:
+            code = f"{return_type} {function_name}() {{\n"
+
+        LinesCache.append(code)
+
+    elif check_token(lexer.Token.ENDFUNCTION):
+        code = "}"
+        LinesCache.append(code)
     else:
         LinesCache.append(Line)
 

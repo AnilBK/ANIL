@@ -13,6 +13,7 @@ file_names = [
     "examples\\string_source.c",
     "examples\\fileexample.c",
     "examples\\vector_of_strings.c",
+    "examples\\function_example.c",
     "Bootstrap\\lexer_test.c",
     "Bootstrap\\preprocess_test.c",
 ]

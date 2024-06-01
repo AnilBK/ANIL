@@ -43,6 +43,8 @@ class Token(Enum):
     HOOK_BEGIN = 39
     HOOK_END = 40
     EXCLAMATION = 41
+    FUNCTION = 42
+    ENDFUNCTION = 43
 
 CHARACTER_TOKENS = {
     "=": Token.EQUALS,
@@ -90,6 +92,8 @@ KEYWORD_TOKENS = {
     "apply_hook": Token.APPLY_HOOK,
     "hook_begin": Token.HOOK_BEGIN,
     "hook_end": Token.HOOK_END,
+    "function": Token.FUNCTION,
+    "endfunction": Token.ENDFUNCTION,
 }
 
 
