@@ -2590,6 +2590,9 @@ while index < len(Lines):
         should_write_fn_body = True
 
         StructInfo = get_struct_defination_of_type(struct_name)
+        if StructInfo == None:
+            raise ValueError(f'Struct name : "{struct_name}" is undefined.')
+
         struct_members_list = StructInfo.members
         # print(StructInfo.members)  # [['X', 'a', True], ['float', 'b', False]]
 
