@@ -605,6 +605,11 @@ temp_arr_length_variable_count = 0
 temp_arr_search_variable_count = 0
 temp_char_promoted_to_string_variable_count = 0
 
+# This is to index which loop variable we are using for 'for loops'.
+# like i,j,k...z,a..i
+# First scope will use i.
+# If we create another for within already created i loop, we now use j index and so on.
+for_loop_depth = -1
 
 # Constant Expressions Related Stuffs.
 
@@ -758,11 +763,44 @@ while index < len(Lines):
         global temp_arr_length_variable_count
         global LinesCache
 
+        global for_loop_depth
+
+        loop_indices = [
+            "i",
+            "j",
+            "k",
+            "l",
+            "m",
+            "n",
+            "o",
+            "p",
+            "q",
+            "r",
+            "s",
+            "t",
+            "u",
+            "v",
+            "w",
+            "x",
+            "y",
+            "z",
+            "a",
+            "b",
+            "c",
+            "d",
+            "e",
+            "f",
+            "g",
+            "h",
+        ]
+
+        loop_counter_index = loop_indices[for_loop_depth % 26]
+
         temporary_var_name = f"tmp_len_{temp_arr_length_variable_count}"
         LinesCache.append(
             f"size_t {temporary_var_name} = {length_fn_name}(&{array_name});\n"
-            f"for (size_t i = 0; i < {temporary_var_name}; i++){{\n"
-            f"{return_type} {current_array_value_variable} = {getter_fn_name}(&{array_name}, i);\n"
+            f"for (size_t {loop_counter_index} = 0; {loop_counter_index} < {temporary_var_name}; {loop_counter_index}++){{\n"
+            f"{return_type} {current_array_value_variable} = {getter_fn_name}(&{array_name}, {loop_counter_index});\n"
         )
 
         if "struct" in return_type:
@@ -2117,6 +2155,7 @@ while index < len(Lines):
 
         if top_of_stack == NestingLevel.FOR_LOOP:
             _ = nesting_levels.pop(-1)
+            for_loop_depth -= 1
             decrement_scope()
             LinesCache.append("}\n")
         elif top_of_stack == NestingLevel.IF_STATEMENT:
@@ -2425,6 +2464,7 @@ while index < len(Lines):
         # Enumerated loops.
         # for ranged_index_item_variable,current_array_value_variable in enumerate array_name{
         nesting_levels.append(NestingLevel.FOR_LOOP)
+        for_loop_depth += 1
         increment_scope()
 
         parser.consume_token(lexer.Token.FOR)

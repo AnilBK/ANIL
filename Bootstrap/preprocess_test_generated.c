@@ -400,8 +400,8 @@ int main() {
 
       // ImportedCodeLines += lines
       size_t tmp_len_2 = Vector_Stringlen(&lines);
-      for (size_t i = 0; i < tmp_len_2; i++) {
-        struct String line = Vector_String__getitem__(&lines, i);
+      for (size_t j = 0; j < tmp_len_2; j++) {
+        struct String line = Vector_String__getitem__(&lines, j);
         Vector_Stringpush(&ImportedCodeLines, line);
         String__del__(&line);
       }
