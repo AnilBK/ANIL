@@ -378,19 +378,39 @@ int main() {
   }
 
   if (Vector_Stringlen(&imported_modules) > 0) {
+    struct Vector_String ImportedCodeLines;
+    Vector_String__init__(&ImportedCodeLines, 50);
+
     size_t tmp_len_1 = Vector_Stringlen(&imported_modules);
     for (size_t i = 0; i < tmp_len_1; i++) {
       struct String module_name =
           Vector_String__getitem__(&imported_modules, i);
       struct String relative_path;
-      String__init__(&relative_path, "Lib\\");
+      String__init__(&relative_path, "../Lib/");
       String__add__(&relative_path, Stringc_str(&module_name));
       String__add__(&relative_path, ".c");
 
       StringprintLn(&relative_path);
+
+      struct String module_file;
+      String__init__(&module_file, "");
+      struct Vector_String lines =
+          StringreadlinesFrom(&module_file, Stringc_str(&relative_path));
+      // lines.print()
+
+      // ImportedCodeLines += lines
+      size_t tmp_len_2 = Vector_Stringlen(&lines);
+      for (size_t i = 0; i < tmp_len_2; i++) {
+        struct String line = Vector_String__getitem__(&lines, i);
+        Vector_Stringpush(&ImportedCodeLines, line);
+        String__del__(&line);
+      }
+      Vector_String__del__(&lines);
+      String__del__(&module_file);
       String__del__(&relative_path);
       String__del__(&module_name);
     }
+    Vector_String__del__(&ImportedCodeLines);
   }
 
   Vector_String__del__(&imported_modules);

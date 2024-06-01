@@ -52,12 +52,23 @@ int main() {
 
   
   if imported_modules.len() > 0{
+    let ImportedCodeLines = Vector<String>{50};
+
     for module_name in imported_modules{
-      let relative_path = String{"Lib\\"};
+      let relative_path = String{"../Lib/"};
       relative_path += module_name
       relative_path += ".c"
 
       relative_path.printLn()
+
+      let module_file = String{""};
+      let lines = module_file.readlinesFrom(relative_path)
+      #lines.print()
+
+      #ImportedCodeLines += lines
+      for line in lines{
+        ImportedCodeLines.push(line)
+      }
     }
   }
   
