@@ -45,6 +45,7 @@ class Token(Enum):
     EXCLAMATION = 41
     FUNCTION = 42
     ENDFUNCTION = 43
+    RETURN = 44
 
 CHARACTER_TOKENS = {
     "=": Token.EQUALS,
@@ -94,6 +95,7 @@ KEYWORD_TOKENS = {
     "hook_end": Token.HOOK_END,
     "function": Token.FUNCTION,
     "endfunction": Token.ENDFUNCTION,
+    "return": Token.RETURN,
 }
 
 

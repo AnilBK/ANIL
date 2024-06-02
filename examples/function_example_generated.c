@@ -329,18 +329,47 @@ struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename) {
 }
 
 ///*///
-void my_first_CPL_function() { printf("Hello World from function."); } ///*///
+
+void my_first_CPL_function() { printf("Hello World from function."); }
+
+struct String get_mangled_fn_name(struct String p_struct_type,
+                                  struct String p_fn_name) {
+  char *_p1 = Stringc_str(&p_struct_type);
+  struct String s;
+  String__init__(&s, _p1);
+  String__add__(&s, Stringc_str(&p_fn_name));
+  return s;
+}
+
+struct String
+get_templated_mangled_fn_name(struct String p_struct_type1,
+                              struct String p_fn_name1,
+                              struct String p_templated_data_type1) {
+  char *_p11 = Stringc_str(&p_struct_type1);
+  struct String s1;
+  String__init__(&s1, _p11);
+  String__add__(&s1, "_");
+  String__add__(&s1, Stringc_str(&p_templated_data_type1));
+  String__add__(&s1, Stringc_str(&p_fn_name1));
+  return s1;
+}
+
+///*///
 
 int main() {
 
   ///*///
-
   struct String string;
   String__init__(&string, "Hello World from String.\n");
   Stringprint(&string);
 
+  char *s1 = Stringc_str(&string);
+  struct String s;
+  String__init__(&s, s1);
+
   my_first_CPL_function();
 
+  String__del__(&s);
   String__del__(&string);
   ///*///
 

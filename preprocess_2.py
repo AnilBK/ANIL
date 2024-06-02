@@ -256,26 +256,14 @@ def get_destructor_code_for_current_scope() -> str:
     destructor_code = ""
 
     if variable_scope in instanced_variables_scoped:
-        destructors_written = []
         for struct in instanced_struct_names[::-1]:
+            if not struct.should_be_freed:
+                continue
+
             struct_name = struct.struct_name
             if struct_name in instanced_variables_scoped[variable_scope]:
-
-                """
-                'instanced_struct_names' stores all struct instances from all scopes.
-                Since, multiple items in 'instanced_struct_names' can have a same struct name,
-                the destructors will be called for every structs if the struct name matches.
-                We are accessing the array in reverse. So the first item obtained is the one,
-                whose destructor has to be written. All other structs with same name were created in previous
-                scopes. Those destructors shouldn't be written.
-                TODO : The alternative would be do remove respective 'instanced_struct_names' items after scope decrement,
-                but that would probably mess up the reflection system.
-                TODO : Investigate these issues.
-                """
-                if struct_name in destructors_written:
+                if struct.scope != variable_scope:
                     continue
-                else:
-                    destructors_written.append(struct_name)
 
                 if struct.struct_type_has_destructor():
                     destructor_fn_name = struct.get_destructor_fn_name()
@@ -429,17 +417,25 @@ class Struct:
 
 
 class StructInstance:
+
     def __init__(
         self,
         p_struct_type,
         p_struct_name,
         p_is_templated: bool,
         p_templated_data_type: str,
+        p_scope,
     ) -> None:
         self.struct_type = p_struct_type
         self.struct_name = p_struct_name
         self.is_templated = p_is_templated
         self.templated_data_type = p_templated_data_type
+
+        self.scope = p_scope
+        # 'scope' denotes where this struct was created.
+        self.should_be_freed = True
+        # 'should_be_freed' is a tag wether the destructor should be called when it reaches out of the scope.
+        # Things like Function parameters shouldn't be freed at the end of the scope.
 
     def is_templated_instance(self) -> bool:
         return self.is_templated
@@ -811,8 +807,15 @@ while index < len(Lines):
             raw_return_type = return_type.split("struct")[1].strip()
 
             global instanced_struct_names
+            global variable_scope
             instanced_struct_names.append(
-                StructInstance(raw_return_type, current_array_value_variable, False, "")
+                StructInstance(
+                    raw_return_type,
+                    current_array_value_variable,
+                    False,
+                    "",
+                    variable_scope,
+                )
             )
 
         REGISTER_VARIABLE(current_array_value_variable, return_type)
@@ -1114,8 +1117,14 @@ while index < len(Lines):
 
             parser.consume_token(lexer.Token.GREATER_THAN)
 
+        global variable_scope
+
         instanced_struct_info = StructInstance(
-            struct_type, struct_name, is_templated_struct, templated_data_type
+            struct_type,
+            struct_name,
+            is_templated_struct,
+            templated_data_type,
+            variable_scope,
         )
 
         global instanced_struct_names
@@ -1403,8 +1412,9 @@ while index < len(Lines):
                 raw_return_type = return_type.split("struct")[1].strip()
 
                 global instanced_struct_names
+                global variable_scope
                 instanced_struct_names.append(
-                    StructInstance(raw_return_type, var_name, False, "")
+                    StructInstance(raw_return_type, var_name, False, "", variable_scope)
                 )
 
                 REGISTER_VARIABLE(var_name, return_type)
@@ -2984,7 +2994,7 @@ while index < len(Lines):
             # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
             #                       ^
             param_type = parse_data_type()
-            print(f"Function Param Name : {param_name}, type : {param_type}")
+            # print(f"Function Param Name : {param_name}, type : {param_type}")
 
             if parser.has_tokens_remaining():
                 # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
@@ -2998,6 +3008,22 @@ while index < len(Lines):
 
             parameters.append(MemberDataType(param_type, param_name, False))
             parameters_combined_list.append(f"{param_type} {param_name}")
+
+            increment_scope()
+
+            p_type = param_type
+            if "struct" in param_type:
+                p_type = p_type.split("struct")[1]
+                p_type = p_type.strip()
+
+            # FIXME : Even variables which aren't structs are registered.
+            instance = StructInstance(p_type, param_name, False, "", variable_scope)
+            # Function parameters shouldn't be freed at the end of the scope.
+            # So, add a tag.
+            instance.should_be_freed = False
+
+            instanced_struct_names.append(instance)
+            REGISTER_VARIABLE(param_name, p_type)
 
         parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
 
@@ -3020,8 +3046,34 @@ while index < len(Lines):
         LinesCache.append(code)
 
     elif check_token(lexer.Token.ENDFUNCTION):
-        code = "}"
+        # decrement_scope()
+        # ^^^^^^^^^^^^^^^^ This calls destructors.
+        # Since, we have return statement, that handles the destructors.
+        # TODO : What for void functions??
+        # They don't have return statements but their destructors should be called.
+        # As of now the destructors aren't called.
+        code = "}\n"
         LinesCache.append(code)
+    elif parser.current_token() == lexer.Token.RETURN:
+        parser.consume_token(lexer.Token.RETURN)
+
+        return_name = parser.get_token()
+
+        # return s
+        #        ^  s shouldn't be freed, because it is returned.
+        # Should be the job of the caller to free it.
+        i = 0
+        for struct in instanced_struct_names:
+            if struct.struct_name == return_name and struct.scope == variable_scope:
+                instanced_struct_names[i].should_be_freed = False
+                break
+            i += 1
+
+        # Write destructors.
+        decrement_scope()
+        # Write return itself.
+        # We assume we have single return statement.
+        LinesCache.append(f"return {return_name};\n")
     else:
         LinesCache.append(Line)
 
