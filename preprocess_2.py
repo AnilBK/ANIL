@@ -1095,6 +1095,8 @@ while index < len(Lines):
             struct_definations.append(struct_data)
 
     def parse_create_struct(struct_type, struct_name):
+        global LinesCache
+
         is_templated_struct = False
         templated_data_type = ""
 
@@ -1183,27 +1185,25 @@ while index < len(Lines):
 
         has_constuctor = has_constructors(struct_type)
 
-        struct_var_values_pairs = list(zip(StructInfo.members, values_list))
         if has_constuctor:
-            # __init__Vector
-            # Primitive Name Mangling.
-            constructor_name = instanced_struct_info.get_mangled_function_name(
-                "__init__"
-            )
-
+            values_str = ""
             if len(values_list) > 0:
                 values_str = ",".join(values_list)
-                code += f"{constructor_name}(&{struct_name}, {values_str});\n"
-            else:
-                code += f"{constructor_name}(&{struct_name});\n"
+
+            LinesCache.append(code)
+            constructor_CPL_code = f"{struct_name}.__init__({values_str})\n"
+
+            index_to_insert_at = index
+            Lines.insert(index_to_insert_at, constructor_CPL_code)
+            return
         else:
+            struct_var_values_pairs = list(zip(StructInfo.members, values_list))
             for struct_member, values in struct_var_values_pairs:
                 # type = struct_member[0]
                 mem = struct_member.member
 
                 code += f"{struct_name}.{mem} = {values};\n"
 
-        global LinesCache
         LinesCache.append(code)
 
     class ParameterType(Enum):

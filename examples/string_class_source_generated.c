@@ -372,6 +372,14 @@ int main() {
   printf("Length of the string is : %llu. \n", len4);
   StringprintLn(&str);
 
+  struct String str4;
+  String__init__(&str4, "String constructed from another string. \n");
+  struct String str5;
+  String__init__(&str5, Stringc_str(&str4));
+  StringprintLn(&str5);
+
+  String__del__(&str5);
+  String__del__(&str4);
   String__del__(&str3);
   String__del__(&str2);
   String__del__(&str);
