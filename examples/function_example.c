@@ -15,6 +15,22 @@ function my_first_CPL_function()
     print("Hello World from function.")
 endfunction
 
+function get_format_specifier(p_type: String) -> String:
+  let return_type_str = String{"d"};
+
+  if p_type == "char"{
+    return_type_str = "c"
+  }else if p_type == "int"{
+    return_type_str = "d"
+  }else if p_type == "float"{
+    return_type_str = "f"
+  }else if p_type == "size_t"{
+    return_type_str = "llu"
+  }
+
+  return return_type_str
+endfunction
+
 function get_mangled_fn_name(p_struct_type: String, p_fn_name: String) -> String:
   let s = String{p_struct_type};
   s += p_fn_name

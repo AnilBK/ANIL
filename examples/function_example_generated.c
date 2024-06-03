@@ -332,6 +332,23 @@ struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename) {
 
 void my_first_CPL_function() { printf("Hello World from function."); }
 
+struct String get_format_specifier(struct String p_type) {
+  struct String return_type_str;
+  String__init__(&return_type_str, "d");
+
+  if (String__eq__(&p_type, "char")) {
+    String__reassign__(&return_type_str, "c");
+  } else if (String__eq__(&p_type, "int")) {
+    String__reassign__(&return_type_str, "d");
+  } else if (String__eq__(&p_type, "float")) {
+    String__reassign__(&return_type_str, "f");
+  } else if (String__eq__(&p_type, "size_t")) {
+    String__reassign__(&return_type_str, "llu");
+  }
+
+  return return_type_str;
+}
+
 struct String get_mangled_fn_name(struct String p_struct_type,
                                   struct String p_fn_name) {
   struct String s;
