@@ -1211,8 +1211,9 @@ while index < len(Lines):
         RAW_STRING = 0
         CHAR_TYPE = 1
         STR_TYPE = 2
-        NUMBER = 3
-        VARIABLE = 4
+        STRING_CLASS = 3
+        NUMBER = 4
+        VARIABLE = 5
 
     class Parameter:
         def __init__(self, p_param, p_param_type: ParameterType) -> None:
@@ -1231,8 +1232,10 @@ while index < len(Lines):
             parameter_type = ParameterType.RAW_STRING
         elif is_variable(tk):
             parameter = tk
-            if is_variable_str_type(tk) or is_variable_string_class(tk):
+            if is_variable_str_type(tk):
                 parameter_type = ParameterType.STR_TYPE
+            elif is_variable_string_class(tk):
+                parameter_type = ParameterType.STRING_CLASS
             elif is_variable_char_type(tk):
                 parameter_type = ParameterType.CHAR_TYPE
             else:
@@ -1391,7 +1394,7 @@ while index < len(Lines):
 
                     # This new string replaces the old char param.
                     parameters[i].param = promoted_char_var_name
-                elif param_type == ParameterType.STR_TYPE:
+                elif param_type == ParameterType.STRING_CLASS:
                     param_struct_info = get_instanced_struct(param)
                     c_str_fn_name = param_struct_info.get_mangled_function_name("c_str")
                     # A function expects a string, & we provided a String class object.
@@ -3034,7 +3037,7 @@ while index < len(Lines):
                 parser.consume_token(lexer.Token.GREATER_THAN)
                 return_type = parse_data_type()
 
-        print(f"Function return type : {return_type}")
+        # print(f"Function return type : {return_type}")
 
         code = ""
         if len(parameters) > 0:
