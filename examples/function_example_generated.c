@@ -330,7 +330,8 @@ struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename) {
 
 ///*///
 
-void my_first_CPL_function() { printf("Hello World from function."); }
+// Global functions.
+void my_first_CPL_function() { printf("Hello World from function. \n"); }
 
 struct String get_format_specifier(struct String p_type) {
   struct String return_type_str;
@@ -383,6 +384,17 @@ int main() {
 
   my_first_CPL_function();
 
+  struct String class_name;
+  String__init__(&class_name, "String");
+  struct String fn_name;
+  String__init__(&fn_name, "__del__");
+
+  struct String mangled_name = get_mangled_fn_name(class_name, fn_name);
+  Stringprint(&mangled_name);
+
+  String__del__(&mangled_name);
+  String__del__(&fn_name);
+  String__del__(&class_name);
   String__del__(&s5);
   String__del__(&string);
   ///*///

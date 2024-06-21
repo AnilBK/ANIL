@@ -348,6 +348,17 @@ class MemberFunction:
         print(f"Return Type: \n{self.return_type}")
         print("--------------------------------------------------")
 
+# Functions which aren't defined inside structs.
+GlobalFunctions = []
+
+def is_global_function(p_fn_name: str) -> bool:
+    return any(fn.fn_name == p_fn_name for fn in GlobalFunctions)
+
+def get_global_function_by_name(p_fn_name: str):
+    for fn in GlobalFunctions:
+        if fn.fn_name == p_fn_name:
+            return fn
+
 
 class Struct:
     def __init__(self, p_struct_name: str, p_members: list) -> None:
@@ -1270,6 +1281,12 @@ while index < len(Lines):
 
         return parameters
 
+    class ParsedFunctionCallType(Enum):
+        # To denote x = A.fn();
+        STRUCT_FUNCTION_CALL = 0
+        # To denote x = fn();
+        GLOBAL_FUNCTION_CALL = 1
+
     def _parse_function_call(target, assignment_fn_call=True):
         # let str = str2[0]
         #     ^^^   ^^^^ ^
@@ -1281,13 +1298,24 @@ while index < len(Lines):
         # assignment_fn_call to hint its let X = A.Y();
         # And not, just a function call like A.X();
 
-        instanced_struct_info = get_instanced_struct(target)
-        if instanced_struct_info == None:
-            raise ValueError(f"Target Struct {target} is undefined.")
-        StructInfo = instanced_struct_info.get_struct_defination()
-
+        instanced_struct_info = None
+        StructInfo = None
         fn_name_unmangled = ""
+        
+        parsing_fn_call_type = ParsedFunctionCallType.STRUCT_FUNCTION_CALL
 
+        if is_global_function(target):
+            #let mangled_name = get_mangled_fn_name(class_name, fn_name);
+            #                   ^^^^^^^^^^^^^^^^^^^ target
+            parsing_fn_call_type = ParsedFunctionCallType.GLOBAL_FUNCTION_CALL
+        else:
+            instanced_struct_info = get_instanced_struct(target)
+            if instanced_struct_info != None:
+                parsing_fn_call_type = ParsedFunctionCallType.STRUCT_FUNCTION_CALL
+                StructInfo = instanced_struct_info.get_struct_defination()
+            else:
+                raise ValueError(f"{target} is neither a struct functiona call nor a global function call.")
+        
         # Parameters provided to a given function call.
         # let str = stra.__contains__(strb)
         #                             ^^^^ parameters
@@ -1295,60 +1323,72 @@ while index < len(Lines):
         # let str = str2[0]
         #                ^  parameters
         parameters = []
-
-        if parser.check_token(lexer.Token.LEFT_SQUARE_BRACKET):
-            # For Dictionary Like items member acess.
-            # let test = TOKEN_MAP["Option"]
-
-            # let str = str2[0]
-            #               ^
-            fn_name_unmangled = "__getitem__"
-            parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)
-            parameters = [_read_a_parameter()]
-            parser.consume_token(lexer.Token.RIGHT_SQUARE_BRACKET)
-
-            # [BEGIN] Automatic Conversion for String class
-            is_parameter_string_object = False
-            param_struct_info = get_instanced_struct(parameters[0].param)
-            if param_struct_info != None:
-                is_parameter_string_object = param_struct_info.struct_type == "String"
-
-            if is_parameter_string_object:
-                get_item_fn_args = instanced_struct_info.get_fn_arguments("__getitem__")
-                # Get the data type for the first function argument.
-                param_type = get_item_fn_args[0].data_type
-                expects_string_argument = param_type == "char*" or param_type == "str"
-
-                if expects_string_argument:
-                    c_str_fn_name = param_struct_info.get_mangled_function_name("c_str")
-                    # Recreate the obtained parameter as,
-                    # Dictionary__getitem__(&CHARACTER_TOKENS, token)
-                    #                                          ^^^^^
-                    # to
-                    # Dictionary__getitem__(&CHARACTER_TOKENS, Stringc_str(&token))
-                    #                                          ^^^^^^^^^^^^^^^^^^^
-                    m_param = f"{c_str_fn_name}(&{parameters[0].param})"
-                    m_param_type = ParameterType.VARIABLE
-                    #                            ^^^^^^^^^ Just a placeholder,nothing special.
-                    param = Parameter(m_param, m_param_type)
-                    parameters = [param]
-            # [END] Automatic Conversion for String class
-        elif parser.check_token(lexer.Token.DOT):
-            # let str3 = str2.strip()
-            #                 ^^^^^   fn_name_unmangled
-            parser.next_token()
-            fn_name_unmangled = parser.get_token()
-            parameters = _read_parameters_within_round_brackets()
-        else:
-            raise Exception("Unimplemented Let Case.")
-
-        StructInfo.ensure_has_function(fn_name_unmangled, target)
-        return_type = StructInfo.get_return_type_of_fn(fn_name_unmangled)
-        fn_name = instanced_struct_info.get_mangled_function_name(fn_name_unmangled)
-
         fn_args = []
+        return_type = ""
+        fn_name =  ""
+        args = None
 
-        args = StructInfo.get_function_arguments(fn_name_unmangled)
+        if parsing_fn_call_type == ParsedFunctionCallType.STRUCT_FUNCTION_CALL:
+            if parser.check_token(lexer.Token.LEFT_SQUARE_BRACKET):
+                # For Dictionary Like items member acess.
+                # let test = TOKEN_MAP["Option"]
+
+                # let str = str2[0]
+                #               ^
+                fn_name_unmangled = "__getitem__"
+                parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)
+                parameters = [_read_a_parameter()]
+                parser.consume_token(lexer.Token.RIGHT_SQUARE_BRACKET)
+
+                # [BEGIN] Automatic Conversion for String class
+                is_parameter_string_object = False
+                param_struct_info = get_instanced_struct(parameters[0].param)
+                if param_struct_info != None:
+                    is_parameter_string_object = param_struct_info.struct_type == "String"
+
+                if is_parameter_string_object:
+                    get_item_fn_args = instanced_struct_info.get_fn_arguments("__getitem__")
+                    # Get the data type for the first function argument.
+                    param_type = get_item_fn_args[0].data_type
+                    expects_string_argument = param_type == "char*" or param_type == "str"
+
+                    if expects_string_argument:
+                        c_str_fn_name = param_struct_info.get_mangled_function_name("c_str")
+                        # Recreate the obtained parameter as,
+                        # Dictionary__getitem__(&CHARACTER_TOKENS, token)
+                        #                                          ^^^^^
+                        # to
+                        # Dictionary__getitem__(&CHARACTER_TOKENS, Stringc_str(&token))
+                        #                                          ^^^^^^^^^^^^^^^^^^^
+                        m_param = f"{c_str_fn_name}(&{parameters[0].param})"
+                        m_param_type = ParameterType.VARIABLE
+                        #                            ^^^^^^^^^ Just a placeholder,nothing special.
+                        param = Parameter(m_param, m_param_type)
+                        parameters = [param]
+                # [END] Automatic Conversion for String class
+            elif parser.check_token(lexer.Token.DOT):
+                # let str3 = str2.strip()
+                #                 ^^^^^   fn_name_unmangled
+                parser.next_token()
+                fn_name_unmangled = parser.get_token()
+                parameters = _read_parameters_within_round_brackets()
+            else:
+                raise Exception("Unimplemented Let Case.")
+
+            StructInfo.ensure_has_function(fn_name_unmangled, target)
+
+            args = StructInfo.get_function_arguments(fn_name_unmangled)
+            return_type = StructInfo.get_return_type_of_fn(fn_name_unmangled)
+            fn_name = instanced_struct_info.get_mangled_function_name(fn_name_unmangled)
+        elif parsing_fn_call_type == ParsedFunctionCallType.GLOBAL_FUNCTION_CALL:
+            fn_name = target #No need to mangle global functions.
+            
+            m_fn = get_global_function_by_name(target)
+
+            args = m_fn.fn_arguments
+            return_type = m_fn.return_type
+            parameters = _read_parameters_within_round_brackets()
+
         if args != None:
             fn_args = [arg.data_type for arg in args]
 
@@ -1435,6 +1475,7 @@ while index < len(Lines):
             "return_type": return_type,
             "has_parameters": has_parameters,
             "parameters_str": parameters_str,
+            "function_call_type" : parsing_fn_call_type
         }
 
     def parse_access_struct_member(var_name, target):
@@ -1448,12 +1489,20 @@ while index < len(Lines):
         parse_result = _parse_function_call(target)
         fn_name = parse_result["fn_name"]
         return_type = parse_result["return_type"]
+        has_parameters = parse_result["has_parameters"]
+        parsed_fn_call_type = parse_result["function_call_type"]
 
-        assignment_code = f"{return_type} {var_name} = {fn_name}(&{target}"
+        assignment_code = f"{return_type} {var_name} = {fn_name}("
 
-        if parse_result["has_parameters"]:
+        if parsed_fn_call_type == ParsedFunctionCallType.STRUCT_FUNCTION_CALL:
+            # Pass a 'this' parameter.
+            assignment_code += f"&{target}"
+            if has_parameters:
+                assignment_code += ","
+
+        if has_parameters:
             parameters_str = parse_result["parameters_str"]
-            assignment_code += f", {parameters_str}"
+            assignment_code += f"{parameters_str}"
         assignment_code += ");"
 
         global LinesCache
@@ -2142,6 +2191,14 @@ while index < len(Lines):
             # ##Lines.insert(index + 1, code)
             # Lines.insert(index, code)
             continue
+        elif is_global_function(parsed_member):
+            m_fn = get_global_function_by_name(parsed_member)
+            if m_fn.return_type == "void" and len(m_fn.fn_arguments) == 0:
+                LinesCache.append(f"{parsed_member}(); \n")
+                continue
+            else:
+                #TODO ?? 
+                raise Exception(f"UserDefined Function : {parsed_member} calling void functions can't take parameters as of now. ")
         elif is_variable_boolean_type(parsed_member):
             # escape_back_slash = False
             parser.next_token()
@@ -3045,6 +3102,9 @@ while index < len(Lines):
             code = f"{return_type} {function_name}({parameters_str}) {{\n"
         else:
             code = f"{return_type} {function_name}() {{\n"
+
+        m_fn = MemberFunction(function_name, parameters, return_type)
+        GlobalFunctions.append(m_fn)
 
         LinesCache.append(code)
 

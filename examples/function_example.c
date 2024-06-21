@@ -11,8 +11,9 @@
 import Vector
 import String
 
+# Global functions.
 function my_first_CPL_function()
-    print("Hello World from function.")
+    print("Hello World from function. \n")
 endfunction
 
 function get_format_specifier(p_type: String) -> String:
@@ -59,6 +60,12 @@ endfunction
   let s5 = String{string};
 
   my_first_CPL_function();
+
+  let class_name = String{"String"};
+  let fn_name = String{"__del__"};
+
+  let mangled_name = get_mangled_fn_name(class_name, fn_name);
+  mangled_name.print()
 
   // DESTRUCTOR_CODE //
   ///*///
