@@ -1363,7 +1363,7 @@ while index < len(Lines):
             param_type = parameter.param_type
 
             if param_type == ParameterType.RAW_STRING:
-                if ("char*" in arg) or ("str" in arg):
+                if (arg == "char*") or (arg == "str"):
                     param = f'"{param}"'
                 else:
                     param = f"'{param}'"
@@ -1378,7 +1378,7 @@ while index < len(Lines):
             param = parameter.param
             param_type = parameter.param_type
 
-            expects_string_argument = ("char*" in arg) or ("str" in arg)
+            expects_string_argument = (arg == "char*") or (arg == "str")
             if expects_string_argument:
                 if param_type == ParameterType.CHAR_TYPE:
                     global temp_char_promoted_to_string_variable_count
