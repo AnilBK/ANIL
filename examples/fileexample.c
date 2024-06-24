@@ -5,16 +5,41 @@
 
 // STRUCT_DEFINATIONS //
 
+///*///
+// clang-format off
+import Vector
+import String
+
+# Our own split by newlines algorithm.
+function string_split(str: String) -> Vector<String>:
+  let lines = Vector<String>{5};
+
+  let line = String{""};
+
+  for c in str{
+    if c == "\n"{
+      lines.push(line)
+      line = ""
+      continue;
+    }
+
+    line += c
+  }
+
+  # Add the remaining strings which don't end with \n.
+  if line != ""{
+    lines.push(line)
+    line = ""
+  }
+
+  return lines
+endfunction
+
+///*///
+
 int main() {
 
-  // clang-format off
-
   ///*/// 
-
-  import Vector
-  import String
-  import List
-
   let str = String{"Hello"};
   str.printLn()
   
@@ -22,29 +47,10 @@ int main() {
 
   str.printLn()
 
-  let l = String{""};
-  let line = List{};
-
-  # Our own split by newlines algorithm.
-
-  for c in str{
-    if c == "\n"{
-      line.append_str(l)
-      l = ""
-      continue;
-    }
-
-    l += c
-    
+  let splitted_lines = string_split(str);
+  for split_line in splitted_lines{
+    split_line.printLn()
   }
-
-  # Add the remaining strings which don't end with \n.
-  if l != ""{
-    line.append_str(l)
-    l = ""
-  }
-
-  line.print()
 
   // DESTRUCTOR_CODE //
   ///*///

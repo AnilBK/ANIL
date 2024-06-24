@@ -14,67 +14,6 @@
 
 ///*///
 
-#include <stdlib.h>
-
-// Define a union for storing int or char*
-typedef union {
-  int int_data;
-  char *str_data;
-} Data;
-
-enum DataType { INT, STRING };
-
-// Define a struct for the node
-typedef struct Node {
-  Data data;
-  enum DataType data_type;
-  struct Node *next;
-} Node;
-
-Node *createIntNode(int p_int) {
-  Node *newNode = (Node *)malloc(sizeof(Node));
-  newNode->data.int_data = p_int;
-  newNode->data_type = INT;
-  newNode->next = NULL;
-  return newNode;
-}
-
-Node *createStringNode(char *p_str) {
-  Node *newNode = (Node *)malloc(sizeof(Node));
-  newNode->data.str_data = p_str;
-  newNode->data_type = STRING;
-  newNode->next = NULL;
-  return newNode;
-}
-
-///*///
-
-///*///
-
-/*
-FIXME: The order in which normal C code and our custom code is generated is
-different. So this function will be emitted earlier than the actual List struct
-causing forward declaration errors. Temporarily we replace the entire function
-body at all the needed callsites.
-
-void ListinsertEnd(struct List *this, Node *newNode) {
-// Add // to everyline because without it the code generated below,
-// all goes to left & isn't formatted.
-//  if (this->head == NULL) {
-//    this->head = newNode;
-//    this->tail = newNode;
-//    return;
-//  }
-//
-//  this->tail->next = newNode;
-//  this->tail = newNode;
-}
-*/
-
-///*///
-
-///*///
-
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -388,101 +327,46 @@ struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename) {
   return result;
 }
 
-struct List {
-  Node *head;
-  Node *tail;
-};
+///*///
 
-void List__init__(struct List *this) {
-  this->head = NULL;
-  this->tail = NULL;
-}
+// Our own split by newlines algorithm.
+struct Vector_String string_split(struct String str) {
+  struct Vector_String lines;
+  Vector_String__init__(&lines, 5);
 
-void List__del__(struct List *this) {
-  Node *current = this->head;
-  while (current != NULL) {
-    Node *temp = current;
-    current = current->next;
+  struct String line;
+  String__init__(&line, "");
 
-    if (temp->data_type == STRING) {
-      free(temp->data.str_data);
+  size_t tmp_len_0 = Stringlen(&str);
+  for (size_t i = 0; i < tmp_len_0; i++) {
+    char c = String__getitem__(&str, i);
+
+    if (c == '\n') {
+      Vector_Stringpush(&lines, line);
+      String__reassign__(&line, "");
+      continue;
     }
 
-    free(temp);
-  }
-}
-
-void Listprint(struct List *this) {
-  Node *current = this->head;
-  printf("[");
-  while (current != NULL) {
-    if (current->data_type == STRING) {
-      printf("\"%s\" ", current->data.str_data);
-    } else {
-      int data = current->data.int_data;
-
-      //@hook_begin("custom_integer_printer" "int" data)
-      printf("%d ", data);
-      //@hook_end
-    }
-    printf(",");
-    current = current->next;
-  }
-  printf("]\n");
-}
-
-typedef void (*custom_integer_printer)(int);
-void Listprint_hooked_custom_integer_printer(
-    struct List *this, custom_integer_printer p_custom_integer_printer) {
-  Node *current = this->head;
-  printf("[");
-  while (current != NULL) {
-    if (current->data_type == STRING) {
-      printf("\"%s\" ", current->data.str_data);
-    } else {
-      int data = current->data.int_data;
-
-      //
-      p_custom_integer_printer(data);
-    }
-    printf(",");
-    current = current->next;
-  }
-  printf("]\n");
-}
-
-void Listappend_int(struct List *this, int p_value) {
-  Node *int_node = createIntNode(p_value);
-  // ListinsertEnd(this, int_node);
-  //  TODO : Move the below code to separate function 'ListinsertEnd'.
-  if (this->head == NULL) {
-    this->head = int_node;
-    this->tail = int_node;
-    return;
+    char c_promoted_0[2] = {c, '\0'};
+    String__add__(&line, c_promoted_0);
   }
 
-  this->tail->next = int_node;
-  this->tail = int_node;
-}
+  // Add the remaining strings which don't end with \n.
 
-void Listappend_str(struct List *this, char *p_str) {
-  Node *string_node = createStringNode(strdup(p_str));
-  // ListinsertEnd(this, string_node);
-  //  TODO : Move the below code to separate function 'ListinsertEnd'.
-  if (this->head == NULL) {
-    this->head = string_node;
-    this->tail = string_node;
-    return;
+  if (!String__eq__(&line, "")) {
+    Vector_Stringpush(&lines, line);
+    String__reassign__(&line, "");
   }
 
-  this->tail->next = string_node;
-  this->tail = string_node;
+  String__del__(&line);
+  return lines;
 }
+
+///*///
 
 int main() {
 
   ///*///
-
   struct String str;
   String__init__(&str, "Hello");
   StringprintLn(&str);
@@ -491,38 +375,15 @@ int main() {
 
   StringprintLn(&str);
 
-  struct String l;
-  String__init__(&l, "");
-  struct List line;
-  List__init__(&line);
-
-  // Our own split by newlines algorithm.
-
-  size_t tmp_len_0 = Stringlen(&str);
-  for (size_t i = 0; i < tmp_len_0; i++) {
-    char c = String__getitem__(&str, i);
-
-    if (c == '\n') {
-      Listappend_str(&line, Stringc_str(&l));
-      String__reassign__(&l, "");
-      continue;
-    }
-
-    char c_promoted_0[2] = {c, '\0'};
-    String__add__(&l, c_promoted_0);
+  struct Vector_String splitted_lines = string_split(str);
+  size_t tmp_len_1 = Vector_Stringlen(&splitted_lines);
+  for (size_t i = 0; i < tmp_len_1; i++) {
+    struct String split_line = Vector_String__getitem__(&splitted_lines, i);
+    StringprintLn(&split_line);
+    String__del__(&split_line);
   }
 
-  // Add the remaining strings which don't end with \n.
-
-  if (!String__eq__(&l, "")) {
-    Listappend_str(&line, Stringc_str(&l));
-    String__reassign__(&l, "");
-  }
-
-  Listprint(&line);
-
-  List__del__(&line);
-  String__del__(&l);
+  Vector_String__del__(&splitted_lines);
   String__del__(&str);
   ///*///
 

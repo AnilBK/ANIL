@@ -1314,7 +1314,7 @@ while index < len(Lines):
                 parsing_fn_call_type = ParsedFunctionCallType.STRUCT_FUNCTION_CALL
                 StructInfo = instanced_struct_info.get_struct_defination()
             else:
-                raise ValueError(f"{target} is neither a struct functiona call nor a global function call.")
+                raise ValueError(f"{target} is neither a struct function call nor a global function call.")
         
         # Parameters provided to a given function call.
         # let str = stra.__contains__(strb)
