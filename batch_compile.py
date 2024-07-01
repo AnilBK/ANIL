@@ -22,3 +22,7 @@ import subprocess
 
 for file_name in file_names:
     subprocess.run(["python", "preprocess_2.py", "--filename", file_name])
+
+# for file_name in file_names:
+#     output_file = file_name.split('.')[0]  
+#     subprocess.run(["gcc", "-Wall", "-Wextra", "-o", output_file, output_file + "_generated.c"])
