@@ -5,6 +5,8 @@ from typing import Optional
 from enum import Enum
 import re
 import os
+import random
+from collections import OrderedDict
 
 import argparse
 
@@ -29,10 +31,10 @@ args = filename_parser.parse_args()
 # source_file = "examples\\string_split.c"
 # source_file = "examples\\fileexample.c"
 # source_file = "examples\\vector_of_strings.c"
-source_file = "examples\\function_example.c"
+# source_file = "examples\\function_example.c"
 
 # source_file = "Bootstrap\\lexer_test.c"
-# source_file = "Bootstrap\\preprocess_test.c"
+source_file = "Bootstrap\\preprocess_test.c"
 
 if args.filename:
     source_file = args.filename
@@ -118,19 +120,165 @@ def get_templated_mangled_fn_name(
 # UTILS END
 
 
-instanced_variables = {}
-# Same as above but stores just the names of the instances with respective scopes.
-# {"1":[var1,var2,var3],"2":[var4]..}
-instanced_variables_scoped = {}
+def get_destructor_for_struct(p_name):
+    for struct in instanced_struct_names[::-1]:
+        if struct.should_be_freed:
+            # Maybe : Check for scope
+            # Since variables can't be repeated across scopes,
+            # We mayn't need to check for scopes.
+            struct_name = struct.struct_name
+            if struct_name == p_name:
+                if struct.struct_type_has_destructor():
+                    destructor_fn_name = struct.get_destructor_fn_name()
+                    des_code = f"{destructor_fn_name}(&{struct_name});\n"
+                    return des_code
+    return None
+
+
+class Symbol:
+    def __init__(self, p_name, p_data_type):
+        self.name = p_name
+        self.data_type = p_data_type
+
+
+class SymbolTable:
+    def __init__(self):
+        self.symbols = {}
+        self.scope_stack = []
+
+    def current_scope(self):
+        return self.scope_stack[-1]
+
+    def new_unique_scope_id(self):
+        if len(self.scope_stack) == 0:
+            # We haven't created any scopes.
+            # So, the first scope created is 0.
+            return 0
+
+        latest_scope = self.current_scope()
+        new_scope = latest_scope + 1
+
+        if new_scope in self.scope_stack:
+            while True:
+                random_index = random.randrange(100000)
+                if not (random_index in self.scope_stack):
+                    new_scope = random_index
+                    break
+
+        return new_scope
+
+    def enter_scope(self):
+        new_scope_id = self.new_unique_scope_id()
+        self.scope_stack.append(new_scope_id)
+        self.symbols[new_scope_id] = OrderedDict()
+
+    def exit_scope(self):
+        if self.scope_stack:
+            exiting_scope_id = self.scope_stack.pop()
+            destructor_code = self.destructor_for_all_variables_in_scope(
+                exiting_scope_id
+            )
+            if destructor_code != "":
+                LinesCache.append(destructor_code)
+
+    def print_symbol_table(self):
+        print("-------------------Symbol Table------------------")
+        for scope in self.scope_stack:
+            for symbol in self.symbols[scope]:
+                print(f"{scope} {symbol}")
+        print("-------------------------------------------------")
+
+    def declare_variable(self, name, p_type):
+        current_scope = self.current_scope()
+
+        if name in self.symbols[current_scope]:
+            self.print_symbol_table()
+            raise ValueError(f"Variable '{name}' already declared in this scope.")
+
+        for scope in self.scope_stack:
+            if name in self.symbols[scope]:
+                self.print_symbol_table()
+                raise ValueError(
+                    f"Variable '{name}' already declared in previous scope {scope}."
+                )
+
+        self.symbols[current_scope][name] = Symbol(name, p_type)
+
+    def find_variable(self, name):
+        for scope in reversed(self.scope_stack):
+            if name in self.symbols[scope]:
+                return self.symbols[scope][name]
+        return None
+
+    def destructor_for_all_variables_in_scope(self, scope_id):
+        # Return the destructor code for all variables in the provided scope
+        # And, free(unregister) those variables as well.
+        des_code = ""
+        if scope_id in self.symbols:
+            for variable in reversed(self.symbols[scope_id]):
+                # Call the destructor for the variable
+                # print(f"Destroying variable '{variable}' in scope {scope_id}")
+                code = get_destructor_for_struct(variable)
+                if code != None:
+                    # print(f"~() = {code}")
+                    des_code += code
+            del self.symbols[scope_id]
+        return des_code
+
+    def destructor_code_for_all_remaining_variables(self):
+        destructor_code = ""
+        while True:
+            if self.scope_stack:
+                exiting_scope_id = self.scope_stack.pop()
+                des_code = self.destructor_for_all_variables_in_scope(exiting_scope_id)
+                if des_code != "":
+                    destructor_code += des_code
+            else:
+                break
+        return destructor_code
+
+
+symbol_table = SymbolTable()
+symbol_table.enter_scope()  # Create a new fresh scope.
+
+# symbol_table.enter_scope()  # Enter Scope 1
+# symbol_table.declare_variable("a", "str")
+# symbol_table.declare_variable("b", "str")
+# symbol_table.declare_variable("c", "str")
+
+# symbol_table.enter_scope()  # Enter Scope 2
+# symbol_table.declare_variable("d", "str")
+# symbol_table.exit_scope()  # Exit Scope 2
+
+# symbol_table.enter_scope()  # Enter Scope 3
+# symbol_table.declare_variable("e", "str")
+# symbol_table.exit_scope()  # Exit Scope 3
+
+# symbol_table.exit_scope()  # Exit Scope 1
+
+
+def get_current_scope():
+    return symbol_table.current_scope()
+
+
+def increment_scope():
+    symbol_table.enter_scope()
+
+
+def decrement_scope():
+    symbol_table.exit_scope()
+
+
+def REGISTER_VARIABLE(p_var_name: str, p_var_data_type: str) -> None:
+    symbol_table.declare_variable(p_var_name, p_var_data_type)
+
 
 def get_type_of_variable(p_var_name):
-    """
-    if p_var_name in instanced_variables:
-        return instanced_variables[p_var_name]
-    else:
+    var = symbol_table.find_variable(p_var_name)
+    if var == None:
         return None
-    """
-    return instanced_variables.get(p_var_name)
+    else:
+        return var.data_type
 
 
 def is_variable_of_type(p_var_name, p_type):
@@ -179,49 +327,6 @@ def is_variable_array_type(p_var_name):
     return is_array_type
 
 
-def is_variable_already_defined_in_scope(p_var_name):
-    global variable_scope
-    # Is Variable defined in the current scope.
-    if variable_scope in instanced_variables_scoped:
-        if p_var_name in instanced_variables_scoped[variable_scope]:
-            return True
-
-    # Check the previous scope variables.
-    for _, value in instanced_variables_scoped.items():
-        if p_var_name in value:
-            return True
-
-    return False
-
-
-def REGISTER_VARIABLE(p_var_name: str, p_var_data_type: str) -> None:
-    global instanced_variables
-
-    debugDuplicatedVariables = False
-
-    if debugDuplicatedVariables:
-        # Variables inside def will be duplicated and they will also raise this error.
-        # Use this flag for other local variables.
-        if is_variable(p_var_name):
-            print(f"{instanced_variables}")
-            raise ValueError(f"{p_var_name} is already defined.")
-
-    # if p_var_name in instanced_variables:
-    #    print(f"Instanced variables : {instanced_variables}")
-    #    pass
-
-    if is_variable_already_defined_in_scope(p_var_name):
-        raise Exception(f"{p_var_name} is already defined in previous scopes.")
-
-    global variable_scope
-    if variable_scope in instanced_variables_scoped:
-        instanced_variables_scoped[variable_scope].append(p_var_name)
-    else:
-        instanced_variables_scoped[variable_scope] = [p_var_name]
-
-    instanced_variables[p_var_name] = p_var_data_type
-
-
 def is_data_type_struct_object(p_data_type):
     struct_info = get_struct_defination_of_type(p_data_type)
     return struct_info != None
@@ -240,67 +345,9 @@ class NestingLevel(Enum):
     FOR_LOOP = 0
     IF_STATEMENT = 1
     ELSE_STATEMENT = 2
+
+
 nesting_levels = []
-
-
-variable_scope = 0
-def increment_scope():
-    global variable_scope
-    variable_scope += 1
-
-
-def get_destructor_code_for_current_scope() -> str:
-    global variable_scope
-    global instanced_variables_scoped
-
-    destructor_code = ""
-
-    if variable_scope in instanced_variables_scoped:
-        for struct in instanced_struct_names[::-1]:
-            if not struct.should_be_freed:
-                continue
-
-            struct_name = struct.struct_name
-            if struct_name in instanced_variables_scoped[variable_scope]:
-                if struct.scope != variable_scope:
-                    continue
-
-                if struct.struct_type_has_destructor():
-                    destructor_fn_name = struct.get_destructor_fn_name()
-                    destructor_code += f"{destructor_fn_name}(&{struct_name});\n"
-
-    return destructor_code
-
-
-def decrement_scope(write_destructors=True):
-    if write_destructors:
-        destructor_code = get_destructor_code_for_current_scope()
-        if destructor_code != "":
-            LinesCache.append(destructor_code)
-
-    global variable_scope
-    global instanced_variables_scoped
-
-    if variable_scope in instanced_variables_scoped:
-        del instanced_variables_scoped[variable_scope]
-
-    variable_scope -= 1
-
-
-def remaining_destructor_code() -> str:
-    global variable_scope
-
-    destructor_code = ""
-    while variable_scope >= 0:
-        destructor_code += get_destructor_code_for_current_scope()
-        # We don't want to write destructors to LinesCache.
-        # So, we just decrement scope & get all destructors from those individual scopes.
-        # And, write the destructors at once.
-        decrement_scope(write_destructors=False)
-    return destructor_code
-
-
-increment_scope()
 
 # From where did the function body write started.
 # We have to insert function hooks later here.
@@ -818,14 +865,13 @@ while index < len(Lines):
             raw_return_type = return_type.split("struct")[1].strip()
 
             global instanced_struct_names
-            global variable_scope
             instanced_struct_names.append(
                 StructInstance(
                     raw_return_type,
                     current_array_value_variable,
                     False,
                     "",
-                    variable_scope,
+                    get_current_scope(),
                 )
             )
 
@@ -1130,14 +1176,12 @@ while index < len(Lines):
 
             parser.consume_token(lexer.Token.GREATER_THAN)
 
-        global variable_scope
-
         instanced_struct_info = StructInstance(
             struct_type,
             struct_name,
             is_templated_struct,
             templated_data_type,
-            variable_scope,
+            get_current_scope(),
         )
 
         global instanced_struct_names
@@ -1455,9 +1499,10 @@ while index < len(Lines):
                 raw_return_type = return_type.split("struct")[1].strip()
 
                 global instanced_struct_names
-                global variable_scope
                 instanced_struct_names.append(
-                    StructInstance(raw_return_type, var_name, False, "", variable_scope)
+                    StructInstance(
+                        raw_return_type, var_name, False, "", get_current_scope()
+                    )
                 )
 
                 REGISTER_VARIABLE(var_name, return_type)
@@ -3077,7 +3122,9 @@ while index < len(Lines):
                 p_type = p_type.strip()
 
             # FIXME : Even variables which aren't structs are registered.
-            instance = StructInstance(p_type, param_name, False, "", variable_scope)
+            instance = StructInstance(
+                p_type, param_name, False, "", get_current_scope()
+            )
             # Function parameters shouldn't be freed at the end of the scope.
             # So, add a tag.
             instance.should_be_freed = False
@@ -3127,7 +3174,10 @@ while index < len(Lines):
         # Should be the job of the caller to free it.
         i = 0
         for struct in instanced_struct_names:
-            if struct.struct_name == return_name and struct.scope == variable_scope:
+            if (
+                struct.struct_name == return_name
+                and struct.scope == get_current_scope()
+            ):
                 instanced_struct_names[i].should_be_freed = False
                 break
             i += 1
@@ -3144,8 +3194,7 @@ for i in range(len(LinesCache)):
     if "// STRUCT_DEFINATIONS //" in LinesCache[i]:
         LinesCache[i] = GlobalStructInitCode
     elif "// DESTRUCTOR_CODE //" in LinesCache[i]:
-        LinesCache[i] = remaining_destructor_code()
-
+        LinesCache[i] = symbol_table.destructor_code_for_all_remaining_variables()
 
 outputFile = open(output_file_name, "w")
 for Line in LinesCache:
