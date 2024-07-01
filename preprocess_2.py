@@ -3200,10 +3200,11 @@ outputFile = open(output_file_name, "w")
 for Line in LinesCache:
     outputFile.writelines(Line)
 outputFile.close()
+
 import subprocess
 
 try:
     subprocess.run(["clang-format", "-i", output_file_name], check=True)
-    print(f"Successfully formatted {output_file_name} using clang-format.")
+    print(f"Successfully compiled {output_file_name} & formatted using clang-format.")
 except subprocess.CalledProcessError as e:
     print(f"Error running clang-format: {e}")
