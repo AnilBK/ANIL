@@ -1,4 +1,5 @@
 file_names = [
+    "examples\\01_variables.c",
     "examples\\vector_source.c",
     "examples\\unique_ptr_source.c",
     "examples\\string_class_source.c",

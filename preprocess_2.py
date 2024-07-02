@@ -15,6 +15,7 @@ filename_parser = argparse.ArgumentParser()
 filename_parser.add_argument("--filename", help="Name of source file to be compiled.")
 args = filename_parser.parse_args()
 
+# source_file = "examples\\01_variables.c"
 # source_file = "examples\\vector_source.c"
 # source_file = "examples\\unique_ptr_source.c"
 # source_file = "examples\\string_class_source.c"
@@ -1344,11 +1345,11 @@ while index < len(Lines):
         instanced_struct_info = None
         StructInfo = None
         fn_name_unmangled = ""
-        
+
         parsing_fn_call_type = ParsedFunctionCallType.STRUCT_FUNCTION_CALL
 
         if is_global_function(target):
-            #let mangled_name = get_mangled_fn_name(class_name, fn_name);
+            # let mangled_name = get_mangled_fn_name(class_name, fn_name);
             #                   ^^^^^^^^^^^^^^^^^^^ target
             parsing_fn_call_type = ParsedFunctionCallType.GLOBAL_FUNCTION_CALL
         else:
@@ -1358,7 +1359,7 @@ while index < len(Lines):
                 StructInfo = instanced_struct_info.get_struct_defination()
             else:
                 raise ValueError(f"{target} is neither a struct function call nor a global function call.")
-        
+
         # Parameters provided to a given function call.
         # let str = stra.__contains__(strb)
         #                             ^^^^ parameters
@@ -1425,7 +1426,7 @@ while index < len(Lines):
             fn_name = instanced_struct_info.get_mangled_function_name(fn_name_unmangled)
         elif parsing_fn_call_type == ParsedFunctionCallType.GLOBAL_FUNCTION_CALL:
             fn_name = target #No need to mangle global functions.
-            
+
             m_fn = get_global_function_by_name(target)
 
             args = m_fn.fn_arguments
@@ -2241,7 +2242,7 @@ while index < len(Lines):
                 LinesCache.append(f"{parsed_member}(); \n")
                 continue
             else:
-                #TODO ?? 
+                # TODO ??
                 raise Exception(f"UserDefined Function : {parsed_member} calling void functions can't take parameters as of now. ")
         elif is_variable_boolean_type(parsed_member):
             # escape_back_slash = False
@@ -2501,6 +2502,22 @@ while index < len(Lines):
         array_name = parser.get_token()
         # print(f"Obtained array name = {array_name}")
 
+        # let x : int = 10
+        # let x : float = 10
+
+        parsing_POD_type = False
+        POD_type = ""
+        if parser.check_token(lexer.Token.COLON):
+            parser.consume_token(lexer.Token.COLON)
+
+            parsing_POD_type = True
+            # As of now var_name : datatype syntax as above,
+            # is used only for POD types so.
+
+            # let x : float = 10
+            #         ^^^^^ POD_type
+            POD_type = parser.get_token()
+
         # Custom templated array.
         # let arr<T> = [ 1, 2, 3, 4, 5 ];
         #        ^
@@ -2518,6 +2535,16 @@ while index < len(Lines):
             #         ^
             parser.consume_token(lexer.Token.EQUALS)
 
+            if parsing_POD_type:
+                if POD_type == "int":
+                    integer_value = parse_number()
+                    LinesCache.append(f"{POD_type} {array_name} = {integer_value};\n")
+                    REGISTER_VARIABLE(array_name, f"{POD_type}")
+                    continue
+                else:
+                    raise Exception(
+                        f'Parsing POD Type "{POD_type}" not Implemented as of now.'
+                    )
             if parser.check_token(lexer.Token.QUOTE):
                 # let str = "Hello World";
                 #           ^
