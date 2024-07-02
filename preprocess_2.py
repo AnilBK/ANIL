@@ -84,7 +84,15 @@ struct_definations = []
 instanced_struct_names = []
 GlobalStructInitCode = ""
 
+# Cached Items.
 string_variable_names = []
+
+# If any structs have __init__ method, then we register them here.
+# {struct_type:parameters}
+structs_with_constructors = {}
+
+def has_constructors(p_struct_type: str) -> bool:
+    return p_struct_type in structs_with_constructors.keys()
 
 # UTILS BEGIN
 
@@ -330,15 +338,6 @@ def is_variable_array_type(p_var_name):
 def is_data_type_struct_object(p_data_type):
     struct_info = get_struct_defination_of_type(p_data_type)
     return struct_info != None
-
-
-# If any structs have __init__ method, then we register them here.
-# {struct_type:parameters}
-structs_with_constructors = {}
-
-
-def has_constructors(p_struct_type: str) -> bool:
-    return p_struct_type in structs_with_constructors.keys()
 
 
 class NestingLevel(Enum):
