@@ -21,7 +21,7 @@ args = filename_parser.parse_args()
 # source_file = "examples\\string_class_source.c"
 # source_file = "examples\\initializer_list.c"
 # source_file = "examples\\Reflection.c"
-# source_file = "examples\\List.c"
+source_file = "examples\\02_List.c"
 # source_file = "examples\\constexpr_dict.c"
 # source_file = "examples\\decorators_inside_fn_body.c"
 # source_file = "examples\\enumerate_source.c"
@@ -35,7 +35,7 @@ args = filename_parser.parse_args()
 # source_file = "examples\\function_example.c"
 
 # source_file = "Bootstrap\\lexer_test.c"
-source_file = "Bootstrap\\preprocess_test.c"
+# source_file = "Bootstrap\\preprocess_test.c"
 
 if args.filename:
     source_file = args.filename
@@ -2571,6 +2571,22 @@ while index < len(Lines):
                     LinesCache.append(f"bool {array_name} = true;\n")
                 else:
                     LinesCache.append(f"bool {array_name} = false;\n")
+            elif parser.check_token(lexer.Token.LEFT_SQUARE_BRACKET):
+                #let test_list = [];
+                parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)
+                parser.consume_token(lexer.Token.RIGHT_SQUARE_BRACKET)
+
+                #This will be converted to:
+                #     let test_list = List{};
+                #And, ^^^^^^^^^^^^^^^^^^^^^^ this line will generate the required C Code.
+
+                # Emit CPL code to create a struct 'List' object.
+                # This line will be parsed by the compiler in next line.
+                CPL_code = f"let {array_name} = List{{ }};\n"
+
+                index_to_insert_at = index
+                Lines.insert(index_to_insert_at, CPL_code)
+                continue
             else:
                 # let obj = Point{10, 20};
                 #           ^

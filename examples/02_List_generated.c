@@ -162,6 +162,9 @@ int main() {
 
   struct List test_list;
   List__init__(&test_list);
+  // The following line is also valid, as the above syntax is shorthand for the
+  // statement below. let test_list = List{};
+
   Listappend_str(&test_list, "Hello");
   Listappend_str(&test_list, "World");
   Listappend_str(&test_list, "Puppy");

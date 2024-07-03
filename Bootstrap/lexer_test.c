@@ -135,7 +135,7 @@ int main() {
 
   let token = String{""};
   
-  let tokens = List{};
+  let tokens = [];
   
   let inside_string = False
   let escape_back_slash = False

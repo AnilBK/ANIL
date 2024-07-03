@@ -14,9 +14,9 @@ int main() {
   import Vector
   import List
 
-  let vector_class_members = List{};
-  let vector_class_member_functions = List{};
-  let list_instances = List{};
+  let vector_class_members = [];
+  let vector_class_member_functions = [];
+  let list_instances = [];
 
   def reflection():
     forall x in members_of(Vector): vector_class_members.append_str(x)

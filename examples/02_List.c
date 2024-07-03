@@ -13,7 +13,10 @@ int main() {
   ///*///
   import List
 
-  let test_list = List{};
+  let test_list = [];
+  // The following line is also valid, as the above syntax is shorthand for the statement below. 
+  // let test_list = List{};
+
   test_list.append_str("Hello")
   test_list.append_str("World")
   test_list.append_str("Puppy")
