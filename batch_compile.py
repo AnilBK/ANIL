@@ -1,11 +1,12 @@
 file_names = [
     "examples\\01_variables.c",
+    "examples\\02_List.c",
+    "examples\\03_Dictionary.c",
     "examples\\vector_source.c",
     "examples\\unique_ptr_source.c",
     "examples\\string_class_source.c",
     "examples\\initializer_list.c",
     "examples\\Reflection.c",
-    "examples\\02_List.c",
     "examples\\constexpr_dict.c",
     "examples\\decorators_inside_fn_body.c",
     "examples\\enumerate_source.c",

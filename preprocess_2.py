@@ -21,7 +21,8 @@ args = filename_parser.parse_args()
 # source_file = "examples\\string_class_source.c"
 # source_file = "examples\\initializer_list.c"
 # source_file = "examples\\Reflection.c"
-source_file = "examples\\02_List.c"
+# source_file = "examples\\02_List.c"
+source_file = "examples\\03_Dictionary.c"
 # source_file = "examples\\constexpr_dict.c"
 # source_file = "examples\\decorators_inside_fn_body.c"
 # source_file = "examples\\enumerate_source.c"
@@ -2583,6 +2584,23 @@ while index < len(Lines):
                 # Emit CPL code to create a struct 'List' object.
                 # This line will be parsed by the compiler in next line.
                 CPL_code = f"let {array_name} = List{{ }};\n"
+
+                index_to_insert_at = index
+                Lines.insert(index_to_insert_at, CPL_code)
+                continue
+            elif parser.check_token(lexer.Token.LEFT_CURLY):
+                #Parse Dictionary Type.
+                #let dict = {};
+                parser.consume_token(lexer.Token.LEFT_CURLY)
+                parser.consume_token(lexer.Token.RIGHT_CURLY)
+
+                #This will be converted to:
+                #     let dict = Dictionary{};
+                #And, ^^^^^^^^^^^^^^^^^^^^^^ this line will generate the required C Code.
+
+                # Emit CPL code to create a struct 'Dictionary' object of Lib/Dictionary.
+                # This line will be parsed by the compiler in next line.
+                CPL_code = f"let {array_name} = Dictionary{{ }};\n"
 
                 index_to_insert_at = index
                 Lines.insert(index_to_insert_at, CPL_code)
