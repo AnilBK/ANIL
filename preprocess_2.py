@@ -2541,6 +2541,15 @@ while index < len(Lines):
                     LinesCache.append(f"{POD_type} {array_name} = {integer_value};\n")
                     REGISTER_VARIABLE(array_name, f"{POD_type}")
                     continue
+                elif POD_type == "char":
+                    parser.consume_token(lexer.Token.QUOTE)
+                    char_value = parser.get_token()
+                    if len(char_value) != 1:
+                        raise Exception(f"Char value should be of length 1 but got \"{char_value}\" of length {len(char_value)}.")
+                    parser.consume_token(lexer.Token.QUOTE)
+                    LinesCache.append(f"{POD_type} {array_name} = \'{char_value}\';\n")
+                    REGISTER_VARIABLE(array_name, f"{POD_type}")
+                    continue
                 else:
                     raise Exception(
                         f'Parsing POD Type "{POD_type}" not Implemented as of now.'
