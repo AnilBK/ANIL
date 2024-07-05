@@ -3,17 +3,20 @@
 
 struct UniquePtr<T>{T *arr};
 
-impl UniquePtr __init__ capacity : int
+namespace UniquePtr
+
+c_function __init__(capacity : int)
   this->arr = (@TEMPLATED_DATA_TYPE@ *)malloc(capacity * sizeof(@TEMPLATED_DATA_TYPE@));
 
   if (this->arr == NULL) {
       fprintf(stderr, "Memory allocation failed.\n");
       exit(EXIT_FAILURE);
   }
-endfunc
+endc_function
 
-impl UniquePtr __del__
+c_function __del__()
   free(this->arr);
-endfunc
+endc_function
+endnamespace
 
 ///*///

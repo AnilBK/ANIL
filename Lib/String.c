@@ -7,7 +7,8 @@
 
 struct String{char* arr, int length, int capacity};
 
-impl String __init__from_charptr text : str p_text_length : int
+namespace String
+c_function __init__from_charptr(text: str, p_text_length: int)
   // p_text_length : Length of the string without the null terminator.
   this->arr = (char *)malloc((p_text_length + 1) * sizeof(char));
 
@@ -21,39 +22,37 @@ impl String __init__from_charptr text : str p_text_length : int
 
   this->length = p_text_length;
   this->capacity = p_text_length + 1;
-endfunc
+endc_function
 
-impl String __init__ text : str
+c_function __init__(text: str)
   size_t p_text_length = strlen(text);
   String__init__from_charptr(this, text, p_text_length);
-endfunc
+endc_function
 
-
-impl String clear
+c_function clear()
   this->arr = (char *)realloc(this->arr, sizeof(char));
   this->arr[0] = '\0';
   this->length = 0;
   this->capacity = 1;
-endfunc
+endc_function
 
-impl String print
+c_function print()
   printf("%s", this->arr);
-endfunc
+endc_function
 
-impl String printLn
+c_function printLn()
   printf("%s\n", this->arr);
-endfunc
+endc_function
 
-
-impl String __del__
+c_function __del__()
   free(this->arr);
-endfunc
+endc_function
 
-impl String startswith prefix : str -> bool
+c_function startswith(prefix: str) -> bool:
 	return strncmp(this->arr, prefix, strlen(prefix)) == 0;
-endfunc
+endc_function
 
-impl String strip -> String:
+c_function strip() -> String:
   //  char *str = "  Hello ";
   char *str = this->arr;
 
@@ -74,9 +73,9 @@ impl String strip -> String:
   struct String text;
   String__init__from_charptr(&text, begin, new_length);
   return text;
-endfunc
+endc_function
 
-impl String split delimeter : char -> Vector<String>:
+c_function split(delimeter: char) -> Vector<String>:
   // TODO: Because of this function, before import String, we require import Vector.
   struct Vector_String result;
   Vector_String__init__(&result, 2);
@@ -106,33 +105,33 @@ impl String split delimeter : char -> Vector<String>:
   }
 
   return result;
-endfunc
+endc_function
 
-impl String len -> size_t:
+c_function len() -> size_t:
   return this->length;
-endfunc
+endc_function
 
-impl String __getitem__ index : int -> char
+c_function __getitem__(index: int) -> char:
   return *(this->arr + index);
-endfunc
+endc_function
 
-impl String __contains__ substring : str -> bool
+c_function __contains__(substring: str) -> bool:
   return strstr(this->arr, substring) != NULL;
-endfunc
+endc_function
 
-impl String __eq__ pstring : str -> bool
+c_function __eq__(pstring: str) -> bool:
   return strcmp(this->arr, pstring) == 0;
-endfunc
+endc_function
 
-impl String is_of_length p_len : int -> bool
+c_function is_of_length(p_len: int) -> bool:
   return strlen(this->arr) == p_len;
-endfunc
+endc_function
 
-impl String c_str -> str:
+c_function c_str() -> str:
   return this->arr;
-endfunc
+endc_function
 
-impl String __add__ pstring : str
+c_function __add__(pstring: str)
   size_t new_length = strlen(this->arr) + strlen(pstring) + 1;
 
   if(new_length > this->capacity){
@@ -156,9 +155,9 @@ impl String __add__ pstring : str
 
   strcat(this->arr, pstring);
   this->length = new_length;
-endfunc
+endc_function
 
-impl String __reassign__ pstring : str
+c_function __reassign__(pstring: str)
   this->arr = (char *)realloc(this->arr, (strlen(pstring) + 1) * sizeof(char));
 
   if (this->arr == NULL) {
@@ -170,9 +169,9 @@ impl String __reassign__ pstring : str
 
   this->length = strlen(this->arr);
   this->capacity = this->length;
-endfunc
+endc_function
 
-impl String set_to_file_contents pfilename : str
+c_function set_to_file_contents(pfilename: str)
   // Read from the file & store the contents to this string.
 
   // TODO: Use CPL to generate this, because the function below is a mangled
@@ -194,9 +193,9 @@ impl String set_to_file_contents pfilename : str
   }
 
   fclose(ptr);
-endfunc
+endc_function
 
-impl String readlinesFrom pfilename : str -> Vector<String>:
+c_function readlinesFrom(pfilename: str) -> Vector<String>:
   Stringset_to_file_contents(this, pfilename);
 
   // Uses the same implementation as Split.
@@ -230,6 +229,8 @@ impl String readlinesFrom pfilename : str -> Vector<String>:
   }
 
   return result;
-endfunc
+endc_function
+endnamespace
+
 ///*///
 

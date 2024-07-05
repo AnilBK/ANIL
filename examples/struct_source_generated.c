@@ -9,7 +9,7 @@ struct Point {
 };
 
 void Pointsay(struct Point *this) {
-  // We write normal C code inside impl.
+  // We write normal C code inside c_function.
   // Use this-> pointer to access member variables.
   printf("x : %d , y : %d \n", this->x, this->y);
 }

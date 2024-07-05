@@ -36,12 +36,14 @@ Node *createStringNode(char *p_str) {
 
 struct List{Node *head,Node *tail};
 
-impl List __init__
+namespace List
+
+c_function __init__()
   this->head = NULL;
   this->tail = NULL;
-endfunc
+endc_function
 
-impl List __del__
+c_function __del__()
   Node *current = this->head;
   while (current != NULL) {
     Node *temp = current;
@@ -53,9 +55,9 @@ impl List __del__
 
     free(temp);
   }
-endfunc
+endc_function
 
-impl List print
+c_function print()
   Node *current = this->head;
   printf("[");
   while (current != NULL) {
@@ -73,7 +75,7 @@ impl List print
     current = current->next;
   }
   printf("]\n");
-endfunc
+endc_function
 ///*///
 
 /* 
@@ -96,7 +98,7 @@ void ListinsertEnd(struct List *this, Node *newNode) {
 */
 
 ///*///
-impl List append_int p_value:int
+c_function append_int(p_value : int)
   Node *int_node = createIntNode(p_value);
   //ListinsertEnd(this, int_node);
   // TODO : Move the below code to separate function 'ListinsertEnd'.
@@ -108,9 +110,9 @@ impl List append_int p_value:int
 
   this->tail->next = int_node;
   this->tail = int_node;
-endfunc
+endc_function
 
-impl List append_str p_str:str
+c_function append_str(p_str : str)
   Node *string_node = createStringNode(strdup(p_str));
   //ListinsertEnd(this, string_node);
   // TODO : Move the below code to separate function 'ListinsertEnd'.
@@ -122,7 +124,9 @@ impl List append_str p_str:str
 
   this->tail->next = string_node;
   this->tail = string_node;
-endfunc
+endc_function
+endnamespace
+
 ///*///
 
 

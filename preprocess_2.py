@@ -38,7 +38,7 @@ source_file = "examples\\04_Classes.c"
 # source_file = "examples\\vector_of_strings.c"
 # source_file = "examples\\function_example.c"
 
-# source_file = "Bootstrap\\lexer_test.c"
+source_file = "Bootstrap\\lexer_test.c"
 # source_file = "Bootstrap\\preprocess_test.c"
 
 if args.filename:
@@ -355,7 +355,7 @@ nesting_levels = []
 
 # From where did the function body write started.
 # We have to insert function hooks later here.
-impl_body_start_pos = 0
+c_function_body_start_pos = 0
 currently_reading_fn_name = ""
 currently_reading_fn_name_unmangled = ""
 currently_reading_return_type = ""
@@ -668,8 +668,10 @@ currently_reading_def_parameter = ""
 currently_reading_def_body = ""
 
 is_inside_new_code = False
-is_inside_struct_impl = False
+is_inside_struct_c_function = False
 
+namespace_name = ""
+is_inside_name_space = False
 
 temp_arr_length_variable_count = 0
 temp_arr_search_variable_count = 0
@@ -756,7 +758,7 @@ while index < len(Lines):
         LinesCache.append(Line)
         continue
 
-    if is_inside_struct_impl and not "endfunc" in Line:
+    if is_inside_struct_c_function and not "endc_function" in Line:
         currently_reading_fn_body += Line
         if should_write_fn_body:
             GlobalStructInitCode += Line
@@ -2772,19 +2774,21 @@ while index < len(Lines):
             GlobalStructInitCode += struct_code
 
         struct_definations.append(struct_data)
-        # Non generic structs shouldn't be written out early, but since the impl blocks write out functions despite being templated we leave the base templated struct defined, so that the funtions generated don't have defination error.
+        # Non generic structs shouldn't be written out early, but since the c_function blocks write out functions despite being templated we leave the base templated struct defined, so that the funtions generated don't have defination error.
         # GlobalStructInitCode += struct_code
 
         # LinesCache.append(code)
         # [struct_name,x,y,z..]
-    elif check_token(lexer.Token.IMPL):
-        # impl Point say Param1 Param2 ... ParamN
+    elif check_token(lexer.Token.CFUNCTION):
+        # c_function say(Param1:type1, Param2:type2, ... ParamN:typeN)
         # void say(struct Point *this) { printf("x : %d , y : %d \n", this->x, this->y); }
 
-        # Skip "impl", its not a keyword, just a placeholder to identify a function call.
-        parser.consume_token(lexer.Token.IMPL)
+        # Skip "c_function", its not a keyword, just a placeholder to identify a function call.
+        parser.consume_token(lexer.Token.CFUNCTION)
 
-        struct_name = parser.get_token()
+        if not is_inside_name_space:
+            raise Exception("c_function blocks are only allowed inside a namespace. Namespaces denote that the current function being defined belongs to that namespace(i.e class).")
+        struct_name = namespace_name
 
         should_write_fn_body = True
 
@@ -2800,12 +2804,12 @@ while index < len(Lines):
         is_overloaded_fn = False
         overload_for_type = ""
 
-        # impl Vector<String> __contains__ value : T -> bool
+        # c_function Vector<String> __contains__(value : T) -> bool:
         #            ^^^^^^^^ This is custom overload for __contains__ for the template type 'String'.
         if parser.current_token() == lexer.Token.SMALLER_THAN:
             parser.next_token()
 
-            # impl Vector< > __contains__ value : T -> bool
+            # c_function Vector< > __contains__(value : T)-> bool
             #             ^ indicates an overloaded function(the base overload)
             curr_token = parser.current_token()
             custom_template_type = "#BASE#"
@@ -2819,47 +2823,62 @@ while index < len(Lines):
 
             parser.consume_token(lexer.Token.GREATER_THAN)
 
-        fn_name = parser.current_token()
-
-        # print(f"struct_name : {struct_name}, fn_name : {fn_name}")
-
-        parser.next_token()
+        fn_name = parser.get_token()
 
         return_type = "void"
-        # if fn_name == "__contains__":
-        #    return_type = "bool"
 
         # Other tokens are parameters.
 
-        # impl String __init__ text : str, capacity : int
+        parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
 
+        # Same Implementation as Token.FUNCTION.
         parameters = []
         parameters_combined_list = []
 
         while parser.has_tokens_remaining():
-            # impl Vector __contains__ value -> bool
-            if parser.check_token(lexer.Token.MINUS):
-                parser.next_token()
-                if parser.check_token(lexer.Token.GREATER_THAN):
-                    parser.next_token()
-                    return_type = parse_data_type()
-                    # print(f"Function Return Type is : {return_type}")
-                    break
+            # c_function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
+            #                                                               ^
+            if parser.check_token(lexer.Token.RIGHT_ROUND_BRACKET):
+                # c_function say()
+                #              ^
+                break
 
-            param_name = parser.current_token()
-            parser.next_token()
-            parser.next_token()
-            param_type = parser.get_token()
-            # print(f"Param Name : {param_name}, type : {param_type}")
+            # c_function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
+            #              ^
+            param_name = parser.get_token()
 
-            # Just str means built in String class, so.
-            if param_type == "str":
-                param_type = "char*"
+            # c_function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
+            #                     ^
+            parser.consume_token(lexer.Token.COLON)
+
+            # c_function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
+            #                       ^
+            param_type = parse_data_type()
+            # print(f"Function Param Name : {param_name}, type : {param_type}")
+
+            if parser.has_tokens_remaining():
+                # c_function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
+                #                            ^
+                # c_function say(Param1 : type1)
+                #                            ^
+                # If not reached the closing ), then expect a comma, to read another parameter.
+
+                if not parser.check_token(lexer.Token.RIGHT_ROUND_BRACKET):
+                    parser.consume_token(lexer.Token.COMMA)
 
             parameters.append(MemberDataType(param_type, param_name, False))
             parameters_combined_list.append(f"{param_type} {param_name}")
 
-        # print(f"{parameters}")
+        parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
+
+        # c_function say(Param1 : type1, Param2 : type2 ... ParamN : typeN) -> return_type:
+        if parser.has_tokens_remaining():
+            if parser.check_token(lexer.Token.MINUS):
+                parser.consume_token(lexer.Token.MINUS)
+                parser.consume_token(lexer.Token.GREATER_THAN)
+                return_type = parse_data_type()
+                parser.consume_token(lexer.Token.COLON)
+
 
         code = ""
 
@@ -2900,12 +2919,15 @@ while index < len(Lines):
 
         add_fn_member_to_struct(struct_name, fn)
 
-        impl_body_start_pos = len(GlobalStructInitCode)
+        c_function_body_start_pos = len(GlobalStructInitCode)
 
         GlobalStructInitCode += code
-        is_inside_struct_impl = True
-    elif check_token(lexer.Token.ENDFN):
-        if is_inside_struct_impl:
+        is_inside_struct_c_function = True
+    elif check_token(lexer.Token.ENDCFUNCTION):
+        if is_inside_user_defined_function:
+            raise Exception("Use \"endfunction\" to close a function and not \"endc_function\".")
+
+        if is_inside_struct_c_function:
             if should_write_fn_body:
                 GlobalStructInitCode += "}\n\n"
 
@@ -2962,10 +2984,10 @@ while index < len(Lines):
                     f"typedef void (*{hook_fn_name})({hook_fn_arg_type}); \n"
                 )
 
-                index_to_insert_at = impl_body_start_pos
+                index_to_insert_at = c_function_body_start_pos
 
                 """                        
-                index_to_insert_at = impl_body_start_pos
+                index_to_insert_at = c_function_body_start_pos
                 GlobalStructInitCode = (
                     GlobalStructInitCode[:index_to_insert_at]
                     + hooker_fn_code
@@ -3042,9 +3064,9 @@ while index < len(Lines):
             )
             currently_reading_fn_body = ""
             should_write_fn_body = True
-            is_inside_struct_impl = False
+            is_inside_struct_c_function = False
         else:
-            raise Exception("End impl without being in impl block.")
+            raise Exception("End c_function without being in c_function block.")
     elif check_token(lexer.Token.DEF):
         # This is used to define function like macros.
         # This macros are just replaced in place.
@@ -3226,6 +3248,7 @@ while index < len(Lines):
                 parser.consume_token(lexer.Token.MINUS)
                 parser.consume_token(lexer.Token.GREATER_THAN)
                 return_type = parse_data_type()
+                parser.consume_token(lexer.Token.COLON)
 
         defining_fn_for_custom_class = False
         if parser.has_tokens_remaining():
@@ -3233,13 +3256,27 @@ while index < len(Lines):
             if parser.check_token(lexer.Token.FOR):
                 parser.consume_token(lexer.Token.FOR)
 
+                target_class = parser.get_token()
+
+                if is_inside_name_space:
+                    raise Exception(f"Is already inside a namespace \"{namespace_name}\". Doesn't need to define target class(\"{target_class}\") for the provided function using the FOR keyword.")
+
                 defining_fn_for_custom_class = True
-                class_fn_defination["class_name"] = parser.get_token()
+                class_fn_defination["class_name"] = target_class
                 class_fn_defination["function_name"] = function_name
                 class_fn_defination["start_index"] = len(LinesCache)
 
                 func_name = get_mangled_fn_name(class_fn_defination["class_name"], function_name)
-                
+
+        if not defining_fn_for_custom_class:
+            if is_inside_name_space:
+                defining_fn_for_custom_class = True
+                class_fn_defination["class_name"] = namespace_name
+                class_fn_defination["function_name"] = function_name
+                class_fn_defination["start_index"] = len(LinesCache)
+
+                func_name = get_mangled_fn_name(class_fn_defination["class_name"], function_name)
+
         code = ""
         struct_name = class_fn_defination["class_name"]
 
@@ -3269,7 +3306,6 @@ while index < len(Lines):
             class_fn_defination["function_destination"] = "global"
 
         is_inside_user_defined_function = True
-
     elif check_token(lexer.Token.ENDFUNCTION):
         # decrement_scope()
         # ^^^^^^^^^^^^^^^^ This calls destructors.
@@ -3281,6 +3317,9 @@ while index < len(Lines):
         if not is_inside_user_defined_function:
             raise Exception("End function without being in Function block.")
         
+        if is_inside_struct_c_function:
+            raise Exception("Use \"endc_function\" to close a c function and not \"end_function\".")
+
         code = "}\n"
         LinesCache.append(code)
         class_fn_defination["end_index"] = len(LinesCache)
@@ -3335,6 +3374,18 @@ while index < len(Lines):
         # Write return itself.
         # We assume we have single return statement.
         LinesCache.append(f"return {return_name};\n")
+    elif check_token(lexer.Token.NAMESPACE):
+        if is_inside_name_space:
+            raise Exception("Is already inside a namespace.Can't declare a new namespace.")
+        parser.consume_token(lexer.Token.NAMESPACE)
+        namespace_name = parser.get_token()
+        is_inside_name_space = True
+    elif check_token(lexer.Token.ENDNAMESPACE):
+        parser.consume_token(lexer.Token.ENDNAMESPACE)
+        if not is_inside_name_space:
+            raise Exception("Isn't inside a namespace.First, declare a new namespace as \"namespace 'namespace_name'\"")
+        namespace_name = ""
+        is_inside_name_space = False
     else:
         LinesCache.append(Line)
 

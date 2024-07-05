@@ -10,15 +10,19 @@
 ///*/// 
 struct Rectangle{int length, int breadth};
 
-function area() for Rectangle
+namespace Rectangle
+
+function area()
   let area : int = 20;
   print("Area of the rectangle is {area}.\n")
 endfunction
 
+endnamespace
 
 function print_param(param : int) for Rectangle
   print("Parameter provided to the rectangle is {param}.\n")
 endfunction
+
 
 ///*///
 

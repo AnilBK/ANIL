@@ -13,19 +13,19 @@
 
 struct Node{int m_data};
 
-impl Node __init__ p_data : int
+namespace Node
+c_function __init__(p_data : int)
   this->m_data = p_data;
-endfunc
+endc_function
 
-impl Node print
+c_function print()
     int data = this->m_data;
     
     @hook_begin("custom_integer_printer" "int" data)
         printf("%d \n", data);
     @hook_end
-
-endfunc
-
+endc_function
+endnamespace
 ///*///
 
 void CustomIntPrint(int data) {

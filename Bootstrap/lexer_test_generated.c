@@ -607,7 +607,7 @@ void CustomPrint(int data) {
     token_case("ASTERISK", 25);
     token_case("MINUS", 26);
     token_case("DEF", 27);
-    token_case("IMPL", 28);
+    token_case("c_function", 28);
     token_case("ENDDEF", 29);
     token_case("ENDFN", 30);
     token_case("ELSE", 31);
@@ -700,7 +700,7 @@ int main() {
 
   Dictionary__setitem__(&KEYWORD_TOKENS, "def", 27);
 
-  Dictionary__setitem__(&KEYWORD_TOKENS, "impl", 28);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "c_function", 28);
 
   Dictionary__setitem__(&KEYWORD_TOKENS, "enddef", 29);
 

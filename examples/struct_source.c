@@ -17,23 +17,27 @@ int main() {
   struct Point {int x, int y};
   let p1 = Point{20, 50};
 
-  impl Point say
-    // We write normal C code inside impl.
+  namespace Point
+  c_function say()
+    // We write normal C code inside c_function.
     // Use this-> pointer to access member variables.
     printf("x : %d , y : %d \n", this->x, this->y);
-  endfunc
+  endc_function
 
-  impl Point shout
+  c_function shout()
     printf("Shouting Point Values, x = %d.\n", this->x);
-  endfunc
+  endc_function
+  endnamespace
 
   p1.say()
   p1.shout()
 
   struct Rectangle{float l, float b};
-  impl Rectangle Area
+  namespace Rectangle
+  c_function Area()
     printf("Area is : %f.\n", this->l * this->b);
-  endfunc
+  endc_function
+  endnamespace
 
   let rect1 = Rectangle{20,10};
   rect1.Area()

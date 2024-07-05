@@ -29,9 +29,9 @@ class Token(Enum):
     ASTERISK = 25
     MINUS = 26
     DEF = 27
-    IMPL = 28
-    ENDDEF = 29
-    ENDFN = 30
+    ENDDEF = 28
+    CFUNCTION = 29
+    ENDCFUNCTION = 30
     ELSE = 31
     TRUE = 32
     FALSE = 33
@@ -46,6 +46,9 @@ class Token(Enum):
     FUNCTION = 42
     ENDFUNCTION = 43
     RETURN = 44
+    NAMESPACE = 45
+    ENDNAMESPACE = 46
+
 
 CHARACTER_TOKENS = {
     "=": Token.EQUALS,
@@ -82,9 +85,9 @@ KEYWORD_TOKENS = {
     "Option": Token.OPTION,
     "enumerate": Token.ENUMERATE,
     "def": Token.DEF,
-    "impl": Token.IMPL,
+    "c_function": Token.CFUNCTION,
+    "endc_function": Token.ENDCFUNCTION,
     "enddef": Token.ENDDEF,
-    "endfunc": Token.ENDFN,
     "else": Token.ELSE,
     "True": Token.TRUE,
     "False": Token.FALSE,
@@ -96,6 +99,8 @@ KEYWORD_TOKENS = {
     "function": Token.FUNCTION,
     "endfunction": Token.ENDFUNCTION,
     "return": Token.RETURN,
+    "namespace": Token.NAMESPACE,
+    "endnamespace": Token.ENDNAMESPACE,
 }
 
 

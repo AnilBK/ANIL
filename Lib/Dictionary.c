@@ -21,18 +21,20 @@ typedef struct  {
 ///*///
 struct Dictionary{int added_values,KeyValuePairs pairs};
 
-impl Dictionary __init__
-  this->added_values = 0;
-endfunc
+namespace Dictionary
 
-impl Dictionary add_key_value p_key_str:str p_value:int
+c_function __init__()
+  this->added_values = 0;
+endc_function
+
+c_function add_key_value(p_key_str : str, p_value : int)
   KeyValuePair pair;
   pair.key.key_str = p_key_str;
   pair.value = p_value;
   this->pairs.pair[this->added_values++] = pair;
-endfunc
+endc_function
 
-impl Dictionary print
+c_function print()
   printf("{\n");
   for(int i = 0; i < this->added_values; i++){
     char *key = this->pairs.pair[i].key.key_str;
@@ -40,9 +42,9 @@ impl Dictionary print
     printf("\"%s\" : %d,\n", key, value);
   }
   printf("}\n");
-endfunc
+endc_function
 
-impl Dictionary __contains__ p_key : str -> bool
+c_function __contains__(p_key : str) -> bool:
   for (size_t i = 0; i < this->added_values; i++) {
       char *key = this->pairs.pair[i].key.key_str;
       int value = this->pairs.pair[i].value;
@@ -51,10 +53,10 @@ impl Dictionary __contains__ p_key : str -> bool
       }
   }    
   return false;  
-endfunc
+endc_function
 
 
-impl Dictionary get_value_from_key p_key : str -> int
+c_function get_value_from_key(p_key : str) -> int:
   for (size_t i = 0; i < this->added_values; i++) {
       char *key = this->pairs.pair[i].key.key_str;
       int value = this->pairs.pair[i].value;
@@ -63,9 +65,9 @@ impl Dictionary get_value_from_key p_key : str -> int
       }
   }    
   return 0;  
-endfunc
+endc_function
 
-impl Dictionary __getitem__ p_key : str -> int
+c_function __getitem__(p_key : str) -> int:
   for (size_t i = 0; i < this->added_values; i++) {
       char *key = this->pairs.pair[i].key.key_str;
       int value = this->pairs.pair[i].value;
@@ -74,14 +76,16 @@ impl Dictionary __getitem__ p_key : str -> int
       }
   }    
   return 0;  
-endfunc
+endc_function
 
-impl Dictionary __setitem__ p_key_str:str p_value:int
+c_function __setitem__(p_key_str : str, p_value : int)
   KeyValuePair pair;
   pair.key.key_str = p_key_str;
   pair.value = p_value;
   this->pairs.pair[this->added_values++] = pair;
-endfunc
+endc_function
+endnamespace
+
 ///*///
 
 
