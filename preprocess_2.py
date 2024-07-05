@@ -16,13 +16,16 @@ filename_parser.add_argument("--filename", help="Name of source file to be compi
 args = filename_parser.parse_args()
 
 # source_file = "examples\\01_variables.c"
+# source_file = "examples\\02_List.c"
+# source_file = "examples\\03_Dictionary.c"
+source_file = "examples\\04_Classes.c"
+
 # source_file = "examples\\vector_source.c"
 # source_file = "examples\\unique_ptr_source.c"
 # source_file = "examples\\string_class_source.c"
 # source_file = "examples\\initializer_list.c"
 # source_file = "examples\\Reflection.c"
-# source_file = "examples\\02_List.c"
-source_file = "examples\\03_Dictionary.c"
+
 # source_file = "examples\\constexpr_dict.c"
 # source_file = "examples\\decorators_inside_fn_body.c"
 # source_file = "examples\\enumerate_source.c"
@@ -361,6 +364,17 @@ currently_reading_fn_body = ""
 currently_reading_fn_parent_struct = ""
 currently_reading_parameters = []
 should_write_fn_body = True
+
+# User Defined function properties.
+class_fn_defination = {
+    "class_name": "",
+    "function_name": "",
+    "start_index": -1,
+    "end_index": -1,
+    "function_destination":"global"#"global"/"class",wether function is defined as global function, or member function of a struct.
+}
+#wether we are inside function scope or not.
+is_inside_user_defined_function = False
 
 HOOKS_hook_fn_name = ""
 HOOKS_target_fn = ""
@@ -3142,6 +3156,9 @@ while index < len(Lines):
         # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN) -> return_type
         parser.consume_token(lexer.Token.FUNCTION)
         function_name = parser.get_token()
+        # if this function is a struct member function, it needs to be mangled below.
+        func_name = function_name
+
         parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
 
         return_type = "void"
@@ -3210,19 +3227,48 @@ while index < len(Lines):
                 parser.consume_token(lexer.Token.GREATER_THAN)
                 return_type = parse_data_type()
 
-        # print(f"Function return type : {return_type}")
+        defining_fn_for_custom_class = False
+        if parser.has_tokens_remaining():
+            # function my_first_CPL_function() for String
+            if parser.check_token(lexer.Token.FOR):
+                parser.consume_token(lexer.Token.FOR)
 
+                defining_fn_for_custom_class = True
+                class_fn_defination["class_name"] = parser.get_token()
+                class_fn_defination["function_name"] = function_name
+                class_fn_defination["start_index"] = len(LinesCache)
+
+                func_name = get_mangled_fn_name(class_fn_defination["class_name"], function_name)
+                
         code = ""
-        if len(parameters) > 0:
-            parameters_str = ",".join(parameters_combined_list)
-            code = f"{return_type} {function_name}({parameters_str}) {{\n"
-        else:
-            code = f"{return_type} {function_name}() {{\n"
+        struct_name = class_fn_defination["class_name"]
 
-        m_fn = MemberFunction(function_name, parameters, return_type)
-        GlobalFunctions.append(m_fn)
+        has_parameters = len(parameters) > 0
+
+        code = f"{return_type} {func_name}("
+        if defining_fn_for_custom_class:
+            code += f"struct {struct_name} *this"
+            if has_parameters:
+                code += ","
+
+        if has_parameters:
+            parameters_str = ",".join(parameters_combined_list)
+            code += f"{parameters_str}"
+        code += f") {{\n"
 
         LinesCache.append(code)
+        
+        fn = MemberFunction(function_name, parameters, return_type)
+        
+        if defining_fn_for_custom_class:
+            GlobalStructInitCode += code
+            add_fn_member_to_struct(class_fn_defination["class_name"], fn)
+            class_fn_defination["function_destination"] = "class"
+        else:
+            GlobalFunctions.append(fn)
+            class_fn_defination["function_destination"] = "global"
+
+        is_inside_user_defined_function = True
 
     elif check_token(lexer.Token.ENDFUNCTION):
         # decrement_scope()
@@ -3231,8 +3277,41 @@ while index < len(Lines):
         # TODO : What for void functions??
         # They don't have return statements but their destructors should be called.
         # As of now the destructors aren't called.
+
+        if not is_inside_user_defined_function:
+            raise Exception("End function without being in Function block.")
+        
         code = "}\n"
         LinesCache.append(code)
+        class_fn_defination["end_index"] = len(LinesCache)
+
+        if class_fn_defination["function_destination"] == "class":
+            fn_body = ""
+            for i in range(class_fn_defination["start_index"] + 1, class_fn_defination["end_index"]-1):
+                line = LinesCache[i]
+                # print(line)
+                fn_body += line
+
+            del LinesCache[class_fn_defination["start_index"] : class_fn_defination["end_index"]]
+            # When using FUNCTION, C code is generated from CPL code.
+            # The c code is part of the function body and not needed in LinesCache.
+            # So, remove it from LinesCache after adding the function body to the struct.
+
+            GlobalStructInitCode += fn_body + "\n}\n\n"
+
+            add_fnbody_to_member_to_struct(
+                class_fn_defination["class_name"],
+                class_fn_defination["function_name"],
+                fn_body,
+            )
+
+            class_fn_defination["class_name"] = ""
+            class_fn_defination["function_name"] = ""
+            class_fn_defination["start_index"] = -1
+            class_fn_defination["end_index"] = -1
+            class_fn_defination["function_destination"] = "global"
+
+        is_inside_user_defined_function = False
     elif parser.current_token() == lexer.Token.RETURN:
         parser.consume_token(lexer.Token.RETURN)
 

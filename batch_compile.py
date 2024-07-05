@@ -2,6 +2,7 @@ file_names = [
     "examples\\01_variables.c",
     "examples\\02_List.c",
     "examples\\03_Dictionary.c",
+    "examples\\04_Classes.c",
     "examples\\vector_source.c",
     "examples\\unique_ptr_source.c",
     "examples\\string_class_source.c",
