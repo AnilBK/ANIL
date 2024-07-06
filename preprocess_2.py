@@ -776,6 +776,10 @@ while index < len(Lines):
     def check_token(token: lexer.Token):
         return parser.check_token(token)
 
+    def insert_intermediate_lines(index, p_array : list):
+        global Lines
+        Lines = Lines[:index] + p_array + Lines[index:]
+
     def create_string_iterator(array_name):
         global LinesCache
         LinesCache.append(
@@ -1738,9 +1742,7 @@ while index < len(Lines):
             else:
                 new_code.append(line)
 
-        index_to_insert_at = index
-        global Lines
-        Lines = Lines[:index_to_insert_at] + new_code + Lines[index_to_insert_at:]
+        insert_intermediate_lines(index, new_code)
 
     def parse_constexpr_dictionary(p_dict_name):
         parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)
