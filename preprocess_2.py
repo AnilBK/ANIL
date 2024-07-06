@@ -2158,22 +2158,9 @@ while index < len(Lines):
                 continue
             elif parser.check_token(lexer.Token.PLUS):
                 # str += "World"
-                parser.next_token()
+                #      ^
+                parser.consume_token(lexer.Token.PLUS)
                 parser.consume_token(lexer.Token.EQUALS)
-
-                is_string_literal = False
-
-                if parser.check_token(lexer.Token.QUOTE):
-                    # str += "World"
-                    parser.consume_token(lexer.Token.QUOTE)
-                    is_string_literal = True
-                else:
-                    # token += Char
-                    is_string_literal = False
-
-                string = parser.current_token()
-                parser.next_token()
-                # print(f"Obtained String : {string}")
 
                 add_fn = "__add__"
                 fns_required_for_addition = [add_fn]
@@ -2184,24 +2171,43 @@ while index < len(Lines):
                     for fn in fns_required_for_addition:
                         StructInfo.ensure_has_function(fn, parsed_member)
 
-                # fn_name = instanced_struct_info.get_mangled_function_name(add_fn)
-                # fn_name_unmangled = add_fn
+                lines = []
 
-                gen_code = ""
+                while parser.has_tokens_remaining():
+                    gen_code = ""
+                    if parser.check_token(lexer.Token.QUOTE):
+                        # str += "World"
+                        #        ^^^^^^^
+                        string = parser.extract_string_literal()
+                        # relative_path.__add__(".c")
+                        gen_code = f'{parsed_member}.{add_fn}("{string}")\n'
+                    else:
+                        # token += Char + ...
+                        #          ^^^^
+                        string = parser.get_token()
+                        # relative_path.__add__(module_name)
+                        gen_code = f"{parsed_member}.{add_fn}({string})\n"
+                        
+                    # Emit CPL code to perform addition.
+                    # This line will be parsed by the compiler in next line.
+                    # The conversion of String class to char*, char to char*,
+                    # all these are handled by the compiler during function call parse.
+                    lines.append(gen_code)
 
-                # Emit CPL code to perform addition.
-                # This line will be parsed by the compiler in next line.
-                # The conversion of String class to char*, char to char*,
-                # all these are handled by the compiler during function call parse.
-                if is_string_literal:
-                    # relative_path.__add__(".c")
-                    gen_code = f'{parsed_member}.{add_fn}("{string}")'
-                else:
-                    # relative_path.__add__(module_name)
-                    gen_code = f"{parsed_member}.{add_fn}({string})"
+                    if not parser.has_tokens_remaining():
+                        # token += Char
+                        #              ^
+                        break
 
-                index_to_insert_at = index
-                Lines.insert(index_to_insert_at, gen_code)
+                    #str += "World" + str2 + "str3" + str4
+                    #               ^
+                    parser.consume_token(lexer.Token.PLUS)
+                    if not parser.has_tokens_remaining():
+                        #str += "World" + 
+                        #                 ^
+                        raise Exception("Expected string literal or String object after + operator.")
+
+                insert_intermediate_lines(index, lines)
                 continue
             elif parser.check_token(lexer.Token.EQUALS):
                 # str = "Reassign"

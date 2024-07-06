@@ -56,8 +56,7 @@ int main() {
 
     for module_name in imported_modules{
       let relative_path = String{"../Lib/"};
-      relative_path += module_name
-      relative_path += ".c"
+      relative_path += module_name + ".c"
 
       relative_path.printLn()
 

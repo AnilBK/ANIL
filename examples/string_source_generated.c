@@ -348,7 +348,8 @@ int main() {
   String__add__(&str, " World");
   StringprintLn(&str);
 
-  String__add__(&str, " Its me Anil");
+  String__add__(&str, " Its me");
+  String__add__(&str, " Anil ");
   StringprintLn(&str);
 
   if (String__contains__(&str, "Anil")) {

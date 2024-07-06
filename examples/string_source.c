@@ -24,10 +24,10 @@ int main() {
     print("Str is hello.\n")
   }
 
-  str += " World";
+  str += " World"
   str.printLn()
   
-  str += " Its me Anil"
+  str += " Its me" + " Anil "
   str.printLn()
 
   if "Anil" in str { 
