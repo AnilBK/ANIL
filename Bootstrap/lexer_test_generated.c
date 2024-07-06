@@ -566,75 +566,11 @@ void Listappend_str(struct List *this, char *p_str) {
   this->tail = string_node;
 }
 
-void CustomPrint(int data) {
-  // printf("This is a custom print wrapper. [%d]\n", data);
+struct Lexer {
+  int dummy;
+};
 
-  // The macro is in str, val pair because it is in this format in TOKEN_MAP
-  // below.
-
-#define token_case(str, val)                                                   \
-  case val:                                                                    \
-    msg = str;                                                                 \
-    break
-
-  char *msg;
-
-  switch (data) {
-    token_case("LET", 0);
-    token_case("EQUALS", 1);
-    token_case("LEFT_SQUARE_BRACKET", 2);
-    token_case("RIGHT_SQUARE_BRACKET", 3);
-    token_case("SEMICOLON", 4);
-    token_case("COMMA", 5);
-    token_case("PERCENT", 6);
-    token_case("LEFT_CURLY", 7);
-    token_case("RIGHT_CURLY", 8);
-    token_case("STRUCT", 9);
-    token_case("MATCH", 10);
-    token_case("FOR", 11);
-    token_case("IF", 12);
-    token_case("IN", 13);
-    token_case("OPTION", 14);
-    token_case("SMALLER_THAN", 15);
-    token_case("GREATER_THAN", 16);
-    token_case("ENUMERATE", 17);
-    token_case("QUOTE", 18);
-    token_case("PLUS", 19);
-    token_case("LEFT_ROUND_BRACKET", 21);
-    token_case("RIGHT_ROUND_BRACKET", 22);
-    token_case("COLON", 23);
-    token_case("DOT", 24);
-    token_case("ASTERISK", 25);
-    token_case("MINUS", 26);
-    token_case("DEF", 27);
-    token_case("c_function", 28);
-    token_case("ENDDEF", 29);
-    token_case("ENDFN", 30);
-    token_case("ELSE", 31);
-    token_case("TRUE", 32);
-    token_case("FALSE", 33);
-    token_case("CONSTEXPR", 34);
-    token_case("HASH", 35);
-    token_case("INCLUDE", 36);
-    token_case("AT", 37);
-    token_case("APPLY_HOOK", 38);
-    token_case("HOOK_BEGIN", 39);
-    token_case("HOOK_END", 40);
-    token_case("EXCLAMATION", 41);
-  default: {
-    msg = "UNDEFINED: ";
-    break;
-  }
-  }
-
-  printf("Token : %s", msg);
-
-#undef token_case
-}
-
-int main() {
-
-  ///*///
+struct List Lexerget_tokens(struct Lexer *this) {
 
   struct Dictionary CHARACTER_TOKENS;
   Dictionary__init__(&CHARACTER_TOKENS);
@@ -879,12 +815,92 @@ int main() {
     }
   }
 
-  Listprint_hooked_custom_integer_printer(&tokens, CustomPrint);
-
-  List__del__(&tokens);
   String__del__(&token);
   String__del__(&line);
   String__del__(&line_org);
+  return tokens;
+}
+
+void CustomPrint(int data) {
+  // printf("This is a custom print wrapper. [%d]\n", data);
+
+  // The macro is in str, val pair because it is in this format in TOKEN_MAP
+  // below.
+
+#define token_case(str, val)                                                   \
+  case val:                                                                    \
+    msg = str;                                                                 \
+    break
+
+  char *msg;
+
+  switch (data) {
+    token_case("LET", 0);
+    token_case("EQUALS", 1);
+    token_case("LEFT_SQUARE_BRACKET", 2);
+    token_case("RIGHT_SQUARE_BRACKET", 3);
+    token_case("SEMICOLON", 4);
+    token_case("COMMA", 5);
+    token_case("PERCENT", 6);
+    token_case("LEFT_CURLY", 7);
+    token_case("RIGHT_CURLY", 8);
+    token_case("STRUCT", 9);
+    token_case("MATCH", 10);
+    token_case("FOR", 11);
+    token_case("IF", 12);
+    token_case("IN", 13);
+    token_case("OPTION", 14);
+    token_case("SMALLER_THAN", 15);
+    token_case("GREATER_THAN", 16);
+    token_case("ENUMERATE", 17);
+    token_case("QUOTE", 18);
+    token_case("PLUS", 19);
+    token_case("LEFT_ROUND_BRACKET", 21);
+    token_case("RIGHT_ROUND_BRACKET", 22);
+    token_case("COLON", 23);
+    token_case("DOT", 24);
+    token_case("ASTERISK", 25);
+    token_case("MINUS", 26);
+    token_case("DEF", 27);
+    token_case("c_function", 28);
+    token_case("ENDDEF", 29);
+    token_case("ENDFN", 30);
+    token_case("ELSE", 31);
+    token_case("TRUE", 32);
+    token_case("FALSE", 33);
+    token_case("CONSTEXPR", 34);
+    token_case("HASH", 35);
+    token_case("INCLUDE", 36);
+    token_case("AT", 37);
+    token_case("APPLY_HOOK", 38);
+    token_case("HOOK_BEGIN", 39);
+    token_case("HOOK_END", 40);
+    token_case("EXCLAMATION", 41);
+  default: {
+    msg = "UNDEFINED: ";
+    break;
+  }
+  }
+
+  printf("Token : %s", msg);
+
+#undef token_case
+}
+
+///*///
+
+///*///
+
+int main() {
+
+  ///*///
+
+  struct Lexer lexer;
+  struct List tokens = Lexerget_tokens(&lexer);
+
+  Listprint_hooked_custom_integer_printer(&tokens, CustomPrint);
+
+  List__del__(&tokens);
   ///*///
 
   return 0;

@@ -72,16 +72,17 @@ void CustomPrint(int data) {
 #undef token_case
 }
 
-int main() {
-
-// clang-format off
-
   ///*///
-  import Vector
-  import String
-  import Dictionary
-  import List
+import Vector
+import String
+import Dictionary
+import List
 
+struct Lexer{int dummy};
+
+namespace Lexer
+
+function get_tokens() -> List:
   constexpr Token = {"LET" : 0, "EQUALS" : 1, "LEFT_SQUARE_BRACKET" : 2, "RIGHT_SQUARE_BRACKET" : 3, "SEMICOLON" : 4, "COMMA" : 5, "PERCENT" : 6, "LEFT_CURLY" : 7, "RIGHT_CURLY" : 8, "STRUCT" : 9, "MATCH" : 10, "FOR" : 11, "IF" : 12, "IN" : 13, "OPTION" : 14, "SMALLER_THAN" : 15, "GREATER_THAN" : 16, "ENUMERATE" : 17, "QUOTE" : 18, "PLUS" : 19, "LEFT_ROUND_BRACKET" : 21, "RIGHT_ROUND_BRACKET" : 22, "COLON" : 23, "DOT" : 24, "ASTERISK" : 25, "MINUS" : 26, "DEF" : 27, "CFUNCTION" : 28, "ENDDEF" : 29, "ENDFN" : 30, "ELSE" : 31, "TRUE" : 32, "FALSE" : 33, "CONSTEXPR" : 34, "HASH" : 35, "INCLUDE" : 36, "AT" : 37, "APPLY_HOOK" : 38, "HOOK_BEGIN" : 39, "HOOK_END" : 40, "EXCLAMATION" : 41}
 
   let CHARACTER_TOKENS = {};
@@ -239,13 +240,28 @@ int main() {
     add_token token
   }
 
+  return tokens
+endfunction
+
+endnamespace
+///*///
+
+
+int main() {
+
+// clang-format off
+
+  ///*///
+
+  let lexer = Lexer{};
+  let tokens = lexer.get_tokens();
+
   @apply_hook("custom_integer_printer", CustomPrint)
   tokens.print()
-  
 
   // DESTRUCTOR_CODE //
   ///*///
-      // clang-format on
+  // clang-format on
 
-      return 0;
+  return 0;
 }
