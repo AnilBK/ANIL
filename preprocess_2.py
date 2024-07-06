@@ -160,6 +160,8 @@ class SymbolTable:
         self.scope_stack = []
 
     def current_scope(self):
+        if len(self.scope_stack) == 0:
+            self.enter_scope()
         return self.scope_stack[-1]
 
     def new_unique_scope_id(self):
