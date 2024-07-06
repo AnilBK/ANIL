@@ -18,15 +18,6 @@ void Pointshout(struct Point *this) {
   printf("Shouting Point Values, x = %d.\n", this->x);
 }
 
-struct Rectangle {
-  float l;
-  float b;
-};
-
-void RectangleArea(struct Rectangle *this) {
-  printf("Area is : %f.\n", this->l * this->b);
-}
-
 struct GenericStruct_float {
   float a;
   float b;
@@ -63,10 +54,7 @@ struct Vector_float {
 
 int main() {
 
-  int meaning = 42;
-
   ///*///
-  printf("Hello %d , %d \n", meaning, meaning);
 
   struct Point p1;
   p1.x = 20;
@@ -74,19 +62,6 @@ int main() {
 
   Pointsay(&p1);
   Pointshout(&p1);
-
-  struct Rectangle rect1;
-  rect1.l = 20;
-  rect1.b = 10;
-  RectangleArea(&rect1);
-
-  float arr[] = {1, 2, 3, 4, 5};
-  unsigned int arr_array_size = 5;
-
-  for (unsigned int i = 0; i < arr_array_size; i++) {
-    float val = arr[i];
-    printf("%f\n", val);
-  }
 
   struct GenericStruct_float t1;
   t1.a = 10;

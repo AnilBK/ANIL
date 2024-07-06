@@ -19,6 +19,7 @@ args = filename_parser.parse_args()
 # source_file = "examples\\02_List.c"
 # source_file = "examples\\03_Dictionary.c"
 source_file = "examples\\04_Classes.c"
+# source_file = "examples\\04_b_Classes.c"
 
 # source_file = "examples\\vector_source.c"
 # source_file = "examples\\unique_ptr_source.c"
@@ -31,7 +32,6 @@ source_file = "examples\\04_Classes.c"
 # source_file = "examples\\enumerate_source.c"
 # source_file = "examples\\parser_tests.c"
 
-# source_file = "examples\\struct_source.c"
 # source_file = "examples\\string_source.c"
 # source_file = "examples\\string_split.c"
 # source_file = "examples\\fileexample.c"
