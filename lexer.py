@@ -163,7 +163,7 @@ def get_tokens(line):
                 continue
 
             token += char
-        elif char == " ":
+        elif char == " " or char == "\t":
             if token == "":
                 continue
             add_token(token)
@@ -205,5 +205,9 @@ if __name__ == "__main__":
 
     # let p1 = Point{10, 20};
     line = "let p1 = Point {10, 20};"
+    tk = get_tokens(line)
+    print(tk)
+
+    line = "\tlet p1"
     tk = get_tokens(line)
     print(tk)
