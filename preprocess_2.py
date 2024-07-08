@@ -1,7 +1,7 @@
 import Parser
 import lexer
 
-from typing import Optional
+from typing import Callable, Dict, Optional
 from enum import Enum
 import re
 import os
@@ -25,7 +25,7 @@ source_file = "examples\\04_Classes.c"
 # source_file = "examples\\unique_ptr_source.c"
 # source_file = "examples\\string_class_source.c"
 # source_file = "examples\\initializer_list.c"
-# source_file = "examples\\Reflection.c"
+source_file = "examples\\Reflection.c"
 
 # source_file = "examples\\constexpr_dict.c"
 # source_file = "examples\\decorators_inside_fn_body.c"
@@ -38,7 +38,7 @@ source_file = "examples\\04_Classes.c"
 # source_file = "examples\\vector_of_strings.c"
 # source_file = "examples\\function_example.c"
 
-source_file = "Bootstrap\\lexer_test.c"
+# source_file = "Bootstrap\\lexer_test.c"
 # source_file = "Bootstrap\\preprocess_test.c"
 
 if args.filename:
@@ -686,14 +686,6 @@ temp_char_promoted_to_string_variable_count = 0
 for_loop_depth = -1
 
 # Constant Expressions Related Stuffs.
-
-contexpr_functions = [
-    "members_of",
-    "member_functions_of",
-    "instances_of_class",
-]
-
-
 class ConstexprDictionaryType:
     def __init__(self, p_dict_name: str, p_dictionary: dict) -> None:
         self.dict_name = p_dict_name
@@ -1655,92 +1647,125 @@ while index < len(Lines):
         if macro_has_parameter:
             code = code.replace(macro_def.first_param, remaining_tokens)
         code_list = code.split("\n")
-        # print(code_list)
 
         new_code = []
         for line in code_list:
-            if "forall" in line:
-                # forall x: values.push_unchecked x
-                #       ^ rhs----------------------
-                rhs = line.split("forall")[1]
-                split = rhs.split(":")
-                forall_param = split[0].strip()
-                forall_code = split[1].strip()
+            if line == "":
+                continue
 
-                # forall x:
-                #        ^ (forall_param)
+            constexpr_parser = Parser.Parser(line)
+            if not constexpr_parser.has_tokens_remaining():
+                # The line == "" check above should handle this case,but whynot.
+                continue
 
-                is_constexpr_function = any(
-                    constexpr_func in forall_param
-                    for constexpr_func in contexpr_functions
-                )
+            if constexpr_parser.current_token() == "forall":
+                constexpr_parser.next_token()
 
-                parameters_to_replace = params
+                # forall x : values.push_unchecked x
+                #        ^
+                #         loop_variable
+                loop_variable = constexpr_parser.get_token()
 
-                if is_constexpr_function:
-                    # forall x in members_of(Vector)
-                    #        ^forall_param
-                    classname = forall_param[
-                        forall_param.find("(") + 1 : forall_param.find(")")
-                    ]
+                # forall x : values.push_unchecked x
+                #          ^ in this case(forall x : ...), 
+                # x(params) has all the parameters passed to the macro. 
+                m_params = params
 
-                    forall_param_unmodified = forall_param
+                code_to_write = ""
 
-                    forall_param = forall_param[0 : forall_param.find("in")]
-                    forall_param = forall_param.strip()
+                # forall x : values.push_unchecked x
+                #          ^
+                # forall x in members_of(Vector)
+                #          ^
+                if constexpr_parser.check_token(lexer.Token.COLON):
+                    constexpr_parser.consume_token(lexer.Token.COLON)
 
-                    struct_def = get_struct_defination_of_type(classname)
-                    if struct_def == None:
-                        raise ValueError(f"{classname} class isn't registered.")
+                    # forall x : values.push_unchecked x
+                    #          ^ ------------------------ code_to_write
+                    code_to_write = line[line.find(":") + 1:]
+                elif constexpr_parser.check_token(lexer.Token.IN):
+                    # forall x in members_of(Vector):
+                    #          ^
+                    constexpr_parser.consume_token(lexer.Token.IN)
 
-                    # These constexpr functions returns "strings", which maybe toggled by an UNQUOTE optional parameter to get the raw objects like the struct names.
-                    unquote_location = forall_param_unmodified.find("UNQUOTE")
-                    has_unquote_text = unquote_location != -1
-                    if has_unquote_text:
-                        right_bracket_location = forall_param_unmodified.find(")")
-                        if (
-                            "UNQUOTE"
-                            in forall_param_unmodified[right_bracket_location:]
-                        ):
-                            has_unquote_text = True
-                        else:
-                            has_unquote_text = False
+                    # forall x in members_of(Vector):
+                    #             ^
+                    function_name = constexpr_parser.get_token()
 
+                    # forall x in members_of(Vector):
+                    #                       ^
+                    constexpr_parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
+                    class_name = constexpr_parser.get_token()
+                    constexpr_parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
+                    
+                    should_quote = True
+                    # forall x in instances_of_class(List) UNQUOTE: x.print()
+                    #                                      ^
+                    has_quote_token = constexpr_parser.current_token() == "QUOTE"
+                    has_unquote_token = constexpr_parser.current_token() == "UNQUOTE"
+                    if has_quote_token or has_unquote_token:
+                        constexpr_parser.next_token()
+                        if has_unquote_token:
+                            should_quote = False
+                                        
                     def stringify(p_str):
-                        if has_unquote_text:
-                            return p_str
-                        else:
+                        if should_quote:
                             return '"' + p_str + '"'
+                        else:
+                            return p_str
 
-                    fn_names = []
+                    constexpr_parser.consume_token(lexer.Token.COLON)
 
-                    if "members_of" in forall_param_unmodified:
-                        fn_names = [
-                            stringify(member.member) for member in struct_def.members
-                        ]
-                    elif "member_functions_of" in forall_param_unmodified:
-                        fn_names = [
-                            stringify(fn.fn_name) for fn in struct_def.member_functions
-                        ]
-                    elif "instances_of_class" in forall_param_unmodified:
-                        fn_names = [
-                            stringify(struct.struct_name)
-                            for struct in instanced_struct_names
-                            if struct.struct_type == classname
-                        ]
+                    # forall x: values.push_unchecked x
+                    #           ^^^^^^^^^^^^^^^^^^^^^^^
+                    #           code_to_write
+                    code_to_write = line[line.find(":") + 1:]
+
+                    struct_def = get_struct_defination_of_type(class_name)
+                    if struct_def == None:
+                        raise ValueError(f"{class_name} class isn't registered.")
+                    
+                    def _get_members():
+                        return [stringify(member.member) for member in struct_def.members]
+
+                    def _get_member_functions():
+                        return [stringify(fn.fn_name) for fn in struct_def.member_functions]
+
+                    def _get_instances():
+                        global instanced_struct_names
+                        return [stringify(struct.struct_name) 
+                                for struct in instanced_struct_names 
+                                if struct.struct_type == class_name]
+                    
+                    constexpr_map: Dict[str, Callable] = {
+                        "members_of": _get_members,
+                        "member_functions_of": _get_member_functions,
+                        "instances_of_class": _get_instances
+                    }
+            
+                    if function_name in constexpr_map:
+                        fn_names = constexpr_map[function_name]()
+                        m_params = fn_names
                     else:
-                        print(
-                            f"Only the following constexpr functions are allowed : {contexpr_functions}"
-                        )
-                        raise ValueError("Constexpr function undefined.")
+                        error_msg = f"\"{function_name}\" is not a constexpr function. \n"
+                        error_msg += "Only the following functions are constexpr functions:\n"
+                        for names in constexpr_map.keys():
+                            error_msg += f"{names}\n"
+                        raise Exception(f"{error_msg}")
 
-                    parameters_to_replace = fn_names
-
-                forall_code_combined = ""
-                for param in parameters_to_replace:
-                    replaced_code = forall_code.replace(forall_param, param)
-                    forall_code_combined = replaced_code + "\n"
-                    new_code.append(forall_code_combined)
+                for param in m_params:
+                    # values.push_unchecked x
+                    #                       ^ loop_variable
+                    # ^^^^^^^^^^^^^^^^^^^^^^^ code_to_write
+                    # Our m_params could be 10, 20, 30(which are passed while calling the macro).
+                    # For all the param in m_params, rewrite 'code_to_write' with the 'param'.
+                    # so, the generated code will be like,
+                    # values.push_unchecked(10)
+                    # values.push_unchecked(20)
+                    # values.push_unchecked(30)
+                    gen_code = code_to_write.replace(loop_variable, param) + "\n"
+                    new_code.append(gen_code)
+                new_code.append("\n")
             else:
                 new_code.append(line)
 

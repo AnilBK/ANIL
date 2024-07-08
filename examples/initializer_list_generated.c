@@ -131,7 +131,6 @@ int main() {
   Vector_intpush(&values, 8);
 
   Vector_intallocate_more(&values, 8);
-
   Vector_intpush_unchecked(&values, 10);
   Vector_intpush_unchecked(&values, 20);
   Vector_intpush_unchecked(&values, 30);

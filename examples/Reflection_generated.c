@@ -201,7 +201,6 @@ int main() {
 
   // 'instances_of_class' returns name of the instances in "string" form,
   // so, we unquote that using UNQUOTE in macro as belows.
-
   Listprint(&vector_class_members);
   Listprint(&vector_class_member_functions);
   Listprint(&list_instances);

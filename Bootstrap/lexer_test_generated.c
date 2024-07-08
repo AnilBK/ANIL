@@ -726,23 +726,15 @@ struct List Lexerget_tokens(struct Lexer *this) {
       }
 
       if (Dictionary__contains__(&KEYWORD_TOKENS, Stringc_str(&token))) {
-
         int ktk = Dictionary__getitem__(&KEYWORD_TOKENS, Stringc_str(&token));
-
         Listappend_int(&tokens, ktk);
-
       } else if (Dictionary__contains__(&CHARACTER_TOKENS,
                                         Stringc_str(&token))) {
-
         int ctk = Dictionary__getitem__(&CHARACTER_TOKENS, Stringc_str(&token));
-
         Listappend_int(&tokens, ctk);
-
       } else {
-
         Listappend_str(&tokens, Stringc_str(&token));
       }
-
       String__reassign__(&token, "");
     } else {
       char Char_promoted_3[2] = {Char, '\0'};
@@ -752,29 +744,21 @@ struct List Lexerget_tokens(struct Lexer *this) {
         if (!String__eq__(&token, "")) {
 
           if (Dictionary__contains__(&KEYWORD_TOKENS, Stringc_str(&token))) {
-
             int ktk =
                 Dictionary__getitem__(&KEYWORD_TOKENS, Stringc_str(&token));
-
             Listappend_int(&tokens, ktk);
-
           } else if (Dictionary__contains__(&CHARACTER_TOKENS,
                                             Stringc_str(&token))) {
-
             int ctk =
                 Dictionary__getitem__(&CHARACTER_TOKENS, Stringc_str(&token));
-
             Listappend_int(&tokens, ctk);
-
           } else {
-
             Listappend_str(&tokens, Stringc_str(&token));
           }
         }
         char Char_promoted_4[2] = {Char, '\0'};
         int int_tk = Dictionary__getitem__(&CHARACTER_TOKENS, Char_promoted_4);
         Listappend_int(&tokens, int_tk);
-
         String__reassign__(&token, "");
         continue;
       }
@@ -783,7 +767,6 @@ struct List Lexerget_tokens(struct Lexer *this) {
         int int_tk =
             Dictionary__getitem__(&CHARACTER_TOKENS, Stringc_str(&token));
         Listappend_int(&tokens, int_tk);
-
         String__reassign__(&token, "");
         continue;
       }
@@ -798,19 +781,12 @@ struct List Lexerget_tokens(struct Lexer *this) {
   if (!String__eq__(&token, "")) {
 
     if (Dictionary__contains__(&KEYWORD_TOKENS, Stringc_str(&token))) {
-
       int ktk = Dictionary__getitem__(&KEYWORD_TOKENS, Stringc_str(&token));
-
       Listappend_int(&tokens, ktk);
-
     } else if (Dictionary__contains__(&CHARACTER_TOKENS, Stringc_str(&token))) {
-
       int ctk = Dictionary__getitem__(&CHARACTER_TOKENS, Stringc_str(&token));
-
       Listappend_int(&tokens, ctk);
-
     } else {
-
       Listappend_str(&tokens, Stringc_str(&token));
     }
   }
