@@ -32,10 +32,6 @@ int main() {
   test.push(str4)
   test.print()
 
-
-  #let split = string.split(",");
-  # TODO : implement this 
-
   // DESTRUCTOR_CODE //
   ///*///
   ;
