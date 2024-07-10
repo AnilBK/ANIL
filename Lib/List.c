@@ -63,6 +63,20 @@ c_function len() -> size_t:
   return this->size;
 endc_function
 
+c_function __getitem__(index : int) -> Node:
+  if (index < 0 || index >= this->size) {
+    printf("Index %d out of bounds(max : %d).\n", index, this->size);
+    exit(-1);
+  }
+    
+  Node *current = this->head;
+  for (int i = 0; i < index; i++) {
+    current = current->next;
+  }
+    
+  return *current;
+endc_function
+
 c_function print()
   Node *current = this->head;
   printf("[");
