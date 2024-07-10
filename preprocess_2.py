@@ -473,7 +473,10 @@ class Struct:
             type = struct_member.data_type
             mem = struct_member.member
             is_generic = struct_member.is_generic
-            struct_code += f"{type} {mem};\n"
+            if is_data_type_struct_object(type):
+                struct_code += f"struct {type} {mem};\n"
+            else:
+                struct_code += f"{type} {mem};\n"
         struct_code += f"}};\n\n"
         return struct_code
 
