@@ -76,11 +76,13 @@ void ListinsertEnd(struct List *this, Node *newNode) {
 struct List {
   Node *head;
   Node *tail;
+  int size;
 };
 
 void List__init__(struct List *this) {
   this->head = NULL;
   this->tail = NULL;
+  this->size = 0;
 }
 
 void List__del__(struct List *this) {
@@ -95,7 +97,10 @@ void List__del__(struct List *this) {
 
     free(temp);
   }
+  this->size = 0;
 }
+
+size_t Listlen(struct List *this) { return this->size; }
 
 void Listprint(struct List *this) {
   Node *current = this->head;
@@ -148,6 +153,7 @@ void Listappend_int(struct List *this, int p_value) {
 
   this->tail->next = int_node;
   this->tail = int_node;
+  this->size++;
 }
 
 void Listappend_str(struct List *this, char *p_str) {
@@ -162,6 +168,7 @@ void Listappend_str(struct List *this, char *p_str) {
 
   this->tail->next = string_node;
   this->tail = string_node;
+  this->size++;
 }
 
 int main() {

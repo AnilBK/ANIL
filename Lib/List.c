@@ -34,13 +34,14 @@ Node *createStringNode(char *p_str) {
 
 ///*///
 
-struct List{Node *head,Node *tail};
+struct List{Node *head,Node *tail, int size};
 
 namespace List
 
 c_function __init__()
   this->head = NULL;
   this->tail = NULL;
+  this->size = 0;
 endc_function
 
 c_function __del__()
@@ -55,6 +56,11 @@ c_function __del__()
 
     free(temp);
   }
+  this->size = 0;
+endc_function
+
+c_function len() -> size_t:
+  return this->size;
 endc_function
 
 c_function print()
@@ -110,6 +116,7 @@ c_function append_int(p_value : int)
 
   this->tail->next = int_node;
   this->tail = int_node;
+  this->size++;
 endc_function
 
 c_function append_str(p_str : str)
@@ -124,6 +131,7 @@ c_function append_str(p_str : str)
 
   this->tail->next = string_node;
   this->tail = string_node;
+  this->size++;
 endc_function
 endnamespace
 
