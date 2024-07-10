@@ -294,37 +294,7 @@ void Stringset_to_file_contents(struct String *this, char *pfilename) {
 
 struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename) {
   Stringset_to_file_contents(this, pfilename);
-
-  // Uses the same implementation as Split.
-  char delimeter = '\n';
-
-  struct Vector_String result;
-  Vector_String__init__(&result, 10);
-
-  int delim_location = -1;
-
-  int len = this->length;
-  for (int i = 0; i < len; i++) {
-    if (this->arr[i] == delimeter) {
-      int length = i - (delim_location + 1);
-
-      struct String text;
-      String__init__from_charptr(&text, &this->arr[delim_location + 1], length);
-      Vector_Stringpush(&result, text);
-
-      delim_location = i;
-    }
-  }
-
-  // Add remaining string.
-  if (delim_location + 1 < len) {
-    char *remaining = &this->arr[delim_location + 1];
-
-    struct String text;
-    String__init__(&text, remaining);
-    Vector_Stringpush(&result, text);
-  }
-
+  struct Vector_String result = Stringsplit(this, '\n');
   return result;
 }
 
@@ -459,9 +429,6 @@ int main() {
   Vector_Stringpush(&test, str3);
   Vector_Stringpush(&test, str4);
   Vector_Stringprint(&test);
-
-  // let split = string.split(",");
-  //  TODO : implement this
 
   Vector_String__del__(&test);
   String__del__(&str4);

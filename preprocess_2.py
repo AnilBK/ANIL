@@ -506,11 +506,18 @@ class StructInstance:
         self.is_templated = p_is_templated
         self.templated_data_type = p_templated_data_type
 
-        self.scope = p_scope
         # 'scope' denotes where this struct was created.
-        self.should_be_freed = True
+        self.scope = p_scope
+
         # 'should_be_freed' is a tag wether the destructor should be called when it reaches out of the scope.
         # Things like Function parameters shouldn't be freed at the end of the scope.
+        self.should_be_freed = True
+        
+        # Variables like 'this' pointer inside class functions are pointer types.
+        # This tag helps in code generation for function calls.
+        # i.e pointer_types are passed directly to class function call i.e fn(variable_name,...), 
+        # whereas non pointer variables are called as fn(&variable_name,...).
+        self.is_pointer_type = False
 
     def is_templated_instance(self) -> bool:
         return self.is_templated
@@ -1555,8 +1562,15 @@ while index < len(Lines):
         assignment_code = f"{return_type} {var_name} = {fn_name}("
 
         if parsed_fn_call_type == ParsedFunctionCallType.STRUCT_FUNCTION_CALL:
+            instanced_struct_info = get_instanced_struct(target)
+            if instanced_struct_info == None:
+                raise Exception(
+                    "Internal Compiler Error: Performing function call on non-existent struct which should have been validated to exist by now."
+                )
             # Pass a 'this' parameter.
-            assignment_code += f"&{target}"
+            if not instanced_struct_info.is_pointer_type:
+                assignment_code += f"&"
+            assignment_code += f"{target}"
             if has_parameters:
                 assignment_code += ","
 
@@ -2170,16 +2184,21 @@ while index < len(Lines):
                     fn_name = parse_result["fn_name"]
                     return_type = parse_result["return_type"]
 
+                    addr = ""
+                    if not instanced_struct_info.is_pointer_type:
+                        # Non-pointer objects should be passed with & for function calls.
+                        addr = "&"
+
                     if parse_result["has_parameters"]:
                         parameters_str = parse_result["parameters_str"]
-                        code = f"{fn_name}(&{var_name}, {parameters_str});"
+                        code = f"{fn_name}({addr}{var_name}, {parameters_str});"
                     else:
                         if HOOKS_hook_fn_name != "":
-                            code = f"{fn_name}_hooked_{hook_fn_name}(&{var_name},{HOOKS_target_fn});"
+                            code = f"{fn_name}_hooked_{hook_fn_name}({addr}{var_name},{HOOKS_target_fn});"
                             HOOKS_hook_fn_name = ""
                             HOOKS_target_fn = ""
                         else:
-                            code = f"{fn_name}(&{var_name});"
+                            code = f"{fn_name}({addr}{var_name});"
 
                     LinesCache.append(f"{code}\n")
                 continue
@@ -3223,6 +3242,17 @@ while index < len(Lines):
         parameters = []
         parameters_combined_list = []
 
+        if is_inside_name_space:
+            #print(f"Registering this for {namespace_name}.")
+            instance = StructInstance(
+                f"{namespace_name}", "this", False, "", get_current_scope()
+            )
+            instance.is_pointer_type = True
+            instance.should_be_freed = False
+
+            instanced_struct_names.append(instance)
+            REGISTER_VARIABLE("this", f"{namespace_name}")
+
         while parser.has_tokens_remaining():
             # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
             #                                                               ^
@@ -3342,9 +3372,11 @@ while index < len(Lines):
 
         is_inside_user_defined_function = True
     elif check_token(lexer.Token.ENDFUNCTION):
-        # decrement_scope()
+        decrement_scope()
         # ^^^^^^^^^^^^^^^^ This calls destructors.
         # Since, we have return statement, that handles the destructors.
+        # If no return, then this should be performed.
+        # TODO : Check this logic once.
         # TODO : What for void functions??
         # They don't have return statements but their destructors should be called.
         # As of now the destructors aren't called.
@@ -3384,6 +3416,16 @@ while index < len(Lines):
             class_fn_defination["start_index"] = -1
             class_fn_defination["end_index"] = -1
             class_fn_defination["function_destination"] = "global"
+
+            # TODO:Should other StructInstances be freed after leaving a scope.
+            # Remove 'this*' StructInstance, so it doesn't mess up, as there can be different 'this*' parameters for different classes.
+            i = 0
+            for struct in instanced_struct_names:
+                if struct.struct_name == "this":
+                    # print(f"Removing this from {namespace_name}.")
+                    del instanced_struct_names[i]
+                    break
+                i += 1
 
         is_inside_user_defined_function = False
     elif parser.current_token() == lexer.Token.RETURN:
