@@ -3353,6 +3353,10 @@ while index < len(Lines):
             if has_parameters:
                 code += ","
 
+            is_fn_constructor_type = function_name == "__init__"
+            if is_fn_constructor_type:
+                structs_with_constructors[struct_name] = parameters
+
         if has_parameters:
             parameters_str = ",".join(parameters_combined_list)
             code += f"{parameters_str}"
