@@ -82,17 +82,20 @@ c_function print()
   printf("[");
   while (current != NULL) {
     if (current->data_type == STRING) {
-      printf("\"%s\" ", current->data.str_data);
+      printf("\"%s\"", current->data.str_data);
     } else {
       int data = current->data.int_data;
 
       @hook_begin("custom_integer_printer" "int" data)
-        printf("%d ", data);
+        printf("%d", data);
       @hook_end
 
     }
-    printf(",");
+    
     current = current->next;
+    if(current != NULL){
+      printf(", ");
+    }
   }
   printf("]\n");
 endc_function
