@@ -77,6 +77,53 @@ c_function __getitem__(index : int) -> Node:
   return *current;
 endc_function
 
+c_function pop(index : int) -> Node:
+  if (this->size == 0) {
+    printf("List is empty. Can't pop element.\n");
+    // return NULL;
+    exit(-1);    
+  }
+  
+  if (index < 0 || index >= this->size) {
+    printf("Index %d out of bounds(max : %d).\n", index, this->size - 1);
+    exit(-1);
+  }
+
+  Node *current = this->head;
+  Node *previous = NULL;
+
+  for (int i = 0; i < index; i++) {
+    previous = current;
+    current = current->next;
+  }
+
+  if (previous == NULL) {
+    // Popping the head.
+    this->head = current->next;
+    if (this->head == NULL) {
+      // The list is now empty.
+      this->tail = NULL;
+    }
+  } else {
+    previous->next = current->next;
+    if (current->next == NULL) {
+      // Popping the tail.
+      this->tail = previous;
+    }
+  }
+
+  this->size--;
+
+  Node popped_node = *current;
+  if (current->data_type == STRING) {
+    popped_node.data.str_data = strdup(current->data.str_data);
+    free(current->data.str_data);
+  }
+  free(current);
+  
+  return popped_node;
+endc_function
+
 c_function print()
   Node *current = this->head;
   printf("[");

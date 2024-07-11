@@ -94,21 +94,85 @@ void List__del__(struct List *this) {
 
 size_t Listlen(struct List *this) { return this->size; }
 
+Node List__getitem__(struct List *this, int index) {
+  if (index < 0 || index >= this->size) {
+    printf("Index %d out of bounds(max : %d).\n", index, this->size - 1);
+    exit(-1);
+  }
+
+  Node *current = this->head;
+  for (int i = 0; i < index; i++) {
+    current = current->next;
+  }
+
+  return *current;
+}
+
+Node Listpop(struct List *this, int index) {
+  if (this->size == 0) {
+    printf("List is empty. Can't pop element.\n");
+    // return NULL;
+    exit(-1);
+  }
+
+  if (index < 0 || index >= this->size) {
+    printf("Index %d out of bounds(max : %d).\n", index, this->size - 1);
+    exit(-1);
+  }
+
+  Node *current = this->head;
+  Node *previous = NULL;
+
+  for (int i = 0; i < index; i++) {
+    previous = current;
+    current = current->next;
+  }
+
+  if (previous == NULL) {
+    // Popping the head.
+    this->head = current->next;
+    if (this->head == NULL) {
+      // The list is now empty.
+      this->tail = NULL;
+    }
+  } else {
+    previous->next = current->next;
+    if (current->next == NULL) {
+      // Popping the tail.
+      this->tail = previous;
+    }
+  }
+
+  this->size--;
+
+  Node popped_node = *current;
+  if (current->data_type == STRING) {
+    popped_node.data.str_data = strdup(current->data.str_data);
+    free(current->data.str_data);
+  }
+  free(current);
+
+  return popped_node;
+}
+
 void Listprint(struct List *this) {
   Node *current = this->head;
   printf("[");
   while (current != NULL) {
     if (current->data_type == STRING) {
-      printf("\"%s\" ", current->data.str_data);
+      printf("\"%s\"", current->data.str_data);
     } else {
       int data = current->data.int_data;
 
       //@hook_begin("custom_integer_printer" "int" data)
-      printf("%d ", data);
+      printf("%d", data);
       //@hook_end
     }
-    printf(",");
+
     current = current->next;
+    if (current != NULL) {
+      printf(", ");
+    }
   }
   printf("]\n");
 }
@@ -120,15 +184,18 @@ void Listprint_hooked_custom_integer_printer(
   printf("[");
   while (current != NULL) {
     if (current->data_type == STRING) {
-      printf("\"%s\" ", current->data.str_data);
+      printf("\"%s\"", current->data.str_data);
     } else {
       int data = current->data.int_data;
 
       //
       p_custom_integer_printer(data);
     }
-    printf(",");
+
     current = current->next;
+    if (current != NULL) {
+      printf(", ");
+    }
   }
   printf("]\n");
 }
@@ -140,6 +207,7 @@ void Listappend_int(struct List *this, int p_value) {
   if (this->head == NULL) {
     this->head = int_node;
     this->tail = int_node;
+    this->size++;
     return;
   }
 
@@ -155,6 +223,7 @@ void Listappend_str(struct List *this, char *p_str) {
   if (this->head == NULL) {
     this->head = string_node;
     this->tail = string_node;
+    this->size++;
     return;
   }
 
@@ -181,6 +250,8 @@ int main() {
   Listappend_int(&test_list, 30);
   Listappend_int(&test_list, 40);
   Listappend_int(&test_list, 50);
+
+  Node node = Listpop(&test_list, 7);
 
   Listprint(&test_list);
 

@@ -27,6 +27,8 @@ int main() {
   test_list.append_int(40)
   test_list.append_int(50)
 
+  let node = test_list.pop(7)
+
   test_list.print()
 
   // DESTRUCTOR_CODE //
