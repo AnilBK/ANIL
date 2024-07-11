@@ -65,7 +65,7 @@ endc_function
 
 c_function __getitem__(index : int) -> Node:
   if (index < 0 || index >= this->size) {
-    printf("Index %d out of bounds(max : %d).\n", index, this->size);
+    printf("Index %d out of bounds(max : %d).\n", index, this->size - 1);
     exit(-1);
   }
     
@@ -125,6 +125,7 @@ c_function append_int(p_value : int)
   if (this->head == NULL) {
     this->head = int_node;
     this->tail = int_node;
+    this->size++;
     return;
   }
 
@@ -140,6 +141,7 @@ c_function append_str(p_str : str)
   if (this->head == NULL) {
     this->head = string_node;
     this->tail = string_node;
+    this->size++;
     return;
   }
 
