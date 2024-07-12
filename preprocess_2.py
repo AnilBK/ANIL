@@ -463,6 +463,12 @@ class Struct:
         return None
         # raise Exception(f"Function {p_fn_name} not found.")
 
+    def get_type_of_member(self, p_member_name) -> Optional[str]:
+        for struct_member in self.members:
+            if struct_member.member == p_member_name:
+                return struct_member.data_type
+        return None
+
     def print_member_fn_info(self):
         for fn in self.member_functions:
             fn.print_info()
