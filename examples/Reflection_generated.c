@@ -255,18 +255,21 @@ int main() {
   Listappend_str(&vector_class_members, "size");
   Listappend_str(&vector_class_members, "capacity");
 
+  Listappend_str(&vector_class_member_functions, "len");
+  Listappend_str(&vector_class_member_functions, "__getitem__");
   Listappend_str(&vector_class_member_functions, "__init__");
   Listappend_str(&vector_class_member_functions, "__del__");
   Listappend_str(&vector_class_member_functions, "push");
   Listappend_str(&vector_class_member_functions, "push");
   Listappend_str(&vector_class_member_functions, "allocate_more");
   Listappend_str(&vector_class_member_functions, "push_unchecked");
-  Listappend_str(&vector_class_member_functions, "print");
-  Listappend_str(&vector_class_member_functions, "print");
   Listappend_str(&vector_class_member_functions, "__contains__");
   Listappend_str(&vector_class_member_functions, "__contains__");
-  Listappend_str(&vector_class_member_functions, "len");
-  Listappend_str(&vector_class_member_functions, "__getitem__");
+  Listappend_str(&vector_class_member_functions, "print");
+  Listappend_str(&vector_class_member_functions, "print");
+  Listappend_str(&vector_class_member_functions, "print");
+  Listappend_str(&vector_class_member_functions, "print");
+  Listappend_str(&vector_class_member_functions, "print");
 
   Listappend_str(&list_instances, "vector_class_members");
   Listappend_str(&list_instances, "vector_class_member_functions");

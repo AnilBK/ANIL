@@ -176,6 +176,12 @@ struct Vector_String {
 };
 
 // template Vector<String> {
+size_t Vector_Stringlen(struct Vector_String *this) { return this->size; }
+
+struct String Vector_String__getitem__(struct Vector_String *this, int index) {
+  return *(this->arr + index);
+}
+
 void Vector_String__init__(struct Vector_String *this, int capacity) {
   // if we want to use instanced template type in fn body, we use following
   // syntax.
@@ -232,12 +238,6 @@ void Vector_Stringpush_unchecked(struct Vector_String *this,
   this->arr[this->size++] = value;
 }
 
-void Vector_Stringprint(struct Vector_String *this) {
-  for (size_t i = 0; i < this->size; ++i) {
-    printf("%s\n", this->arr[i].arr);
-  }
-}
-
 bool Vector_String__contains__(struct Vector_String *this,
                                struct String value) {
   for (size_t i = 0; i < this->size; ++i) {
@@ -248,10 +248,16 @@ bool Vector_String__contains__(struct Vector_String *this,
   return false;
 }
 
-size_t Vector_Stringlen(struct Vector_String *this) { return this->size; }
-
-struct String Vector_String__getitem__(struct Vector_String *this, int index) {
-  return *(this->arr + index);
+void Vector_Stringprint(struct Vector_String *this) {
+  printf("Vector<String> (size = %d, capacity = %d) : [", this->size,
+         this->capacity);
+  for (size_t i = 0; i < this->size; ++i) {
+    printf("\"%s\"", this->arr[i].arr);
+    if (i < this->size - 1) {
+      printf(", ");
+    }
+  }
+  printf("]\n");
 }
 
 // template Vector<String> }

@@ -95,6 +95,12 @@ struct Vector_String {
 };
 
 // template Vector<String> {
+size_t Vector_Stringlen(struct Vector_String *this) { return this->size; }
+
+struct String Vector_String__getitem__(struct Vector_String *this, int index) {
+  return *(this->arr + index);
+}
+
 void Vector_String__init__(struct Vector_String *this, int capacity) {
   // if we want to use instanced template type in fn body, we use following
   // syntax.
@@ -151,12 +157,6 @@ void Vector_Stringpush_unchecked(struct Vector_String *this,
   this->arr[this->size++] = value;
 }
 
-void Vector_Stringprint(struct Vector_String *this) {
-  for (size_t i = 0; i < this->size; ++i) {
-    printf("%s\n", this->arr[i].arr);
-  }
-}
-
 bool Vector_String__contains__(struct Vector_String *this,
                                struct String value) {
   for (size_t i = 0; i < this->size; ++i) {
@@ -167,10 +167,16 @@ bool Vector_String__contains__(struct Vector_String *this,
   return false;
 }
 
-size_t Vector_Stringlen(struct Vector_String *this) { return this->size; }
-
-struct String Vector_String__getitem__(struct Vector_String *this, int index) {
-  return *(this->arr + index);
+void Vector_Stringprint(struct Vector_String *this) {
+  printf("Vector<String> (size = %d, capacity = %d) : [", this->size,
+         this->capacity);
+  for (size_t i = 0; i < this->size; ++i) {
+    printf("\"%s\"", this->arr[i].arr);
+    if (i < this->size - 1) {
+      printf(", ");
+    }
+  }
+  printf("]\n");
 }
 
 // template Vector<String> }
@@ -305,6 +311,12 @@ struct Vector_char {
 };
 
 // template Vector<char> {
+size_t Vector_charlen(struct Vector_char *this) { return this->size; }
+
+char Vector_char__getitem__(struct Vector_char *this, int index) {
+  return *(this->arr + index);
+}
+
 void Vector_char__init__(struct Vector_char *this, int capacity) {
   // if we want to use instanced template type in fn body, we use following
   // syntax.
@@ -352,36 +364,6 @@ void Vector_charpush_unchecked(struct Vector_char *this, char value) {
   this->arr[this->size++] = value;
 }
 
-void Vector_charprint(struct Vector_char *this) {
-  // maybe print instanced vec name.
-  // instanced name should be passed as fn parameter ig.
-  // or add instance_name member silently to the struct itself.
-  // printf("@INSTANCE_NAME@\n");
-  /*
-
-  void Vector_print(struct Vector* this, const char* p_instance_name){
-  printf("%s\n", p_instance_name);
-  }
-  */
-
-  printf("Dynamic Array (size = %zu, capacity = %zu) : [", this->size,
-         this->capacity);
-  for (size_t i = 0; i < this->size; ++i) {
-    const char *type = "char";
-    if (strcmp(type, "float") == 0) {
-      printf("%f", this->arr[i]);
-    } else if (strcmp(type, "int") == 0) {
-      printf("%d", this->arr[i]);
-    } else if (strcmp(type, "char") == 0) {
-      printf("%c", this->arr[i]);
-    }
-    if (i < this->size - 1) {
-      printf(", ");
-    }
-  }
-  printf("]\n");
-}
-
 bool Vector_char__contains__(struct Vector_char *this, char value) {
   // This function is an overloaded function.
   // Here <> in function defination means the base overload.
@@ -393,10 +375,16 @@ bool Vector_char__contains__(struct Vector_char *this, char value) {
   return false;
 }
 
-size_t Vector_charlen(struct Vector_char *this) { return this->size; }
-
-char Vector_char__getitem__(struct Vector_char *this, int index) {
-  return *(this->arr + index);
+void Vector_charprint(struct Vector_char *this) {
+  printf("Vector<char> (size = %d, capacity = %d) : [", this->size,
+         this->capacity);
+  for (size_t i = 0; i < this->size; ++i) {
+    printf("\'%c\'", this->arr[i]);
+    if (i < this->size - 1) {
+      printf(", ");
+    }
+  }
+  printf("]\n");
 }
 
 // template Vector<char> }
