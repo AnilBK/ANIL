@@ -422,7 +422,7 @@ def get_global_function_by_name(p_fn_name: str):
     for fn in GlobalFunctions:
         if fn.fn_name == p_fn_name:
             return fn
-
+    return None
 
 class Struct:
     def __init__(self, p_struct_name: str, p_members: list) -> None:
@@ -1362,49 +1362,105 @@ while index < len(Lines):
         # To denote x = fn();
         GLOBAL_FUNCTION_CALL = 1
 
-    def _parse_function_call(target, assignment_fn_call=True):
+    def _parse_function_call(assignment_fn_call=True):
         # let str = str2[0]
-        #     ^^^   ^^^^ ^
-        #     |     |    |
-        #     |     |    .________ parameters
-        #     |     ._____________ target
+        #     ^^^        ^
+        #     |          |
+        #     |          .________ parameters
         #     .___________________ varname
 
         # assignment_fn_call to hint its let X = A.Y();
         # And not, just a function call like A.X();
 
-        instanced_struct_info = None
-        StructInfo = None
+        #            V We start parsing from here. 
+        # let expr = A.B.C.Function()
+        #            | ^ ^ child struct
+        #            ^ base struct
+        # let expr = A.Function()
+        # let expr = A.B.Function()
+        # let expr = Function()
+        #            ^^^^^^^^  fn_name
+
         fn_name_unmangled = ""
-
-        parsing_fn_call_type = ParsedFunctionCallType.STRUCT_FUNCTION_CALL
-
-        if is_global_function(target):
-            # let mangled_name = get_mangled_fn_name(class_name, fn_name);
-            #                   ^^^^^^^^^^^^^^^^^^^ target
-            parsing_fn_call_type = ParsedFunctionCallType.GLOBAL_FUNCTION_CALL
-        else:
-            instanced_struct_info = get_instanced_struct(target)
-            if instanced_struct_info != None:
-                parsing_fn_call_type = ParsedFunctionCallType.STRUCT_FUNCTION_CALL
-                StructInfo = instanced_struct_info.get_struct_defination()
-            else:
-                raise ValueError(f"{target} is neither a struct function call nor a global function call.")
-
-        # Parameters provided to a given function call.
-        # let str = stra.__contains__(strb)
-        #                             ^^^^ parameters
-        # For indexed member acess:
-        # let str = str2[0]
-        #                ^  parameters
-        parameters = []
-        fn_args = []
         return_type = ""
-        fn_name =  ""
-        args = None
+        member_access_string = ""
 
-        if parsing_fn_call_type == ParsedFunctionCallType.STRUCT_FUNCTION_CALL:
-            if parser.check_token(lexer.Token.LEFT_SQUARE_BRACKET):
+        pointer_access = "->"
+        fn_name_mangled = ""
+
+        args = None
+        parameters = None
+
+        base_struct_info = None
+        child_struct_info = None
+
+        # it is used to get mangled function name from a given instance.
+        # We can't get proper mangled name from struct defination so we need StructInstance.
+        struct_instance = None
+
+        while parser.has_tokens_remaining():
+            tk = parser.get_token()    
+
+            is_member_access_token = parser.check_token(lexer.Token.DOT)
+            if parser.check_token(lexer.Token.LEFT_ROUND_BRACKET):
+                fn_name_unmangled = tk
+                parameters = _read_parameters_within_round_brackets()
+                break
+            elif is_member_access_token or parser.check_token(lexer.Token.LEFT_SQUARE_BRACKET):
+                #            V ----------- tk
+                # let expr = A.B.C.Function()
+                #             ^
+
+                # let expr = A.Function()
+                #             ^
+                # In this case, 'A' is instanced struct, so we can get its defination.
+                # We haven't set 'base_struct_info' so, we can make this check to know
+                # that this is the base struct.
+                if base_struct_info is None:
+                    struct_instance = get_instanced_struct(tk)
+                    if struct_instance is None:
+                        raise Exception(f"{tk} isn't a instanced struct.")
+                    base_struct_info = struct_instance.get_struct_defination()
+                    child_struct_info = base_struct_info
+
+                    if struct_instance.is_pointer_type:
+                        member_access_string = f"{tk}"
+                        pointer_access = "->"
+                    else:
+                        member_access_string = f"&{tk}"
+                        pointer_access = "."
+                else:
+                    # let expr = A.B.Function()
+                    #               ^
+                    # We already have the defination for A.
+                    # This else branch is for struct members apart from the base struct like,
+                    # let expr = A.B.Function()
+                    #               ^
+                    # let expr = A.B.C.Function()
+                    #                 ^
+
+                    type_of_tk = child_struct_info.get_type_of_member(tk)
+                    if type_of_tk is None:
+                        raise Exception(f"Struct doesn't have member {tk}.")
+
+                    # Try to recreate the struct instance what it would be.
+                    struct_instance = StructInstance(
+                        type_of_tk,
+                        "tmp_struct_name",
+                        False,
+                        "",
+                        get_current_scope(),
+                    )
+
+                    child_struct_info = struct_instance.get_struct_defination()
+
+                    member_access_string += f"{pointer_access}{tk}"
+                    pointer_access = "."
+
+                if is_member_access_token:
+                    parser.consume_token(lexer.Token.DOT)
+                    continue
+
                 # For Dictionary Like items member acess.
                 # let test = TOKEN_MAP["Option"]
 
@@ -1422,7 +1478,7 @@ while index < len(Lines):
                     is_parameter_string_object = param_struct_info.struct_type == "String"
 
                 if is_parameter_string_object:
-                    get_item_fn_args = instanced_struct_info.get_fn_arguments("__getitem__")
+                    get_item_fn_args = param_struct_info.get_fn_arguments("__getitem__")
                     # Get the data type for the first function argument.
                     param_type = get_item_fn_args[0].data_type
                     expects_string_argument = param_type == "char*" or param_type == "str"
@@ -1440,36 +1496,39 @@ while index < len(Lines):
                         #                            ^^^^^^^^^ Just a placeholder,nothing special.
                         param = Parameter(m_param, m_param_type)
                         parameters = [param]
+                    args = get_item_fn_args
                 # [END] Automatic Conversion for String class
-            elif parser.check_token(lexer.Token.DOT):
-                # let str3 = str2.strip()
-                #                 ^^^^^   fn_name_unmangled
-                parser.next_token()
-                fn_name_unmangled = parser.get_token()
-                parameters = _read_parameters_within_round_brackets()
-            else:
-                raise Exception("Unimplemented Let Case.")
+                break
 
-            StructInfo.ensure_has_function(fn_name_unmangled, target)
+        parsing_fn_call_type = ParsedFunctionCallType.STRUCT_FUNCTION_CALL
 
-            args = StructInfo.get_function_arguments(fn_name_unmangled)
-            return_type = StructInfo.get_return_type_of_fn(fn_name_unmangled)
-            fn_name = instanced_struct_info.get_mangled_function_name(fn_name_unmangled)
-        elif parsing_fn_call_type == ParsedFunctionCallType.GLOBAL_FUNCTION_CALL:
-            fn_name = target #No need to mangle global functions.
-
-            m_fn = get_global_function_by_name(target)
+        if base_struct_info == None:
+            # let expr = Function()
+            #            ^^^^^^^^
+            # Just a global function call.
+            global_fn_name = fn_name_unmangled
+        
+            m_fn = get_global_function_by_name(global_fn_name)
+            if m_fn == None:
+                raise Exception(f"Symbol {global_fn_name} is not a global function.")
 
             args = m_fn.fn_arguments
             return_type = m_fn.return_type
-            parameters = _read_parameters_within_round_brackets()
+            fn_name_mangled = global_fn_name
+            parsing_fn_call_type = ParsedFunctionCallType.GLOBAL_FUNCTION_CALL
+        else:
+            args = child_struct_info.get_function_arguments(fn_name_unmangled)
+            return_type = child_struct_info.get_return_type_of_fn(fn_name_unmangled)
+            fn_name_mangled = struct_instance.get_mangled_function_name(fn_name_unmangled)
+            parsing_fn_call_type = ParsedFunctionCallType.STRUCT_FUNCTION_CALL
 
-        if args != None:
+        fn_args = []
+        if args is not None:
             fn_args = [arg.data_type for arg in args]
 
         if len(fn_args) != len(parameters):
             raise ValueError(
-                f'Expected {len(fn_args)} arguments for function "{fn_name}" but provided {len(parameters)} arguments.'
+                f'Expected {len(fn_args)} arguments for function "{fn_name_unmangled}" but provided {len(parameters)} arguments.'
             )
 
         parameters_quoted = []
@@ -1546,14 +1605,21 @@ while index < len(Lines):
             params = [parameter.param for parameter in parameters]
             parameters_str = ",".join(params)
 
+        # StringSplit(this, "\n") 
+        #             ^^^^ member_access_string
+        # StringSplit(&this->Car.get_name(), "\n") 
+        if "->" in member_access_string and member_access_string[0] != "&":
+            member_access_string = "&" + member_access_string
+
         return {
-            "fn_name": fn_name,
+            "fn_name": fn_name_mangled,
             "return_type": return_type,
             "has_parameters": has_parameters,
             "parameters_str": parameters_str,
-            "function_call_type" : parsing_fn_call_type
+            "function_call_type": parsing_fn_call_type,
+            "member_access_string": member_access_string
         }
-
+    
     def parse_access_struct_member(var_name, target):
         # let str = str2[0]
         #     ^^^   ^^^^ ^
@@ -1562,24 +1628,16 @@ while index < len(Lines):
         #     |     ._____________ target
         #     .___________________ varname
 
-        parse_result = _parse_function_call(target)
+        parse_result = _parse_function_call()
         fn_name = parse_result["fn_name"]
         return_type = parse_result["return_type"]
         has_parameters = parse_result["has_parameters"]
         parsed_fn_call_type = parse_result["function_call_type"]
-
+        member_access_string = parse_result["member_access_string"]
         assignment_code = f"{return_type} {var_name} = {fn_name}("
 
         if parsed_fn_call_type == ParsedFunctionCallType.STRUCT_FUNCTION_CALL:
-            instanced_struct_info = get_instanced_struct(target)
-            if instanced_struct_info == None:
-                raise Exception(
-                    "Internal Compiler Error: Performing function call on non-existent struct which should have been validated to exist by now."
-                )
-            # Pass a 'this' parameter.
-            if not instanced_struct_info.is_pointer_type:
-                assignment_code += f"&"
-            assignment_code += f"{target}"
+            assignment_code += f"{member_access_string}"
             if has_parameters:
                 assignment_code += ","
 
@@ -1870,23 +1928,28 @@ while index < len(Lines):
                 if instanced_struct_info != None:
                     # Struct type.
                     # if Line.startswith("import"){
-                    if parser.check_token(lexer.Token.DOT):
+                    if parser.has_tokens_remaining() and parser.check_token(lexer.Token.DOT):
                         # parser.next_token()
 
                         parser = Parser.Parser(Line)
                         # if Line.startswith("import"){
                         parser.next_token()
-                        parser.next_token()
+                        # parser.next_token()
 
-                        parse_result = _parse_function_call(variable, False)
+                        # if Line.startswith("import"){ <------Parse Function Call.
+                        # if this.tokens.len() > 0{     <------Parse member variable
+                        #                                      then the function call.
+
+                        parse_result = _parse_function_call(assignment_fn_call = False)
                         fn_name = parse_result["fn_name"]
                         return_type = parse_result["return_type"]
+                        member_access_string = parse_result["member_access_string"]
 
                         if parse_result["has_parameters"]:
                             parameters_str = parse_result["parameters_str"]
-                            output_code = f"{fn_name}(&{variable}, {parameters_str})"
+                            output_code = f"{fn_name}({member_access_string}, {parameters_str})"
                         else:
-                            output_code = f"{fn_name}(&{variable})"
+                            output_code = f"{fn_name}({member_access_string})"
                         term_type = "struct_function_call"
                     else:
                         term_type = "struct"
@@ -1953,7 +2016,6 @@ while index < len(Lines):
             rhs = parse_term()
 
             global parser
-            parser.consume_token(lexer.Token.LEFT_CURLY)
 
             if operators_as_str == "==" or operators_as_str == "!=":
                 negation_boolean_expression = operators_as_str == "!="
@@ -2187,27 +2249,23 @@ while index < len(Lines):
 
                     parser = Parser.Parser(Line)
                     # ctok.push(10)
-                    parser.next_token()
 
-                    parse_result = _parse_function_call(parsed_member, False)
+                    parse_result = _parse_function_call(assignment_fn_call = False)
                     fn_name = parse_result["fn_name"]
                     return_type = parse_result["return_type"]
-
-                    addr = ""
-                    if not instanced_struct_info.is_pointer_type:
-                        # Non-pointer objects should be passed with & for function calls.
-                        addr = "&"
+                    member_access_string = parse_result["member_access_string"]
 
                     if parse_result["has_parameters"]:
                         parameters_str = parse_result["parameters_str"]
-                        code = f"{fn_name}({addr}{var_name}, {parameters_str});"
+                        code = f"{fn_name}({member_access_string}, {parameters_str});"
+                        # code = f"{fn_name}({addr}{var_name}, {parameters_str});"
                     else:
                         if HOOKS_hook_fn_name != "":
-                            code = f"{fn_name}_hooked_{hook_fn_name}({addr}{var_name},{HOOKS_target_fn});"
+                            code = f"{fn_name}_hooked_{hook_fn_name}({member_access_string},{HOOKS_target_fn});"
                             HOOKS_hook_fn_name = ""
                             HOOKS_target_fn = ""
                         else:
-                            code = f"{fn_name}({addr}{var_name});"
+                            code = f"{fn_name}({member_access_string});"
 
                     LinesCache.append(f"{code}\n")
                 continue
@@ -2690,11 +2748,12 @@ while index < len(Lines):
                 #           | struct_type
                 struct_name = array_name
 
-                struct_type = parser.get_token()
+                struct_type = parser.current_token()
                 # print(f"struct type = {struct_type}")
 
                 StructInfo = get_struct_defination_of_type(struct_type)
                 if StructInfo != None:
+                    parser.next_token()
                     # We are creating a struct type.
                     parse_create_struct(struct_type, struct_name)
                 else:
@@ -2708,6 +2767,7 @@ while index < len(Lines):
                     if is_constexpr_dict:
                         #  let color = Color["Red"]
                         #                   ^
+                        parser.next_token()
                         actual_value = parse_constexpr_dictionary(target)
                         LinesCache.append(f"int {var_name} = {actual_value};\n")
                     else:
@@ -2717,8 +2777,8 @@ while index < len(Lines):
         increment_scope()
 
         parser.consume_token(lexer.Token.IF)
-
         code = boolean_expression()
+        parser.consume_token(lexer.Token.LEFT_CURLY)
 
         LinesCache.append(f"\nif({code}){{\n")
     elif check_token(lexer.Token.FOR):
@@ -3444,7 +3504,7 @@ while index < len(Lines):
     elif parser.current_token() == lexer.Token.RETURN:
         parser.consume_token(lexer.Token.RETURN)
 
-        return_name = parser.get_token()
+        return_name = boolean_expression()
 
         # return s
         #        ^  s shouldn't be freed, because it is returned.
