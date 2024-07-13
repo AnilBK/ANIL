@@ -18,6 +18,7 @@ file_names = [
     "examples\\vector_of_strings.c",
     "examples\\function_example.c",
     "Bootstrap\\lexer_test.c",
+    "Bootstrap\\Parser_test.c",
     "Bootstrap\\preprocess_test.c",
 ]
 
