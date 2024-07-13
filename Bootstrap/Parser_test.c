@@ -20,29 +20,43 @@ function __init__()
 endfunction
 
 function has_tokens_remaining() -> bool:
-    // return len(self.tokens) > 0
     return this.tokens.len() > 0
 endfunction
 
 function current_token() -> Node:
-    // return self.tokens[0]
     return this.tokens[0]
 endfunction
 
 function next_token():
-    // _ = self.tokens.pop(0)
     let node = this.tokens.pop(0)
 endfunction
 
 function get_token() -> Node:
-    // return self.tokens.pop(0)
     return this.tokens.pop(0)
 endfunction
 
-function check_token(token:int) -> bool:
+c_function check_token(token : int) -> bool:
     // return self.current_token() == token
-    // TODO : this.current_token() returns Node, so we cant make direct comparision with token. 
-    return false
+    // TODO : this.current_token() returns Node, so we cant make direct comparision with token in CPL. 
+    Node node = Parsercurrent_token(this);
+    if(node.data_type == INT){
+        return node.data.int_data == token;
+    }else{
+        return false;
+    }
+endc_function
+
+function match_token(token : int) -> bool:
+    if this.check_token(token){
+        return true
+    }else{
+        print("Expected token {token}.")
+    }
+endfunction
+
+function consume_token(p_token : int) -> bool:
+    this.match_token(p_token)
+    this.next_token()
 endfunction
 endnamespace
 ///*///

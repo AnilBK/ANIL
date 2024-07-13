@@ -625,30 +625,43 @@ struct Parser {
 void Parser__init__(struct Parser *this) { printf("Parser Constructor.\n"); }
 
 bool Parserhas_tokens_remaining(struct Parser *this) {
-  // return len(self.tokens) > 0
   return Listlen(&this->tokens) > 0;
 }
 
 Node Parsercurrent_token(struct Parser *this) {
-  // return self.tokens[0]
   return List__getitem__(&this->tokens, 0);
 }
 
 void Parsernext_token(struct Parser *this) {
-  // _ = self.tokens.pop(0)
   Node node = Listpop(&this->tokens, 0);
 }
 
-Node Parserget_token(struct Parser *this) {
-  // return self.tokens.pop(0)
-  return Listpop(&this->tokens, 0);
-}
+Node Parserget_token(struct Parser *this) { return Listpop(&this->tokens, 0); }
 
 bool Parsercheck_token(struct Parser *this, int token) {
   // return self.current_token() == token
   // TODO : this.current_token() returns Node, so we cant make direct
-  // comparision with token.
-  return false;
+  // comparision with token in CPL.
+  Node node = Parsercurrent_token(this);
+  if (node.data_type == INT) {
+    return node.data.int_data == token;
+  } else {
+    return false;
+  }
+}
+
+bool Parsermatch_token(struct Parser *this, int token) {
+
+  if (Parsercheck_token(this, token)) {
+    return true;
+  } else {
+    printf("Expected token %d.", token);
+  }
+}
+
+bool Parserconsume_token(struct Parser *this, int p_token) {
+  Parsermatch_token(this, p_token);
+  Parsernext_token(this);
 }
 
 ///*///
