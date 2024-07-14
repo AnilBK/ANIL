@@ -3530,6 +3530,8 @@ while index < len(Lines):
             raise Exception("Is already inside a namespace.Can't declare a new namespace.")
         parser.consume_token(lexer.Token.NAMESPACE)
         namespace_name = parser.get_token()
+        if not is_data_type_struct_object(namespace_name):
+            raise ValueError(f"\"{namespace_name}\" isn't a valid namespace name. Namespace name is one of the classes'(struct) name. Namespaces are for implementing the member functions for the provided class(struct).")
         is_inside_name_space = True
     elif check_token(lexer.Token.ENDNAMESPACE):
         parser.consume_token(lexer.Token.ENDNAMESPACE)
