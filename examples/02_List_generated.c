@@ -31,29 +31,7 @@ Node *createStringNode(char *p_str) {
   return newNode;
 }
 
-///*///
-
-///*///
-
-/*
-FIXME: The order in which normal C code and our custom code is generated is
-different. So this function will be emitted earlier than the actual List struct
-causing forward declaration errors. Temporarily we replace the entire function
-body at all the needed callsites.
-
-void ListinsertEnd(struct List *this, Node *newNode) {
-// Add // to everyline because without it the code generated below,
-// all goes to left & isn't formatted.
-//  if (this->head == NULL) {
-//    this->head = newNode;
-//    this->tail = newNode;
-//    return;
-//  }
-//
-//  this->tail->next = newNode;
-//  this->tail = newNode;
-}
-*/
+typedef Node *Nodeptr;
 
 ///*///
 
@@ -200,36 +178,34 @@ void Listprint_hooked_custom_integer_printer(
   printf("]\n");
 }
 
-void Listappend_int(struct List *this, int p_value) {
-  Node *int_node = createIntNode(p_value);
-  // ListinsertEnd(this, int_node);
-  //  TODO : Move the below code to separate function 'ListinsertEnd'.
+void ListinsertEnd(struct List *this, Nodeptr newNode) {
+  this->size++;
   if (this->head == NULL) {
-    this->head = int_node;
-    this->tail = int_node;
-    this->size++;
+    this->head = newNode;
+    this->tail = newNode;
     return;
   }
 
-  this->tail->next = int_node;
-  this->tail = int_node;
-  this->size++;
+  this->tail->next = newNode;
+  this->tail = newNode;
+}
+
+void Listappend_int(struct List *this, int p_value) {
+  Node *int_node = createIntNode(p_value);
+  ListinsertEnd(this, int_node);
 }
 
 void Listappend_str(struct List *this, char *p_str) {
   Node *string_node = createStringNode(strdup(p_str));
-  // ListinsertEnd(this, string_node);
-  //  TODO : Move the below code to separate function 'ListinsertEnd'.
-  if (this->head == NULL) {
-    this->head = string_node;
-    this->tail = string_node;
-    this->size++;
-    return;
-  }
+  ListinsertEnd(this, string_node);
+}
 
-  this->tail->next = string_node;
-  this->tail = string_node;
-  this->size++;
+void ListappendOVDint(struct List *this, int p_value) {
+  Listappend_int(this, p_value);
+}
+
+void ListappendOVDstr(struct List *this, char *p_value) {
+  Listappend_str(this, p_value);
 }
 
 int main() {
@@ -241,15 +217,21 @@ int main() {
   // The following line is also valid, as the above syntax is shorthand for the
   // statement below. let test_list = List{};
 
-  Listappend_str(&test_list, "Hello");
-  Listappend_str(&test_list, "World");
-  Listappend_str(&test_list, "Puppy");
+  // append is an overloaded function.
+  // append_str() and append_int() are explicit versions,
+  // which are called by the overloaded append functions.
+  // test_list.append_str("Hello")
+  // test_list.append_int(10)
 
-  Listappend_int(&test_list, 10);
-  Listappend_int(&test_list, 20);
-  Listappend_int(&test_list, 30);
-  Listappend_int(&test_list, 40);
-  Listappend_int(&test_list, 50);
+  ListappendOVDstr(&test_list, "Hello");
+  ListappendOVDstr(&test_list, "World");
+  ListappendOVDstr(&test_list, "Puppy");
+
+  ListappendOVDint(&test_list, 10);
+  ListappendOVDint(&test_list, 20);
+  ListappendOVDint(&test_list, 30);
+  ListappendOVDint(&test_list, 40);
+  ListappendOVDint(&test_list, 50);
 
   Node node = Listpop(&test_list, 7);
 
