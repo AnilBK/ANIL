@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 
 // Define a union for storing int or char*
 typedef union {
