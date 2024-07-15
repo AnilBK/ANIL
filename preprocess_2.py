@@ -200,8 +200,8 @@ class SymbolTable:
     def print_symbol_table(self):
         print("-------------------Symbol Table------------------")
         for scope in self.scope_stack:
-            for symbol in self.symbols[scope]:
-                print(f"{scope} {symbol}")
+            for name,symbol in self.symbols[scope].items():
+                print(f"{scope} {name} {symbol.data_type}")
         print("-------------------------------------------------")
 
     def declare_variable(self, name, p_type):
