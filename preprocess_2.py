@@ -131,6 +131,18 @@ def get_templated_mangled_fn_name(
     return p_struct_type + "_" + p_templated_data_type + p_fn_name
 
 
+def get_overloaded_mangled_fn_name(p_struct_type: str, p_fn_name: str, p_parameters: list) -> str:
+    # append(int) -> ListappendOVDint
+    # append(char*) -> ListappendOVDstr
+    function_name = get_mangled_fn_name(p_struct_type, p_fn_name)
+    function_name += "OVD"
+    for param in p_parameters:
+        data_type = param.data_type
+        if data_type == "char*":
+            function_name += "str"
+        else:
+            function_name += data_type
+    return function_name
 # UTILS END
 
 
@@ -401,6 +413,8 @@ class MemberFunction:
 
         self.is_overloaded_function = False
         self.overload_for_template_type = ""
+        
+        self.is_overloaded = False
 
     def is_destructor(self):
         return self.fn_name == "__del__"
@@ -441,8 +455,8 @@ class Struct:
     def has_destructor(self) -> bool:
         return any(fn.is_destructor() for fn in self.member_functions)
 
-    def has_member_fn(self, p_fn) -> bool:
-        return any(fn.fn_name == p_fn for fn in self.member_functions)
+    def has_member_fn(self, p_fn_name) -> bool:
+        return any(fn.fn_name == p_fn_name for fn in self.member_functions)
 
     def has_macro(self, p_def_name) -> bool:
         return any(macro_def.name == p_def_name for macro_def in self.macro_definations)
@@ -463,6 +477,35 @@ class Struct:
                 return fn.fn_arguments
         return None
         # raise Exception(f"Function {p_fn_name} not found.")
+
+    #Overloaded function Utilities.
+    def function_is_overloaded(self, p_fn_name):
+        for fn in self.member_functions:
+            if fn.fn_name == p_fn_name:
+                return fn.is_overloaded
+        return False
+
+
+    def set_functions_overloaded(self, p_fn_name : str):
+        for fn in self.member_functions:
+            if fn.fn_name == p_fn_name:
+                fn.is_overloaded = True
+            
+
+    def get_function_arguments_with_types(self, p_fn_name, provided_parameter_types:list):
+        # To get arguments of overloaded function.
+        possible_args = []
+        for fn in self.member_functions:
+            if fn.fn_name == p_fn_name:
+                args = fn.fn_arguments
+                args_list = [a.data_type for a in args]
+                if args_list == provided_parameter_types:
+                    return args
+                possible_args.append(args_list)
+        error_msg = f"Didn't find overloaded function({p_fn_name}) of provided types {provided_parameter_types}."
+        error_msg += f"Possible argument types for the overloaded functions are {possible_args}."
+        raise Exception(f"{error_msg}")
+
 
     def get_type_of_member(self, p_member_name) -> Optional[str]:
         for struct_member in self.members:
@@ -594,7 +637,12 @@ def add_fn_member_to_struct(p_struct_name: str, p_fn: MemberFunction):
     if struct_defination is None:
         raise ValueError(f"Struct type {p_struct_name} doesn't exist.")
     else:
+        fn_name = p_fn.fn_name
+        fn_already_exists = struct_defination.has_member_fn(fn_name)
+
         struct_defination.member_functions.append(p_fn)
+        if fn_already_exists:
+            struct_defination.set_functions_overloaded(fn_name)
 
 
 def add_fnbody_to_member_to_struct(p_struct_name: str, p_fn_name: str, p_fn_body: str):
@@ -1356,6 +1404,22 @@ while index < len(Lines):
         parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
 
         return parameters
+    
+    def _parameters_to_types_str_list(parameters : list) -> list:
+        strs = []
+        for param in parameters:
+            if param.param_type == ParameterType.NUMBER:
+                strs.append("int")
+            elif param.param_type == ParameterType.CHAR_TYPE:
+                strs.append("char")
+            elif param.param_type == ParameterType.RAW_STRING:
+                strs.append("char*")
+            elif param.param_type == ParameterType.VARIABLE:
+                strs.append(get_type_of_variable(param.param))
+            else:
+                raise Exception(f"Unimplemented for {param.param_type}.")
+        return strs
+
 
     class ParsedFunctionCallType(Enum):
         # To denote x = A.fn();
@@ -1518,10 +1582,28 @@ while index < len(Lines):
             fn_name_mangled = global_fn_name
             parsing_fn_call_type = ParsedFunctionCallType.GLOBAL_FUNCTION_CALL
         else:
-            args = child_struct_info.get_function_arguments(fn_name_unmangled)
             return_type = child_struct_info.get_return_type_of_fn(fn_name_unmangled)
             fn_name_mangled = struct_instance.get_mangled_function_name(fn_name_unmangled)
             parsing_fn_call_type = ParsedFunctionCallType.STRUCT_FUNCTION_CALL
+
+            if child_struct_info.function_is_overloaded(fn_name_unmangled):
+                provided_parameter_types = _parameters_to_types_str_list(parameters)
+                # Overloaded function name mangling.
+                #                          VVV OVD is a tag to denote overloaded function.
+                # append(int) -> ListappendOVDint
+                # append(char*) -> ListappendOVDstr
+                fn_name_mangled += "OVD"
+                for types in provided_parameter_types:
+                    if types == "char*":
+                        fn_name_mangled += "str"
+                    else:
+                        fn_name_mangled += types
+
+                args = child_struct_info.get_function_arguments_with_types(fn_name_unmangled,provided_parameter_types)
+                # print(f"Provided types by user : {provided_parameter_types}")
+            else:
+                args = child_struct_info.get_function_arguments(fn_name_unmangled)
+
 
         fn_args = []
         if args is not None:
@@ -3305,6 +3387,15 @@ while index < len(Lines):
         # if this function is a struct member function, it needs to be mangled below.
         func_name = function_name
 
+        #function append<>(p_value : int)
+        #               <> after function name indicate this is a templated function.
+        # TODO : This logic should not be required.
+        is_overloaded = False
+        if parser.check_token(lexer.Token.SMALLER_THAN):
+            parser.consume_token(lexer.Token.SMALLER_THAN)
+            is_overloaded = True
+            parser.consume_token(lexer.Token.GREATER_THAN)
+
         parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
 
         return_type = "void"
@@ -3319,6 +3410,8 @@ while index < len(Lines):
             )
             instance.is_pointer_type = True
             instance.should_be_freed = False
+
+            #is_overloaded = instance.get_struct_defination().function_is_overloaded(function_name)
 
             instanced_struct_names.append(instance)
             REGISTER_VARIABLE("this", f"{namespace_name}")
@@ -3410,7 +3503,10 @@ while index < len(Lines):
                 class_fn_defination["function_name"] = function_name
                 class_fn_defination["start_index"] = len(LinesCache)
 
-                func_name = get_mangled_fn_name(class_fn_defination["class_name"], function_name)
+                if is_overloaded:
+                    func_name = get_overloaded_mangled_fn_name(class_fn_defination["class_name"], function_name, parameters)
+                else:
+                    func_name = get_mangled_fn_name(class_fn_defination["class_name"], function_name)
 
         code = ""
         struct_name = class_fn_defination["class_name"]

@@ -17,15 +17,21 @@ int main() {
   // The following line is also valid, as the above syntax is shorthand for the statement below. 
   // let test_list = List{};
 
-  test_list.append_str("Hello")
-  test_list.append_str("World")
-  test_list.append_str("Puppy")
+  // append is an overloaded function.
+  // append_str() and append_int() are explicit versions, 
+  // which are called by the overloaded append functions.
+  // test_list.append_str("Hello")
+  // test_list.append_int(10)
 
-  test_list.append_int(10)
-  test_list.append_int(20)
-  test_list.append_int(30)
-  test_list.append_int(40)
-  test_list.append_int(50)
+  test_list.append("Hello")
+  test_list.append("World")
+  test_list.append("Puppy")
+
+  test_list.append(10)
+  test_list.append(20)
+  test_list.append(30)
+  test_list.append(40)
+  test_list.append(50)
 
   let node = test_list.pop(7)
 

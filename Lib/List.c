@@ -171,6 +171,14 @@ c_function append_str(p_str : str)
   Node *string_node = createStringNode(strdup(p_str));
   ListinsertEnd(this, string_node);
 endc_function
+
+function append<>(p_value : int)
+  this.append_int(p_value)
+endfunction
+
+function append<>(p_value : str)
+  this.append_str(p_value)
+endfunction
 endnamespace
 
 ///*///
