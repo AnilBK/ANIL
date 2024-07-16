@@ -3398,6 +3398,8 @@ while index < len(Lines):
 
         parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
 
+        increment_scope()
+
         return_type = "void"
 
         parameters = []
@@ -3450,7 +3452,6 @@ while index < len(Lines):
             parameters.append(MemberDataType(param_type, param_name, False))
             parameters_combined_list.append(f"{param_type} {param_name}")
 
-            increment_scope()
 
             p_type = param_type
             if "struct" in param_type:
