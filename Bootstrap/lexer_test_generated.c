@@ -35,6 +35,7 @@ typedef struct {
 ///*///
 
 #include <stdlib.h>
+#include <string.h>
 
 // Define a union for storing int or char*
 typedef union {
@@ -67,29 +68,7 @@ Node *createStringNode(char *p_str) {
   return newNode;
 }
 
-///*///
-
-///*///
-
-/*
-FIXME: The order in which normal C code and our custom code is generated is
-different. So this function will be emitted earlier than the actual List struct
-causing forward declaration errors. Temporarily we replace the entire function
-body at all the needed callsites.
-
-void ListinsertEnd(struct List *this, Node *newNode) {
-// Add // to everyline because without it the code generated below,
-// all goes to left & isn't formatted.
-//  if (this->head == NULL) {
-//    this->head = newNode;
-//    this->tail = newNode;
-//    return;
-//  }
-//
-//  this->tail->next = newNode;
-//  this->tail = newNode;
-}
-*/
+typedef Node *Nodeptr;
 
 ///*///
 
@@ -586,36 +565,34 @@ void Listprint_hooked_custom_integer_printer(
   printf("]\n");
 }
 
-void Listappend_int(struct List *this, int p_value) {
-  Node *int_node = createIntNode(p_value);
-  // ListinsertEnd(this, int_node);
-  //  TODO : Move the below code to separate function 'ListinsertEnd'.
+void ListinsertEnd(struct List *this, Nodeptr newNode) {
+  this->size++;
   if (this->head == NULL) {
-    this->head = int_node;
-    this->tail = int_node;
-    this->size++;
+    this->head = newNode;
+    this->tail = newNode;
     return;
   }
 
-  this->tail->next = int_node;
-  this->tail = int_node;
-  this->size++;
+  this->tail->next = newNode;
+  this->tail = newNode;
+}
+
+void Listappend_int(struct List *this, int p_value) {
+  Node *int_node = createIntNode(p_value);
+  ListinsertEnd(this, int_node);
 }
 
 void Listappend_str(struct List *this, char *p_str) {
   Node *string_node = createStringNode(strdup(p_str));
-  // ListinsertEnd(this, string_node);
-  //  TODO : Move the below code to separate function 'ListinsertEnd'.
-  if (this->head == NULL) {
-    this->head = string_node;
-    this->tail = string_node;
-    this->size++;
-    return;
-  }
+  ListinsertEnd(this, string_node);
+}
 
-  this->tail->next = string_node;
-  this->tail = string_node;
-  this->size++;
+void ListappendOVDint(struct List *this, int p_value) {
+  Listappend_int(this, p_value);
+}
+
+void ListappendOVDstr(struct List *this, char *p_value) {
+  Listappend_str(this, p_value);
 }
 
 struct Lexer {
@@ -761,7 +738,7 @@ struct List Lexerget_tokens(struct Lexer *this) {
         // Start of string.
         inside_string = true;
       }
-      Listappend_int(&tokens, 18);
+      ListappendOVDint(&tokens, 18);
     } else if (inside_string) {
 
       if (Char == '\\') {
@@ -779,11 +756,11 @@ struct List Lexerget_tokens(struct Lexer *this) {
 
       if (Dictionary__contains__(&KEYWORD_TOKENS, Stringc_str(&token))) {
         int ktk = Dictionary__getitem__(&KEYWORD_TOKENS, Stringc_str(&token));
-        Listappend_int(&tokens, ktk);
+        ListappendOVDint(&tokens, ktk);
       } else if (Dictionary__contains__(&CHARACTER_TOKENS,
                                         Stringc_str(&token))) {
         int ctk = Dictionary__getitem__(&CHARACTER_TOKENS, Stringc_str(&token));
-        Listappend_int(&tokens, ctk);
+        ListappendOVDint(&tokens, ctk);
       } else {
         Listappend_str(&tokens, Stringc_str(&token));
       }
@@ -798,19 +775,19 @@ struct List Lexerget_tokens(struct Lexer *this) {
           if (Dictionary__contains__(&KEYWORD_TOKENS, Stringc_str(&token))) {
             int ktk =
                 Dictionary__getitem__(&KEYWORD_TOKENS, Stringc_str(&token));
-            Listappend_int(&tokens, ktk);
+            ListappendOVDint(&tokens, ktk);
           } else if (Dictionary__contains__(&CHARACTER_TOKENS,
                                             Stringc_str(&token))) {
             int ctk =
                 Dictionary__getitem__(&CHARACTER_TOKENS, Stringc_str(&token));
-            Listappend_int(&tokens, ctk);
+            ListappendOVDint(&tokens, ctk);
           } else {
             Listappend_str(&tokens, Stringc_str(&token));
           }
         }
         char Char_promoted_4[2] = {Char, '\0'};
         int int_tk = Dictionary__getitem__(&CHARACTER_TOKENS, Char_promoted_4);
-        Listappend_int(&tokens, int_tk);
+        ListappendOVDint(&tokens, int_tk);
         String__reassign__(&token, "");
         continue;
       }
@@ -818,7 +795,7 @@ struct List Lexerget_tokens(struct Lexer *this) {
       if (Dictionary__contains__(&CHARACTER_TOKENS, Stringc_str(&token))) {
         int int_tk =
             Dictionary__getitem__(&CHARACTER_TOKENS, Stringc_str(&token));
-        Listappend_int(&tokens, int_tk);
+        ListappendOVDint(&tokens, int_tk);
         String__reassign__(&token, "");
         continue;
       }
@@ -834,10 +811,10 @@ struct List Lexerget_tokens(struct Lexer *this) {
 
     if (Dictionary__contains__(&KEYWORD_TOKENS, Stringc_str(&token))) {
       int ktk = Dictionary__getitem__(&KEYWORD_TOKENS, Stringc_str(&token));
-      Listappend_int(&tokens, ktk);
+      ListappendOVDint(&tokens, ktk);
     } else if (Dictionary__contains__(&CHARACTER_TOKENS, Stringc_str(&token))) {
       int ctk = Dictionary__getitem__(&CHARACTER_TOKENS, Stringc_str(&token));
-      Listappend_int(&tokens, ctk);
+      ListappendOVDint(&tokens, ctk);
     } else {
       Listappend_str(&tokens, Stringc_str(&token));
     }

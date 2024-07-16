@@ -145,21 +145,13 @@ function get_tokens() -> List:
     tokens.append_str(p_token)
   enddef  
 
-  def add_int_token(p_token):
-    tokens.append_int(p_token)
-  enddef  
-
-  def add_string_token(p_token):
-    tokens.append_str(p_token)
-  enddef  
-
   def add_token(p_token):
     if p_token in KEYWORD_TOKENS{
       let ktk = KEYWORD_TOKENS[p_token]
-      add_int_token ktk
+      tokens.append(ktk)
     }else if p_token in CHARACTER_TOKENS{
       let ctk = CHARACTER_TOKENS[p_token]
-      add_int_token ctk
+      tokens.append(ctk)
     }else{  
       add_token_raw p_token
     }
@@ -196,7 +188,7 @@ function get_tokens() -> List:
         # Start of string.
         inside_string = True
       }
-      tokens.append_int(Token["QUOTE"])
+      tokens.append(Token["QUOTE"])
     } else if inside_string{
         if Char == "\\"{
           escape_back_slash = True
@@ -217,14 +209,14 @@ function get_tokens() -> List:
           add_token token
         }
         let int_tk = CHARACTER_TOKENS[Char]
-        add_int_token int_tk
+        tokens.append(int_tk)
         token = ""
         continue;
       }
 
       if token in CHARACTER_TOKENS{
         let int_tk = CHARACTER_TOKENS[token]
-        add_int_token int_tk
+        tokens.append(int_tk)
         token = ""
         continue;
       }
