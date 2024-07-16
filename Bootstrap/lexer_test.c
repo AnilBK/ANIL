@@ -178,9 +178,9 @@ function get_tokens() -> List:
         # End of string.
         inside_string = False
 
-        # Single character tokens like = are tokenized by add_token(),
-        # so we use the following method.
-        # "=" the inner equals to shouldn't be tokenized.
+        // Single character tokens like = are tokenized by add_token(),
+        // so we use the following method.
+        // "=" the inner equals to shouldn't be tokenized.
         add_token_raw token
 
         token = ""
