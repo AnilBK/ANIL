@@ -7,6 +7,7 @@
 ///*///
 
 #include <stdlib.h>
+#include <string.h>
 
 // Define a union for storing int or char*
 typedef union {
@@ -39,29 +40,7 @@ Node *createStringNode(char *p_str) {
   return newNode;
 }
 
-///*///
-
-///*///
-
-/*
-FIXME: The order in which normal C code and our custom code is generated is
-different. So this function will be emitted earlier than the actual List struct
-causing forward declaration errors. Temporarily we replace the entire function
-body at all the needed callsites.
-
-void ListinsertEnd(struct List *this, Node *newNode) {
-// Add // to everyline because without it the code generated below,
-// all goes to left & isn't formatted.
-//  if (this->head == NULL) {
-//    this->head = newNode;
-//    this->tail = newNode;
-//    return;
-//  }
-//
-//  this->tail->next = newNode;
-//  this->tail = newNode;
-}
-*/
+typedef Node *Nodeptr;
 
 ///*///
 
@@ -208,36 +187,34 @@ void Listprint_hooked_custom_integer_printer(
   printf("]\n");
 }
 
-void Listappend_int(struct List *this, int p_value) {
-  Node *int_node = createIntNode(p_value);
-  // ListinsertEnd(this, int_node);
-  //  TODO : Move the below code to separate function 'ListinsertEnd'.
+void ListinsertEnd(struct List *this, Nodeptr newNode) {
+  this->size++;
   if (this->head == NULL) {
-    this->head = int_node;
-    this->tail = int_node;
-    this->size++;
+    this->head = newNode;
+    this->tail = newNode;
     return;
   }
 
-  this->tail->next = int_node;
-  this->tail = int_node;
-  this->size++;
+  this->tail->next = newNode;
+  this->tail = newNode;
+}
+
+void Listappend_int(struct List *this, int p_value) {
+  Node *int_node = createIntNode(p_value);
+  ListinsertEnd(this, int_node);
 }
 
 void Listappend_str(struct List *this, char *p_str) {
   Node *string_node = createStringNode(strdup(p_str));
-  // ListinsertEnd(this, string_node);
-  //  TODO : Move the below code to separate function 'ListinsertEnd'.
-  if (this->head == NULL) {
-    this->head = string_node;
-    this->tail = string_node;
-    this->size++;
-    return;
-  }
+  ListinsertEnd(this, string_node);
+}
 
-  this->tail->next = string_node;
-  this->tail = string_node;
-  this->size++;
+void ListappendOVDint(struct List *this, int p_value) {
+  Listappend_int(this, p_value);
+}
+
+void ListappendOVDstr(struct List *this, char *p_value) {
+  Listappend_str(this, p_value);
 }
 
 int main() {
