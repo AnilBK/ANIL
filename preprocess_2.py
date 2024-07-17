@@ -641,7 +641,12 @@ def add_fn_member_to_struct(p_struct_name: str, p_fn: MemberFunction):
         fn_already_exists = struct_defination.has_member_fn(fn_name)
 
         struct_defination.member_functions.append(p_fn)
-        if fn_already_exists:
+        # 'is_overloaded_function' is for class overloads.
+        # c_function<> push(value : T) & c_function<String> push(value : T)
+        #            ^                              ^^^^^^
+        # For the cases above, 'is_overloaded_function' is true.
+        # The overloading we are setting below is overloading by parameter types.  
+        if fn_already_exists and p_fn.is_overloaded_function == False:
             struct_defination.set_functions_overloaded(fn_name)
 
 
