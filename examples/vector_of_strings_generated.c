@@ -26,6 +26,14 @@ struct String {
   int capacity;
 };
 
+char *Stringc_str(struct String *this) { return this->arr; }
+
+size_t Stringlen(struct String *this) { return this->length; }
+
+char String__getitem__(struct String *this, int index) {
+  return *(this->arr + index);
+}
+
 void String__init__from_charptr(struct String *this, char *text,
                                 int p_text_length) {
   // p_text_length : Length of the string without the null terminator.
@@ -214,12 +222,6 @@ struct Vector_String Stringsplit(struct String *this, char delimeter) {
   return result;
 }
 
-size_t Stringlen(struct String *this) { return this->length; }
-
-char String__getitem__(struct String *this, int index) {
-  return *(this->arr + index);
-}
-
 bool String__contains__(struct String *this, char *substring) {
   return strstr(this->arr, substring) != NULL;
 }
@@ -227,12 +229,6 @@ bool String__contains__(struct String *this, char *substring) {
 bool String__eq__(struct String *this, char *pstring) {
   return strcmp(this->arr, pstring) == 0;
 }
-
-bool Stringis_of_length(struct String *this, int p_len) {
-  return strlen(this->arr) == p_len;
-}
-
-char *Stringc_str(struct String *this) { return this->arr; }
 
 void String__add__(struct String *this, char *pstring) {
   size_t new_length = strlen(this->arr) + strlen(pstring) + 1;

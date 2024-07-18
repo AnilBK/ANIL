@@ -8,6 +8,18 @@
 struct String{char* arr, int length, int capacity};
 
 namespace String
+c_function c_str() -> str:
+  return this->arr;
+endc_function
+
+c_function len() -> size_t:
+  return this->length;
+endc_function
+
+c_function __getitem__(index: int) -> char:
+  return *(this->arr + index);
+endc_function
+
 c_function __init__from_charptr(text: str, p_text_length: int)
   // p_text_length : Length of the string without the null terminator.
   this->arr = (char *)malloc((p_text_length + 1) * sizeof(char));
@@ -107,28 +119,12 @@ c_function split(delimeter: char) -> Vector<String>:
   return result;
 endc_function
 
-c_function len() -> size_t:
-  return this->length;
-endc_function
-
-c_function __getitem__(index: int) -> char:
-  return *(this->arr + index);
-endc_function
-
 c_function __contains__(substring: str) -> bool:
   return strstr(this->arr, substring) != NULL;
 endc_function
 
 c_function __eq__(pstring: str) -> bool:
   return strcmp(this->arr, pstring) == 0;
-endc_function
-
-c_function is_of_length(p_len: int) -> bool:
-  return strlen(this->arr) == p_len;
-endc_function
-
-c_function c_str() -> str:
-  return this->arr;
 endc_function
 
 c_function __add__(pstring: str)
