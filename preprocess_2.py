@@ -1962,6 +1962,77 @@ while index < len(Lines):
         # Shouldn't happen as the caller functions have already verified the presence of the dictionaries.
         raise ValueError(f"Constexpr dictionary {p_dict_name} is undefined.")
 
+    def parse_function_declaration():
+        # parse everything after function name.
+        # function append<>(p_value : int)
+        #          ^^^^^^^^^^^^^^^^^^^^^^^ 
+        return_type = "void"
+
+        parameters = []
+        parameters_combined_list = []
+
+        # function append<>(p_value : int)
+        #                <> after function name indicate this is a templated function.
+        # TODO : This logic should not be required.
+        is_overloaded = False
+        if parser.check_token(lexer.Token.SMALLER_THAN):
+            parser.consume_token(lexer.Token.SMALLER_THAN)
+            is_overloaded = True
+            parser.consume_token(lexer.Token.GREATER_THAN)
+
+        parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
+
+        while parser.has_tokens_remaining():
+            # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
+            #                                                               ^
+            if parser.check_token(lexer.Token.RIGHT_ROUND_BRACKET):
+                # function say()
+                #              ^
+                break
+
+            # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
+            #              ^
+            param_name = parser.get_token()
+
+            # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
+            #                     ^
+            parser.consume_token(lexer.Token.COLON)
+
+            # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
+            #                       ^
+            param_type = parse_data_type()
+            # print(f"Function Param Name : {param_name}, type : {param_type}")
+
+            if parser.has_tokens_remaining():
+                # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
+                #                            ^
+                # function say(Param1 : type1)
+                #                            ^
+                # If not reached the closing ), then expect a comma, to read another parameter.
+
+                if not parser.check_token(lexer.Token.RIGHT_ROUND_BRACKET):
+                    parser.consume_token(lexer.Token.COMMA)
+
+            parameters.append(MemberDataType(param_type, param_name, False))
+            parameters_combined_list.append(f"{param_type} {param_name}")
+
+        parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
+
+        # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN) -> return_type
+        if parser.has_tokens_remaining():
+            if parser.check_token(lexer.Token.MINUS):
+                parser.consume_token(lexer.Token.MINUS)
+                parser.consume_token(lexer.Token.GREATER_THAN)
+                return_type = parse_data_type()
+                parser.consume_token(lexer.Token.COLON)
+
+        return {
+            "return_type" : return_type,
+            "parameters" : parameters,
+            "is_overloaded" : is_overloaded,
+            "parameters_combined_list" : parameters_combined_list
+        }
+
     if is_inside_def and "enddef" in Line:
         if check_token(lexer.Token.ENDDEF):
             is_inside_def = False
@@ -3042,60 +3113,12 @@ while index < len(Lines):
 
         fn_name = parser.get_token()
 
-        return_type = "void"
+        function_declaration = parse_function_declaration()
 
-        # Other tokens are parameters.
-
-        parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
-
-        # Same Implementation as Token.FUNCTION.
-        parameters = []
-        parameters_combined_list = []
-
-        while parser.has_tokens_remaining():
-            # c_function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
-            #                                                               ^
-            if parser.check_token(lexer.Token.RIGHT_ROUND_BRACKET):
-                # c_function say()
-                #              ^
-                break
-
-            # c_function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
-            #              ^
-            param_name = parser.get_token()
-
-            # c_function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
-            #                     ^
-            parser.consume_token(lexer.Token.COLON)
-
-            # c_function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
-            #                       ^
-            param_type = parse_data_type()
-            # print(f"Function Param Name : {param_name}, type : {param_type}")
-
-            if parser.has_tokens_remaining():
-                # c_function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
-                #                            ^
-                # c_function say(Param1 : type1)
-                #                            ^
-                # If not reached the closing ), then expect a comma, to read another parameter.
-
-                if not parser.check_token(lexer.Token.RIGHT_ROUND_BRACKET):
-                    parser.consume_token(lexer.Token.COMMA)
-
-            parameters.append(MemberDataType(param_type, param_name, False))
-            parameters_combined_list.append(f"{param_type} {param_name}")
-
-        parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
-
-        # c_function say(Param1 : type1, Param2 : type2 ... ParamN : typeN) -> return_type:
-        if parser.has_tokens_remaining():
-            if parser.check_token(lexer.Token.MINUS):
-                parser.consume_token(lexer.Token.MINUS)
-                parser.consume_token(lexer.Token.GREATER_THAN)
-                return_type = parse_data_type()
-                parser.consume_token(lexer.Token.COLON)
-
+        return_type = function_declaration["return_type"]
+        parameters = function_declaration["parameters"]
+        parameters_combined_list = function_declaration["parameters_combined_list"]
+        is_overloaded = function_declaration["is_overloaded"]
 
         code = ""
 
@@ -3112,7 +3135,10 @@ while index < len(Lines):
         if is_struct_templated:
             should_write_fn_body = False
         else:
-            fn_name = get_mangled_fn_name(struct_name, fn_name)
+            if is_overloaded:
+                fn_name = get_overloaded_mangled_fn_name(struct_name, fn_name, parameters)
+            else:
+                fn_name = get_mangled_fn_name(struct_name, fn_name)
 
             StructInfo = get_struct_defination_of_type(return_type)
             if StructInfo is not None:
@@ -3398,28 +3424,20 @@ while index < len(Lines):
         # if this function is a struct member function, it needs to be mangled below.
         func_name = function_name
 
-        #function append<>(p_value : int)
-        #               <> after function name indicate this is a templated function.
-        # TODO : This logic should not be required.
-        is_overloaded = False
-        if parser.check_token(lexer.Token.SMALLER_THAN):
-            parser.consume_token(lexer.Token.SMALLER_THAN)
-            is_overloaded = True
-            parser.consume_token(lexer.Token.GREATER_THAN)
+        function_declaration = parse_function_declaration()
 
-        parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
+        return_type = function_declaration["return_type"]
+        parameters = function_declaration["parameters"]
+        parameters_combined_list = function_declaration["parameters_combined_list"]
+        is_overloaded = function_declaration["is_overloaded"]
 
         increment_scope()
-
-        return_type = "void"
-
-        parameters = []
-        parameters_combined_list = []
+        curr_scope = get_current_scope()
 
         if is_inside_name_space:
             #print(f"Registering this for {namespace_name}.")
             instance = StructInstance(
-                f"{namespace_name}", "this", False, "", get_current_scope()
+                f"{namespace_name}", "this", False, "", curr_scope
             )
             instance.is_pointer_type = True
             instance.should_be_freed = False
@@ -3429,54 +3447,8 @@ while index < len(Lines):
             instanced_struct_names.append(instance)
             REGISTER_VARIABLE("this", f"{namespace_name}")
 
-        while parser.has_tokens_remaining():
-            # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
-            #                                                               ^
-            if parser.check_token(lexer.Token.RIGHT_ROUND_BRACKET):
-                # function say()
-                #              ^
-                break
-
-            # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
-            #              ^
-            param_name = parser.get_token()
-
-            # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
-            #                     ^
-            parser.consume_token(lexer.Token.COLON)
-
-            # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
-            #                       ^
-            param_type = parse_data_type()
-            # print(f"Function Param Name : {param_name}, type : {param_type}")
-
-            if parser.has_tokens_remaining():
-                # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
-                #                            ^
-                # function say(Param1 : type1)
-                #                            ^
-                # If not reached the closing ), then expect a comma, to read another parameter.
-
-                if not parser.check_token(lexer.Token.RIGHT_ROUND_BRACKET):
-                    parser.consume_token(lexer.Token.COMMA)
-
-            parameters.append(MemberDataType(param_type, param_name, False))
-            parameters_combined_list.append(f"{param_type} {param_name}")
-
-        parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
-
-        # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN) -> return_type
-        if parser.has_tokens_remaining():
-            if parser.check_token(lexer.Token.MINUS):
-                parser.consume_token(lexer.Token.MINUS)
-                parser.consume_token(lexer.Token.GREATER_THAN)
-                return_type = parse_data_type()
-                parser.consume_token(lexer.Token.COLON)
-
-
         # Register the parameters so they can be used inside function body.
         # Mark them such that their destructors wont be called.
-        curr_scope = get_current_scope()
         for param in parameters:
             # This could be done in parameters parsing loop above,
             # but we are doing this here so that FUNCTION body is same as C_FUNCTION.
