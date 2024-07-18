@@ -53,7 +53,7 @@ c_function<String> push(value : T)
   // Duplicate a string object, to prevent dangling pointers,
   // as when a string moves out of a scope, it is freed.
   struct String str;
-  String__init__(&str, value.arr);
+  String__init__OVDstructString(&str, value);
 
    if (this->size == this->capacity) {
       this->capacity *= 2;

@@ -50,9 +50,14 @@ void String__init__from_charptr(struct String *this, char *text,
   this->capacity = p_text_length + 1;
 }
 
-void String__init__(struct String *this, char *text) {
+void String__init__OVDstr(struct String *this, char *text) {
   size_t p_text_length = strlen(text);
   String__init__from_charptr(this, text, p_text_length);
+}
+
+void String__init__OVDstructString(struct String *this, struct String text) {
+  size_t p_text_length = Stringlen(&text);
+  String__init__from_charptr(this, Stringc_str(&text), p_text_length);
 }
 
 void Stringclear(struct String *this) {
@@ -135,7 +140,7 @@ void Vector_Stringpush(struct Vector_String *this, struct String value) {
   // Duplicate a string object, to prevent dangling pointers,
   // as when a string moves out of a scope, it is freed.
   struct String str;
-  String__init__(&str, value.arr);
+  String__init__OVDstructString(&str, value);
 
   if (this->size == this->capacity) {
     this->capacity *= 2;
@@ -214,7 +219,7 @@ struct Vector_String Stringsplit(struct String *this, char delimeter) {
     char *remaining = &this->arr[delim_location + 1];
 
     struct String text;
-    String__init__(&text, remaining);
+    String__init__OVDstr(&text, remaining);
     Vector_Stringpush(&result, text);
   }
 
@@ -230,7 +235,7 @@ bool String__eq__(struct String *this, char *pstring) {
 }
 
 void String__add__(struct String *this, char *pstring) {
-  size_t new_length = strlen(this->arr) + strlen(pstring) + 1;
+  size_t new_length = this->length + strlen(pstring) + 1;
 
   if (new_length > this->capacity) {
     size_t new_capacity;
@@ -307,7 +312,7 @@ struct Vector_String string_split(struct String str) {
   Vector_String__init__(&lines, 5);
 
   struct String line;
-  String__init__(&line, "");
+  String__init__OVDstr(&line, "");
 
   size_t tmp_len_0 = Stringlen(&str);
   for (size_t i = 0; i < tmp_len_0; i++) {
@@ -340,7 +345,7 @@ int main() {
 
   ///*///
   struct String str;
-  String__init__(&str, "Hello");
+  String__init__OVDstr(&str, "Hello");
   StringprintLn(&str);
 
   Stringset_to_file_contents(&str, "fileexample.c");

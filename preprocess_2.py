@@ -141,7 +141,9 @@ def get_overloaded_mangled_fn_name(p_struct_type: str, p_fn_name: str, p_paramet
         if data_type == "char*":
             function_name += "str"
         else:
-            function_name += data_type
+            #"struct String", we dont want those spaces in final function name.
+            data_type_no_spaces = data_type.replace(" ", "")
+            function_name += data_type_no_spaces
     return function_name
 # UTILS END
 
@@ -386,7 +388,7 @@ class_fn_defination = {
     "function_name": "",
     "start_index": -1,
     "end_index": -1,
-    "function_destination":"global"#"global"/"class",wether function is defined as global function, or member function of a struct.
+    "function_destination": "global"#"global"/"class",wether function is defined as global function, or member function of a struct.
 }
 #wether we are inside function scope or not.
 is_inside_user_defined_function = False
@@ -1421,6 +1423,8 @@ while index < len(Lines):
                 strs.append("char*")
             elif param.param_type == ParameterType.VARIABLE:
                 strs.append(get_type_of_variable(param.param))
+            elif param.param_type == ParameterType.STRING_CLASS:
+                strs.append("struct String")
             else:
                 raise Exception(f"Unimplemented for {param.param_type}.")
         return strs
@@ -1602,7 +1606,9 @@ while index < len(Lines):
                     if types == "char*":
                         fn_name_mangled += "str"
                     else:
-                        fn_name_mangled += types
+                        #"struct String", we dont want those spaces in final function name.
+                        data_type_no_spaces = types.replace(" ", "")
+                        fn_name_mangled += data_type_no_spaces
 
                 args = child_struct_info.get_function_arguments_with_types(fn_name_unmangled,provided_parameter_types)
                 # print(f"Provided types by user : {provided_parameter_types}")

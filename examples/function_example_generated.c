@@ -51,9 +51,14 @@ void String__init__from_charptr(struct String *this, char *text,
   this->capacity = p_text_length + 1;
 }
 
-void String__init__(struct String *this, char *text) {
+void String__init__OVDstr(struct String *this, char *text) {
   size_t p_text_length = strlen(text);
   String__init__from_charptr(this, text, p_text_length);
+}
+
+void String__init__OVDstructString(struct String *this, struct String text) {
+  size_t p_text_length = Stringlen(&text);
+  String__init__from_charptr(this, Stringc_str(&text), p_text_length);
 }
 
 void Stringclear(struct String *this) {
@@ -136,7 +141,7 @@ void Vector_Stringpush(struct Vector_String *this, struct String value) {
   // Duplicate a string object, to prevent dangling pointers,
   // as when a string moves out of a scope, it is freed.
   struct String str;
-  String__init__(&str, value.arr);
+  String__init__OVDstructString(&str, value);
 
   if (this->size == this->capacity) {
     this->capacity *= 2;
@@ -215,7 +220,7 @@ struct Vector_String Stringsplit(struct String *this, char delimeter) {
     char *remaining = &this->arr[delim_location + 1];
 
     struct String text;
-    String__init__(&text, remaining);
+    String__init__OVDstr(&text, remaining);
     Vector_Stringpush(&result, text);
   }
 
@@ -231,7 +236,7 @@ bool String__eq__(struct String *this, char *pstring) {
 }
 
 void String__add__(struct String *this, char *pstring) {
-  size_t new_length = strlen(this->arr) + strlen(pstring) + 1;
+  size_t new_length = this->length + strlen(pstring) + 1;
 
   if (new_length > this->capacity) {
     size_t new_capacity;
@@ -307,7 +312,7 @@ void my_first_CPL_function() { printf("Hello World from function. \n"); }
 
 struct String get_format_specifier(struct String p_type) {
   struct String return_type_str;
-  String__init__(&return_type_str, "d");
+  String__init__OVDstr(&return_type_str, "d");
 
   if (String__eq__(&p_type, "char")) {
     String__reassign__(&return_type_str, "c");
@@ -325,7 +330,7 @@ struct String get_format_specifier(struct String p_type) {
 struct String get_mangled_fn_name(struct String p_struct_type,
                                   struct String p_fn_name) {
   struct String s;
-  String__init__(&s, Stringc_str(&p_struct_type));
+  String__init__OVDstructString(&s, p_struct_type);
   String__add__(&s, Stringc_str(&p_fn_name));
   return s;
 }
@@ -335,7 +340,7 @@ get_templated_mangled_fn_name(struct String p_struct_type1,
                               struct String p_fn_name1,
                               struct String p_templated_data_type1) {
   struct String s1;
-  String__init__(&s1, Stringc_str(&p_struct_type1));
+  String__init__OVDstructString(&s1, p_struct_type1);
   String__add__(&s1, "_");
   String__add__(&s1, Stringc_str(&p_templated_data_type1));
   String__add__(&s1, Stringc_str(&p_fn_name1));
@@ -348,18 +353,18 @@ int main() {
 
   ///*///
   struct String string;
-  String__init__(&string, "Hello World from String.\n");
+  String__init__OVDstr(&string, "Hello World from String.\n");
   Stringprint(&string);
 
   struct String s5;
-  String__init__(&s5, Stringc_str(&string));
+  String__init__OVDstructString(&s5, string);
 
   my_first_CPL_function();
 
   struct String class_name;
-  String__init__(&class_name, "String");
+  String__init__OVDstr(&class_name, "String");
   struct String fn_name;
-  String__init__(&fn_name, "__del__");
+  String__init__OVDstr(&fn_name, "__del__");
 
   struct String mangled_name = get_mangled_fn_name(class_name, fn_name);
   Stringprint(&mangled_name);

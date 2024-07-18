@@ -36,10 +36,15 @@ c_function __init__from_charptr(text: str, p_text_length: int)
   this->capacity = p_text_length + 1;
 endc_function
 
-c_function __init__(text: str)
+c_function __init__<>(text: str)
   size_t p_text_length = strlen(text);
   String__init__from_charptr(this, text, p_text_length);
 endc_function
+
+function __init__<>(text: String)
+  let p_text_length = text.len()
+  this.__init__from_charptr(text, p_text_length);
+endfunction
 
 c_function clear()
   this->arr = (char *)realloc(this->arr, sizeof(char));
@@ -112,7 +117,7 @@ c_function split(delimeter: char) -> Vector<String>:
     char *remaining = &this->arr[delim_location + 1];
 
     struct String text;
-    String__init__(&text, remaining);
+    String__init__OVDstr(&text, remaining);
     Vector_Stringpush(&result, text);
   }
 
@@ -128,8 +133,8 @@ c_function __eq__(pstring: str) -> bool:
 endc_function
 
 c_function __add__(pstring: str)
-  size_t new_length = strlen(this->arr) + strlen(pstring) + 1;
-
+  size_t new_length = this->length + strlen(pstring) + 1;
+  
   if(new_length > this->capacity){
     size_t new_capacity;
     if(this->capacity == 0){
