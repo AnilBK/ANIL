@@ -3457,23 +3457,6 @@ while index < len(Lines):
             parameters.append(MemberDataType(param_type, param_name, False))
             parameters_combined_list.append(f"{param_type} {param_name}")
 
-
-            p_type = param_type
-            if "struct" in param_type:
-                p_type = p_type.split("struct")[1]
-                p_type = p_type.strip()
-
-            # FIXME : Even variables which aren't structs are registered.
-            instance = StructInstance(
-                p_type, param_name, False, "", get_current_scope()
-            )
-            # Function parameters shouldn't be freed at the end of the scope.
-            # So, add a tag.
-            instance.should_be_freed = False
-
-            instanced_struct_names.append(instance)
-            REGISTER_VARIABLE(param_name, p_type)
-
         parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
 
         # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN) -> return_type
@@ -3483,6 +3466,33 @@ while index < len(Lines):
                 parser.consume_token(lexer.Token.GREATER_THAN)
                 return_type = parse_data_type()
                 parser.consume_token(lexer.Token.COLON)
+
+
+        # Register the parameters so they can be used inside function body.
+        # Mark them such that their destructors wont be called.
+        curr_scope = get_current_scope()
+        for param in parameters:
+            # This could be done in parameters parsing loop above,
+            # but we are doing this here so that FUNCTION body is same as C_FUNCTION.
+
+            param_type = param.data_type
+            param_name = param.member
+            if "struct" in param_type:
+                param_type = param_type.split("struct")[1]
+                param_type = param_type.strip()
+
+            # FIXME : Even variables which aren't structs are registered.
+            instance = StructInstance(
+                param_type, param_name, False, "", curr_scope
+            )
+
+            # Function parameters shouldn't be freed at the end of the scope.
+            # So, add a tag.
+            instance.should_be_freed = False
+
+            instanced_struct_names.append(instance)
+            REGISTER_VARIABLE(param_name, param_type)
+
 
         defining_fn_for_custom_class = False
         if parser.has_tokens_remaining():
