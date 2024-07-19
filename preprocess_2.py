@@ -1974,6 +1974,10 @@ while index < len(Lines):
         # function append<>(p_value : int)
         #                <> after function name indicate this is a templated function.
         # TODO : This logic should not be required.
+        # We need this hint so that when we write mangled function name immediately,
+        # we know that we should use overloaded fn name mangling convention.
+        # Otherwise, the first fn will have default name mangling convention,
+        # and, other overloaded fns will use overloaded fn name mangling.
         is_overloaded = False
         if parser.check_token(lexer.Token.SMALLER_THAN):
             parser.consume_token(lexer.Token.SMALLER_THAN)
