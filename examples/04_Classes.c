@@ -13,7 +13,7 @@ struct Rectangle{int length, int breadth};
 namespace Rectangle
 
 function area()
-  let area : int = 20;
+  let area : int = 20
   print("Area of the rectangle is {area}.\n")
 endfunction
 
