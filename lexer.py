@@ -48,6 +48,7 @@ class Token(Enum):
     RETURN = 44
     NAMESPACE = 45
     ENDNAMESPACE = 46
+    FRONT_SLASH = 47
 
 
 CHARACTER_TOKENS = {
@@ -72,6 +73,7 @@ CHARACTER_TOKENS = {
     "#": Token.HASH,
     "@": Token.AT,
     "!": Token.EXCLAMATION,
+    "/": Token.FRONT_SLASH,
 }
 
 
