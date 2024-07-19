@@ -943,10 +943,15 @@ while index < len(Lines):
         loop_counter_index = loop_indices[for_loop_depth % 26]
 
         temporary_var_name = f"tmp_len_{temp_arr_length_variable_count}"
+
+        addr = "&"
+        if instanced_struct_info.is_pointer_type:
+            addr = ""
+
         LinesCache.append(
-            f"size_t {temporary_var_name} = {length_fn_name}(&{array_name});\n"
+            f"size_t {temporary_var_name} = {length_fn_name}({addr}{array_name});\n"
             f"for (size_t {loop_counter_index} = 0; {loop_counter_index} < {temporary_var_name}; {loop_counter_index}++){{\n"
-            f"{return_type} {current_array_value_variable} = {getter_fn_name}(&{array_name}, {loop_counter_index});\n"
+            f"{return_type} {current_array_value_variable} = {getter_fn_name}({addr}{array_name}, {loop_counter_index});\n"            
         )
 
         REGISTER_VARIABLE(loop_counter_index, "size_t")
