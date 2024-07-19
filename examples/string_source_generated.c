@@ -77,6 +77,12 @@ bool Stringstartswith(struct String *this, char *prefix) {
   return strncmp(this->arr, prefix, strlen(prefix)) == 0;
 }
 
+struct String Stringsubstr(struct String *this, int start, int length) {
+  struct String text;
+  String__init__from_charptr(&text, &this->arr[start], length);
+  return text;
+}
+
 struct String Stringstrip(struct String *this) {
   //  char *str = "  Hello ";
   char *str = this->arr;
@@ -206,9 +212,9 @@ struct Vector_String Stringsplit(struct String *this, char delimeter) {
     if (this->arr[i] == delimeter) {
       int length = i - (delim_location + 1);
 
-      struct String text;
-      String__init__from_charptr(&text, &this->arr[delim_location + 1], length);
+      struct String text = Stringsubstr(this, delim_location + 1, length);
       Vector_Stringpush(&result, text);
+      String__del__(&text);
 
       delim_location = i;
     }
@@ -221,6 +227,7 @@ struct Vector_String Stringsplit(struct String *this, char delimeter) {
     struct String text;
     String__init__OVDstr(&text, remaining);
     Vector_Stringpush(&result, text);
+    String__del__(&text);
   }
 
   return result;
@@ -312,6 +319,9 @@ int main() {
   String__init__OVDstr(&str, "Hello");
   StringprintLn(&str);
 
+  struct String substr_str = Stringsubstr(&str, 0, 4);
+  StringprintLn(&substr_str);
+
   size_t tmp_len_0 = Stringlen(&str);
   for (size_t i = 0; i < tmp_len_0; i++) {
     char value = String__getitem__(&str, i);
@@ -361,6 +371,7 @@ int main() {
     printf("%f \n", value3);
   }
 
+  String__del__(&substr_str);
   String__del__(&str);
   ///*///
 

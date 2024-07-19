@@ -15,6 +15,9 @@ int main() {
   
   let str = String{"Hello"};
   str.printLn()
+
+  let substr_str = str.substr(0, 4);
+  substr_str.printLn()
   
   for value in str{
     print("{value}.\n")

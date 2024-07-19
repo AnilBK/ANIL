@@ -69,6 +69,12 @@ c_function startswith(prefix: str) -> bool:
 	return strncmp(this->arr, prefix, strlen(prefix)) == 0;
 endc_function
 
+c_function substr(start : int, length : int) -> String:
+  struct String text;
+  String__init__from_charptr(&text, &this->arr[start], length);
+  return text;    
+endc_function
+
 c_function strip() -> String:
   //  char *str = "  Hello ";
   char *str = this->arr;
@@ -104,9 +110,9 @@ c_function split(delimeter: char) -> Vector<String>:
     if (this->arr[i] == delimeter) {
       int length = i - (delim_location + 1);
 
-      struct String text;
-      String__init__from_charptr(&text, &this->arr[delim_location + 1], length);
+      struct String text = Stringsubstr(this, delim_location + 1, length);
       Vector_Stringpush(&result, text);
+      String__del__(&text);
 
       delim_location = i;
     }
@@ -119,6 +125,7 @@ c_function split(delimeter: char) -> Vector<String>:
     struct String text;
     String__init__OVDstr(&text, remaining);
     Vector_Stringpush(&result, text);
+    String__del__(&text);
   }
 
   return result;
