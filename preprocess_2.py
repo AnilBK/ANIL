@@ -348,6 +348,10 @@ def is_variable_int_type(p_var_name):
     return is_variable_of_type(p_var_name, "int")
 
 
+def is_variable_size_t_type(p_var_name):
+    return is_variable_of_type(p_var_name, "size_t")
+
+
 def is_variable_array_type(p_var_name):
     var_type = get_type_of_variable(p_var_name)
     if var_type == None:
@@ -944,6 +948,9 @@ while index < len(Lines):
             f"for (size_t {loop_counter_index} = 0; {loop_counter_index} < {temporary_var_name}; {loop_counter_index}++){{\n"
             f"{return_type} {current_array_value_variable} = {getter_fn_name}(&{array_name}, {loop_counter_index});\n"
         )
+
+        REGISTER_VARIABLE(loop_counter_index, "size_t")
+
 
         if "struct" in return_type:
             #               struct String
