@@ -1054,14 +1054,28 @@ while index < len(Lines):
 
         expr1 = parser.get_token()
 
+        is_negative = False
+        if expr1 == lexer.Token.MINUS:
+            is_negative = True
+
+            expr1 = parser.get_token()
+
+        return_value = None
+
         if is_constexpr_dictionary(expr1):
-            return parse_constexpr_dictionary(expr1)
-        elif is_variable_int_type(expr1):
-            return expr1
+            return_value = parse_constexpr_dictionary(expr1)
+        elif is_variable_int_type(expr1) or is_variable_size_t_type(expr1):
+            return_value = expr1
         else:
             if not expr1.isdigit():
                 raise ValueError(f"{expr1} isnot a number.")
-            return expr1
+            return_value = expr1
+
+        if is_negative:
+            return '-' + return_value
+        else:    
+            return return_value
+
 
     def parse_let(type_name, array_name):
         parser.consume_token(lexer.Token.EQUALS)
