@@ -1076,6 +1076,33 @@ while index < len(Lines):
         else:    
             return return_value
 
+    def parse_integer_expression():
+        expr = ""
+        while parser.has_tokens_remaining():
+            # a = 1
+            tk = parse_number()
+            expr += tk
+
+            if parser.has_tokens_remaining():
+                # a = 1 + 1
+                symbols = {
+                    lexer.Token.PLUS : "+",
+                    lexer.Token.MINUS : "-",
+                    lexer.Token.ASTERISK : "*",
+                    lexer.Token.FRONT_SLASH : "/"
+                }
+
+                current_tk = parser.current_token()
+                if current_tk in symbols:
+                    expr += symbols[current_tk]
+                    parser.next_token()
+                else:
+                    error_msg = f"Unexpected token \"{current_tk}\" in integer expression."
+                    error_msg += f"The following operators (+,-,*,/) are only supported."
+                    raise ValueError(error_msg)
+            else:
+                break
+        return expr
 
     def parse_let(type_name, array_name):
         parser.consume_token(lexer.Token.EQUALS)
@@ -2865,7 +2892,7 @@ while index < len(Lines):
 
             if parsing_POD_type:
                 if POD_type == "int":
-                    integer_value = parse_number()
+                    integer_value = parse_integer_expression()
                     LinesCache.append(f"{POD_type} {array_name} = {integer_value};\n")
                     REGISTER_VARIABLE(array_name, f"{POD_type}")
                     continue
