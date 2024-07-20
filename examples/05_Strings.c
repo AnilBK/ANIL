@@ -16,10 +16,9 @@ int main() {
 
   let str = String{"Hello World"};
   str.printLn()
-  
+
   str = "Reassign"
   str.printLn()
-
  
   let str2 = String{"Hi \n"};
   str2.print()
@@ -42,7 +41,7 @@ int main() {
     puts("Str is Hello World.");
   }
 
-  str += "New message appended at the end. "
+  str += "New message appended at the " + "end."
   str.printLn()
 
   str = ""
@@ -55,24 +54,22 @@ int main() {
   let str5 = String{str4};
   str5.printLn()
 
+  let substr_str = str4.substr(0, 6);
+  substr_str.printLn()
+  
+  print("Split Test: \n")
+  let split_str = String{"Splitting.with.dots."};
+  split_str.printLn()
+  let dot_split = split_str.split(".")
+  dot_split.print()
+
+  let split_str2 = String{"Splitting with Spaces."};
+  split_str2.printLn()
+  let space_split = split_str2.split(" ")
+  space_split.print();
+
   // DESTRUCTOR_CODE //
 
-
   ///*///
-      // clang-format on
-      // let str = String{"Hello World"};
-      // let str2 = str.strip();
-      /*
-
-      Note : Two Templated Structs in a class causes error when writing
-      __init__.
-      TODO ??
-
-      let string = Vector<char>{10};
-      string.push 65
-      string.push 66
-      string.push 67
-      string.print
-      */
-      return 0;
+  return 0;
 }

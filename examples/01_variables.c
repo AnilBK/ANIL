@@ -19,6 +19,20 @@ int main() {
   let gender : char = "M"
   print("The gender is {gender}. \n");
 
+  let arr<int> = [1, 2, 3, 4, 5, 10];
+  for value2 in arr{
+    print("{value2} \n")
+  }
+
+  if 10 in arr{
+    print("10 is in arr. \n")
+  }
+
+  let arr2<float> = [1, 2, 3, 4, 5, 10];
+  for value3 in arr2{
+    print("{value3} \n")
+  }
+
   // DESTRUCTOR_CODE //
   ///*///
   // clang-format on

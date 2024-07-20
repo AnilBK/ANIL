@@ -14,7 +14,7 @@ int main() {
   import Vector
   import String
 
-  let source_file = String{"../examples/string_source.c"};
+  let source_file = String{"../examples/01_variables.c"};
   #source_file.printLn()
 
   # output_file_name = source_file.split(".")[0] + "_generated.c"

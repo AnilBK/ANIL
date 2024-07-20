@@ -20,10 +20,10 @@ args = filename_parser.parse_args()
 # source_file = "examples\\03_Dictionary.c"
 # source_file = "examples\\04_Classes.c"
 # source_file = "examples\\04_b_Classes.c"
+# source_file = "examples\\05_Strings.c"
 
 # source_file = "examples\\vector_source.c"
 # source_file = "examples\\unique_ptr_source.c"
-# source_file = "examples\\string_class_source.c"
 # source_file = "examples\\initializer_list.c"
 # source_file = "examples\\Reflection.c"
 
@@ -32,14 +32,12 @@ args = filename_parser.parse_args()
 # source_file = "examples\\enumerate_source.c"
 # source_file = "examples\\parser_tests.c"
 
-# source_file = "examples\\string_source.c"
-# source_file = "examples\\string_split.c"
 # source_file = "examples\\fileexample.c"
 # source_file = "examples\\vector_of_strings.c"
 # source_file = "examples\\function_example.c"
 
 # source_file = "Bootstrap\\lexer_test.c"
-source_file = "Bootstrap\\Parser_test.c"
+# source_file = "Bootstrap\\Parser_test.c"
 # source_file = "Bootstrap\\preprocess_test.c"
 
 if args.filename:

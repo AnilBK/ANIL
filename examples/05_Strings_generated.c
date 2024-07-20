@@ -16,6 +16,7 @@
 
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 // IMPORTS //
 
@@ -24,6 +25,14 @@ struct String {
   int length;
   int capacity;
 };
+
+char *Stringc_str(struct String *this) { return this->arr; }
+
+size_t Stringlen(struct String *this) { return this->length; }
+
+char String__getitem__(struct String *this, int index) {
+  return *(this->arr + index);
+}
 
 void String__init__from_charptr(struct String *this, char *text,
                                 int p_text_length) {
@@ -42,9 +51,14 @@ void String__init__from_charptr(struct String *this, char *text,
   this->capacity = p_text_length + 1;
 }
 
-void String__init__(struct String *this, char *text) {
+void String__init__OVDstr(struct String *this, char *text) {
   size_t p_text_length = strlen(text);
   String__init__from_charptr(this, text, p_text_length);
+}
+
+void String__init__OVDstructString(struct String *this, struct String text) {
+  size_t p_text_length = Stringlen(&text);
+  String__init__from_charptr(this, Stringc_str(&text), p_text_length);
 }
 
 void Stringclear(struct String *this) {
@@ -62,6 +76,12 @@ void String__del__(struct String *this) { free(this->arr); }
 
 bool Stringstartswith(struct String *this, char *prefix) {
   return strncmp(this->arr, prefix, strlen(prefix)) == 0;
+}
+
+struct String Stringsubstr(struct String *this, int start, int length) {
+  struct String text;
+  String__init__from_charptr(&text, &this->arr[start], length);
+  return text;
 }
 
 struct String Stringstrip(struct String *this) {
@@ -94,6 +114,12 @@ struct Vector_String {
 };
 
 // template Vector<String> {
+size_t Vector_Stringlen(struct Vector_String *this) { return this->size; }
+
+struct String Vector_String__getitem__(struct Vector_String *this, int index) {
+  return *(this->arr + index);
+}
+
 void Vector_String__init__(struct Vector_String *this, int capacity) {
   // if we want to use instanced template type in fn body, we use following
   // syntax.
@@ -117,6 +143,12 @@ void Vector_String__del__(struct Vector_String *this) {
 }
 
 void Vector_Stringpush(struct Vector_String *this, struct String value) {
+  // Vector<String> Specialization:
+  // Duplicate a string object, to prevent dangling pointers,
+  // as when a string moves out of a scope, it is freed.
+  struct String str;
+  String__init__OVDstructString(&str, value);
+
   if (this->size == this->capacity) {
     this->capacity *= 2;
     this->arr = (struct String *)realloc(this->arr, this->capacity *
@@ -126,7 +158,7 @@ void Vector_Stringpush(struct Vector_String *this, struct String value) {
       exit(EXIT_FAILURE);
     }
   }
-  this->arr[this->size++] = value;
+  this->arr[this->size++] = str;
 }
 
 void Vector_Stringallocate_more(struct Vector_String *this, int n) {
@@ -144,12 +176,6 @@ void Vector_Stringpush_unchecked(struct Vector_String *this,
   this->arr[this->size++] = value;
 }
 
-void Vector_Stringprint(struct Vector_String *this) {
-  for (size_t i = 0; i < this->size; ++i) {
-    printf("%s\n", this->arr[i].arr);
-  }
-}
-
 bool Vector_String__contains__(struct Vector_String *this,
                                struct String value) {
   for (size_t i = 0; i < this->size; ++i) {
@@ -160,10 +186,16 @@ bool Vector_String__contains__(struct Vector_String *this,
   return false;
 }
 
-size_t Vector_Stringlen(struct Vector_String *this) { return this->size; }
-
-struct String Vector_String__getitem__(struct Vector_String *this, int index) {
-  return *(this->arr + index);
+void Vector_Stringprint(struct Vector_String *this) {
+  printf("Vector<String> (size = %d, capacity = %d) : [", this->size,
+         this->capacity);
+  for (size_t i = 0; i < this->size; ++i) {
+    printf("\"%s\"", this->arr[i].arr);
+    if (i < this->size - 1) {
+      printf(", ");
+    }
+  }
+  printf("]\n");
 }
 
 // template Vector<String> }
@@ -181,9 +213,9 @@ struct Vector_String Stringsplit(struct String *this, char delimeter) {
     if (this->arr[i] == delimeter) {
       int length = i - (delim_location + 1);
 
-      struct String text;
-      String__init__from_charptr(&text, &this->arr[delim_location + 1], length);
+      struct String text = Stringsubstr(this, delim_location + 1, length);
       Vector_Stringpush(&result, text);
+      String__del__(&text);
 
       delim_location = i;
     }
@@ -194,17 +226,12 @@ struct Vector_String Stringsplit(struct String *this, char delimeter) {
     char *remaining = &this->arr[delim_location + 1];
 
     struct String text;
-    String__init__(&text, remaining);
+    String__init__OVDstr(&text, remaining);
     Vector_Stringpush(&result, text);
+    String__del__(&text);
   }
 
   return result;
-}
-
-size_t Stringlen(struct String *this) { return this->length; }
-
-char String__getitem__(struct String *this, int index) {
-  return *(this->arr + index);
 }
 
 bool String__contains__(struct String *this, char *substring) {
@@ -215,14 +242,8 @@ bool String__eq__(struct String *this, char *pstring) {
   return strcmp(this->arr, pstring) == 0;
 }
 
-bool Stringis_of_length(struct String *this, int p_len) {
-  return strlen(this->arr) == p_len;
-}
-
-char *Stringc_str(struct String *this) { return this->arr; }
-
 void String__add__(struct String *this, char *pstring) {
-  size_t new_length = strlen(this->arr) + strlen(pstring) + 1;
+  size_t new_length = this->length + strlen(pstring) + 1;
 
   if (new_length > this->capacity) {
     size_t new_capacity;
@@ -287,37 +308,7 @@ void Stringset_to_file_contents(struct String *this, char *pfilename) {
 
 struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename) {
   Stringset_to_file_contents(this, pfilename);
-
-  // Uses the same implementation as Split.
-  char delimeter = '\n';
-
-  struct Vector_String result;
-  Vector_String__init__(&result, 10);
-
-  int delim_location = -1;
-
-  int len = this->length;
-  for (int i = 0; i < len; i++) {
-    if (this->arr[i] == delimeter) {
-      int length = i - (delim_location + 1);
-
-      struct String text;
-      String__init__from_charptr(&text, &this->arr[delim_location + 1], length);
-      Vector_Stringpush(&result, text);
-
-      delim_location = i;
-    }
-  }
-
-  // Add remaining string.
-  if (delim_location + 1 < len) {
-    char *remaining = &this->arr[delim_location + 1];
-
-    struct String text;
-    String__init__(&text, remaining);
-    Vector_Stringpush(&result, text);
-  }
-
+  struct Vector_String result = Stringsplit(this, '\n');
   return result;
 }
 
@@ -325,27 +316,80 @@ int main() {
 
   ///*///
 
-  printf("Split Test: \n");
-
   struct String str;
-  String__init__(&str, "Splitting.with.dots.");
+  String__init__OVDstr(&str, "Hello World");
   StringprintLn(&str);
 
-  struct Vector_String split = Stringsplit(&str, '.');
-  Vector_Stringprint(&split);
+  String__reassign__(&str, "Reassign");
+  StringprintLn(&str);
 
   struct String str2;
-  String__init__(&str2, "Splitting with Spaces.");
-  StringprintLn(&str2);
+  String__init__OVDstr(&str2, "Hi \n");
+  Stringprint(&str2);
 
-  struct Vector_String space_split = Stringsplit(&str2, ' ');
+  struct String str3 = Stringstrip(&str2);
+  StringprintLn(&str3);
+
+  size_t len = Stringlen(&str3);
+  printf("Length of the string is : %llu. \n", len);
+
+  size_t tmp_len_0 = Stringlen(&str);
+  for (size_t i = 0; i < tmp_len_0; i++) {
+    char val = String__getitem__(&str, i);
+    printf("%c \n", val);
+  }
+
+  if (String__contains__(&str, "Wor")) {
+    printf("Wor is in str. \n");
+  }
+
+  if (String__eq__(&str, "Hello World")) {
+    puts("Str is Hello World.");
+  }
+
+  String__add__(&str, "New message appended at the ");
+  String__add__(&str, "end.");
+  StringprintLn(&str);
+
+  String__reassign__(&str, "");
+
+  size_t len4 = Stringlen(&str);
+  printf("Length of the string is : %llu. \n", len4);
+  StringprintLn(&str);
+
+  struct String str4;
+  String__init__OVDstr(&str4, "String constructed from another string. \n");
+  struct String str5;
+  String__init__OVDstructString(&str5, str4);
+  StringprintLn(&str5);
+
+  struct String substr_str = Stringsubstr(&str4, 0, 6);
+  StringprintLn(&substr_str);
+
+  printf("Split Test: \n");
+  struct String split_str;
+  String__init__OVDstr(&split_str, "Splitting.with.dots.");
+  StringprintLn(&split_str);
+  struct Vector_String dot_split = Stringsplit(&split_str, '.');
+  Vector_Stringprint(&dot_split);
+
+  struct String split_str2;
+  String__init__OVDstr(&split_str2, "Splitting with Spaces.");
+  StringprintLn(&split_str2);
+  struct Vector_String space_split = Stringsplit(&split_str2, ' ');
   Vector_Stringprint(&space_split);
 
   Vector_String__del__(&space_split);
+  String__del__(&split_str2);
+  Vector_String__del__(&dot_split);
+  String__del__(&split_str);
+  String__del__(&substr_str);
+  String__del__(&str5);
+  String__del__(&str4);
+  String__del__(&str3);
   String__del__(&str2);
-  Vector_String__del__(&split);
   String__del__(&str);
-  ///*///
 
+  ///*///
   return 0;
 }

@@ -15,6 +15,34 @@ int main() {
   char gender = 'M';
   printf("The gender is %c. \n", gender);
 
+  int arr[] = {1, 2, 3, 4, 5, 10};
+  unsigned int arr_array_size = 6;
+
+  for (unsigned int i = 0; i < arr_array_size; i++) {
+    int value2 = arr[i];
+    printf("%d \n", value2);
+  }
+
+  bool arr__contains__10_0 = false;
+  for (unsigned int i = 0; i < arr_array_size; i++) {
+    if (arr[i] == 10) {
+      arr__contains__10_0 = true;
+      break;
+    }
+  }
+
+  if (arr__contains__10_0) {
+    printf("10 is in arr. \n");
+  }
+
+  float arr2[] = {1, 2, 3, 4, 5, 10};
+  unsigned int arr2_array_size = 6;
+
+  for (unsigned int i = 0; i < arr2_array_size; i++) {
+    float value3 = arr2[i];
+    printf("%f \n", value3);
+  }
+
   ///*///
 
   return 0;

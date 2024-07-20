@@ -316,7 +316,7 @@ int main() {
   ///*///
 
   struct String source_file;
-  String__init__OVDstr(&source_file, "../examples/string_source.c");
+  String__init__OVDstr(&source_file, "../examples/01_variables.c");
   // source_file.printLn()
 
   // output_file_name = source_file.split(".")[0] + "_generated.c"
