@@ -33,6 +33,23 @@ int main() {
     print("{value3} \n")
   }
 
+  for i in range(1..10){
+    print("{i}\n")
+  }
+
+  for i in range(1..10,2){
+    print("{i}\n")
+  }
+
+  for i in range(1..=10){
+    print("{i}\n")
+  }
+
+  for i in range(1..=10,2){
+    print("{i}\n")
+  }
+
+
   // DESTRUCTOR_CODE //
   ///*///
   // clang-format on

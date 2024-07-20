@@ -3037,8 +3037,7 @@ while index < len(Lines):
             parser.consume_token(lexer.Token.ENUMERATE)
 
         array_name = parser.get_token()
-        parser.match_token(lexer.Token.LEFT_CURLY)
-
+        
         if is_enumerated_for_loop:
             create_array_enumerator(
                 array_name, ranged_index_item_variable, current_array_value_variable
@@ -3050,8 +3049,58 @@ while index < len(Lines):
                 create_array_iterator_from_struct(
                     array_name, current_array_value_variable
                 )
+            elif array_name == "range":
+                # If we have some list named range, then it will be parsed earlier above ^^^.
+                # for i in range(1..10){    -> 0 >= i < 10
+                # for i in range(1..10,2){  -> 0 >= i < 10
+                # for i in range(1..=10,2){ -> 0 >= i <= 10
+                #                       ^     step
+                #                    ^        stop
+                #                ^            start
+                parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
+
+                includes_stop = False
+                step = '1'
+
+                start = parse_number()
+
+                parser.consume_token(lexer.Token.DOT)
+                parser.consume_token(lexer.Token.DOT)
+
+                if parser.check_token(lexer.Token.EQUALS):
+                    # for i in range(1..=10,2){ -> 0 >= i <= 10
+                    #                   ^                
+                    parser.next_token()
+                    includes_stop = True
+                
+                stop = parse_number()
+
+                # for i in range(1..10,2){  -> 0 >= i < 10
+                #                     ^
+                if parser.check_token(lexer.Token.COMMA):
+                    parser.next_token()
+
+                    step = parse_number()
+
+                parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
+
+                stopping_condition = "<"
+                if includes_stop:
+                    stopping_condition += "="
+
+                increment_operation = "++"
+                if step != '1':
+                    increment_operation = f"+={step}"
+
+                LinesCache.append(
+                    f"for (size_t {current_array_value_variable} = {start}; {current_array_value_variable} {stopping_condition} {stop}; {current_array_value_variable}{increment_operation}){{\n"
+                )
+                REGISTER_VARIABLE(current_array_value_variable, "size_t")
             else:
                 create_normal_array_iterator(array_name, current_array_value_variable)
+        
+        parser.match_token(lexer.Token.LEFT_CURLY)
+        
     elif check_token(lexer.Token.STRUCT):
         # % struct Point {T x, T y };
         parser.consume_token(lexer.Token.STRUCT)

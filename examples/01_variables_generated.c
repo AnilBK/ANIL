@@ -43,6 +43,22 @@ int main() {
     printf("%f \n", value3);
   }
 
+  for (size_t i = 1; i < 10; i++) {
+    printf("%llu\n", i);
+  }
+
+  for (size_t i = 1; i < 10; i += 2) {
+    printf("%llu\n", i);
+  }
+
+  for (size_t i = 1; i <= 10; i++) {
+    printf("%llu\n", i);
+  }
+
+  for (size_t i = 1; i <= 10; i += 2) {
+    printf("%llu\n", i);
+  }
+
   ///*///
 
   return 0;
