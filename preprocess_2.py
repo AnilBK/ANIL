@@ -774,7 +774,7 @@ temp_char_promoted_to_string_variable_count = 0
 # like i,j,k...z,a..i
 # First scope will use i.
 # If we create another for within already created i loop, we now use j index and so on.
-for_loop_depth = -1
+for_loop_depth = 0
 
 # Constant Expressions Related Stuffs.
 class ConstexprDictionaryType:
@@ -892,77 +892,22 @@ while index < len(Lines):
         REGISTER_VARIABLE(current_array_value_variable, array_type)
 
     def create_array_iterator_from_struct(array_name, current_array_value_variable):
-        instanced_struct_info = get_instanced_struct(array_name)
-        if instanced_struct_info == None:
-            # Shouldn't happen, as the caller function validates it before calling this function.
-            raise Exception("Undefined struct.")
-
-        StructInfo = instanced_struct_info.get_struct_defination()
-
-        getter_fn = "__getitem__"
-        len_fn = "len"
-
-        fns_required_for_iteration = [getter_fn, len_fn]
-        for fn in fns_required_for_iteration:
-            StructInfo.ensure_has_function(fn, array_name)
-
-        return_type = StructInfo.get_return_type_of_fn(getter_fn)
-
-        getter_fn_name = instanced_struct_info.get_mangled_function_name(getter_fn)
-        length_fn_name = instanced_struct_info.get_mangled_function_name(len_fn)
-
-        if instanced_struct_info.is_templated_instance():
-            # For Vector<char>, the return type is char.
-            # This return type, is used for individual loop item.
-            return_type = instanced_struct_info.templated_data_type
-
-            if is_data_type_struct_object(return_type):
-                # For Vector<String>, the String here is of struct type.
-                # TODO : templated_data_type should probably be 'struct String' instead of just 'String' to avoid all this comparision.
-                return_type = f"struct {return_type}"
-
         global temp_arr_length_variable_count
-        global LinesCache
-
         global for_loop_depth
 
         loop_indices = "ijklmnopqrstuvwxyzabcdefgh"
         loop_counter_index = loop_indices[for_loop_depth % 26]
 
-        temporary_var_name = f"tmp_len_{temp_arr_length_variable_count}"
+        temporary_len_var_name = f"tmp_len_{temp_arr_length_variable_count}"
 
-        addr = "&"
-        if instanced_struct_info.is_pointer_type:
-            addr = ""
+        # Emit CPL code to perform looping.
+        # This line will be parsed by the compiler in next line.
+        l1 = f"let {temporary_len_var_name} = {array_name}.len()\n"
+        l2 = f"for {loop_counter_index} in range(0..{temporary_len_var_name}){{\n"
+        l3 = f"let {current_array_value_variable} = {array_name}[{loop_counter_index}]\n"
+        code = [l1, l2, l3]
 
-        LinesCache.append(
-            f"size_t {temporary_var_name} = {length_fn_name}({addr}{array_name});\n"
-            f"for (size_t {loop_counter_index} = 0; {loop_counter_index} < {temporary_var_name}; {loop_counter_index}++){{\n"
-            f"{return_type} {current_array_value_variable} = {getter_fn_name}({addr}{array_name}, {loop_counter_index});\n"            
-        )
-
-        REGISTER_VARIABLE(loop_counter_index, "size_t")
-
-
-        if "struct" in return_type:
-            #               struct String
-            # return type   ^^^^^^^^^^^^^
-            # raw_return_type      ^^^^^^
-            raw_return_type = return_type.split("struct")[1].strip()
-
-            global instanced_struct_names
-            instanced_struct_names.append(
-                StructInstance(
-                    raw_return_type,
-                    current_array_value_variable,
-                    False,
-                    "",
-                    get_current_scope(),
-                )
-            )
-
-        REGISTER_VARIABLE(current_array_value_variable, return_type)
-        # TODO : Important :: This should be freed after current scope.
+        insert_intermediate_lines(index, code)
 
         temp_arr_length_variable_count += 1
 
@@ -3035,6 +2980,11 @@ while index < len(Lines):
             if array_name in string_variable_names:
                 create_string_iterator(array_name)
             elif is_instanced_struct(array_name):
+                # This generates new CPL code which creates a for loop(which makes a new scope).
+                # We already have created a scope above by increment scope.
+                # We call decrement_scope() to compensate that.
+                for_loop_depth -= 1
+                decrement_scope()
                 create_array_iterator_from_struct(
                     array_name, current_array_value_variable
                 )
