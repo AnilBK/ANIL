@@ -607,7 +607,27 @@ struct Parser {
   struct List tokens;
 };
 
-void Parser__init__(struct Parser *this) { printf("Parser Constructor.\n"); }
+void Parser__init__(struct Parser *this) {
+  printf("Parser Constructor.\n");
+
+  ListappendOVDint(&this->tokens, 0);
+  ListappendOVDstr(&this->tokens, "arr");
+  ListappendOVDint(&this->tokens, 1);
+  ListappendOVDint(&this->tokens, 2);
+  ListappendOVDstr(&this->tokens, "1");
+  ListappendOVDint(&this->tokens, 5);
+  ListappendOVDstr(&this->tokens, "2");
+  ListappendOVDint(&this->tokens, 5);
+  ListappendOVDstr(&this->tokens, "3");
+  ListappendOVDint(&this->tokens, 5);
+  ListappendOVDstr(&this->tokens, "4");
+  ListappendOVDint(&this->tokens, 5);
+  ListappendOVDstr(&this->tokens, "5");
+  ListappendOVDint(&this->tokens, 3);
+  ListappendOVDint(&this->tokens, 4);
+  ListappendOVDint(&this->tokens, 8);
+  ListappendOVDint(&this->tokens, 0);
+}
 
 bool Parserhas_tokens_remaining(struct Parser *this) {
   return Listlen(&this->tokens) > 0;
@@ -623,7 +643,7 @@ void Parsernext_token(struct Parser *this) {
 
 Node Parserget_token(struct Parser *this) { return Listpop(&this->tokens, 0); }
 
-bool Parsercheck_token(struct Parser *this, int token) {
+bool Parsercheck_tokenOVDint(struct Parser *this, int token) {
   // return self.current_token() == token
   // TODO : this.current_token() returns Node, so we cant make direct
   // comparision with token in CPL.
@@ -635,12 +655,22 @@ bool Parsercheck_token(struct Parser *this, int token) {
   }
 }
 
+bool Parsercheck_tokenOVDstr(struct Parser *this, char *token) {
+  Node node = Parsercurrent_token(this);
+  if (node.data_type == STRING) {
+    return strcmp(node.data.str_data, token) == 0;
+  } else {
+    return false;
+  }
+}
+
 bool Parsermatch_token(struct Parser *this, int token) {
 
-  if (Parsercheck_token(this, token)) {
+  if (Parsercheck_tokenOVDint(this, token)) {
     return true;
   } else {
     printf("Expected token %d.", token);
+    exit(EXIT_FAILURE);
   }
 }
 
@@ -659,6 +689,10 @@ int main() {
 
   struct Parser parser;
   Parser__init__(&parser);
+
+  if (Parsercheck_tokenOVDint(&parser, 0)) {
+    printf("Found let.");
+  }
 
   // TODO : Parser should construct List & free it as well.
 

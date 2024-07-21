@@ -16,7 +16,26 @@ struct Parser{List tokens};
 
 namespace Parser
 function __init__()
-    print("Parser Constructor.\n")
+  print("Parser Constructor.\n")
+  constexpr Token = {"LET" : 0, "EQUALS" : 1, "LEFT_SQUARE_BRACKET" : 2, "RIGHT_SQUARE_BRACKET" : 3, "SEMICOLON" : 4, "COMMA" : 5, "PERCENT" : 6, "LEFT_CURLY" : 7, "RIGHT_CURLY" : 8, "STRUCT" : 9, "MATCH" : 10, "FOR" : 11, "IF" : 12, "IN" : 13, "OPTION" : 14, "SMALLER_THAN" : 15, "GREATER_THAN" : 16, "ENUMERATE" : 17, "QUOTE" : 18, "PLUS" : 19, "LEFT_ROUND_BRACKET" : 21, "RIGHT_ROUND_BRACKET" : 22, "COLON" : 23, "DOT" : 24, "ASTERISK" : 25, "MINUS" : 26, "DEF" : 27, "CFUNCTION" : 28, "ENDDEF" : 29, "ENDFN" : 30, "ELSE" : 31, "TRUE" : 32, "FALSE" : 33, "CONSTEXPR" : 34, "HASH" : 35, "INCLUDE" : 36, "AT" : 37, "APPLY_HOOK" : 38, "HOOK_BEGIN" : 39, "HOOK_END" : 40, "EXCLAMATION" : 41}
+
+  this.tokens.append(Token["LET"])
+  this.tokens.append("arr")
+  this.tokens.append(Token["EQUALS"])
+  this.tokens.append(Token["LEFT_SQUARE_BRACKET"])
+  this.tokens.append("1")
+  this.tokens.append(Token["COMMA"])
+  this.tokens.append("2")
+  this.tokens.append(Token["COMMA"])
+  this.tokens.append("3")
+  this.tokens.append(Token["COMMA"])
+  this.tokens.append("4")
+  this.tokens.append(Token["COMMA"])
+  this.tokens.append("5")
+  this.tokens.append(Token["RIGHT_SQUARE_BRACKET"])
+  this.tokens.append(Token["SEMICOLON"])
+  this.tokens.append(Token["RIGHT_CURLY"])
+  this.tokens.append(Token["LET"])
 endfunction
 
 function has_tokens_remaining() -> bool:
@@ -35,7 +54,7 @@ function get_token() -> Node:
     return this.tokens.pop(0)
 endfunction
 
-c_function check_token(token : int) -> bool:
+c_function check_token<>(token : int) -> bool:
     // return self.current_token() == token
     // TODO : this.current_token() returns Node, so we cant make direct comparision with token in CPL. 
     Node node = Parsercurrent_token(this);
@@ -46,11 +65,21 @@ c_function check_token(token : int) -> bool:
     }
 endc_function
 
+c_function check_token<>(token : str) -> bool:
+    Node node = Parsercurrent_token(this);
+    if(node.data_type == STRING){
+        return strcmp(node.data.str_data, token) == 0;
+    }else{
+        return false;
+    }
+endc_function
+
 function match_token(token : int) -> bool:
     if this.check_token(token){
         return true
     }else{
         print("Expected token {token}.")
+        exit(EXIT_FAILURE);
     }
 endfunction
 
@@ -69,6 +98,11 @@ int main() {
   ///*///
 
   let parser = Parser{};
+
+  if parser.check_token(0){
+    print("Found let.")
+  }
+
 
   // TODO : Parser should construct List & free it as well.
 
