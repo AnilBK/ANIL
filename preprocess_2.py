@@ -608,6 +608,23 @@ class StructInstance:
         else:
             return get_mangled_fn_name(self.struct_type, p_fn_name)
 
+    def get_return_type_of_fn(self, p_fn_name):
+        struct_info = self.get_struct_defination()
+        return_type = struct_info.get_return_type_of_fn(p_fn_name)
+        
+        if self.is_templated_instance():
+            # struct<T>{..}
+            # return T
+            if return_type == struct_info.template_defination_variable: 
+                return_type = self.templated_data_type
+
+            if is_data_type_struct_object(return_type):
+                # For Vector<String>, the String here is of struct type.
+                # TODO : templated_data_type should probably be 'struct String' instead of just 'String' to avoid all this comparision.
+                return_type = f"struct {return_type}"
+
+        return return_type            
+
     def get_destructor_fn_name(self) -> str:
         return self.get_mangled_function_name("__del__")
 
@@ -1642,7 +1659,7 @@ while index < len(Lines):
             fn_name_mangled = global_fn_name
             parsing_fn_call_type = ParsedFunctionCallType.GLOBAL_FUNCTION_CALL
         else:
-            return_type = child_struct_info.get_return_type_of_fn(fn_name_unmangled)
+            return_type = struct_instance.get_return_type_of_fn(fn_name_unmangled)
             fn_name_mangled = struct_instance.get_mangled_function_name(fn_name_unmangled)
             parsing_fn_call_type = ParsedFunctionCallType.STRUCT_FUNCTION_CALL
 
