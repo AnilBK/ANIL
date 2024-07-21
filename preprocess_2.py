@@ -926,35 +926,7 @@ while index < len(Lines):
 
         global for_loop_depth
 
-        loop_indices = [
-            "i",
-            "j",
-            "k",
-            "l",
-            "m",
-            "n",
-            "o",
-            "p",
-            "q",
-            "r",
-            "s",
-            "t",
-            "u",
-            "v",
-            "w",
-            "x",
-            "y",
-            "z",
-            "a",
-            "b",
-            "c",
-            "d",
-            "e",
-            "f",
-            "g",
-            "h",
-        ]
-
+        loop_indices = "ijklmnopqrstuvwxyzabcdefgh"
         loop_counter_index = loop_indices[for_loop_depth % 26]
 
         temporary_var_name = f"tmp_len_{temp_arr_length_variable_count}"
