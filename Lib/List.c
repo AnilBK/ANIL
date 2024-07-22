@@ -2,44 +2,94 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Define a union for storing int or char*
 typedef union {
   int int_data;
   char *str_data;
-} Data;
+} CPLObject_Data;
 
-enum DataType { INT, STRING };
+typedef enum { INT, STRING } CPLObject_DataType;
 
-// Define a struct for the node
-typedef struct Node {
-  Data data;
-  enum DataType data_type;
-  struct Node *next;
-} Node;
-
-Node *createIntNode(int p_int) {
-  Node *newNode = (Node *)malloc(sizeof(Node));
-  newNode->data.int_data = p_int;
-  newNode->data_type = INT;
-  newNode->next = NULL;
-  return newNode;
-}
-
-Node *createStringNode(char *p_str) {
-  Node *newNode = (Node *)malloc(sizeof(Node));
-  newNode->data.str_data = p_str;
-  newNode->data_type = STRING;
-  newNode->next = NULL;
-  return newNode;
-}
-
-typedef Node* Nodeptr;
+typedef struct CPLObject CPLObject;
+typedef CPLObject *CPLObjectptr;
 
 ///*///
+struct CPLObject{CPLObject_Data data, CPLObject_DataType data_type, CPLObject* next};
 
-struct List{Node *head,Node *tail, int size};
+namespace CPLObject
+
+c_function __init__<>(p_value : int)
+  this->data.int_data = p_value;
+  this->data_type = INT;
+  this->next = NULL;
+endc_function
+
+c_function __init__<>(p_value : str)
+  this->data.str_data = strdup(p_value);
+  this->data_type = STRING;
+  this->next = NULL;
+endc_function
+
+c_function is_int() -> bool:
+  return this->data_type == INT;
+endc_function
+
+c_function get_int() -> int:
+  return this->data.int_data;
+endc_function
+
+c_function is_str() -> bool:
+  return this->data_type == STRING;
+endc_function
+
+c_function get_str() -> str:
+  return this->data.str_data;
+endc_function
+
+c_function _clear_str()
+  free(this->data.str_data);
+endc_function
+
+function __del__()
+  if this.is_str(){
+    this._clear_str()
+  }
+endfunction
+
+c_function _duplicate() -> CPLObject:
+  // Perform a deep copy.
+  CPLObject copy = *this;
+  if (this->data_type == STRING) {
+    copy.data.str_data = strdup(this->data.str_data);
+  }
+  return copy;
+endc_function
+
+function __eq__<>(p_value : int) -> bool:
+  if this.is_int(){
+    let val = this.get_int() 
+    return val == p_value
+  }else{
+    return false
+  }
+endfunction
+
+function __eq__<>(p_value : str) -> bool:
+  if this.is_str(){
+    let val = this.get_str() 
+    return val == p_value
+  }else{
+    return false
+  }
+endfunction
+endnamespace
+
+struct List{CPLObject *head, CPLObject *tail, int size};
 
 namespace List
+
+c_function len() -> int:
+  return this->size;
+endc_function
 
 c_function __init__()
   this->head = NULL;
@@ -48,52 +98,49 @@ c_function __init__()
 endc_function
 
 c_function __del__()
-  Node *current = this->head;
+  CPLObject *current = this->head;
   while (current != NULL) {
-    Node *temp = current;
+    CPLObject *temp = current;
     current = current->next;
 
-    if (temp->data_type == STRING) {
-      free(temp->data.str_data);
-    }
-
+    CPLObject__del__(temp);
     free(temp);
   }
+  this->head = NULL;
+  this->tail = NULL;
   this->size = 0;
 endc_function
 
-c_function len() -> size_t:
-  return this->size;
-endc_function
-
-c_function __getitem__(index : int) -> Node:
+c_function __getitem__(index : int) -> CPLObject:
   if (index < 0 || index >= this->size) {
     printf("Index %d out of bounds(max : %d).\n", index, this->size - 1);
-    exit(-1);
+    exit(EXIT_FAILURE);
   }
     
-  Node *current = this->head;
+  CPLObject *current = this->head;
   for (int i = 0; i < index; i++) {
     current = current->next;
   }
     
-  return *current;
+  // Duplicate contents of node and return it.
+  // If we return a reference, then the calling function will call destructor,
+  // which will free the str_data causing free() errors later.  
+  return CPLObject_duplicate(current);
 endc_function
 
-c_function pop(index : int) -> Node:
+c_function pop(index : int) -> CPLObject:
   if (this->size == 0) {
     printf("List is empty. Can't pop element.\n");
-    // return NULL;
-    exit(-1);    
+    exit(EXIT_FAILURE);
   }
   
   if (index < 0 || index >= this->size) {
     printf("Index %d out of bounds(max : %d).\n", index, this->size - 1);
-    exit(-1);
+    exit(EXIT_FAILURE);
   }
 
-  Node *current = this->head;
-  Node *previous = NULL;
+  CPLObject *current = this->head;
+  CPLObject *previous = NULL;
 
   for (int i = 0; i < index; i++) {
     previous = current;
@@ -117,18 +164,16 @@ c_function pop(index : int) -> Node:
 
   this->size--;
 
-  Node popped_node = *current;
-  if (current->data_type == STRING) {
-    popped_node.data.str_data = strdup(current->data.str_data);
-    free(current->data.str_data);
-  }
+  CPLObject popped_node = *current;
+  // Don't free current->data.str_data even though current data_type is String.
+  // After copying the *pointer above, popped_node now owns current->data.str_data.
+  // This avoids duplicating current->data.str_data into popped_node.
   free(current);
-  
   return popped_node;
 endc_function
 
 c_function print()
-  Node *current = this->head;
+  CPLObject *current = this->head;
   printf("[");
   while (current != NULL) {
     if (current->data_type == STRING) {
@@ -150,27 +195,47 @@ c_function print()
   printf("]\n");
 endc_function
 
-c_function insertEnd(newNode : Nodeptr) {
+c_function _insert_end(new_node : CPLObjectptr) {
   this->size++;
   if (this->head == NULL) {
-    this->head = newNode;
-    this->tail = newNode;
+    this->head = new_node;
+    this->tail = new_node;
     return;
   }
 
-  this->tail->next = newNode;
-  this->tail = newNode;
+  this->tail->next = new_node;
+  this->tail = new_node;
 endc_function
 
-c_function append_int(p_value : int)
-  Node *int_node = createIntNode(p_value);
-  ListinsertEnd(this, int_node);
+c_function create_int_node(p_value : int) -> CPLObjectptr:
+  CPLObject *new_node = (CPLObject *)malloc(sizeof(CPLObject));
+  if(new_node == NULL){
+    printf("List : Failed to allocate a new node of type int for value %d.", p_value);
+    exit(EXIT_FAILURE);
+  }
+  CPLObject__init__OVDint(new_node, p_value);
+  return new_node;
 endc_function
 
-c_function append_str(p_str : str)
-  Node *string_node = createStringNode(strdup(p_str));
-  ListinsertEnd(this, string_node);
+c_function create_string_node(p_value : str) -> CPLObjectptr:
+  CPLObject *new_node = (CPLObject *)malloc(sizeof(CPLObject));
+  if(new_node == NULL){
+    printf("List : Failed to allocate a new node of type char*.");
+    exit(EXIT_FAILURE);
+  }
+  CPLObject__init__OVDstr(new_node, p_value);
+  return new_node;
 endc_function
+
+function append_int(p_value : int)
+  let int_node = this.create_int_node(p_value)
+  this._insert_end(int_node)
+endfunction
+
+function append_str(p_value : str)
+  let str_node = this.create_string_node(p_value)
+  this._insert_end(str_node)
+endfunction
 
 function append<>(p_value : int)
   this.append_int(p_value)
