@@ -3511,16 +3511,16 @@ while index < len(Lines):
                 param_type = param_type.split("struct")[1]
                 param_type = param_type.strip()
 
-            # FIXME : Even variables which aren't structs are registered.
-            instance = StructInstance(
-                param_type, param_name, False, "", curr_scope
-            )
+            if is_data_type_struct_object(param_type):
+                instance = StructInstance(
+                    param_type, param_name, False, "", curr_scope
+                )
 
-            # Function parameters shouldn't be freed at the end of the scope.
-            # So, add a tag.
-            instance.should_be_freed = False
+                # Function parameters shouldn't be freed at the end of the scope.
+                # So, add a tag.
+                instance.should_be_freed = False
 
-            instanced_struct_names.append(instance)
+                instanced_struct_names.append(instance)
             REGISTER_VARIABLE(param_name, param_type)
 
 
