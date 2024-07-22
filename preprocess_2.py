@@ -1404,7 +1404,7 @@ while index < len(Lines):
                 strs.append("int")
             elif param.param_type == ParameterType.CHAR_TYPE:
                 strs.append("char")
-            elif param.param_type == ParameterType.RAW_STRING:
+            elif param.param_type == ParameterType.RAW_STRING or param.param_type == ParameterType.STR_TYPE:
                 strs.append("char*")
             elif param.param_type == ParameterType.VARIABLE:
                 strs.append(get_type_of_variable(param.param))
@@ -2177,10 +2177,19 @@ while index < len(Lines):
                 var_to_check_against = lhs["variable_name"]
                 var_to_check = rhs["variable_name"]
 
-                if rhs["type"] == "string_literal":
+                l_type = lhs["type"]
+                r_type = rhs["type"]
+                
+                if (l_type == "str" or l_type == "char*") and (r_type == "str" or r_type == "char*"):
+                    cmp_op = "=="
+                    if negation_boolean_expression:
+                        cmp_op = "!="
+                    comparision_code = f"strcmp({var_to_check},{var_to_check_against}) {cmp_op} 0"
+                    return comparision_code
+                elif r_type == "string_literal":
                     comparision_code = ""
 
-                    if lhs["type"] == "struct":
+                    if l_type == "struct":
                         # if str == "Hello"
                         #           ^^^^^^^ String Literal
                         # if str != "Hello"
@@ -2209,7 +2218,7 @@ while index < len(Lines):
                             comparision_code = f"!{comparision_code}"
                         return comparision_code
 
-                    elif lhs["type"] == "char":
+                    elif l_type == "char":
                         comparision_code = f"{var_to_check_against} {operators_as_str} '{var_to_check}'"
                     else:
                         # if Char == "\""
