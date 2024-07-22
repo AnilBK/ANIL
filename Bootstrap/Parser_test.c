@@ -18,7 +18,8 @@ namespace Parser
 function __init__()
   print("Parser Constructor.\n")
   constexpr Token = {"LET" : 0, "EQUALS" : 1, "LEFT_SQUARE_BRACKET" : 2, "RIGHT_SQUARE_BRACKET" : 3, "SEMICOLON" : 4, "COMMA" : 5, "PERCENT" : 6, "LEFT_CURLY" : 7, "RIGHT_CURLY" : 8, "STRUCT" : 9, "MATCH" : 10, "FOR" : 11, "IF" : 12, "IN" : 13, "OPTION" : 14, "SMALLER_THAN" : 15, "GREATER_THAN" : 16, "ENUMERATE" : 17, "QUOTE" : 18, "PLUS" : 19, "LEFT_ROUND_BRACKET" : 21, "RIGHT_ROUND_BRACKET" : 22, "COLON" : 23, "DOT" : 24, "ASTERISK" : 25, "MINUS" : 26, "DEF" : 27, "CFUNCTION" : 28, "ENDDEF" : 29, "ENDFN" : 30, "ELSE" : 31, "TRUE" : 32, "FALSE" : 33, "CONSTEXPR" : 34, "HASH" : 35, "INCLUDE" : 36, "AT" : 37, "APPLY_HOOK" : 38, "HOOK_BEGIN" : 39, "HOOK_END" : 40, "EXCLAMATION" : 41}
-
+    
+  this.tokens.__init__()
   this.tokens.append(Token["LET"])
   this.tokens.append("arr")
   this.tokens.append(Token["EQUALS"])
@@ -38,11 +39,16 @@ function __init__()
   this.tokens.append(Token["LET"])
 endfunction
 
+function __del__()
+    // TODO : This should be performed automatically.
+    this.tokens.__del__()
+endfunction
+
 function has_tokens_remaining() -> bool:
     return this.tokens.len() > 0
 endfunction
 
-function current_token() -> Node:
+function current_token() -> CPLObject:
     return this.tokens[0]
 endfunction
 
@@ -50,29 +56,21 @@ function next_token():
     let node = this.tokens.pop(0)
 endfunction
 
-function get_token() -> Node:
+function get_token() -> CPLObject:
     return this.tokens.pop(0)
 endfunction
 
-c_function check_token<>(token : int) -> bool:
-    // return self.current_token() == token
-    // TODO : this.current_token() returns Node, so we cant make direct comparision with token in CPL. 
-    Node node = Parsercurrent_token(this);
-    if(node.data_type == INT){
-        return node.data.int_data == token;
-    }else{
-        return false;
-    }
-endc_function
+function check_token<>(token : int) -> bool:
+    let node = this.current_token()
+    let has_value = node.__eq__(token)
+    return has_value
+endfunction
 
-c_function check_token<>(token : str) -> bool:
-    Node node = Parsercurrent_token(this);
-    if(node.data_type == STRING){
-        return strcmp(node.data.str_data, token) == 0;
-    }else{
-        return false;
-    }
-endc_function
+function check_token<>(token : str) -> bool:
+    let node = this.current_token()
+    let has_value = node.__eq__(token)
+    return has_value
+endfunction
 
 function match_token(token : int) -> bool:
     if this.check_token(token){
@@ -100,11 +98,12 @@ int main() {
   let parser = Parser{};
 
   if parser.check_token(0){
-    print("Found let.")
+    print("Found let.\n")
+    parser.next_token()
+    if parser.check_token("arr"){
+        print("Found arr.\n")
+    }
   }
-
-
-  // TODO : Parser should construct List & free it as well.
 
   // DESTRUCTOR_CODE //
   ///*///
