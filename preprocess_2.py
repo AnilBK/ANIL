@@ -2073,42 +2073,46 @@ while index < len(Lines):
         else:
             variable = parser.get_token()
 
-            if is_variable_boolean_type(variable):
-                term_type = "bool"
-            elif is_variable_char_type(variable):
-                term_type = "char"
-            else:
-                instanced_struct_info = get_instanced_struct(variable)
-                if instanced_struct_info != None:
-                    # Struct type.
+            instanced_struct_info = get_instanced_struct(variable)
+            if instanced_struct_info != None:
+                # Struct type.
+                # if Line.startswith("import"){
+                if parser.has_tokens_remaining() and parser.check_token(lexer.Token.DOT):
+                    # parser.next_token()
+
+                    parser = Parser.Parser(Line)
                     # if Line.startswith("import"){
-                    if parser.has_tokens_remaining() and parser.check_token(lexer.Token.DOT):
-                        # parser.next_token()
+                    parser.next_token()
+                    # parser.next_token()
 
-                        parser = Parser.Parser(Line)
-                        # if Line.startswith("import"){
-                        parser.next_token()
-                        # parser.next_token()
+                    # if Line.startswith("import"){ <------Parse Function Call.
+                    # if this.tokens.len() > 0{     <------Parse member variable
+                    #                                      then the function call.
 
-                        # if Line.startswith("import"){ <------Parse Function Call.
-                        # if this.tokens.len() > 0{     <------Parse member variable
-                        #                                      then the function call.
+                    parse_result = _parse_function_call(assignment_fn_call = False)
+                    fn_name = parse_result["fn_name"]
+                    return_type = parse_result["return_type"]
+                    member_access_string = parse_result["member_access_string"]
 
-                        parse_result = _parse_function_call(assignment_fn_call = False)
-                        fn_name = parse_result["fn_name"]
-                        return_type = parse_result["return_type"]
-                        member_access_string = parse_result["member_access_string"]
-
-                        if parse_result["has_parameters"]:
-                            parameters_str = parse_result["parameters_str"]
-                            output_code = f"{fn_name}({member_access_string}, {parameters_str})"
-                        else:
-                            output_code = f"{fn_name}({member_access_string})"
-                        term_type = "struct_function_call"
+                    if parse_result["has_parameters"]:
+                        parameters_str = parse_result["parameters_str"]
+                        output_code = f"{fn_name}({member_access_string}, {parameters_str})"
                     else:
-                        term_type = "struct"
+                        output_code = f"{fn_name}({member_access_string})"
+                    term_type = "struct_function_call"
                 else:
+                    term_type = "struct"
+            else:
+                # this.val
+                # ^^^^ it will return true for is_variable.
+                # So, first we need to check is_struct first, which we do above.
+                type_of_var = get_type_of_variable(variable)
+                is_var = type_of_var != None
+
+                if is_var:
                     # TODO: Maybe use parse_number() ???
+                    term_type = type_of_var
+                else:
                     term_type = "variable"
 
         if output_code == "":
