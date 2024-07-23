@@ -3700,7 +3700,30 @@ while index < len(Lines):
     elif parser.current_token() == lexer.Token.RETURN:
         parser.consume_token(lexer.Token.RETURN)
 
-        return_name = boolean_expression()
+        result = boolean_expression()
+
+        # Boolean expressions for Structs function call need to save the result
+        # of the comparision temporarily somewhere.
+        # It is because we write the destructors then the return expression.
+        # Since, the destructors are called earlier, we dont have the struct to return
+        # with a return statement.
+        # For e.g:
+        # CPLObject__del__(&node);
+        # return CPLObject__eq__OVDint(&node, token);
+        # ^^^^^^ So, we convert the above expression to following.
+        # bool return_name = CPLObject__eq__OVDint(&node, token);
+        # CPLObject__del__(&node);
+        # return return_name;
+
+        create_temporary = False
+        
+        if isinstance(result, Dict):
+            # isinstance(result,dict) -> doesn't work, so we use Dict.
+            # Since Dict is an alias for dict.
+            fn_return_type = result["return_type"]
+            fn_return_code = result["code"]
+            create_temporary = True
+            LinesCache.append(f"{fn_return_type} return_name = {fn_return_code};\n")
 
         # return s
         #        ^  s shouldn't be freed, because it is returned.
@@ -3708,7 +3731,7 @@ while index < len(Lines):
         i = 0
         for struct in instanced_struct_names:
             if (
-                struct.struct_name == return_name
+                struct.struct_name == result
                 and struct.scope == get_current_scope()
             ):
                 instanced_struct_names[i].should_be_freed = False
@@ -3719,7 +3742,10 @@ while index < len(Lines):
         decrement_scope()
         # Write return itself.
         # We assume we have single return statement.
-        LinesCache.append(f"return {return_name};\n")
+        if create_temporary:
+            LinesCache.append(f"return return_name;\n")
+        else:
+           LinesCache.append(f"return {result};\n")
     elif check_token(lexer.Token.NAMESPACE):
         if is_inside_name_space:
             raise Exception("Is already inside a namespace.Can't declare a new namespace.")
