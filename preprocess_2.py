@@ -511,6 +511,22 @@ class Struct:
         raise Exception(f"{error_msg}")
 
 
+    def get_return_type_of_overloaded_fn(self, p_fn_name, provided_parameter_types:list):
+        # To get arguments of overloaded function.
+        possible_args = []
+        for fn in self.member_functions:
+            if fn.fn_name == p_fn_name:
+                args = fn.fn_arguments
+                args_list = [a.data_type for a in args]
+                if args_list == provided_parameter_types:
+                    return fn.return_type
+                possible_args.append(args_list)
+        m_types = [a.data_type for a in provided_parameter_types]
+        error_msg = f"Didn't find overloaded function({p_fn_name}) of provided types {m_types}."
+        error_msg += f"Possible argument types for the overloaded functions are {possible_args}."
+        raise Exception(f"{error_msg}")
+
+
     def get_type_of_member(self, p_member_name) -> Optional[str]:
         for struct_member in self.members:
             if struct_member.member == p_member_name:
