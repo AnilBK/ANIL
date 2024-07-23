@@ -62,14 +62,12 @@ endfunction
 
 function check_token<>(token : int) -> bool:
     let node = this.current_token()
-    let has_value = node.__eq__(token)
-    return has_value
+    return node == token
 endfunction
 
 function check_token<>(token : str) -> bool:
     let node = this.current_token()
-    let has_value = node.__eq__(token)
-    return has_value
+    return node == token
 endfunction
 
 function match_token(token : int) -> bool:

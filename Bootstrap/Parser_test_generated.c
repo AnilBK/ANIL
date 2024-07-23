@@ -718,16 +718,16 @@ struct CPLObject Parserget_token(struct Parser *this) {
 
 bool Parsercheck_tokenOVDint(struct Parser *this, int token) {
   struct CPLObject node = Parsercurrent_token(this);
-  bool has_value = CPLObject__eq__OVDint(&node, token);
+  bool return_name = CPLObject__eq__OVDint(&node, token);
   CPLObject__del__(&node);
-  return has_value;
+  return return_name;
 }
 
 bool Parsercheck_tokenOVDstr(struct Parser *this, char *token) {
   struct CPLObject node = Parsercurrent_token(this);
-  bool has_value = CPLObject__eq__OVDstr(&node, token);
+  bool return_name = CPLObject__eq__OVDstr(&node, token);
   CPLObject__del__(&node);
-  return has_value;
+  return return_name;
 }
 
 bool Parsermatch_token(struct Parser *this, int token) {
