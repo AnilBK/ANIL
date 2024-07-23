@@ -2253,6 +2253,39 @@ while index < len(Lines):
                         comparision_code = f"!({comparision_code})"
 
                     return comparision_code
+                elif l_type == "struct":
+                    comparision_code = ""
+                    eq_fn = "__eq__"
+
+                    instanced_struct_info = get_instanced_struct(
+                        var_to_check_against
+                    )
+
+                    struct_type = instanced_struct_info.struct_type
+                    StructInfo = instanced_struct_info.get_struct_defination()
+
+                    parameters = [MemberDataType(r_type, var_to_check, False)]
+                    fn_name = ""
+                    # return type is always bool for == operation.
+                    # Temporary workaround to indicate that this function returns a value.
+                    return_type = ""
+
+                    is_overloaded = StructInfo.has_member_fn(eq_fn)
+
+                    if is_overloaded:
+                        return_type = StructInfo.get_return_type_of_overloaded_fn(eq_fn, [a.data_type for a in parameters])
+                        fn_name = get_overloaded_mangled_fn_name(struct_type, eq_fn, parameters)
+                    else:
+                        return_type = StructInfo.get_return_type_of_fn(eq_fn)
+                        fn_name = get_mangled_fn_name(struct_type, eq_fn)
+                        
+                    comparision_code = (
+                        f'{fn_name}(&{var_to_check_against}, {var_to_check})'
+                    )
+
+                    if negation_boolean_expression:
+                        comparision_code = f"!{comparision_code}"
+                    return { "code" : comparision_code, "return_type" : return_type}
             elif operators_as_str == "in":
                 # if var_to_check in var_to_check_against {
                 var_to_check = lhs["variable_name"]
