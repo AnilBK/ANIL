@@ -135,7 +135,11 @@ def get_overloaded_mangled_fn_name(p_struct_type: str, p_fn_name: str, p_paramet
     function_name = get_mangled_fn_name(p_struct_type, p_fn_name)
     function_name += "OVD"
     for param in p_parameters:
-        data_type = param.data_type
+        data_type = ""
+        if isinstance(param,str):
+            data_type = param
+        else:
+            data_type = param.data_type
         if data_type == "char*":
             function_name += "str"
         else:
