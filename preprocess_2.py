@@ -3517,6 +3517,29 @@ while index < len(Lines):
         # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
         # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN) -> return_type
         parser.consume_token(lexer.Token.FUNCTION)
+
+        is_overloaded_fn = False
+        overload_for_type = ""
+
+        # c_function Vector<String> __contains__(value : T) -> bool:
+        #            ^^^^^^^^ This is custom overload for __contains__ for the template type 'String'.
+        if parser.current_token() == lexer.Token.SMALLER_THAN:
+            parser.next_token()
+
+            # c_function Vector< > __contains__(value : T)-> bool
+            #             ^ indicates an overloaded function(the base overload)
+            curr_token = parser.current_token()
+            custom_template_type = "#BASE#"
+            if curr_token == lexer.Token.GREATER_THAN:
+                pass
+            else:
+                custom_template_type = parser.get_token()
+            # print(f"Custom template for class {custom_template_type}")
+            overload_for_type = custom_template_type
+            is_overloaded_fn = True
+
+            parser.consume_token(lexer.Token.GREATER_THAN)
+
         function_name = parser.get_token()
         # if this function is a struct member function, it needs to be mangled below.
         func_name = function_name
@@ -3622,6 +3645,8 @@ while index < len(Lines):
         LinesCache.append(code)
         
         fn = MemberFunction(function_name, parameters, return_type)
+        fn.is_overloaded_function = is_overloaded_fn
+        fn.overload_for_template_type = overload_for_type
         
         if defining_fn_for_custom_class:
             GlobalStructInitCode += code
