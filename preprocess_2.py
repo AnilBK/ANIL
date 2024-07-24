@@ -603,12 +603,6 @@ class StructInstance:
         StructInfo = get_struct_defination_of_type(self.struct_type)
         return StructInfo
 
-    def get_fn_arguments(self, p_fn_name):
-        fn_args = self.get_struct_defination().get_function_arguments(p_fn_name)
-        if fn_args == None:
-            raise Exception(f"Arguments for function {p_fn_name} not found.")
-        return fn_args
-
     def struct_type_has_destructor(self) -> bool:
         return self.get_struct_defination().has_destructor()
 
@@ -619,18 +613,27 @@ class StructInstance:
                 "[Fatal Error] Struct is templated but it's type isn't Registered."
             )
 
-    def get_mangled_function_name(self, p_fn_name: str) -> str:
+    def get_mangled_function_name(self, p_fn_name: str, parameters = None) -> str:
         if self.is_templated_instance():
             self._validate_template_type()
             return get_templated_mangled_fn_name(
                 self.struct_type, p_fn_name, self.templated_data_type
             )
         else:
-            return get_mangled_fn_name(self.struct_type, p_fn_name)
+            StructInfo = self.get_struct_defination()
+            if StructInfo.function_is_overloaded(p_fn_name):
+                return get_overloaded_mangled_fn_name(self.struct_type, p_fn_name, parameters if parameters != None else [])
+            else:
+                return get_mangled_fn_name(self.struct_type, p_fn_name)
 
-    def get_return_type_of_fn(self, p_fn_name):
+    def get_return_type_of_fn(self, p_fn_name, parameters = None):
+        return_type = None
+        
         struct_info = self.get_struct_defination()
-        return_type = struct_info.get_return_type_of_fn(p_fn_name)
+        if struct_info.function_is_overloaded(p_fn_name):
+            return_type = struct_info.get_return_type_of_overloaded_fn(p_fn_name, parameters if parameters != None else [])
+        else:
+            return_type = struct_info.get_return_type_of_fn(p_fn_name)
         
         if self.is_templated_instance():
             # struct<T>{..}
@@ -638,12 +641,26 @@ class StructInstance:
             if return_type == struct_info.template_defination_variable: 
                 return_type = self.templated_data_type
 
-            if is_data_type_struct_object(return_type):
-                # For Vector<String>, the String here is of struct type.
-                # TODO : templated_data_type should probably be 'struct String' instead of just 'String' to avoid all this comparision.
-                return_type = f"struct {return_type}"
+        if is_data_type_struct_object(return_type):
+            # For Vector<String>, the String here is of struct type.
+            # TODO : templated_data_type should probably be 'struct String' instead of just 'String' to avoid all this comparision.
+            return_type = f"struct {return_type}"
 
         return return_type            
+
+    def get_fn_arguments(self, p_fn_name, parameters = None):
+        fn_args = None
+
+        StructInfo = self.get_struct_defination()
+        if StructInfo.function_is_overloaded(p_fn_name):
+            fn_args = StructInfo.get_function_arguments_with_types(p_fn_name, parameters if parameters != None else [])
+        else:
+            fn_args = StructInfo.get_function_arguments(p_fn_name)
+
+        if fn_args == None:
+            raise Exception(f"Arguments for function {p_fn_name} not found.")
+
+        return fn_args
 
     def get_destructor_fn_name(self) -> str:
         return self.get_mangled_function_name("__del__")
@@ -1596,31 +1613,13 @@ while index < len(Lines):
             fn_name_mangled = global_fn_name
             parsing_fn_call_type = ParsedFunctionCallType.GLOBAL_FUNCTION_CALL
         else:
-            return_type = struct_instance.get_return_type_of_fn(fn_name_unmangled)
-            fn_name_mangled = struct_instance.get_mangled_function_name(fn_name_unmangled)
+            provided_types = _parameters_to_types_str_list(parameters)
+            
+            args = struct_instance.get_fn_arguments(fn_name_unmangled, provided_types)
+            return_type = struct_instance.get_return_type_of_fn(fn_name_unmangled, provided_types)
+            fn_name_mangled = struct_instance.get_mangled_function_name(fn_name_unmangled, provided_types)
             parsing_fn_call_type = ParsedFunctionCallType.STRUCT_FUNCTION_CALL
-
-            if child_struct_info.function_is_overloaded(fn_name_unmangled):
-                provided_parameter_types = _parameters_to_types_str_list(parameters)
-                # Overloaded function name mangling.
-                #                          VVV OVD is a tag to denote overloaded function.
-                # append(int) -> ListappendOVDint
-                # append(char*) -> ListappendOVDstr
-                fn_name_mangled += "OVD"
-                for types in provided_parameter_types:
-                    if types == "char*":
-                        fn_name_mangled += "str"
-                    else:
-                        #"struct String", we dont want those spaces in final function name.
-                        data_type_no_spaces = types.replace(" ", "")
-                        fn_name_mangled += data_type_no_spaces
-
-                args = child_struct_info.get_function_arguments_with_types(fn_name_unmangled,provided_parameter_types)
-                # print(f"Provided types by user : {provided_parameter_types}")
-            else:
-                args = child_struct_info.get_function_arguments(fn_name_unmangled)
-
-
+            
         fn_args = []
         if args is not None:
             fn_args = [arg.data_type for arg in args]
@@ -2265,23 +2264,12 @@ while index < len(Lines):
                         var_to_check_against
                     )
 
-                    struct_type = instanced_struct_info.struct_type
-                    StructInfo = instanced_struct_info.get_struct_defination()
-
                     parameters = [MemberDataType(r_type, var_to_check, False)]
-                    fn_name = ""
+                    fn_name = instanced_struct_info.get_mangled_function_name(eq_fn, [a.data_type for a in parameters])
+                    
                     # return type is always bool for == operation.
                     # Temporary workaround to indicate that this function returns a value.
-                    return_type = ""
-
-                    is_overloaded = StructInfo.has_member_fn(eq_fn)
-
-                    if is_overloaded:
-                        return_type = StructInfo.get_return_type_of_overloaded_fn(eq_fn, [a.data_type for a in parameters])
-                        fn_name = get_overloaded_mangled_fn_name(struct_type, eq_fn, parameters)
-                    else:
-                        return_type = StructInfo.get_return_type_of_fn(eq_fn)
-                        fn_name = get_mangled_fn_name(struct_type, eq_fn)
+                    return_type = instanced_struct_info.get_return_type_of_fn(eq_fn, [a.data_type for a in parameters])
                         
                     comparision_code = (
                         f'{fn_name}(&{var_to_check_against}, {var_to_check})'
