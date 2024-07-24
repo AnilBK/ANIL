@@ -166,7 +166,8 @@ c_function __add__(pstring: str)
 endc_function
 
 c_function __reassign__(pstring: str)
-  this->arr = (char *)realloc(this->arr, (strlen(pstring) + 1) * sizeof(char));
+  int new_length = strlen(pstring);
+  this->arr = (char *)realloc(this->arr, (new_length + 1) * sizeof(char));
 
   if (this->arr == NULL) {
     fprintf(stderr, "Memory Re-Allocation Error.\n");
@@ -175,8 +176,8 @@ c_function __reassign__(pstring: str)
 
   strcpy(this->arr, pstring);
 
-  this->length = strlen(this->arr);
-  this->capacity = this->length;
+  this->length = new_length;
+  this->capacity = new_length + 1;
 endc_function
 
 c_function set_to_file_contents(pfilename: str)

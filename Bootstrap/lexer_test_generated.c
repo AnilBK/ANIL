@@ -306,7 +306,8 @@ void String__add__(struct String *this, char *pstring) {
 }
 
 void String__reassign__(struct String *this, char *pstring) {
-  this->arr = (char *)realloc(this->arr, (strlen(pstring) + 1) * sizeof(char));
+  int new_length = strlen(pstring);
+  this->arr = (char *)realloc(this->arr, (new_length + 1) * sizeof(char));
 
   if (this->arr == NULL) {
     fprintf(stderr, "Memory Re-Allocation Error.\n");
@@ -315,8 +316,8 @@ void String__reassign__(struct String *this, char *pstring) {
 
   strcpy(this->arr, pstring);
 
-  this->length = strlen(this->arr);
-  this->capacity = this->length;
+  this->length = new_length;
+  this->capacity = new_length + 1;
 }
 
 void Stringset_to_file_contents(struct String *this, char *pfilename) {
