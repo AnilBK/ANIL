@@ -1966,6 +1966,30 @@ while index < len(Lines):
         raise ValueError(f"Constexpr dictionary {p_dict_name} is undefined.")
 
     def parse_function_declaration():
+        is_overloaded_fn = False
+        overload_for_type = ""
+
+        # c_function Vector<String> __contains__(value : T) -> bool:
+        #            ^^^^^^^^ This is custom overload for __contains__ for the template type 'String'.
+        if parser.current_token() == lexer.Token.SMALLER_THAN:
+            parser.next_token()
+
+            # c_function Vector< > __contains__(value : T)-> bool
+            #             ^ indicates an overloaded function(the base overload)
+            curr_token = parser.current_token()
+            custom_template_type = "#BASE#"
+            if curr_token == lexer.Token.GREATER_THAN:
+                pass
+            else:
+                custom_template_type = parser.get_token()
+            # print(f"Custom template for class {custom_template_type}")
+            overload_for_type = custom_template_type
+            is_overloaded_fn = True
+
+            parser.consume_token(lexer.Token.GREATER_THAN)
+
+        fn_name = parser.get_token()
+
         # parse everything after function name.
         # function append<>(p_value : int)
         #          ^^^^^^^^^^^^^^^^^^^^^^^ 
@@ -2034,10 +2058,13 @@ while index < len(Lines):
                 parser.consume_token(lexer.Token.COLON)
 
         return {
+            "fn_name" : fn_name,
             "return_type" : return_type,
             "parameters" : parameters,
+            "parameters_combined_list" : parameters_combined_list,
             "is_overloaded" : is_overloaded,
-            "parameters_combined_list" : parameters_combined_list
+            "is_overloaded_fn" : is_overloaded_fn,
+            "overload_for_type" : overload_for_type,
         }
 
     if is_inside_def and "enddef" in Line:
@@ -3185,36 +3212,15 @@ while index < len(Lines):
 
         is_struct_templated = StructInfo.is_templated()
 
-        is_overloaded_fn = False
-        overload_for_type = ""
-
-        # c_function Vector<String> __contains__(value : T) -> bool:
-        #            ^^^^^^^^ This is custom overload for __contains__ for the template type 'String'.
-        if parser.current_token() == lexer.Token.SMALLER_THAN:
-            parser.next_token()
-
-            # c_function Vector< > __contains__(value : T)-> bool
-            #             ^ indicates an overloaded function(the base overload)
-            curr_token = parser.current_token()
-            custom_template_type = "#BASE#"
-            if curr_token == lexer.Token.GREATER_THAN:
-                pass
-            else:
-                custom_template_type = parser.get_token()
-            # print(f"Custom template for class {custom_template_type}")
-            overload_for_type = custom_template_type
-            is_overloaded_fn = True
-
-            parser.consume_token(lexer.Token.GREATER_THAN)
-
-        fn_name = parser.get_token()
-
         function_declaration = parse_function_declaration()
 
+        fn_name = function_declaration["fn_name"] 
         return_type = function_declaration["return_type"]
         parameters = function_declaration["parameters"]
         parameters_combined_list = function_declaration["parameters_combined_list"]
         is_overloaded = function_declaration["is_overloaded"]
+        is_overloaded_fn = function_declaration["is_overloaded_fn"]
+        overload_for_type = function_declaration["overload_for_type"]
 
         code = ""
 
@@ -3517,38 +3523,18 @@ while index < len(Lines):
         # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN) -> return_type
         parser.consume_token(lexer.Token.FUNCTION)
 
-        is_overloaded_fn = False
-        overload_for_type = ""
-
-        # c_function Vector<String> __contains__(value : T) -> bool:
-        #            ^^^^^^^^ This is custom overload for __contains__ for the template type 'String'.
-        if parser.current_token() == lexer.Token.SMALLER_THAN:
-            parser.next_token()
-
-            # c_function Vector< > __contains__(value : T)-> bool
-            #             ^ indicates an overloaded function(the base overload)
-            curr_token = parser.current_token()
-            custom_template_type = "#BASE#"
-            if curr_token == lexer.Token.GREATER_THAN:
-                pass
-            else:
-                custom_template_type = parser.get_token()
-            # print(f"Custom template for class {custom_template_type}")
-            overload_for_type = custom_template_type
-            is_overloaded_fn = True
-
-            parser.consume_token(lexer.Token.GREATER_THAN)
-
-        function_name = parser.get_token()
-        # if this function is a struct member function, it needs to be mangled below.
-        func_name = function_name
-
         function_declaration = parse_function_declaration()
 
+        function_name = function_declaration["fn_name"]
         return_type = function_declaration["return_type"]
         parameters = function_declaration["parameters"]
         parameters_combined_list = function_declaration["parameters_combined_list"]
         is_overloaded = function_declaration["is_overloaded"]
+        is_overloaded_fn = function_declaration["is_overloaded_fn"]
+        overload_for_type = function_declaration["overload_for_type"]
+
+        # if this function is a struct member function, it needs to be mangled below.
+        func_name = function_name
 
         increment_scope()
         curr_scope = get_current_scope()
