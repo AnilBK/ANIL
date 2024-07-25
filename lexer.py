@@ -106,6 +106,19 @@ KEYWORD_TOKENS = {
 }
 
 
+def token_to_str(token):
+    """Return the corresponding key from a Token value in either CHARACTER_TOKENS or KEYWORD_TOKENS."""
+    for key, tok in CHARACTER_TOKENS.items():
+        if tok == token:
+            return key
+
+    for key, tok in KEYWORD_TOKENS.items():
+        if tok == token:
+            return key
+
+    return None
+
+
 def get_tokens(line):
     line = line.strip("\n")
     length = len(line)
