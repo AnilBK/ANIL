@@ -21,6 +21,12 @@ class Parser:
         return self.current_token() == token
 
     def match_token(self, token: lexer.Token, p_custom_msg=None):
+        if not self.has_tokens_remaining():
+            error_msg = f"Expected token {token}, but no more tokens remaining."
+            if p_custom_msg != None:
+                error_msg += "\n" + p_custom_msg
+            raise ValueError(error_msg)
+
         if self.check_token(token):
             return True
         else:
