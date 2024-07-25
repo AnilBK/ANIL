@@ -1,4 +1,5 @@
 import lexer
+from ErrorHandler import ErrorHandler
 
 
 class Parser:
@@ -17,23 +18,34 @@ class Parser:
     def get_token(self):
         return self.tokens.pop(0)
 
-    def check_token(self, token: lexer.Token) -> bool:
+    def check_token(self, token: lexer.Token, p_custom_msg=None) -> bool:
+        if not self.has_tokens_remaining():
+            token_str = lexer.token_to_str(token)
+            error_msg = (
+                f'Expected {token}("{token_str}"), but no more tokens remaining.'
+            )
+            if p_custom_msg != None:
+                error_msg += "\n" + p_custom_msg
+            ErrorHandler().raise_error(error_msg)
         return self.current_token() == token
 
     def match_token(self, token: lexer.Token, p_custom_msg=None):
-        if not self.has_tokens_remaining():
-            error_msg = f"Expected token {token}, but no more tokens remaining."
-            if p_custom_msg != None:
-                error_msg += "\n" + p_custom_msg
-            raise ValueError(error_msg)
-
-        if self.check_token(token):
+        if self.check_token(token, p_custom_msg):
             return True
         else:
-            error_msg = f"Expected token {token} but got {self.current_token()}."
+            token_str = lexer.token_to_str(token)
+
+            obtained_tk = self.current_token()
+            obtained_tk_str = lexer.token_to_str(obtained_tk)
+            if obtained_tk_str is None:
+                obtained_tk_str = ""
+            else:
+                obtained_tk_str = f'("{obtained_tk_str}")'
+
+            error_msg = f'Expected {token}("{token_str}") but got {obtained_tk}{obtained_tk_str}.'
             if p_custom_msg != None:
                 error_msg += "\n" + p_custom_msg
-            raise ValueError(error_msg)
+            ErrorHandler().raise_error(error_msg)
 
     def consume_token(self, p_token: lexer.Token):
         """

@@ -1,5 +1,6 @@
 import Parser
 import lexer
+from ErrorHandler import ErrorHandler
 
 from typing import Callable, Dict, Optional
 from enum import Enum
@@ -224,12 +225,12 @@ class SymbolTable:
 
         if name in self.symbols[current_scope]:
             self.print_symbol_table()
-            raise ValueError(f"Variable '{name}' already declared in this scope.")
+            RAISE_ERROR(f"Variable '{name}' already declared in this scope.")
 
         for scope in self.scope_stack:
             if name in self.symbols[scope]:
                 self.print_symbol_table()
-                raise ValueError(
+                RAISE_ERROR(
                     f"Variable '{name}' already declared in previous scope {scope}."
                 )
 
@@ -483,7 +484,7 @@ class Struct:
             if fn.fn_name == p_fn_name:
                 return fn.fn_arguments
         return None
-        # raise Exception(f"Function {p_fn_name} not found.")
+        # RAISE_ERROR(f"Function {p_fn_name} not found.")
 
     #Overloaded function Utilities.
     def function_is_overloaded(self, p_fn_name):
@@ -510,8 +511,8 @@ class Struct:
                     return args
                 possible_args.append(args_list)
         error_msg = f"Didn't find overloaded function({p_fn_name}) of provided types {provided_parameter_types}."
-        error_msg += f"Possible argument types for the overloaded functions are {possible_args}."
-        raise Exception(f"{error_msg}")
+        error_msg += f"Possible argument types for the overloaded function are {possible_args}."
+        RAISE_ERROR(f"{error_msg}")
 
 
     def get_return_type_of_overloaded_fn(self, p_fn_name, provided_parameter_types:list):
@@ -527,7 +528,7 @@ class Struct:
         m_types = [a.data_type for a in provided_parameter_types]
         error_msg = f"Didn't find overloaded function({p_fn_name}) of provided types {m_types}."
         error_msg += f"Possible argument types for the overloaded functions are {possible_args}."
-        raise Exception(f"{error_msg}")
+        RAISE_ERROR(f"{error_msg}")
 
 
     def get_type_of_member(self, p_member_name) -> Optional[str]:
@@ -558,13 +559,9 @@ class Struct:
             print("The Struct has following functions : ")
             self.print_member_fn_info()
             if p_instance_name != "":
-                raise ValueError(
-                    f"{self.name}({p_instance_name}) doesn't have the function name : {p_fn_name}"
-                )
+                RAISE_ERROR(f"{self.name}({p_instance_name}) doesn't have the function name : {p_fn_name}")
             else:
-                raise ValueError(
-                    f"{self.name} doesn't have the function name : {p_fn_name}"
-                )
+                RAISE_ERROR(f"{self.name} doesn't have the function name : {p_fn_name}")
 
 
 class StructInstance:
@@ -608,7 +605,7 @@ class StructInstance:
     def _validate_template_type(self):
         if self.templated_data_type == "":
             # Shouldn't happen, as this validation is called if is_templated_instance() is true.
-            raise Exception(
+            RAISE_ERROR(
                 "[Fatal Error] Struct is templated but it's type isn't Registered."
             )
 
@@ -657,7 +654,7 @@ class StructInstance:
             fn_args = StructInfo.get_function_arguments(p_fn_name)
 
         if fn_args == None:
-            raise Exception(f"Arguments for function {p_fn_name} not found.")
+            RAISE_ERROR(f"Arguments for function {p_fn_name} not found.")
 
         return fn_args
 
@@ -692,7 +689,7 @@ def get_struct_type_of_instanced_struct(p_struct_name):
 def add_fn_member_to_struct(p_struct_name: str, p_fn: MemberFunction):
     struct_defination = get_struct_defination_of_type(p_struct_name)
     if struct_defination is None:
-        raise ValueError(f"Struct type {p_struct_name} doesn't exist.")
+        RAISE_ERROR(f"Struct type {p_struct_name} doesn't exist.")
     else:
         fn_name = p_fn.fn_name
         fn_already_exists = struct_defination.has_member_fn(fn_name)
@@ -710,7 +707,7 @@ def add_fn_member_to_struct(p_struct_name: str, p_fn: MemberFunction):
 def add_fnbody_to_member_to_struct(p_struct_name: str, p_fn_name: str, p_fn_body: str):
     struct_defination = get_struct_defination_of_type(p_struct_name)
     if struct_defination is None:
-        raise ValueError(f"Struct type {p_struct_name} doesn't exist.")
+        RAISE_ERROR(f"Struct type {p_struct_name} doesn't exist.")
     else:
         # If not reversed, this will always find the first function and set the fn body to that.
         # because we have overloaded functions, all those functions have same name.
@@ -785,7 +782,7 @@ def get_macro_def_by_name_of_class(p_macro_name: str, struct_type):
         if macro_def.name == p_macro_name:
             return macro_def
 
-    raise ValueError(f'{struct_type} has no macro names "{p_macro_name}".')
+    RAISE_ERROR(f'{struct_type} has no macro names "{p_macro_name}".')
 
 
 is_inside_def = False
@@ -857,6 +854,11 @@ def parse_hook_info(p_hook_body) -> HookInfo:
 
 ##############################################################################################
 
+Error_Handler = ErrorHandler()
+Error_Handler.register_source_file(source_file)
+
+def RAISE_ERROR(error_msg):
+    Error_Handler.raise_error(error_msg)
 
 index = 0
 
@@ -892,6 +894,8 @@ while index < len(Lines):
         currently_reading_def_body += "\n"
         continue
 
+    Error_Handler.register_current_line_code(Line)
+    
     parser = Parser.Parser(Line)
 
     def check_token(token: lexer.Token):
@@ -916,7 +920,7 @@ while index < len(Lines):
         # The variable type is in format '[int]'.
         array_type = get_type_of_variable(array_name)
         if array_type == None:
-            raise Exception(f"{array_type} isn't a registered array type.")
+            RAISE_ERROR(f"{array_type} isn't a registered array type.")
 
         array_type = array_type[1:-1]
 
@@ -998,10 +1002,10 @@ while index < len(Lines):
             """
             # Only a templated struct can be used to create a data type.
             if not is_struct_type:
-                raise ValueError(f"Struct type {data_type} doesn't exist.")
+                RAISE_ERROR(f"Struct type {data_type} doesn't exist.")
                 
             if not struct_defination.is_templated():
-                raise Exception(
+                RAISE_ERROR(
                     f"Struct type {data_type} isn't a template class and can't be used to instantiate new data types."
                 )
             """
@@ -1041,7 +1045,7 @@ while index < len(Lines):
             return_value = expr1
         else:
             if not expr1.isdigit():
-                raise ValueError(f"{expr1} isnot a number.")
+                RAISE_ERROR(f"{expr1} isnot a number.")
             return_value = expr1
 
         if is_negative:
@@ -1072,7 +1076,7 @@ while index < len(Lines):
                 else:
                     error_msg = f"Unexpected token \"{current_tk}\" in integer expression."
                     error_msg += f"The following operators (+,-,*,/) are only supported."
-                    raise ValueError(error_msg)
+                    RAISE_ERROR(error_msg)
             else:
                 break
         return expr
@@ -1267,7 +1271,7 @@ while index < len(Lines):
 
         StructInfo = get_struct_defination_of_type(struct_type)
         if StructInfo is None:
-            raise ValueError(f'Struct type "{struct_type}" undefined.')
+            RAISE_ERROR(f'Struct type "{struct_type}" undefined.')
 
         if parser.check_token(lexer.Token.SMALLER_THAN):
             parser.next_token()
@@ -1447,7 +1451,7 @@ while index < len(Lines):
             elif param.param_type == ParameterType.STRING_CLASS:
                 strs.append("struct String")
             else:
-                raise Exception(f"Unimplemented for {param.param_type}.")
+                RAISE_ERROR(f"Unimplemented for {param.param_type}.")
         return strs
 
 
@@ -1514,7 +1518,7 @@ while index < len(Lines):
                 if base_struct_info is None:
                     struct_instance = get_instanced_struct(tk)
                     if struct_instance is None:
-                        raise Exception(f"{tk} isn't a instanced struct.")
+                        RAISE_ERROR(f"{tk} isn't a instanced struct.")
                     base_struct_info = struct_instance.get_struct_defination()
                     child_struct_info = base_struct_info
 
@@ -1536,7 +1540,7 @@ while index < len(Lines):
 
                     type_of_tk = child_struct_info.get_type_of_member(tk)
                     if type_of_tk is None:
-                        raise Exception(f"Struct doesn't have member {tk}.")
+                        RAISE_ERROR(f"Struct doesn't have member {tk}.")
 
                     # Try to recreate the struct instance what it would be.
                     struct_instance = StructInstance(
@@ -1605,7 +1609,7 @@ while index < len(Lines):
         
             m_fn = get_global_function_by_name(global_fn_name)
             if m_fn == None:
-                raise Exception(f"Symbol {global_fn_name} is not a global function.")
+                RAISE_ERROR(f"Symbol {global_fn_name} is not a global function.")
 
             args = m_fn.fn_arguments
             return_type = m_fn.return_type
@@ -1624,7 +1628,7 @@ while index < len(Lines):
             fn_args = [arg.data_type for arg in args]
 
         if len(fn_args) != len(parameters):
-            raise ValueError(
+            RAISE_ERROR(
                 f'Expected {len(fn_args)} arguments for function "{fn_name_unmangled}" but provided {len(parameters)} arguments.'
             )
 
@@ -1791,12 +1795,12 @@ while index < len(Lines):
 
         if macro_has_parameter:
             if not parameters_provided:
-                raise ValueError(
+                RAISE_ERROR(
                     f'"{parsed_member}" macro expects an argument but provided None.'
                 )
         else:
             if parameters_provided:
-                raise ValueError(
+                RAISE_ERROR(
                     f'"{parsed_member}" macro doesn\'t expect an argument but provided {len(params)} parameters.'
                 )
 
@@ -1901,7 +1905,7 @@ while index < len(Lines):
 
                     struct_def = get_struct_defination_of_type(class_name)
                     if struct_def == None:
-                        raise ValueError(f"{class_name} class isn't registered.")
+                        RAISE_ERROR(f"{class_name} class isn't registered.")
                     
                     def _get_members():
                         return [stringify(member.member) for member in struct_def.members]
@@ -1929,7 +1933,7 @@ while index < len(Lines):
                         error_msg += "Only the following functions are constexpr functions:\n"
                         for names in constexpr_map.keys():
                             error_msg += f"{names}\n"
-                        raise Exception(f"{error_msg}")
+                        RAISE_ERROR(f"{error_msg}")
 
                 for param in m_params:
                     # values.push_unchecked x
@@ -1963,7 +1967,7 @@ while index < len(Lines):
                         f'[Error] Key "{key}" wasn\'t found in the constexpr dictionary {p_dict_name}.'
                     )
         # Shouldn't happen as the caller functions have already verified the presence of the dictionaries.
-        raise ValueError(f"Constexpr dictionary {p_dict_name} is undefined.")
+        RAISE_ERROR(f"Constexpr dictionary {p_dict_name} is undefined.")
 
     def parse_function_declaration():
         is_overloaded_fn = False
@@ -2087,7 +2091,7 @@ while index < len(Lines):
                     currently_reading_def_target_class
                 )
                 if struct_defination is None:
-                    raise ValueError(
+                    RAISE_ERROR(
                         f"Struct type {currently_reading_def_target_class} doesn't exist."
                     )
                 else:
@@ -2397,7 +2401,7 @@ while index < len(Lines):
                         return gen_code
 
                     else:
-                        raise ValueError(
+                        RAISE_ERROR(
                             f"Target variable {var_to_check_against} is undefined. \n It is neither an array nor a struct."
                         )
 
@@ -2552,7 +2556,7 @@ while index < len(Lines):
                     if not parser.has_tokens_remaining():
                         #str += "World" + 
                         #                 ^
-                        raise Exception("Expected string literal or String object after + operator.")
+                        RAISE_ERROR("Expected string literal or String object after + operator.")
 
                 insert_intermediate_lines(index, lines)
                 continue
@@ -2591,7 +2595,7 @@ while index < len(Lines):
 
                 if parsed_string_variable:
                     # token = Char
-                    raise Exception(
+                    RAISE_ERROR(
                         "Reassignment operator is only implemented for string arguments."
                     )
                 else:
@@ -2615,7 +2619,7 @@ while index < len(Lines):
                 continue
             else:
                 # TODO ??
-                raise Exception(f"UserDefined Function : {parsed_member} calling void functions can't take parameters as of now. ")
+                RAISE_ERROR(f"UserDefined Function : {parsed_member} calling void functions can't take parameters as of now. ")
         elif is_variable_boolean_type(parsed_member):
             # escape_back_slash = False
             parser.next_token()
@@ -2631,7 +2635,7 @@ while index < len(Lines):
             elif is_false_token:
                 LinesCache.append(f"{parsed_member} = false; \n")
             else:
-                raise ValueError("Expected a boolean value.")
+                RAISE_ERROR("Expected a boolean value.")
             continue
     else:
         LinesCache.append("\n")
@@ -2683,7 +2687,7 @@ while index < len(Lines):
             decrement_scope()
             LinesCache.append("}\n")
         else:
-            raise Exception("UnImplemented Right Curly.")
+            RAISE_ERROR("UnImplemented Right Curly.")
     elif check_token(lexer.Token.HASH):
         # Comments.
         # Just create a split at the first '#'.
@@ -2759,7 +2763,7 @@ while index < len(Lines):
             # Get all the members for the given struct type.
             StructInfo = get_struct_defination_of_type(type)
             if StructInfo is None:
-                raise ValueError("Struct undefined.")
+                RAISE_ERROR("Struct undefined.")
             members = StructInfo.members
 
             cond_struct_members_pair = list(zip(conds, members))
@@ -2917,13 +2921,13 @@ while index < len(Lines):
                     parser.consume_token(lexer.Token.QUOTE)
                     char_value = parser.get_token()
                     if len(char_value) != 1:
-                        raise Exception(f"Char value should be of length 1 but got \"{char_value}\" of length {len(char_value)}.")
+                        RAISE_ERROR(f"Char value should be of length 1 but got \"{char_value}\" of length {len(char_value)}.")
                     parser.consume_token(lexer.Token.QUOTE)
                     LinesCache.append(f"{POD_type} {array_name} = \'{char_value}\';\n")
                     REGISTER_VARIABLE(array_name, f"{POD_type}")
                     continue
                 else:
-                    raise Exception(
+                    RAISE_ERROR(
                         f'Parsing POD Type "{POD_type}" not Implemented as of now.'
                     )
             if parser.check_token(lexer.Token.QUOTE):
@@ -3198,14 +3202,14 @@ while index < len(Lines):
         parser.consume_token(lexer.Token.CFUNCTION)
 
         if not is_inside_name_space:
-            raise Exception("c_function blocks are only allowed inside a namespace. Namespaces denote that the current function being defined belongs to that namespace(i.e class).")
+            RAISE_ERROR("c_function blocks are only allowed inside a namespace. Namespaces denote that the current function being defined belongs to that namespace(i.e class).")
         struct_name = namespace_name
 
         should_write_fn_body = True
 
         StructInfo = get_struct_defination_of_type(struct_name)
         if StructInfo == None:
-            raise ValueError(f'Struct name : "{struct_name}" is undefined.')
+            RAISE_ERROR(f'Struct name : "{struct_name}" is undefined.')
 
         struct_members_list = StructInfo.members
         # print(StructInfo.members)  # [['X', 'a', True], ['float', 'b', False]]
@@ -3270,7 +3274,7 @@ while index < len(Lines):
         is_inside_struct_c_function = True
     elif check_token(lexer.Token.ENDCFUNCTION):
         if is_inside_user_defined_function:
-            raise Exception("Use \"endfunction\" to close a function and not \"endc_function\".")
+            RAISE_ERROR("Use \"endfunction\" to close a function and not \"endc_function\".")
 
         if is_inside_struct_c_function:
             if should_write_fn_body:
@@ -3411,7 +3415,7 @@ while index < len(Lines):
             should_write_fn_body = True
             is_inside_struct_c_function = False
         else:
-            raise Exception("End c_function without being in c_function block.")
+            RAISE_ERROR("End c_function without being in c_function block.")
     elif check_token(lexer.Token.DEF):
         # This is used to define function like macros.
         # This macros are just replaced in place.
@@ -3447,9 +3451,9 @@ while index < len(Lines):
                         parser.next_token()
                         currently_reading_def_paramter_initializer_list = True
                     else:
-                        raise Exception("Expected 3 dots for initializer list.")
+                        RAISE_ERROR("Expected 3 dots for initializer list.")
                 else:
-                    raise Exception("Expected 3 dots for initializer list.")
+                    RAISE_ERROR("Expected 3 dots for initializer list.")
 
         parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
 
@@ -3502,10 +3506,10 @@ while index < len(Lines):
             elif parser.check_token(lexer.Token.COMMA):
                 parser.consume_token(lexer.Token.COMMA)
             else:
-                raise ValueError("Incorrect Constexpr Dictionary Format.")
+                RAISE_ERROR("Incorrect Constexpr Dictionary Format.")
 
         if is_constexpr_dictionary(dict_name):
-            raise NameError(f'Constexpr dictionary "{dict_name}" already defined.')
+            RAISE_ERROR(f'Constexpr dictionary "{dict_name}" already defined.')
         m_dict = ConstexprDictionaryType(dict_name, dict)
         constexpr_dictionaries.append(m_dict)
     elif check_token(lexer.Token.AT):
@@ -3586,7 +3590,7 @@ while index < len(Lines):
                 target_class = parser.get_token()
 
                 if is_inside_name_space:
-                    raise Exception(f"Is already inside a namespace \"{namespace_name}\". Doesn't need to define target class(\"{target_class}\") for the provided function using the FOR keyword.")
+                    RAISE_ERROR(f"Is already inside a namespace \"{namespace_name}\". Doesn't need to define target class(\"{target_class}\") for the provided function using the FOR keyword.")
 
                 defining_fn_for_custom_class = True
                 class_fn_defination["class_name"] = target_class
@@ -3653,10 +3657,10 @@ while index < len(Lines):
         # As of now the destructors aren't called.
 
         if not is_inside_user_defined_function:
-            raise Exception("End function without being in Function block.")
+            RAISE_ERROR("End function without being in Function block.")
         
         if is_inside_struct_c_function:
-            raise Exception("Use \"endc_function\" to close a c function and not \"end_function\".")
+            RAISE_ERROR("Use \"endc_function\" to close a c function and not \"end_function\".")
 
         code = "}\n"
         LinesCache.append(code)
@@ -3750,16 +3754,16 @@ while index < len(Lines):
            LinesCache.append(f"return {result};\n")
     elif check_token(lexer.Token.NAMESPACE):
         if is_inside_name_space:
-            raise Exception("Is already inside a namespace.Can't declare a new namespace.")
+            RAISE_ERROR(f"Is already inside a namespace(\"{namespace_name}\"). Can't declare a new namespace.")
         parser.consume_token(lexer.Token.NAMESPACE)
         namespace_name = parser.get_token()
         if not is_data_type_struct_object(namespace_name):
-            raise ValueError(f"\"{namespace_name}\" isn't a valid namespace name. Namespace name is one of the classes'(struct) name. Namespaces are for implementing the member functions for the provided class(struct).")
+            RAISE_ERROR(f"\"{namespace_name}\" isn't a valid namespace name. Namespace name is one of the classes'(struct) name. Namespaces are for implementing the member functions for the provided class(struct).")
         is_inside_name_space = True
     elif check_token(lexer.Token.ENDNAMESPACE):
         parser.consume_token(lexer.Token.ENDNAMESPACE)
         if not is_inside_name_space:
-            raise Exception("Isn't inside a namespace.First, declare a new namespace as \"namespace 'namespace_name'\"")
+            RAISE_ERROR("Isn't inside a namespace.First, declare a new namespace as \"namespace 'namespace_name'\"")
         namespace_name = ""
         is_inside_name_space = False
     else:
