@@ -317,6 +317,14 @@ int main() {
 
   ///*///
 
+  char c_str1[18] = "C Style Strings\n";
+  char *c_str1_iterator_0 = c_str1;
+  while (*c_str1_iterator_0 != '\0') {
+    char c = *c_str1_iterator_0;
+    c_str1_iterator_0++;
+    printf("%c", c);
+  }
+
   struct String str;
   String__init__OVDstr(&str, "Hello World");
   StringprintLn(&str);

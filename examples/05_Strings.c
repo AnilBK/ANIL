@@ -14,6 +14,12 @@ int main() {
   import Vector
   import String
 
+  let c_str1 = "C Style Strings\n"
+  // Such strings are very limited in functionality and only looping as below is supported.
+  for c in c_str1{
+    print("{c}")
+  }
+
   let str = String{"Hello World"};
   str.printLn()
 

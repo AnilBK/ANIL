@@ -89,8 +89,6 @@ instanced_struct_names = []
 GlobalStructInitCode = ""
 
 # Cached Items.
-string_variable_names = []
-
 # If any structs have __init__ method, then we register them here.
 # {struct_type:parameters}
 structs_with_constructors = {}
@@ -327,6 +325,10 @@ def is_variable(p_var_name) -> bool:
 
 def is_variable_char_type(p_var_name):
     return is_variable_of_type(p_var_name, "char")
+
+
+def is_variable_const_char_ptr(p_var_name):
+    return is_variable_of_type(p_var_name, "c_str")
 
 
 def is_variable_string_class(p_var_name):
@@ -800,6 +802,7 @@ namespace_name = ""
 is_inside_name_space = False
 
 temp_arr_length_variable_count = 0
+temp_c_str_iterator_variable_count = 0
 temp_arr_search_variable_count = 0
 temp_char_promoted_to_string_variable_count = 0
 
@@ -905,14 +908,23 @@ while index < len(Lines):
         global Lines
         Lines = Lines[:index] + p_array + Lines[index:]
 
-    def create_string_iterator(array_name):
+
+    def create_const_charptr_iterator(array_name, current_array_value_variable):
         global LinesCache
+        global temp_c_str_iterator_variable_count
+
+        iterator_var_name = f"{array_name}_iterator_{temp_c_str_iterator_variable_count}"
+
         LinesCache.append(
-            f"char *iterator = {array_name};"
-            f"while (*iterator != '\\0') {{"
-            f"char value = *iterator;"
-            f"iterator++;"
+            f"char *{iterator_var_name} = {array_name};"
+            f"while (*{iterator_var_name} != '\\0') {{"
+            f"char {current_array_value_variable} = *{iterator_var_name};"
+            f"{iterator_var_name}++;"
         )
+
+        REGISTER_VARIABLE(current_array_value_variable, "char")
+
+        temp_c_str_iterator_variable_count += 1
 
     def create_normal_array_iterator(array_name, current_array_value_variable):
         global LinesCache
@@ -2936,7 +2948,7 @@ while index < len(Lines):
                 string = parser.extract_string_literal()
                 # print(f"Obtained String : {string}")
                 LinesCache.append(f'char {array_name}[{len(string)+1}] = "{string}";\n')
-                string_variable_names.append(array_name)
+                REGISTER_VARIABLE(array_name, "c_str")
             elif parser.check_token(lexer.Token.TRUE) or parser.check_token(
                 lexer.Token.FALSE
             ):
@@ -3061,8 +3073,8 @@ while index < len(Lines):
                 array_name, ranged_index_item_variable, current_array_value_variable
             )
         else:
-            if array_name in string_variable_names:
-                create_string_iterator(array_name)
+            if is_variable_const_char_ptr(array_name):
+                create_const_charptr_iterator(array_name, current_array_value_variable)
             elif is_instanced_struct(array_name):
                 # This generates new CPL code which creates a for loop(which makes a new scope).
                 # We already have created a scope above by increment scope.
