@@ -318,6 +318,8 @@ int main() {
   ///*///
 
   char c_str1[18] = "C Style Strings\n";
+  // Such strings are very limited in functionality and only looping as below is
+  // supported.
   char *c_str1_iterator_0 = c_str1;
   while (*c_str1_iterator_0 != '\0') {
     char c = *c_str1_iterator_0;
