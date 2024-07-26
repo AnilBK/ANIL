@@ -1982,6 +1982,10 @@ while index < len(Lines):
         RAISE_ERROR(f"Constexpr dictionary {p_dict_name} is undefined.")
 
     def parse_function_declaration():
+        # parse everything after function/c_function token.
+        # function<> append<>(p_value : int) -> return_type
+        #         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
         is_overloaded_fn = False
         overload_for_type = ""
 
@@ -2006,9 +2010,6 @@ while index < len(Lines):
 
         fn_name = parser.get_token()
 
-        # parse everything after function name.
-        # function append<>(p_value : int)
-        #          ^^^^^^^^^^^^^^^^^^^^^^^ 
         return_type = "void"
 
         parameters = []
