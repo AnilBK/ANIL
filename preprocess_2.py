@@ -539,6 +539,11 @@ class Struct:
                 return struct_member.data_type
         return None
 
+
+    def has_data_member(self, p_member_name) -> bool:
+        return any(struct_member.member == p_member_name for struct_member in self.members)
+
+
     def print_member_fn_info(self):
         for fn in self.member_functions:
             fn.print_info()
@@ -2496,6 +2501,21 @@ while index < len(Lines):
                         parse_macro(parsed_member, "CLASS_MACRO", fn_name_tmp)
 
                         LinesCache.append(f"//Class Macro.\n")
+                        continue
+
+                    struct_member_name = fn_name_tmp
+                    is_acessing_struct_member = StructInfo.has_data_member(struct_member_name)
+                    if is_acessing_struct_member:
+                        parser.next_token()
+                        parser.consume_token(lexer.Token.EQUALS)
+                        value = parser.get_token()
+                        #              ^^^^^^^^^^^ probably should be expression() kind of fn.
+                        # TODO ? Full implementation required here, to assign any kind of data.
+                        # Also, better thing would be to register struct members to symbol table, within a namespace.
+                        if instanced_struct_info.is_pointer_type:
+                            LinesCache.append(f"{parsed_member}->{struct_member_name} = {value};\n")
+                        else:
+                            LinesCache.append(f"{parsed_member}.{struct_member_name} = {value};\n")
                         continue
 
                     parser = Parser.Parser(Line)

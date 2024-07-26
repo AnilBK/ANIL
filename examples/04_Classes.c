@@ -12,6 +12,11 @@ struct Rectangle{int length, int breadth};
 
 namespace Rectangle
 
+function __init__(l : int, b : int)
+  this.length = l
+  this.breadth = b
+endfunction
+
 function area()
   let area : int = 20
   print("Area of the rectangle is {area}.\n")

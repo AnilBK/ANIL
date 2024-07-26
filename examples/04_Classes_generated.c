@@ -8,6 +8,11 @@ struct Rectangle {
   int breadth;
 };
 
+void Rectangle__init__(struct Rectangle *this, int l, int b) {
+  this->length = l;
+  this->breadth = b;
+}
+
 void Rectanglearea(struct Rectangle *this) {
   int area = 20;
   printf("Area of the rectangle is %d.\n", area);
@@ -26,8 +31,7 @@ int main() {
   ///*///
 
   struct Rectangle rect;
-  rect.length = 10;
-  rect.breadth = 20;
+  Rectangle__init__(&rect, 10, 20);
   Rectanglearea(&rect);
   Rectangleprint_param(&rect, 10);
 
