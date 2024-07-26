@@ -90,11 +90,11 @@ GlobalStructInitCode = ""
 
 # Cached Items.
 # If any structs have __init__ method, then we register them here.
-# {struct_type:parameters}
-structs_with_constructors = {}
+# This could be stored in StructDefination.
+structs_with_constructors = set()
 
 def has_constructors(p_struct_type: str) -> bool:
-    return p_struct_type in structs_with_constructors.keys()
+    return p_struct_type in structs_with_constructors
 
 # UTILS BEGIN
 
@@ -3270,8 +3270,8 @@ while index < len(Lines):
         # Primitive Name Mangling.
         if is_fn_constructor_type:
             # fn_name = fn_name + struct_name
-            structs_with_constructors[struct_name] = parameters
-
+            structs_with_constructors.add(struct_name)
+            
         unmangled_name = fn_name
 
         if is_struct_templated:
@@ -3660,8 +3660,8 @@ while index < len(Lines):
 
             is_fn_constructor_type = function_name == "__init__"
             if is_fn_constructor_type:
-                structs_with_constructors[struct_name] = parameters
-
+                structs_with_constructors.add(struct_name)
+                
         if has_parameters:
             parameters_str = ",".join(parameters_combined_list)
             code += f"{parameters_str}"
