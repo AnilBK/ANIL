@@ -2507,16 +2507,19 @@ while index < len(Lines):
                     is_acessing_struct_member = StructInfo.has_data_member(struct_member_name)
                     if is_acessing_struct_member:
                         parser.next_token()
-                        parser.consume_token(lexer.Token.EQUALS)
-                        value = parser.get_token()
-                        #              ^^^^^^^^^^^ probably should be expression() kind of fn.
-                        # TODO ? Full implementation required here, to assign any kind of data.
-                        # Also, better thing would be to register struct members to symbol table, within a namespace.
-                        if instanced_struct_info.is_pointer_type:
-                            LinesCache.append(f"{parsed_member}->{struct_member_name} = {value};\n")
-                        else:
-                            LinesCache.append(f"{parsed_member}.{struct_member_name} = {value};\n")
-                        continue
+
+                        # For cases like this.tokens.__init__();
+                        if not parser.current_token() == lexer.Token.DOT:
+                            parser.consume_token(lexer.Token.EQUALS)
+                            value = parser.get_token()
+                            #              ^^^^^^^^^^^ probably should be expression() kind of fn.
+                            # TODO ? Full implementation required here, to assign any kind of data.
+                            # Also, better thing would be to register struct members to symbol table, within a namespace.
+                            if instanced_struct_info.is_pointer_type:
+                                LinesCache.append(f"{parsed_member}->{struct_member_name} = {value};\n")
+                            else:
+                                LinesCache.append(f"{parsed_member}.{struct_member_name} = {value};\n")
+                            continue
 
                     parser = Parser.Parser(Line)
                     # ctok.push(10)
