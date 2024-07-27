@@ -3145,15 +3145,29 @@ while index < len(Lines):
 
                 stopping_condition = "<"
                 if includes_stop:
+                    if step[0] == "-":
+                        if stop == "0":
+                            stopping_condition = "!"
+                        else:
+                            stopping_condition = ">"
                     stopping_condition += "="
 
                 increment_operation = "++"
                 if step != '1':
                     increment_operation = f"+={step}"
 
-                LinesCache.append(
-                    f"for (size_t {current_array_value_variable} = {start}; {current_array_value_variable} {stopping_condition} {stop}; {current_array_value_variable}{increment_operation}){{\n"
-                )
+                if stop == "0":
+                    LinesCache.append(
+                        f"for (size_t {current_array_value_variable} = {start}; {current_array_value_variable} {stopping_condition} (size_t) - 1; {current_array_value_variable}{increment_operation}){{\n"
+                    )
+                elif step[0] == "-":
+                    LinesCache.append(
+                        f"for (size_t {current_array_value_variable} = {stop}; {current_array_value_variable} {stopping_condition} {start}; {current_array_value_variable}{increment_operation}){{\n"
+                    )
+                else:
+                    LinesCache.append(
+                        f"for (size_t {current_array_value_variable} = {start}; {current_array_value_variable} {stopping_condition} {stop}; {current_array_value_variable}{increment_operation}){{\n"
+                    )
                 REGISTER_VARIABLE(current_array_value_variable, "size_t")
             else:
                 create_normal_array_iterator(array_name, current_array_value_variable)

@@ -49,6 +49,11 @@ int main() {
     print("{i}\n")
   }
 
+  for i in range(1..=10,-2){
+    print("{i}\n")
+  }
+
+
 
   // DESTRUCTOR_CODE //
   ///*///

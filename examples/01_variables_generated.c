@@ -59,6 +59,10 @@ int main() {
     printf("%llu\n", i);
   }
 
+  for (size_t i = 10; i >= 1; i += -2) {
+    printf("%llu\n", i);
+  }
+
   ///*///
 
   return 0;
