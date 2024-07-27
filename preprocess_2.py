@@ -952,6 +952,20 @@ while index < len(Lines):
         global temp_arr_length_variable_count
         global for_loop_depth
 
+        step_size = "1"
+        #for x in list[::-1]
+        #             ^^^^^^
+        if parser.has_tokens_remaining():
+            if parser.current_token() == lexer.Token.LEFT_SQUARE_BRACKET:
+                parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)
+                
+                parser.consume_token(lexer.Token.COLON)
+                parser.consume_token(lexer.Token.COLON)
+
+                step_size = parse_number()
+                
+                parser.consume_token(lexer.Token.RIGHT_SQUARE_BRACKET)
+
         loop_indices = "ijklmnopqrstuvwxyzabcdefgh"
         loop_counter_index = loop_indices[for_loop_depth % 26]
 
@@ -959,10 +973,21 @@ while index < len(Lines):
 
         # Emit CPL code to perform looping.
         # This line will be parsed by the compiler in next line.
-        l1 = f"let {temporary_len_var_name} = {array_name}.len()\n"
-        l2 = f"for {loop_counter_index} in range(0..{temporary_len_var_name}){{\n"
-        l3 = f"let {current_array_value_variable} = {array_name}[{loop_counter_index}]\n"
-        code = [l1, l2, l3]
+        
+        code = []
+        
+        if step_size[0] == "-":
+            # Starts with Negative index.
+            l1 = f"let {temporary_len_var_name} = {array_name}.len() - 1\n"
+            l2 = f"{temporary_len_var_name} -= 1;\n"
+            l3 = f"for {loop_counter_index} in range({temporary_len_var_name}..=0,{step_size}){{\n"
+            l4 = f"let {current_array_value_variable} = {array_name}[{loop_counter_index}]\n"
+            code = [l1, l2, l3, l4]
+        else:
+            l1 = f"let {temporary_len_var_name} = {array_name}.len()\n"
+            l2 = f"for {loop_counter_index} in range(0..{temporary_len_var_name}){{\n"
+            l3 = f"let {current_array_value_variable} = {array_name}[{loop_counter_index}]\n"
+            code = [l1, l2, l3]
 
         insert_intermediate_lines(index, code)
 

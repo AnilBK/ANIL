@@ -52,6 +52,10 @@ int main() {
   test.push(str4)
   test.print()
 
+  for tst in test[::-1]{
+    tst.print()
+  }
+
   // DESTRUCTOR_CODE //
   ///*///
       // clang-format on

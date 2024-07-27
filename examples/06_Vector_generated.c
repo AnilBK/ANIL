@@ -618,6 +618,14 @@ int main() {
   Vector_Stringpush(&test, str4);
   Vector_Stringprint(&test);
 
+  size_t tmp_len_0 = Vector_Stringlen(&test);
+  tmp_len_0 -= 1;
+  for (size_t i = tmp_len_0; i != (size_t)-1; i += -1) {
+    struct String tst = Vector_String__getitem__(&test, i);
+    Stringprint(&tst);
+    String__del__(&tst);
+  }
+
   Vector_String__del__(&test);
   String__del__(&str4);
   String__del__(&str3);
