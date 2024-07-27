@@ -5,14 +5,54 @@
 
 // STRUCT_DEFINATIONS //
 
+///*///
+import Vector
+import String
+
+
+struct StructInstance{String struct_type, String struct_name,bool is_templated,String templated_data_type,int scope,bool should_be_freed, bool is_pointer_type};
+
+namespace StructInstance
+
+function __init__(p_struct_type : String, p_struct_name : String, p_is_templated: bool,p_templated_data_type : String, p_scope:int)
+  this.struct_type = p_struct_type
+  this.struct_name = p_struct_name
+  this.is_templated = p_is_templated
+  this.templated_data_type = p_templated_data_type
+
+  this.scope = p_scope
+
+  this.should_be_freed = true
+
+  this.is_pointer_type = false
+endfunction
+
+function should_struct_be_freed() -> bool:
+  return this.should_be_freed
+endfunction
+
+endnamespace
+
+
+// function get_destructor_for_struct(p_name : String) -> String:
+//   let instanced_struct_names = Vector<StructInstance>{10};
+//   for m_struct in instanced_struct_names[::-1]{
+//     if m_struct.should_be_freed{
+//       let des_code = String{"{destructor_fn_name}(&{struct_name});\n"};
+//       return des_code
+//     }
+//   }
+//   let code = String{""};
+//   return code
+// endfunction
+///*///
+
+
 int main() {
 
   // clang-format off
 
   ///*/// 
-
-  import Vector
-  import String
 
   let source_file = String{"../examples/01_variables.c"};
   #source_file.printLn()
