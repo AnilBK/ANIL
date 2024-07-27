@@ -1502,6 +1502,8 @@ while index < len(Lines):
         STRUCT_FUNCTION_CALL = 0
         # To denote x = fn();
         GLOBAL_FUNCTION_CALL = 1
+        # To denote x = A.B;
+        MEMBER_ACCESS_CALL =  2
 
     def _parse_function_call(assignment_fn_call=True):
         # let str = str2[0]
@@ -1541,6 +1543,34 @@ while index < len(Lines):
 
         while parser.has_tokens_remaining():
             tk = parser.get_token()    
+
+            #For struct member access like in a.b
+            #                                 ^^  is parsed earlier.
+            # current tk is b & we have no tokens remaining.
+            if not parser.has_tokens_remaining():
+                if child_struct_info is not None:
+                    is_acessing_struct_member = child_struct_info.has_data_member(tk)
+                    if is_acessing_struct_member:
+                        if member_access_string[-1] != ">" or member_access_string[-1] != ".":
+                            member_access_string += f"{pointer_access}{tk}"
+
+                        if "->" in member_access_string and member_access_string[0] != "&":
+                            pass
+                            # Turns out this isn't required for MEMBER_ACCESS_CALL's.
+                            # TODO : Investigate :P
+                            # member_access_string = "&" + member_access_string
+                        
+                        parsing_fn_call_type = ParsedFunctionCallType.MEMBER_ACCESS_CALL
+                        
+                        return {
+                            "fn_name": "",
+                            "return_type": child_struct_info.get_type_of_member(tk),
+                            "has_parameters": False,
+                            "parameters_str": "",
+                            "function_call_type": parsing_fn_call_type,
+                            "member_access_string": member_access_string
+                        }
+    
 
             is_member_access_token = parser.check_token(lexer.Token.DOT)
             if parser.check_token(lexer.Token.LEFT_ROUND_BRACKET):
@@ -2170,7 +2200,7 @@ while index < len(Lines):
                 # Struct type.
                 # if Line.startswith("import"){
                 if parser.has_tokens_remaining() and parser.check_token(lexer.Token.DOT):
-                    # parser.next_token()
+                    parser.consume_token(lexer.Token.DOT)
 
                     parser = Parser.Parser(Line)
                     # if Line.startswith("import"){
@@ -2186,12 +2216,16 @@ while index < len(Lines):
                     return_type = parse_result["return_type"]
                     member_access_string = parse_result["member_access_string"]
 
-                    if parse_result["has_parameters"]:
-                        parameters_str = parse_result["parameters_str"]
-                        output_code = f"{fn_name}({member_access_string}, {parameters_str})"
+                    if parse_result["function_call_type"] == ParsedFunctionCallType.MEMBER_ACCESS_CALL:
+                        output_code = member_access_string
+                        term_type = "variable"
                     else:
-                        output_code = f"{fn_name}({member_access_string})"
-                    term_type = "struct_function_call"
+                        if parse_result["has_parameters"]:
+                            parameters_str = parse_result["parameters_str"]
+                            output_code = f"{fn_name}({member_access_string}, {parameters_str})"
+                        else:
+                            output_code = f"{fn_name}({member_access_string})"
+                        term_type = "struct_function_call"
                 else:
                     term_type = "struct"
             else:
