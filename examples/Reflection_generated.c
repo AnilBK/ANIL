@@ -78,8 +78,7 @@ struct CPLObject CPLObject_duplicate(struct CPLObject *this) {
 bool CPLObject__eq__OVDint(struct CPLObject *this, int p_value) {
 
   if (CPLObjectis_int(this)) {
-    int val = CPLObjectget_int(this);
-    return val == p_value;
+    return CPLObjectget_int(this) == p_value;
   } else {
     return false;
   }

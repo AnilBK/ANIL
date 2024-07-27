@@ -66,8 +66,7 @@ endc_function
 
 function __eq__<>(p_value : int) -> bool:
   if this.is_int(){
-    let val = this.get_int() 
-    return val == p_value
+    return this.get_int() == p_value
   }else{
     return false
   }
