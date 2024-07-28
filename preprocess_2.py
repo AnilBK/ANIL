@@ -2218,7 +2218,7 @@ while index < len(Lines):
 
                     if parse_result["function_call_type"] == ParsedFunctionCallType.MEMBER_ACCESS_CALL:
                         output_code = member_access_string
-                        term_type = "variable"
+                        term_type = return_type
                     else:
                         if parse_result["has_parameters"]:
                             parameters_str = parse_result["parameters_str"]

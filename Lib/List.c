@@ -74,8 +74,7 @@ endfunction
 
 function __eq__<>(p_value : str) -> bool:
   if this.is_str(){
-    let val = this.get_str() 
-    return val == p_value
+    return this.get_str() == p_value
   }else{
     return false
   }
