@@ -28,9 +28,19 @@ c_function __init__(capacity : int)
   this->capacity = capacity;
 endc_function  
 
-c_function __del__()
-  // Python Version of destructor.
+c_function<> __del__()
   free(this->arr);
+  this->arr = NULL;
+  this->size = 0;
+  this->capacity = 0;
+endc_function
+
+c_function<String> __del__()
+  for (size_t i = 0; i < this->size; ++i) {
+    String__del__(&this->arr[i]);
+  }    
+
+  free(this->arr);  
   this->arr = NULL;
   this->size = 0;
   this->capacity = 0;

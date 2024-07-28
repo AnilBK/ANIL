@@ -40,7 +40,6 @@ void Vector_int__init__(struct Vector_int *this, int capacity) {
 }
 
 void Vector_int__del__(struct Vector_int *this) {
-  // Python Version of destructor.
   free(this->arr);
   this->arr = NULL;
   this->size = 0;

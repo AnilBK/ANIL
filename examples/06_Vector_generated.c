@@ -135,7 +135,10 @@ void Vector_String__init__(struct Vector_String *this, int capacity) {
 }
 
 void Vector_String__del__(struct Vector_String *this) {
-  // Python Version of destructor.
+  for (size_t i = 0; i < this->size; ++i) {
+    String__del__(&this->arr[i]);
+  }
+
   free(this->arr);
   this->arr = NULL;
   this->size = 0;
@@ -341,7 +344,6 @@ void Vector_int__init__(struct Vector_int *this, int capacity) {
 }
 
 void Vector_int__del__(struct Vector_int *this) {
-  // Python Version of destructor.
   free(this->arr);
   this->arr = NULL;
   this->size = 0;
@@ -426,7 +428,6 @@ void Vector_float__init__(struct Vector_float *this, int capacity) {
 }
 
 void Vector_float__del__(struct Vector_float *this) {
-  // Python Version of destructor.
   free(this->arr);
   this->arr = NULL;
   this->size = 0;
@@ -511,7 +512,6 @@ void Vector_char__init__(struct Vector_char *this, int capacity) {
 }
 
 void Vector_char__del__(struct Vector_char *this) {
-  // Python Version of destructor.
   free(this->arr);
   this->arr = NULL;
   this->size = 0;
@@ -618,13 +618,9 @@ int main() {
   Vector_Stringpush(&test, str4);
   Vector_Stringprint(&test);
 
-  size_t tmp_len_0 = Vector_Stringlen(&test);
-  tmp_len_0 -= 1;
-  for (size_t i = tmp_len_0; i != (size_t)-1; i += -1) {
-    struct String tst = Vector_String__getitem__(&test, i);
-    Stringprint(&tst);
-    String__del__(&tst);
-  }
+  // for tst in test[::-1]{
+  //   tst.print()
+  // }
 
   Vector_String__del__(&test);
   String__del__(&str4);

@@ -134,7 +134,10 @@ void Vector_String__init__(struct Vector_String *this, int capacity) {
 }
 
 void Vector_String__del__(struct Vector_String *this) {
-  // Python Version of destructor.
+  for (size_t i = 0; i < this->size; ++i) {
+    String__del__(&this->arr[i]);
+  }
+
   free(this->arr);
   this->arr = NULL;
   this->size = 0;
