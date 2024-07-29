@@ -1641,10 +1641,12 @@ while index < len(Lines):
                     if type_of_tk is None:
                         RAISE_ERROR(f"Struct doesn't have member {tk}.")
 
+                    val = random.randrange(100000)
+
                     # Try to recreate the struct instance what it would be.
                     struct_instance = StructInstance(
                         type_of_tk,
-                        "tmp_struct_name",
+                        f"tmp_struct_name_{str(val)}",
                         False,
                         "",
                         get_current_scope(),
@@ -1789,11 +1791,23 @@ while index < len(Lines):
                 raw_return_type = return_type.split("struct")[1].strip()
 
                 global instanced_struct_names
-                instanced_struct_names.append(
-                    StructInstance(
-                        raw_return_type, var_name, False, "", get_current_scope()
-                    )
+
+                instance = StructInstance(
+                    raw_return_type, var_name, False, "", get_current_scope()
                 )
+
+                # Map mangled struct type, which performs same as this commented code.
+                # if raw_return_type == "Vector_String":
+                #     instance = StructInstance(
+                #         "Vector", var_name, True, "String", get_current_scope()
+                #     )
+                if raw_return_type in templated_data_type_mapping:
+                    template_types = templated_data_type_mapping[raw_return_type]
+                    instance = StructInstance(
+                        template_types[0], var_name, True, template_types[1], get_current_scope()
+                    )  
+
+                instanced_struct_names.append(instance)
 
                 REGISTER_VARIABLE(var_name, return_type)
             else:
