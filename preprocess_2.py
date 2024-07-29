@@ -96,6 +96,13 @@ structs_with_constructors = set()
 def has_constructors(p_struct_type: str) -> bool:
     return p_struct_type in structs_with_constructors
 
+# Map "Vector_String" as {"Vector_String":["Vector", "String"]} i.e
+# store individual structs and the final mangled struct name.
+templated_data_type_mapping = {}
+# This list stores all the individual structs that make up a final templated data type temporarily.
+# This list is then assigned to the appropriate key to the dictionary above.
+templated_data_type_mapping_list = []
+
 # UTILS BEGIN
 
 
@@ -1024,7 +1031,17 @@ while index < len(Lines):
         struct_defination = get_struct_defination_of_type(data_type)
         is_struct_type = struct_defination != None
 
+        is_templated = False
+
+        global templated_data_type_mapping
+        global templated_data_type_mapping_list
+        
+        if not inner:
+            templated_data_type_mapping_list = []
+        
         if is_struct_type:
+            templated_data_type_mapping_list.append(data_type_str)
+
             if not inner:
                 data_type_str = f"struct {data_type_str}"
 
@@ -1052,11 +1069,21 @@ while index < len(Lines):
                 )
             """
 
+            is_templated = True
+
             inner_data_type = parse_data_type(inner=True)
             data_type_str += f"_{inner_data_type}"
             parser.consume_token(lexer.Token.GREATER_THAN)
 
             instantiate_template(data_type, inner_data_type)
+
+        if is_templated:
+            #Convert "struct Vector_String" to "Vector_String"
+            stripped = data_type_str
+            if data_type_str.startswith("struct "):
+                stripped = data_type_str[len("struct "):]
+            templated_data_type_mapping[stripped] = templated_data_type_mapping_list
+            templated_data_type_mapping_list = []
 
         return data_type_str
 
