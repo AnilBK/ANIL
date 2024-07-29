@@ -428,6 +428,9 @@ class MemberFunction:
         self.fn_body = ""
         self.return_type = p_return_type
 
+        # This means the value(struct) which is assigned the return value of this function isn't freed by the destructor at the end of the created variable scope.
+        self.is_return_type_ref_type = False
+
         self.is_overloaded_function = False
         self.overload_for_template_type = ""
         
@@ -540,6 +543,34 @@ class Struct:
         RAISE_ERROR(f"{error_msg}")
 
 
+    def is_return_type_of_fn_ref_type(self, p_fn_name, p_custom_overload_type = "") -> str:
+        if p_custom_overload_type != "":
+            for fn in self.member_functions:
+                if fn.fn_name == p_fn_name:
+                    if fn.overload_for_template_type == p_custom_overload_type:
+                        return fn.is_return_type_ref_type
+
+        for fn in self.member_functions:
+            if fn.fn_name == p_fn_name:
+                return fn.is_return_type_ref_type
+
+        RAISE_ERROR(f"Function {p_fn_name} not found.")
+
+    def is_return_type_of_overloaded_fn_ref_type(self, p_fn_name, provided_parameter_types:list):
+        possible_args = []
+        for fn in self.member_functions:
+            if fn.fn_name == p_fn_name:
+                args = fn.fn_arguments
+                args_list = [a.data_type for a in args]
+                if args_list == provided_parameter_types:
+                    return fn.is_return_type_ref_type
+                possible_args.append(args_list)
+        m_types = [a.data_type for a in provided_parameter_types]
+        error_msg = f"Didn't find overloaded function({p_fn_name}) of provided types {m_types}."
+        error_msg += f"Possible argument types for the overloaded functions are {possible_args}."
+        RAISE_ERROR(f"{error_msg}")
+
+
     def get_type_of_member(self, p_member_name) -> Optional[str]:
         for struct_member in self.members:
             if struct_member.member == p_member_name:
@@ -635,6 +666,13 @@ class StructInstance:
                 return get_overloaded_mangled_fn_name(self.struct_type, p_fn_name, parameters if parameters != None else [])
             else:
                 return get_mangled_fn_name(self.struct_type, p_fn_name)
+
+    def is_return_type_ref_type(self, p_fn_name, parameters = None):
+        struct_info = self.get_struct_defination()
+        if struct_info.function_is_overloaded(p_fn_name):
+            return struct_info.is_return_type_of_overloaded_fn_ref_type(p_fn_name, parameters if parameters != None else [])
+        else:
+            return struct_info.is_return_type_of_fn_ref_type(p_fn_name, self.templated_data_type if self.is_templated_instance() else "")
 
     def get_return_type_of_fn(self, p_fn_name, parameters = None):
         return_type = None
@@ -1553,6 +1591,8 @@ while index < len(Lines):
 
         fn_name_unmangled = ""
         return_type = ""
+        is_return_type_ref_type = False
+
         member_access_string = ""
 
         pointer_access = "->"
@@ -1721,9 +1761,9 @@ while index < len(Lines):
             
             args = struct_instance.get_fn_arguments(fn_name_unmangled, provided_types)
             return_type = struct_instance.get_return_type_of_fn(fn_name_unmangled, provided_types)
+            is_return_type_ref_type = struct_instance.is_return_type_ref_type(fn_name_unmangled, provided_types)
             fn_name_mangled = struct_instance.get_mangled_function_name(fn_name_unmangled, provided_types)
             parsing_fn_call_type = ParsedFunctionCallType.STRUCT_FUNCTION_CALL
-            
         fn_args = []
         if args is not None:
             fn_args = [arg.data_type for arg in args]
@@ -1807,6 +1847,9 @@ while index < len(Lines):
                         template_types[0], var_name, True, template_types[1], get_current_scope()
                     )  
 
+                if is_return_type_ref_type:
+                    instance.should_be_freed = False
+                    
                 instanced_struct_names.append(instance)
 
                 REGISTER_VARIABLE(var_name, return_type)
@@ -2166,17 +2209,24 @@ while index < len(Lines):
 
         parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
 
+        is_return_type_ref_type = False
         # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN) -> return_type
         if parser.has_tokens_remaining():
             if parser.check_token(lexer.Token.MINUS):
                 parser.consume_token(lexer.Token.MINUS)
                 parser.consume_token(lexer.Token.GREATER_THAN)
+                # -> &return_type
+                if parser.check_token(lexer.Token.AMPERSAND):
+                    is_return_type_ref_type = True
+                    parser.next_token()
+
                 return_type = parse_data_type()
                 parser.consume_token(lexer.Token.COLON)
 
         return {
             "fn_name" : fn_name,
             "return_type" : return_type,
+            "is_return_type_ref_type" : is_return_type_ref_type,
             "parameters" : parameters,
             "parameters_combined_list" : parameters_combined_list,
             "is_overloaded" : is_overloaded,
@@ -3369,6 +3419,7 @@ while index < len(Lines):
 
         fn_name = function_declaration["fn_name"] 
         return_type = function_declaration["return_type"]
+        is_return_type_ref_type = function_declaration["is_return_type_ref_type"]
         parameters = function_declaration["parameters"]
         parameters_combined_list = function_declaration["parameters_combined_list"]
         is_overloaded = function_declaration["is_overloaded"]
@@ -3414,6 +3465,7 @@ while index < len(Lines):
         fn = MemberFunction(unmangled_name, parameters, return_type)
         fn.is_overloaded_function = is_overloaded_fn
         fn.overload_for_template_type = overload_for_type
+        fn.is_return_type_ref_type = is_return_type_ref_type
 
         add_fn_member_to_struct(struct_name, fn)
 
@@ -3680,6 +3732,7 @@ while index < len(Lines):
 
         function_name = function_declaration["fn_name"]
         return_type = function_declaration["return_type"]
+        is_return_type_ref_type = function_declaration["is_return_type_ref_type"]
         parameters = function_declaration["parameters"]
         parameters_combined_list = function_declaration["parameters_combined_list"]
         is_overloaded = function_declaration["is_overloaded"]
@@ -3785,6 +3838,7 @@ while index < len(Lines):
         fn = MemberFunction(function_name, parameters, return_type)
         fn.is_overloaded_function = is_overloaded_fn
         fn.overload_for_template_type = overload_for_type
+        fn.is_return_type_ref_type = is_return_type_ref_type
         
         if defining_fn_for_custom_class:
             GlobalStructInitCode += code

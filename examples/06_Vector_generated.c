@@ -117,6 +117,13 @@ struct Vector_String {
 size_t Vector_Stringlen(struct Vector_String *this) { return this->size; }
 
 struct String Vector_String__getitem__(struct Vector_String *this, int index) {
+  // Vector<String> Specialization:
+  // Returns &T ie &String, which means the return type is reference type.
+  // So, the returned String isn't freed by the destructor.
+  // for x in Vector<String>{}
+  // x calls __getitem__() and is a String. Typically x should be freed at the
+  // end of the loop. Since __getitem__() is a reference return type, it isn't
+  // freed.
   return *(this->arr + index);
 }
 
@@ -618,9 +625,12 @@ int main() {
   Vector_Stringpush(&test, str4);
   Vector_Stringprint(&test);
 
-  // for tst in test[::-1]{
-  //   tst.print()
-  // }
+  size_t tmp_len_0 = Vector_Stringlen(&test);
+  tmp_len_0 -= 1;
+  for (size_t i = tmp_len_0; i != (size_t)-1; i += -1) {
+    struct String tst = Vector_String__getitem__(&test, i);
+    Stringprint(&tst);
+  }
 
   Vector_String__del__(&test);
   String__del__(&str4);

@@ -11,7 +11,17 @@ c_function len() -> size_t:
   return this->size;
 endc_function
 
-c_function __getitem__(index : int) -> T:
+c_function<> __getitem__(index : int) -> T:
+  return *(this->arr + index);
+endc_function
+
+c_function<String> __getitem__(index : int) -> &T:
+  // Vector<String> Specialization: 
+  // Returns &T ie &String, which means the return type is reference type.
+  // So, the returned String isn't freed by the destructor.
+  // for x in Vector<String>{}
+  // x calls __getitem__() and is a String. Typically x should be freed at the end of the loop.
+  // Since __getitem__() is a reference return type, it isn't freed.
   return *(this->arr + index);
 endc_function
 

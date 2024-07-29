@@ -296,6 +296,7 @@ int main() {
 
   Listappend_str(&vector_class_member_functions, "len");
   Listappend_str(&vector_class_member_functions, "__getitem__");
+  Listappend_str(&vector_class_member_functions, "__getitem__");
   Listappend_str(&vector_class_member_functions, "__init__");
   Listappend_str(&vector_class_member_functions, "__del__");
   Listappend_str(&vector_class_member_functions, "__del__");
