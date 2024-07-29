@@ -76,21 +76,20 @@ c_function substr(start : int, length : int) -> String:
 endc_function
 
 c_function strip() -> String:
-  //  char *str = "  Hello ";
-  char *str = this->arr;
+  char *begin = this->arr;
+  char *end = begin + Stringlen(this) - 1;
 
-  char *begin = str;
-  // Remove leading whitespaces
+  // Remove leading whitespaces.
   while (isspace(*begin)) {
     begin++;
   }
 
-  // Remove trailing whitespaces
-  char *end = str + strlen(str) - 1;
+  // Remove trailing whitespaces.
   while (end > begin && isspace(*end)) {
     end--;
   }
 
+ // Length of the substring between 'begin' and 'end' inclusive.
   int new_length = end - begin + 1;
 
   struct String text;
