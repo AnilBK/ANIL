@@ -351,6 +351,22 @@ bool StructInstanceshould_struct_be_freed(struct StructInstance *this) {
   return this->should_be_freed;
 }
 
+struct Symbol {
+  struct String name;
+  struct String data_type;
+};
+
+void Symbol__init__(struct Symbol *this, struct String p_name,
+                    struct String p_data_type) {
+  this->name = p_name;
+  this->data_type = p_data_type;
+}
+
+void Symbol__del__(struct Symbol *this) {
+  String__del__(&this->name);
+  String__del__(&this->data_type);
+}
+
 ///*///
 
 // function get_destructor_for_struct(p_name : String) -> String:

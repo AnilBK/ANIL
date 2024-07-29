@@ -13,7 +13,6 @@ import String
 struct StructInstance{String struct_type, String struct_name,bool is_templated,String templated_data_type,int scope,bool should_be_freed, bool is_pointer_type};
 
 namespace StructInstance
-
 function __init__(p_struct_type : String, p_struct_name : String, p_is_templated: bool,p_templated_data_type : String, p_scope:int)
   this.struct_type = p_struct_type
   this.struct_name = p_struct_name
@@ -30,7 +29,20 @@ endfunction
 function should_struct_be_freed() -> bool:
   return this.should_be_freed
 endfunction
+endnamespace
 
+struct Symbol{String name, String data_type};
+
+namespace Symbol
+function __init__(p_name : String, p_data_type : String)
+  this.name = p_name
+  this.data_type = p_data_type
+endfunction
+
+function __del__()
+  this.name.__del__()
+  this.data_type.__del__()
+endfunction
 endnamespace
 
 
