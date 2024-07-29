@@ -1532,7 +1532,7 @@ while index < len(Lines):
         # To denote x = A.B;
         MEMBER_ACCESS_CALL =  2
 
-    def _parse_function_call(assignment_fn_call=True):
+    def _parse_function_call(assignment_fn_call=True, var_name = None):
         # let str = str2[0]
         #     ^^^        ^
         #     |          |
@@ -1841,8 +1841,7 @@ while index < len(Lines):
         #     |     |    .________ parameters
         #     |     ._____________ target
         #     .___________________ varname
-
-        parse_result = _parse_function_call()
+        parse_result = _parse_function_call(True, var_name)
         fn_name = parse_result["fn_name"]
         return_type = parse_result["return_type"]
         has_parameters = parse_result["has_parameters"]
