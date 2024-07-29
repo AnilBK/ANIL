@@ -31,7 +31,6 @@ source_file = "examples\\06_Vector.c"
 # source_file = "examples\\constexpr_dict.c"
 # source_file = "examples\\decorators_inside_fn_body.c"
 # source_file = "examples\\enumerate_source.c"
-# source_file = "examples\\parser_tests.c"
 
 # source_file = "examples\\fileexample.c"
 # source_file = "examples\\function_example.c"

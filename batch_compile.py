@@ -12,7 +12,6 @@ file_names = [
     "examples\\constexpr_dict.c",
     "examples\\decorators_inside_fn_body.c",
     "examples\\enumerate_source.c",
-    "examples\\parser_tests.c",
     "examples\\fileexample.c",
     "examples\\function_example.c",
     "Bootstrap\\lexer_test.c",
