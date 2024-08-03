@@ -1569,16 +1569,7 @@ while index < len(Lines):
         # To denote x = A.B;
         MEMBER_ACCESS_CALL =  2
 
-    def _parse_function_call(assignment_fn_call=True, var_name = None):
-        # let str = str2[0]
-        #     ^^^        ^
-        #     |          |
-        #     |          .________ parameters
-        #     .___________________ varname
-
-        # assignment_fn_call to hint its let X = A.Y();
-        # And not, just a function call like A.X();
-
+    def _parse_function_call():
         #            V We start parsing from here. 
         # let expr = A.B.C.Function()
         #            | ^ ^ child struct
@@ -1822,39 +1813,6 @@ while index < len(Lines):
             global LinesCache
             LinesCache.append(f"{char_to_string_promotion_code}\n")
 
-        if assignment_fn_call:
-            if "struct" in return_type:
-                #              "struct Vector__String"
-                # return type   ^^^^^^^^^^^^^^^^^^^^^
-                # raw_return_type      ^^^^^^^^^^^^^^
-                raw_return_type = return_type.split("struct")[1].strip()
-
-                global instanced_struct_names
-
-                instance = StructInstance(
-                    raw_return_type, var_name, False, "", get_current_scope()
-                )
-
-                # Map mangled struct type, which performs same as this commented code.
-                # if raw_return_type == "Vector_String":
-                #     instance = StructInstance(
-                #         "Vector", var_name, True, "String", get_current_scope()
-                #     )
-                if raw_return_type in templated_data_type_mapping:
-                    template_types = templated_data_type_mapping[raw_return_type]
-                    instance = StructInstance(
-                        template_types[0], var_name, True, template_types[1], get_current_scope()
-                    )  
-
-                if is_return_type_ref_type:
-                    instance.should_be_freed = False
-                    
-                instanced_struct_names.append(instance)
-
-                REGISTER_VARIABLE(var_name, return_type)
-            else:
-                REGISTER_VARIABLE(var_name, return_type)
-
         parameters_str = ""
         has_parameters = len(parameters) > 0
         if has_parameters:
@@ -1870,25 +1828,58 @@ while index < len(Lines):
         return {
             "fn_name": fn_name_mangled,
             "return_type": return_type,
+            "is_return_type_ref_type": is_return_type_ref_type,
             "has_parameters": has_parameters,
             "parameters_str": parameters_str,
             "function_call_type": parsing_fn_call_type,
-            "member_access_string": member_access_string
+            "member_access_string": member_access_string,
         }
     
-    def parse_access_struct_member(var_name, target):
+    def parse_access_struct_member(var_name):
         # let str = str2[0]
         #     ^^^   ^^^^ ^
         #     |     |    |
         #     |     |    .________ parameters
         #     |     ._____________ target
         #     .___________________ varname
-        parse_result = _parse_function_call(True, var_name)
+        parse_result = _parse_function_call()
         fn_name = parse_result["fn_name"]
         return_type = parse_result["return_type"]
+        is_return_type_ref_type = parse_result["is_return_type_ref_type"]
         has_parameters = parse_result["has_parameters"]
         parsed_fn_call_type = parse_result["function_call_type"]
         member_access_string = parse_result["member_access_string"]
+
+        if "struct" in return_type:
+            #              "struct Vector__String"
+            # return type   ^^^^^^^^^^^^^^^^^^^^^
+            # raw_return_type      ^^^^^^^^^^^^^^
+            raw_return_type = return_type.split("struct")[1].strip()
+
+            global instanced_struct_names
+
+            instance = StructInstance(
+                raw_return_type, var_name, False, "", get_current_scope()
+            )
+
+            # Map mangled struct type, which performs same as this commented code.
+            # if raw_return_type == "Vector_String":
+            #     instance = StructInstance(
+            #         "Vector", var_name, True, "String", get_current_scope()
+            #     )
+            if raw_return_type in templated_data_type_mapping:
+                template_types = templated_data_type_mapping[raw_return_type]
+                instance = StructInstance(
+                    template_types[0], var_name, True, template_types[1], get_current_scope()
+                )  
+
+            if is_return_type_ref_type:
+                instance.should_be_freed = False
+                
+            instanced_struct_names.append(instance)
+
+        REGISTER_VARIABLE(var_name, return_type)
+
         assignment_code = f"{return_type} {var_name} = {fn_name}("
 
         if parsed_fn_call_type == ParsedFunctionCallType.STRUCT_FUNCTION_CALL:
@@ -2299,8 +2290,7 @@ while index < len(Lines):
                     # if Line.startswith("import"){ <------Parse Function Call.
                     # if this.tokens.len() > 0{     <------Parse member variable
                     #                                      then the function call.
-
-                    parse_result = _parse_function_call(assignment_fn_call = False)
+                    parse_result = _parse_function_call()
                     fn_name = parse_result["fn_name"]
                     return_type = parse_result["return_type"]
                     member_access_string = parse_result["member_access_string"]
@@ -2672,7 +2662,7 @@ while index < len(Lines):
                     parser = Parser.Parser(Line)
                     # ctok.push(10)
 
-                    parse_result = _parse_function_call(assignment_fn_call = False)
+                    parse_result = _parse_function_call()
                     fn_name = parse_result["fn_name"]
                     return_type = parse_result["return_type"]
                     member_access_string = parse_result["member_access_string"]
@@ -3193,7 +3183,7 @@ while index < len(Lines):
                         actual_value = parse_constexpr_dictionary(target)
                         LinesCache.append(f"int {var_name} = {actual_value};\n")
                     else:
-                        parse_access_struct_member(var_name, target)
+                        parse_access_struct_member(var_name)
     elif check_token(lexer.Token.IF):
         nesting_levels.append(NestingLevel.IF_STATEMENT)
         increment_scope()
