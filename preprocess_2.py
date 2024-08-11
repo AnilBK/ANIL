@@ -1622,10 +1622,11 @@ while index < len(Lines):
                         return {
                             "fn_name": "",
                             "return_type": child_struct_info.get_type_of_member(tk),
+                            "is_return_type_ref_type" : False,
                             "has_parameters": False,
                             "parameters_str": "",
                             "function_call_type": parsing_fn_call_type,
-                            "member_access_string": member_access_string
+                            "member_access_string": member_access_string,
                         }
     
 
