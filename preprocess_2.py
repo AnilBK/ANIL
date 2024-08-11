@@ -2759,24 +2759,20 @@ while index < len(Lines):
                 struct_type = instanced_struct_info.struct_type
                 StructInfo = instanced_struct_info.get_struct_defination()
 
-                if struct_type == "String":
-                    for fn in fns_required_for_reassignment:
-                        StructInfo.ensure_has_function(fn, parsed_member)
+                if struct_defination != None:
+                    #Custom Structs.
+                    # for fn in fns_required_for_reassignment:
+                        # StructInfo.ensure_has_function(fn, parsed_member)
+                    pass
 
-                fn_name = instanced_struct_info.get_mangled_function_name(reassign_fn)
-                fn_name_unmangled = reassign_fn
-
-                gen_code = ""
-
+                reassign_CPL_code = ""
                 if parsed_string_variable:
-                    # token = Char
-                    RAISE_ERROR(
-                        "Reassignment operator is only implemented for string arguments."
-                    )
+                    reassign_CPL_code = f"{parsed_member}.__reassign__({string})\n"
                 else:
-                    gen_code = f'{fn_name}(&{parsed_member}, "{string}");'
+                    reassign_CPL_code = f"{parsed_member}.__reassign__(\"{string}\")\n"
 
-                LinesCache.append(f"{gen_code}\n")
+                index_to_insert_at = index
+                Lines.insert(index_to_insert_at, reassign_CPL_code)
                 continue
 
         elif is_macro_name(parsed_member):

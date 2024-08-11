@@ -14,10 +14,16 @@ struct StructInstance{String struct_type, String struct_name,bool is_templated,S
 
 namespace StructInstance
 function __init__(p_struct_type : String, p_struct_name : String, p_is_templated: bool,p_templated_data_type : String, p_scope:int)
-  this.struct_type = p_struct_type
-  this.struct_name = p_struct_name
+  //this.struct_type.__init__(p_struct_type)
+  //this.struct_name.__init__(p_struct_name)
+  this.struct_type.__init__("")
+  this.struct_name.__init__("")
+  
+  this.struct_type.__reassign__(p_struct_type)
+  this.struct_name.__reassign__(p_struct_name)
+
   this.is_templated = p_is_templated
-  this.templated_data_type = p_templated_data_type
+  this.templated_data_type.__reassign__(p_templated_data_type)
 
   this.scope = p_scope
 
@@ -28,6 +34,12 @@ endfunction
 
 function should_struct_be_freed() -> bool:
   return this.should_be_freed
+endfunction
+
+function __del__()
+  this.struct_type.__del__()
+  this.struct_name.__del__()
+  this.templated_data_type.__del__()
 endfunction
 endnamespace
 

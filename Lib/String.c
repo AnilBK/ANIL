@@ -20,6 +20,11 @@ c_function __getitem__(index: int) -> char:
   return *(this->arr + index);
 endc_function
 
+c_function length_of_charptr(p_string:str) -> size_t:
+// This should be some kind of static method.
+  return strlen(p_string);
+endc_function
+
 c_function __init__from_charptr(text: str, p_text_length: int)
   // p_text_length : Length of the string without the null terminator.
   this->arr = (char *)malloc((p_text_length + 1) * sizeof(char));
@@ -36,10 +41,10 @@ c_function __init__from_charptr(text: str, p_text_length: int)
   this->capacity = p_text_length + 1;
 endc_function
 
-c_function __init__<>(text: str)
-  size_t p_text_length = strlen(text);
-  String__init__from_charptr(this, text, p_text_length);
-endc_function
+function __init__<>(text: str)
+  let p_text_length = this.length_of_charptr(text)
+  this.__init__from_charptr(text, p_text_length);
+endfunction
 
 function __init__<>(text: String)
   let p_text_length = text.len()
@@ -164,20 +169,24 @@ c_function __add__(pstring: str)
   this->length = new_length;
 endc_function
 
-c_function __reassign__(pstring: str)
-  int new_length = strlen(pstring);
-  this->arr = (char *)realloc(this->arr, (new_length + 1) * sizeof(char));
-
-  if (this->arr == NULL) {
-    fprintf(stderr, "Memory Re-Allocation Error.\n");
-    exit(EXIT_FAILURE);
+c_function reassign_internal(pstring: str, p_text_length: int)
+  if (this->arr != NULL) {
+    free(this->arr);
   }
 
-  strcpy(this->arr, pstring);
-
-  this->length = new_length;
-  this->capacity = new_length + 1;
+  String__init__from_charptr(this, pstring, p_text_length);
 endc_function
+
+function __reassign__<>(pstring: String)
+  let src = pstring.c_str()
+  let p_text_length = pstring.len()
+  this.reassign_internal(src, p_text_length)
+endfunction
+
+function __reassign__<>(pstring: str)
+  let p_text_length = this.length_of_charptr(pstring)
+  this.reassign_internal(pstring, p_text_length)
+endfunction
 
 c_function set_to_file_contents(pfilename: str)
   // Read from the file & store the contents to this string.

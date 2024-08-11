@@ -34,6 +34,11 @@ char String__getitem__(struct String *this, int index) {
   return *(this->arr + index);
 }
 
+size_t Stringlength_of_charptr(struct String *this, char *p_string) {
+  // This should be some kind of static method.
+  return strlen(p_string);
+}
+
 void String__init__from_charptr(struct String *this, char *text,
                                 int p_text_length) {
   // p_text_length : Length of the string without the null terminator.
@@ -52,7 +57,7 @@ void String__init__from_charptr(struct String *this, char *text,
 }
 
 void String__init__OVDstr(struct String *this, char *text) {
-  size_t p_text_length = strlen(text);
+  size_t p_text_length = Stringlength_of_charptr(this, text);
   String__init__from_charptr(this, text, p_text_length);
 }
 
@@ -277,19 +282,25 @@ void String__add__(struct String *this, char *pstring) {
   this->length = new_length;
 }
 
-void String__reassign__(struct String *this, char *pstring) {
-  int new_length = strlen(pstring);
-  this->arr = (char *)realloc(this->arr, (new_length + 1) * sizeof(char));
-
-  if (this->arr == NULL) {
-    fprintf(stderr, "Memory Re-Allocation Error.\n");
-    exit(EXIT_FAILURE);
+void Stringreassign_internal(struct String *this, char *pstring,
+                             int p_text_length) {
+  if (this->arr != NULL) {
+    free(this->arr);
   }
 
-  strcpy(this->arr, pstring);
+  String__init__from_charptr(this, pstring, p_text_length);
+}
 
-  this->length = new_length;
-  this->capacity = new_length + 1;
+void String__reassign__OVDstructString(struct String *this,
+                                       struct String pstring) {
+  char *src = Stringc_str(&pstring);
+  size_t p_text_length = Stringlen(&pstring);
+  Stringreassign_internal(this, src, p_text_length);
+}
+
+void String__reassign__OVDstr(struct String *this, char *pstring) {
+  size_t p_text_length = Stringlength_of_charptr(this, pstring);
+  Stringreassign_internal(this, pstring, p_text_length);
 }
 
 void Stringset_to_file_contents(struct String *this, char *pfilename) {
