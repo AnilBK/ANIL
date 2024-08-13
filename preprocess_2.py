@@ -1515,7 +1515,7 @@ while index < len(Lines):
 
         tk = parser.current_token()
         if tk == lexer.Token.QUOTE:
-            parameter = parser.extract_string_literal()
+            parameter = escape_quotes(parser.extract_string_literal())
             parameter_type = ParameterType.RAW_STRING
         elif is_variable(tk):
             parameter = tk
