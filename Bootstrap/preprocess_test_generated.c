@@ -346,23 +346,22 @@ void StructInstance__init__(struct StructInstance *this,
                             struct String p_struct_type,
                             struct String p_struct_name, bool p_is_templated,
                             struct String p_templated_data_type, int p_scope) {
-  // this.struct_type.__init__(p_struct_type)
-  // this.struct_name.__init__(p_struct_name)
-  String__init__OVDstr(&this->struct_type, "");
-  String__init__OVDstr(&this->struct_name, "");
-
-  String__reassign__OVDstructString(&this->struct_type, p_struct_type);
-  String__reassign__OVDstructString(&this->struct_name, p_struct_name);
+  String__init__OVDstructString(&this->struct_type, p_struct_type);
+  String__init__OVDstructString(&this->struct_name, p_struct_name);
+  String__init__OVDstructString(&this->templated_data_type,
+                                p_templated_data_type);
 
   this->is_templated = p_is_templated;
-  String__reassign__OVDstructString(&this->templated_data_type,
-                                    p_templated_data_type);
 
   this->scope = p_scope;
 
   this->should_be_freed = true;
 
   this->is_pointer_type = false;
+}
+
+bool StructInstanceis_templated_instance(struct StructInstance *this) {
+  return this->is_templated;
 }
 
 bool StructInstanceshould_struct_be_freed(struct StructInstance *this) {
