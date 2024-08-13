@@ -2448,7 +2448,7 @@ while index < len(Lines):
                         return comparision_code
 
                     elif l_type == "char":
-                        comparision_code = f"{var_to_check_against} {operators_as_str} '{var_to_check}'"
+                        comparision_code = f"{var_to_check_against} == '{var_to_check}'"
                     else:
                         # if Char == "\""
                         if var_to_check == '"':
