@@ -9,6 +9,59 @@
 import Vector
 import String
 
+function escape_quotes(s: String) -> String:
+  // Add \ in front of any " in the string.
+  // if we find \", then we don't add \ in front of ".
+  // result variable is in String readLines function.
+  // So, if we use result2 here, the types mix:
+  // TODO : Investigate.
+  let result2 = String{""};
+  let len = s.len()
+
+  for i in range(0..len){
+    let c = s[i]
+    if c == "\""{
+      if i == 0{
+        result2 += "\\"
+      }else{
+        let i2 : int = i - 1
+        let c2 = s[i2]
+        if c2 != "\\"{
+          result2 += "\\"
+        }
+      }
+    }
+    result2 += c
+  }
+  return result2
+endfunction
+
+function get_format_specifier(p_type: String) -> String:
+  let return_type_str = String{"d"};
+
+  if p_type == "char"{
+    return_type_str = "c"
+  }else if p_type == "int"{
+    return_type_str = "d"
+  }else if p_type == "float"{
+    return_type_str = "f"
+  }else if p_type == "size_t"{
+    return_type_str = "llu"
+  }
+  return return_type_str
+endfunction
+
+function get_mangled_fn_name(p_struct_type: String, p_fn_name: String) -> String:
+  let s = String{p_struct_type};
+  s += p_fn_name
+  return s
+endfunction
+
+function get_templated_mangled_fn_name(p_struct_type1: String, p_fn_name1: String, p_templated_data_type1: String) -> String:
+  let s1 = String{p_struct_type1};
+  s1 += "_" + p_templated_data_type1 + p_fn_name1
+  return s1
+endfunction
 
 struct StructInstance{String struct_type, String struct_name,bool is_templated,String templated_data_type,int scope,bool should_be_freed, bool is_pointer_type};
 
@@ -46,9 +99,11 @@ struct Symbol{String name, String data_type};
 
 namespace Symbol
 function __init__(p_name : String, p_data_type : String)
-  this.name.__init__("")
+  this.name.__init__(p_name)
+
   this.data_type.__init__("")
-  this.name = p_name
+  // don't initialize data_type directly from p_data_type, so we can see,
+  // reassign parsing is working as expected.  
   this.data_type = p_data_type
 endfunction
 

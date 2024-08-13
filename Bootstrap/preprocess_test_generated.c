@@ -381,9 +381,11 @@ struct Symbol {
 
 void Symbol__init__(struct Symbol *this, struct String p_name,
                     struct String p_data_type) {
-  String__init__OVDstr(&this->name, "");
+  String__init__OVDstructString(&this->name, p_name);
+
   String__init__OVDstr(&this->data_type, "");
-  String__reassign__OVDstructString(&this->name, p_name);
+  // don't initialize data_type directly from p_data_type, so we can see,
+  // reassign parsing is working as expected.
   String__reassign__OVDstructString(&this->data_type, p_data_type);
 }
 
@@ -393,6 +395,75 @@ void Symbol__del__(struct Symbol *this) {
 }
 
 ///*///
+
+struct String escape_quotes(struct String s) {
+  // Add \ in front of any " in the string.
+  // if we find \", then we don't add \ in front of ".
+  // result variable is in String readLines function.
+  // So, if we use result2 here, the types mix:
+  // TODO : Investigate.
+  struct String result2;
+  String__init__OVDstr(&result2, "");
+  size_t len = Stringlen(&s);
+
+  for (size_t i = 0; i < len; i++) {
+    char c = String__getitem__(&s, i);
+
+    if (c == '"') {
+
+      if (i == 0) {
+        String__add__(&result2, "\\");
+      } else {
+        int i2 = i - 1;
+        char c2 = String__getitem__(&s, i2);
+
+        if (!(c2 == '\\')) {
+          String__add__(&result2, "\\");
+        }
+      }
+    }
+    char c_promoted_0[2] = {c, '\0'};
+    String__add__(&result2, c_promoted_0);
+  }
+  return result2;
+}
+
+struct String get_format_specifier(struct String p_type) {
+  struct String return_type_str;
+  String__init__OVDstr(&return_type_str, "d");
+
+  if (String__eq__(&p_type, "char")) {
+    String__reassign__OVDstr(&return_type_str, "c");
+  } else if (String__eq__(&p_type, "int")) {
+    String__reassign__OVDstr(&return_type_str, "d");
+  } else if (String__eq__(&p_type, "float")) {
+    String__reassign__OVDstr(&return_type_str, "f");
+  } else if (String__eq__(&p_type, "size_t")) {
+    String__reassign__OVDstr(&return_type_str, "llu");
+  }
+  return return_type_str;
+}
+
+struct String get_mangled_fn_name(struct String p_struct_type,
+                                  struct String p_fn_name) {
+  struct String s;
+  String__init__OVDstructString(&s, p_struct_type);
+  String__add__(&s, Stringc_str(&p_fn_name));
+  String__del__(&s);
+  return s;
+}
+
+struct String
+get_templated_mangled_fn_name(struct String p_struct_type1,
+                              struct String p_fn_name1,
+                              struct String p_templated_data_type1) {
+  struct String s1;
+  String__init__OVDstructString(&s1, p_struct_type1);
+  String__add__(&s1, "_");
+  String__add__(&s1, Stringc_str(&p_templated_data_type1));
+  String__add__(&s1, Stringc_str(&p_fn_name1));
+  return s1;
+}
 
 // function get_destructor_for_struct(p_name : String) -> String:
 //   let instanced_struct_names = Vector<StructInstance>{10};
