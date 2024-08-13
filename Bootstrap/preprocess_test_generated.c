@@ -382,8 +382,10 @@ struct Symbol {
 
 void Symbol__init__(struct Symbol *this, struct String p_name,
                     struct String p_data_type) {
-  this->name = p_name;
-  this->data_type = p_data_type;
+  String__init__OVDstr(&this->name, "");
+  String__init__OVDstr(&this->data_type, "");
+  String__reassign__OVDstructString(&this->name, p_name);
+  String__reassign__OVDstructString(&this->data_type, p_data_type);
 }
 
 void Symbol__del__(struct Symbol *this) {

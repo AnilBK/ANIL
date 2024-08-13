@@ -104,9 +104,7 @@ int main() {
   // The following line is also valid, as the above syntax is shorthand for the
   // statement below. let dict = Dictionary{};
   Dictionary__setitem__(&dict, "One", 1);
-
   Dictionary__setitem__(&dict, "Two", 2);
-
   Dictionary__setitem__(&dict, "Three", 3);
 
   Dictionaryprint(&dict);

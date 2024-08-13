@@ -47,6 +47,8 @@ struct Symbol{String name, String data_type};
 
 namespace Symbol
 function __init__(p_name : String, p_data_type : String)
+  this.name.__init__("")
+  this.data_type.__init__("")
   this.name = p_name
   this.data_type = p_data_type
 endfunction

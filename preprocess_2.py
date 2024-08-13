@@ -1583,6 +1583,52 @@ while index < len(Lines):
         # To denote x = A.B;
         MEMBER_ACCESS_CALL =  2
 
+    def _parse_struct_member_access(tk, base_struct_info, child_struct_info, member_access_string, pointer_access):
+        struct_instance = None
+
+        # let expr = A.B.C.Function()
+        #            | ^ ^ child struct
+        #            ^ base struct
+
+        # let expr = A.Function()
+        #             ^
+        # In this case, 'A' is instanced struct, so we can get its defination.
+        # We haven't set 'base_struct_info' so, we can make this check to know
+        # that this is the base struct.
+        if base_struct_info is None:
+            struct_instance = get_instanced_struct(tk)
+            if struct_instance is None:
+                RAISE_ERROR(f"{tk} isn't an instanced struct.")
+            base_struct_info = struct_instance.get_struct_defination()
+            child_struct_info = base_struct_info
+
+            if struct_instance.is_pointer_type:
+                member_access_string = f"{tk}"
+                pointer_access = "->"
+            else:
+                member_access_string = f"&{tk}"
+                pointer_access = "."
+        else:
+            type_of_tk = child_struct_info.get_type_of_member(tk)
+            if type_of_tk is None:
+                RAISE_ERROR(f"Struct doesn't have member {tk}.")
+
+            val = random.randrange(100000)
+
+            struct_instance = StructInstance(
+                type_of_tk,
+                f"tmp_struct_name_{str(val)}",
+                False,
+                "",
+                get_current_scope(),
+            )
+
+            child_struct_info = struct_instance.get_struct_defination()
+
+            member_access_string += f"{pointer_access}{tk}"
+            pointer_access = "."
+        return base_struct_info, child_struct_info, member_access_string, pointer_access, struct_instance
+
     def _parse_function_call():
         #            V We start parsing from here. 
         # let expr = A.B.C.Function()
@@ -1659,48 +1705,7 @@ while index < len(Lines):
                 # In this case, 'A' is instanced struct, so we can get its defination.
                 # We haven't set 'base_struct_info' so, we can make this check to know
                 # that this is the base struct.
-                if base_struct_info is None:
-                    struct_instance = get_instanced_struct(tk)
-                    if struct_instance is None:
-                        RAISE_ERROR(f"{tk} isn't a instanced struct.")
-                    base_struct_info = struct_instance.get_struct_defination()
-                    child_struct_info = base_struct_info
-
-                    if struct_instance.is_pointer_type:
-                        member_access_string = f"{tk}"
-                        pointer_access = "->"
-                    else:
-                        member_access_string = f"&{tk}"
-                        pointer_access = "."
-                else:
-                    # let expr = A.B.Function()
-                    #               ^
-                    # We already have the defination for A.
-                    # This else branch is for struct members apart from the base struct like,
-                    # let expr = A.B.Function()
-                    #               ^
-                    # let expr = A.B.C.Function()
-                    #                 ^
-
-                    type_of_tk = child_struct_info.get_type_of_member(tk)
-                    if type_of_tk is None:
-                        RAISE_ERROR(f"Struct doesn't have member {tk}.")
-
-                    val = random.randrange(100000)
-
-                    # Try to recreate the struct instance what it would be.
-                    struct_instance = StructInstance(
-                        type_of_tk,
-                        f"tmp_struct_name_{str(val)}",
-                        False,
-                        "",
-                        get_current_scope(),
-                    )
-
-                    child_struct_info = struct_instance.get_struct_defination()
-
-                    member_access_string += f"{pointer_access}{tk}"
-                    pointer_access = "."
+                base_struct_info, child_struct_info, member_access_string, pointer_access, struct_instance = _parse_struct_member_access(tk, base_struct_info, child_struct_info, member_access_string, pointer_access)
 
                 if is_member_access_token:
                     parser.consume_token(lexer.Token.DOT)
@@ -2589,94 +2594,56 @@ while index < len(Lines):
         is_instanced_struct_ = instanced_struct_info != None
 
         if is_instanced_struct_:
-            # This is to handle function calls on struct members.
-            # tokens.push "A"
+            # This is to handle function calls and assignments on struct members.
+            # tokens.push("A")
+            tk = parsed_member
+
+            child_struct_info = None
+            base_struct_info = None
+            struct_instance = None
+            member_access_string = ""
+            pointer_access = "->"
 
             parser.next_token()
 
-            # TOKEN_MAP[
-            indexed_member_request = parser.check_token(lexer.Token.LEFT_SQUARE_BRACKET)
+            class ExpressionType(Enum):
+                ASSIGNMENT = 0 # a.b = 10
+                FUNCTION_CALL = 1 # a.b()
+                ADD = 2 # a += b + c + ...
+                INDEXED_MEMBER_ACCESS = 3 # a[3] = ..
+            expression_type = ExpressionType.ASSIGNMENT
 
-            # Store the promotion code for char to strings.
-            char_to_string_promotion_code = ""
+            while True:
+                if child_struct_info != None:
+                    if child_struct_info.has_member_fn(tk) or child_struct_info.has_macro(tk):
+                        expression_type = ExpressionType.FUNCTION_CALL
+                        break
 
-            fn_name = ""
+                base_struct_info, child_struct_info, member_access_string, pointer_access, struct_instance = _parse_struct_member_access(tk, base_struct_info, child_struct_info, member_access_string, pointer_access)
+            
+                tk = parser.get_token()
+                
+                if tk == lexer.Token.DOT:
+                    tk = parser.get_token()
+                    continue
+                elif tk == lexer.Token.EQUALS:
+                    expression_type = ExpressionType.ASSIGNMENT
+                    break
+                elif tk == lexer.Token.PLUS:
+                    expression_type = ExpressionType.ADD
+                    break
+                elif tk == lexer.Token.LEFT_SQUARE_BRACKET:
+                    expression_type = ExpressionType.INDEXED_MEMBER_ACCESS
+                    break                    
+                elif tk == lexer.Token.LEFT_ROUND_BRACKET:
+                    expression_type = ExpressionType.FUNCTION_CALL
+                    break
 
-            if indexed_member_request or parser.check_token(lexer.Token.DOT):
-                if indexed_member_request:
-                    # This should parse
-                    # TOKEN_MAP["="] = 1
-                    #                  ^____ Value
-                    #           ^^^_________ Key
-
-                    parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)
-                    parameters = [_read_a_parameter()]
-                    parser.consume_token(lexer.Token.RIGHT_SQUARE_BRACKET)
-                    parser.consume_token(lexer.Token.EQUALS)
-
-                    parameters.append(_read_a_parameter())
-
-                    # For Dictionary Like Data Items.
-                    # TOKEN_MAP["="] = 1
-                    fn_name = "__setitem__"
-                    fn_name = instanced_struct_info.get_mangled_function_name(fn_name)
-
-                    code = ""
-                    if len(parameters) > 0:
-                        params = []
-                        for parameter in parameters:
-                            if parameter.param_type == ParameterType.RAW_STRING:
-                                m_param = f"{parameter.param}"
-                                if m_param == '"':
-                                    m_param = '\\"'
-                                params.append(f'"{m_param}"')
-                            else:
-                                params.append(parameter.param)
-
-                        parameters_str = ",".join(params)
-                        code = f"{fn_name}(&{parsed_member}, {parameters_str});\n\n"
-
-                    if char_to_string_promotion_code != "":
-                        LinesCache.append(f"{char_to_string_promotion_code}\n")
-
-                    LinesCache.append(f"{code}\n")
-                elif parser.check_token(lexer.Token.DOT):
-                    var_name = parsed_member
-                    parser.next_token()
-
-                    fn_name_tmp = parser.current_token()
-
-                    StructInfo = instanced_struct_info.get_struct_defination()
-
-                    # macro type functinons
-                    if StructInfo.has_macro(fn_name_tmp):
-                        struct_name = parsed_member
-                        parse_macro(parsed_member, "CLASS_MACRO", fn_name_tmp)
-
-                        LinesCache.append(f"//Class Macro.\n")
-                        continue
-
-                    struct_member_name = fn_name_tmp
-                    is_acessing_struct_member = StructInfo.has_data_member(struct_member_name)
-                    if is_acessing_struct_member:
-                        parser.next_token()
-
-                        # For cases like this.tokens.__init__();
-                        if not parser.current_token() == lexer.Token.DOT:
-                            parser.consume_token(lexer.Token.EQUALS)
-                            value = parser.get_token()
-                            #              ^^^^^^^^^^^ probably should be expression() kind of fn.
-                            # TODO ? Full implementation required here, to assign any kind of data.
-                            # Also, better thing would be to register struct members to symbol table, within a namespace.
-                            if instanced_struct_info.is_pointer_type:
-                                LinesCache.append(f"{parsed_member}->{struct_member_name} = {value};\n")
-                            else:
-                                LinesCache.append(f"{parsed_member}.{struct_member_name} = {value};\n")
-                            continue
-
-                    parser = Parser.Parser(Line)
+            if expression_type == ExpressionType.FUNCTION_CALL:
+                StructInfo = child_struct_info
+                if StructInfo.has_member_fn(tk):
                     # ctok.push(10)
-
+                    parser = Parser.Parser(Line)
                     parse_result = _parse_function_call()
                     fn_name = parse_result["fn_name"]
                     return_type = parse_result["return_type"]
@@ -2693,24 +2660,30 @@ while index < len(Lines):
                             HOOKS_target_fn = ""
                         else:
                             code = f"{fn_name}({member_access_string});"
-
                     LinesCache.append(f"{code}\n")
+                elif StructInfo.has_macro(tk):
+                    # macro type functinons
+                    struct_name = StructInfo.name
+                    parse_macro(struct_name, "CLASS_MACRO", tk)
+                    LinesCache.append(f"//Class Macro.\n")
+                else:
+                    RAISE_ERROR(f"FATAL ERROR(Should never happen):{tk} is neither a struct macro nor a member function.")
                 continue
-            elif parser.check_token(lexer.Token.PLUS):
+            
+            parsed_member = member_access_string
+            # We are generating CPL code, so all these C specific value accessors(a->b etc) are removed.
+            # This will be generated again(as required) when parsing the CPL code in next line.
+            # _parse_struct_member_access() above added these symbols, we remove them now.
+            parsed_member = parsed_member.replace("->",".")
+            if parsed_member[0] == "&":
+                parsed_member = parsed_member[1:]
+
+            if expression_type == ExpressionType.ADD:
                 # str += "World"
                 #      ^
-                parser.consume_token(lexer.Token.PLUS)
                 parser.consume_token(lexer.Token.EQUALS)
 
                 add_fn = "__add__"
-                fns_required_for_addition = [add_fn]
-
-                StructInfo = instanced_struct_info.get_struct_defination()
-
-                if struct_type == "String":
-                    for fn in fns_required_for_addition:
-                        StructInfo.ensure_has_function(fn, parsed_member)
-
                 lines = []
 
                 while parser.has_tokens_remaining():
@@ -2748,47 +2721,59 @@ while index < len(Lines):
                         RAISE_ERROR("Expected string literal or String object after + operator.")
 
                 insert_intermediate_lines(index, lines)
+                continue                                
+            elif expression_type == ExpressionType.ASSIGNMENT:
+                data_type = struct_instance.struct_type
+                if data_type == "int" or data_type == "bool" or data_type == "float" or data_type == "char": 
+                    value = parser.get_token()
+                    LinesCache.append(f"{member_access_string} = {value};\n")
+                else:
+                    reassign_CPL_code = f"{parsed_member}.__reassign__("
+                    if parser.check_token(lexer.Token.QUOTE):
+                        # str = "Reassign"
+                        value = parser.extract_string_literal()
+                        reassign_CPL_code += f"\"{value}\""
+                    else:
+                        # token = Char #TODO : Not implemented properly.
+                        value = parser.current_token()
+                        reassign_CPL_code += f"{value}"
+                    reassign_CPL_code += ")\n"
+                    index_to_insert_at = index  
+                    Lines.insert(index_to_insert_at, reassign_CPL_code)
                 continue
-            elif parser.check_token(lexer.Token.EQUALS):
-                # str = "Reassign"
+            elif expression_type == ExpressionType.INDEXED_MEMBER_ACCESS:
+                # This should parse
+                # TOKEN_MAP["="] = 1
+                #                  ^____ Value
+                #           ^^^_________ Key
+                # parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)
+                parameters = [_read_a_parameter()]
+                parser.consume_token(lexer.Token.RIGHT_SQUARE_BRACKET)
                 parser.consume_token(lexer.Token.EQUALS)
 
-                parsed_string_variable = False
+                parameters.append(_read_a_parameter())
 
-                if parser.check_token(lexer.Token.QUOTE):
-                    # str = "Reassign"
-                    parser.consume_token(lexer.Token.QUOTE)
-                    parsed_string_variable = False
-                else:
-                    # token = Char #TODO : Not implemented properly.
-                    parsed_string_variable = True
+                # For Dictionary Like Data Items.
+                # TOKEN_MAP["="] = 1
+                code = ""
+                parameters_str = ""
+                if len(parameters) > 0:
+                    params = []
+                    for parameter in parameters:
+                        if parameter.param_type == ParameterType.RAW_STRING:
+                            m_param = escape_quotes(f"{parameter.param}")
+                            params.append(f'"{m_param}"')
+                        else:
+                            params.append(parameter.param)
 
-                string = parser.current_token()
-                parser.next_token()
-                # print(f"Obtained String : {string}")
+                    parameters_str = ",".join(params)
 
-                reassign_fn = "__reassign__"
-                fns_required_for_reassignment = [reassign_fn]
-
-                struct_type = instanced_struct_info.struct_type
-                StructInfo = instanced_struct_info.get_struct_defination()
-
-                if struct_defination != None:
-                    #Custom Structs.
-                    # for fn in fns_required_for_reassignment:
-                        # StructInfo.ensure_has_function(fn, parsed_member)
-                    pass
-
-                reassign_CPL_code = ""
-                if parsed_string_variable:
-                    reassign_CPL_code = f"{parsed_member}.__reassign__({string})\n"
-                else:
-                    reassign_CPL_code = f"{parsed_member}.__reassign__(\"{string}\")\n"
-
+                code = f"{parsed_member}.__setitem__({parameters_str})\n"
                 index_to_insert_at = index
-                Lines.insert(index_to_insert_at, reassign_CPL_code)
+                Lines.insert(index_to_insert_at, code)
                 continue
-
+            else:
+                RAISE_ERROR("FATAL ERROR(Should never happen): Unrecognized expression type.")
         elif is_macro_name(parsed_member):
             # add_token_raw "="
             parse_macro(parsed_member, "NORMAL_MACRO")

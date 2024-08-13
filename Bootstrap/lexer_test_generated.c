@@ -695,87 +695,48 @@ struct List Lexerget_tokens(struct Lexer *this) {
   struct Dictionary CHARACTER_TOKENS;
   Dictionary__init__(&CHARACTER_TOKENS);
   Dictionary__setitem__(&CHARACTER_TOKENS, "=", 1);
-
   Dictionary__setitem__(&CHARACTER_TOKENS, "[", 2);
-
   Dictionary__setitem__(&CHARACTER_TOKENS, "]", 3);
-
   Dictionary__setitem__(&CHARACTER_TOKENS, ";", 4);
-
   Dictionary__setitem__(&CHARACTER_TOKENS, ",", 5);
-
   Dictionary__setitem__(&CHARACTER_TOKENS, "%", 6);
-
   Dictionary__setitem__(&CHARACTER_TOKENS, "{", 7);
-
   Dictionary__setitem__(&CHARACTER_TOKENS, "}", 8);
-
   Dictionary__setitem__(&CHARACTER_TOKENS, "<", 15);
-
   Dictionary__setitem__(&CHARACTER_TOKENS, ">", 16);
-
   Dictionary__setitem__(&CHARACTER_TOKENS, "\"", 18);
-
   Dictionary__setitem__(&CHARACTER_TOKENS, "+", 19);
-
   Dictionary__setitem__(&CHARACTER_TOKENS, "(", 21);
-
   Dictionary__setitem__(&CHARACTER_TOKENS, ")", 22);
-
   Dictionary__setitem__(&CHARACTER_TOKENS, ":", 23);
-
   Dictionary__setitem__(&CHARACTER_TOKENS, ".", 24);
-
   Dictionary__setitem__(&CHARACTER_TOKENS, "*", 25);
-
   Dictionary__setitem__(&CHARACTER_TOKENS, "-", 26);
-
   Dictionary__setitem__(&CHARACTER_TOKENS, "#", 35);
-
   Dictionary__setitem__(&CHARACTER_TOKENS, "@", 37);
-
   Dictionary__setitem__(&CHARACTER_TOKENS, "!", 41);
 
   struct Dictionary KEYWORD_TOKENS;
   Dictionary__init__(&KEYWORD_TOKENS);
   Dictionary__setitem__(&KEYWORD_TOKENS, "let", 0);
-
   Dictionary__setitem__(&KEYWORD_TOKENS, "struct", 9);
-
   Dictionary__setitem__(&KEYWORD_TOKENS, "match", 10);
-
   Dictionary__setitem__(&KEYWORD_TOKENS, "for", 11);
-
   Dictionary__setitem__(&KEYWORD_TOKENS, "if", 12);
-
   Dictionary__setitem__(&KEYWORD_TOKENS, "in", 13);
-
   Dictionary__setitem__(&KEYWORD_TOKENS, "Option", 14);
-
   Dictionary__setitem__(&KEYWORD_TOKENS, "enumerate", 17);
-
   Dictionary__setitem__(&KEYWORD_TOKENS, "def", 27);
-
   Dictionary__setitem__(&KEYWORD_TOKENS, "c_function", 28);
-
   Dictionary__setitem__(&KEYWORD_TOKENS, "enddef", 29);
-
   Dictionary__setitem__(&KEYWORD_TOKENS, "endfunc", 30);
-
   Dictionary__setitem__(&KEYWORD_TOKENS, "else", 31);
-
   Dictionary__setitem__(&KEYWORD_TOKENS, "True", 32);
-
   Dictionary__setitem__(&KEYWORD_TOKENS, "False", 33);
-
   Dictionary__setitem__(&KEYWORD_TOKENS, "constexpr", 34);
-
   Dictionary__setitem__(&KEYWORD_TOKENS, "include", 36);
-
   Dictionary__setitem__(&KEYWORD_TOKENS, "apply_hook", 38);
-
   Dictionary__setitem__(&KEYWORD_TOKENS, "hook_begin", 39);
-
   Dictionary__setitem__(&KEYWORD_TOKENS, "hook_end", 40);
 
   struct String line_org;
