@@ -516,11 +516,6 @@ int main() {
 
       StringprintLn(&module_name);
       StringprintLn(&Line);
-
-      bool x = Stringstartswith(&Line, "import");
-
-      if (x) {
-      }
       Vector_String__del__(&import_split);
     }
     String__del__(&Line);

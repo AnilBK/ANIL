@@ -162,11 +162,6 @@ int main() {
 
       module_name.printLn()
       Line.printLn()
-
-      let x = Line.startswith("import")
-      if x{
-        
-      }
     }
   }
 
