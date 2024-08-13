@@ -110,6 +110,20 @@ def insert_string(original_string, index, string_to_insert) -> str:
     return original_string[:index] + string_to_insert + original_string[index:]
 
 
+def escape_quotes(s):
+    # Add \ in front of any " in the string.
+    # if we find \", then we don't add \ in front of ".
+    result = ""
+    i = 0
+    while i < len(s):
+        if s[i] == '"':
+            if i == 0 or s[i-1] != '\\':
+                result += '\\'
+        result += s[i]
+        i += 1
+    return result
+
+
 def get_format_specifier(p_type: str) -> str:
     db = {"char": "c", "int": "d", "float": "f", "size_t": "llu"}
 
