@@ -415,9 +415,8 @@ struct String escape_quotes(struct String s) {
         String__add__(&result2, "\\");
       } else {
         int i2 = i - 1;
-        char c2 = String__getitem__(&s, i2);
 
-        if (!(c2 == '\\')) {
+        if (!(String__getitem__(&s, i2) == '\\')) {
           String__add__(&result2, "\\");
         }
       }

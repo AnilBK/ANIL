@@ -494,7 +494,7 @@ bool CPLObject__eq__OVDint(struct CPLObject *this, int p_value) {
 bool CPLObject__eq__OVDstr(struct CPLObject *this, char *p_value) {
 
   if (CPLObjectis_str(this)) {
-    return CPLObjectget_str(this) == p_value;
+    return strcmp(p_value, CPLObjectget_str(this)) == 0;
   } else {
     return false;
   }

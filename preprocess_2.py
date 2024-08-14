@@ -2280,27 +2280,30 @@ while index < len(Lines):
 
     def parse_term():
         """Parse a variable(a single term)"""
-
         # TODO: _read_a_parameter() morever has this functionality, so maybe use that.
 
         global parser
 
         term_type = "UNDEFINED"
-        variable = ""
-        output_code = ""
+        value = ""
 
         if parser.check_token(lexer.Token.QUOTE):
-            variable = parser.extract_string_literal()
+            value = parser.extract_string_literal()
             term_type = "string_literal"
         else:
-            variable = parser.get_token()
+            value = parser.get_token()
 
-            instanced_struct_info = get_instanced_struct(variable)
+            instanced_struct_info = get_instanced_struct(value)
             if instanced_struct_info != None:
                 # Struct type.
+                term_type = "struct"
+
                 # if Line.startswith("import"){
-                if parser.has_tokens_remaining() and parser.check_token(lexer.Token.DOT):
-                    parser.consume_token(lexer.Token.DOT)
+                if parser.has_tokens_remaining() and (parser.check_token(lexer.Token.DOT) or parser.check_token(lexer.Token.LEFT_SQUARE_BRACKET)):
+                    if parser.check_token(lexer.Token.DOT):
+                        parser.consume_token(lexer.Token.DOT)
+                    elif parser.check_token(lexer.Token.LEFT_SQUARE_BRACKET):
+                        parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)
 
                     parser = Parser.Parser(Line)
                     # if Line.startswith("import"){
@@ -2315,23 +2318,21 @@ while index < len(Lines):
                     return_type = parse_result["return_type"]
                     member_access_string = parse_result["member_access_string"]
 
+                    term_type = return_type
+
                     if parse_result["function_call_type"] == ParsedFunctionCallType.MEMBER_ACCESS_CALL:
-                        output_code = member_access_string
-                        term_type = return_type
+                        value = member_access_string
                     else:
                         if parse_result["has_parameters"]:
                             parameters_str = parse_result["parameters_str"]
-                            output_code = f"{fn_name}({member_access_string}, {parameters_str})"
+                            value = f"{fn_name}({member_access_string}, {parameters_str})"
                         else:
-                            output_code = f"{fn_name}({member_access_string})"
-                        term_type = "struct_function_call"
-                else:
-                    term_type = "struct"
+                            value = f"{fn_name}({member_access_string})"
             else:
                 # this.val
                 # ^^^^ it will return true for is_variable.
                 # So, first we need to check is_struct first, which we do above.
-                type_of_var = get_type_of_variable(variable)
+                type_of_var = get_type_of_variable(value)
                 is_var = type_of_var != None
 
                 if is_var:
@@ -2340,13 +2341,9 @@ while index < len(Lines):
                 else:
                     term_type = "variable"
 
-        if output_code == "":
-            output_code = variable
-
         return {
             "type": term_type,
-            "output_code": output_code,
-            "variable_name": variable,
+            "value": value,
         }
 
     def get_comparision_operator():
@@ -2403,8 +2400,8 @@ while index < len(Lines):
             if operators_as_str == "==" or operators_as_str == "!=":
                 negation_boolean_expression = operators_as_str == "!="
 
-                var_to_check_against = lhs["variable_name"]
-                var_to_check = rhs["variable_name"]
+                var_to_check_against = lhs["value"]
+                var_to_check = rhs["value"]
 
                 l_type = lhs["type"]
                 r_type = rhs["type"]
@@ -2486,8 +2483,8 @@ while index < len(Lines):
                     return { "code" : comparision_code, "return_type" : return_type}
             elif operators_as_str == "in":
                 # if var_to_check in var_to_check_against {
-                var_to_check = lhs["variable_name"]
-                var_to_check_against = rhs["variable_name"]
+                var_to_check = lhs["value"]
+                var_to_check_against = rhs["value"]
 
                 if rhs["type"] == "struct":
                     instanced_struct_info = get_instanced_struct(var_to_check_against)
@@ -2582,10 +2579,10 @@ while index < len(Lines):
                         )
 
             return (
-                lhs["output_code"] + " " + operators_as_str + " " + rhs["output_code"]
+                lhs["value"] + " " + operators_as_str + " " + rhs["value"]
             )
 
-        return lhs["output_code"]
+        return lhs["value"]
 
     if len(parser.tokens) > 0:
         parsed_member = parser.current_token()

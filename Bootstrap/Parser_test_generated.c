@@ -494,7 +494,7 @@ bool CPLObject__eq__OVDint(struct CPLObject *this, int p_value) {
 bool CPLObject__eq__OVDstr(struct CPLObject *this, char *p_value) {
 
   if (CPLObjectis_str(this)) {
-    return CPLObjectget_str(this) == p_value;
+    return strcmp(p_value, CPLObjectget_str(this)) == 0;
   } else {
     return false;
   }
@@ -694,6 +694,7 @@ void Parser__init__(struct Parser *this) {
   printf("Parser Constructor.\n");
 
   List__init__(&this->tokens);
+  ListappendOVDstr(&this->tokens, "print");
   ListappendOVDint(&this->tokens, 0);
   ListappendOVDstr(&this->tokens, "arr");
   ListappendOVDint(&this->tokens, 1);
@@ -760,7 +761,9 @@ bool Parsermatch_token(struct Parser *this, int token) {
 }
 
 bool Parserconsume_token(struct Parser *this, int p_token) {
-  Parsermatch_token(this, p_token);
+
+  if (Parsermatch_token(this, p_token)) {
+  }
   Parsernext_token(this);
 }
 
@@ -775,15 +778,20 @@ int main() {
   struct Parser parser;
   Parser__init__(&parser);
 
-  if (Parsercheck_tokenOVDint(&parser, 0)) {
-    printf("Found let.\n");
-    Parsernext_token(&parser);
+  struct List LinesCache;
+  List__init__(&LinesCache);
 
-    if (Parsercheck_tokenOVDstr(&parser, "arr")) {
-      printf("Found arr.\n");
-    }
+  if (Parsercheck_tokenOVDstr(&parser, "print")) {
+    struct String str_to_write;
+    String__init__OVDstr(&str_to_write, "printf();");
+    char *cstr = Stringc_str(&str_to_write);
+    ListappendOVDstr(&LinesCache, cstr);
+    String__del__(&str_to_write);
   }
 
+  Listprint(&LinesCache);
+
+  List__del__(&LinesCache);
   Parser__del__(&parser);
   ///*///
 
