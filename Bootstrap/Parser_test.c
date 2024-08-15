@@ -100,7 +100,7 @@ int main() {
   let LinesCache = []
 
   if parser.check_token("print"){
-    let str_to_write = String{"printf();"};
+    let str_to_write = "printf();"
     let cstr = str_to_write.c_str()
     LinesCache.append(cstr)
   }

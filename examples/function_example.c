@@ -17,7 +17,7 @@ function my_first_CPL_function()
 endfunction
 
 function get_format_specifier(p_type: String) -> String:
-  let return_type_str = String{"d"};
+  let return_type_str = "d"
 
   if p_type == "char"{
     return_type_str = "c"
@@ -52,15 +52,15 @@ endfunction
   // clang-format off
 
   ///*///
-  let string = String{"Hello World from String.\n"};
+  let string = "Hello World from String.\n"
   string.print()
 
   let s5 = String{string};
 
   my_first_CPL_function();
 
-  let class_name = String{"String"};
-  let fn_name = String{"__del__"};
+  let class_name = "String"
+  let fn_name = "__del__"
 
   let mangled_name = get_mangled_fn_name(class_name, fn_name);
   mangled_name.print()

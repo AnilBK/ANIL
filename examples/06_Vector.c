@@ -39,10 +39,10 @@ int main() {
   string.push("L")
   string.print()
 
-  let str = String{"Hello"};
-  let str2 = String{"World"};
-  let str3 = String{"Honey"};
-  let str4 = String{"Bunny"};
+  let str = "Hello"
+  let str2 = "World"
+  let str3 = "Honey"
+  let str4 = "Bunny"
   
   let test = Vector<String>{5};
   // Push Strings to Vector<String>

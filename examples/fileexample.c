@@ -14,7 +14,7 @@ import String
 function string_split(str: String) -> Vector<String>:
   let lines = Vector<String>{5};
 
-  let line = String{""};
+  let line = ""
 
   for c in str{
     if c == "\n"{
@@ -26,7 +26,7 @@ function string_split(str: String) -> Vector<String>:
     line += c
   }
 
-  # Add the remaining strings which don't end with \n.
+  // Add the remaining strings which don't end with \n.
   if line != ""{
     lines.push(line)
     line = ""
@@ -40,7 +40,7 @@ endfunction
 int main() {
 
   ///*/// 
-  let str = String{"Hello"};
+  let str = "Hello"
   str.printLn()
   
   str.set_to_file_contents("fileexample.c")
@@ -56,5 +56,5 @@ int main() {
   ///*///
       // clang-format on
 
-      return 0;
+  return 0;
 }

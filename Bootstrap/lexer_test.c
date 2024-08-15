@@ -130,11 +130,11 @@ function get_tokens() -> List:
   KEYWORD_TOKENS["hook_begin"] = Token["HOOK_BEGIN"]
   KEYWORD_TOKENS["hook_end"] = Token["HOOK_END"]
 
-  let line_org = String{"  let arr = [ 1, 2, 3, 4 , 5 ]; } let"};
+  let line_org = "  let arr = [ 1, 2, 3, 4 , 5 ]; } let"
   let line = line_org.strip()
   let length = line.len()
 
-  let token = String{""};
+  let token = ""
   
   let tokens = [];
   

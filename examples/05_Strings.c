@@ -14,19 +14,21 @@ int main() {
   import Vector
   import String
 
-  let c_str1 = "C Style Strings\n"
+  const c_str1 = "C Style Strings\n"
   // Such strings are very limited in functionality and only looping as below is supported.
   for c in c_str1{
     print("{c}")
   }
 
-  let str = String{"Hello World"};
+  let str = "Hello World"
+  // The following line is also valid, as the above syntax is shorthand for the statement below. 
+  // let str = String{"Hello World"};
   str.printLn()
 
   str = "Reassign"
   str.printLn()
  
-  let str2 = String{"Hi \n"};
+  let str2 = "Hi \n"
   str2.print()
 
   let str3 = str2.strip()
@@ -56,7 +58,7 @@ int main() {
   print("Length of the string is : {len4}. \n")
   str.printLn()
 
-  let str4 = String{"String constructed from another string. \n"};
+  let str4 = "String constructed from another string. \n"
   let str5 = String{str4};
   str5.printLn()
 
@@ -64,12 +66,12 @@ int main() {
   substr_str.printLn()
   
   print("Split Test: \n")
-  let split_str = String{"Splitting.with.dots."};
+  let split_str = "Splitting.with.dots."
   split_str.printLn()
   let dot_split = split_str.split(".")
   dot_split.print()
 
-  let split_str2 = String{"Splitting with Spaces."};
+  let split_str2 = "Splitting with Spaces."
   split_str2.printLn()
   let space_split = split_str2.split(" ")
   space_split.print();

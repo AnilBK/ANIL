@@ -50,6 +50,7 @@ class Token(Enum):
     ENDNAMESPACE = 46
     FRONT_SLASH = 47
     AMPERSAND = 48
+    CONST = 49
 
 
 CHARACTER_TOKENS = {
@@ -81,6 +82,7 @@ CHARACTER_TOKENS = {
 
 KEYWORD_TOKENS = {
     "let": Token.LET,
+    "const": Token.CONST,
     "struct": Token.STRUCT,
     "match": Token.MATCH,
     "for": Token.FOR,

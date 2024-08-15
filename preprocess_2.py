@@ -3036,6 +3036,28 @@ while index < len(Lines):
             match_type = "struct"  # variable,struct
         else:
             match_type = "variable"  # variable,struct
+    elif check_token(lexer.Token.CONST):
+        parser.consume_token(lexer.Token.CONST)
+
+        # const string_var = "Hello World"
+        # compiled to const char* string_var = "Hello World";
+
+        # On other hand, let string_var = "Hello World"
+        # compiled to let string_var = String{"Hello World"};
+
+        string_name = parser.get_token()
+
+        parser.consume_token(lexer.Token.EQUALS)
+
+        if parser.check_token(lexer.Token.QUOTE):
+            # const str = "Hello World"
+            #           ^
+            string = parser.extract_string_literal()
+            # print(f"Obtained String : {string}")
+            LinesCache.append(f'char {string_name}[{len(string)+1}] = "{string}";\n')
+            REGISTER_VARIABLE(string_name, "c_str")
+        else:
+            RAISE_ERROR("Only const strings are supported as of now.")
     elif check_token(lexer.Token.LET):
         parser.consume_token(lexer.Token.LET)
 
@@ -3095,12 +3117,19 @@ while index < len(Lines):
                         f'Parsing POD Type "{POD_type}" not Implemented as of now.'
                     )
             if parser.check_token(lexer.Token.QUOTE):
+                string = parser.extract_string_literal()
                 # let str = "Hello World";
                 #           ^
-                string = parser.extract_string_literal()
-                # print(f"Obtained String : {string}")
-                LinesCache.append(f'char {array_name}[{len(string)+1}] = "{string}";\n')
-                REGISTER_VARIABLE(array_name, "c_str")
+                # ^^^^^^^^^^^^^^^^^^^^^^^ this line will generate the required C Code.
+                # let str = String{"Hello World"};
+
+                # Emit CPL code to create a struct 'String' object.
+                # This line will be parsed by the compiler in next line.
+                CPL_code = f"let {array_name} = String{{\"{string}\"}};\n"
+
+                index_to_insert_at = index
+                Lines.insert(index_to_insert_at, CPL_code)
+                continue
             elif parser.check_token(lexer.Token.TRUE) or parser.check_token(
                 lexer.Token.FALSE
             ):

@@ -468,11 +468,11 @@ get_templated_mangled_fn_name(struct String p_struct_type1,
 //   let instanced_struct_names = Vector<StructInstance>{10};
 //   for m_struct in instanced_struct_names[::-1]{
 //     if m_struct.should_be_freed{
-//       let des_code = String{"{destructor_fn_name}(&{struct_name});\n"};
+//       let des_code = "{destructor_fn_name}(&{struct_name});\n"
 //       return des_code
 //     }
 //   }
-//   let code = String{""};
+//   let code = ""
 //   return code
 // endfunction
 ///*///

@@ -15,7 +15,7 @@ function escape_quotes(s: String) -> String:
   // result variable is in String readLines function.
   // So, if we use result2 here, the types mix:
   // TODO : Investigate.
-  let result2 = String{""};
+  let result2 = "";
   let len = s.len()
 
   for i in range(0..len){
@@ -36,7 +36,7 @@ function escape_quotes(s: String) -> String:
 endfunction
 
 function get_format_specifier(p_type: String) -> String:
-  let return_type_str = String{"d"};
+  let return_type_str = "d"
 
   if p_type == "char"{
     return_type_str = "c"
@@ -117,11 +117,11 @@ endnamespace
 //   let instanced_struct_names = Vector<StructInstance>{10};
 //   for m_struct in instanced_struct_names[::-1]{
 //     if m_struct.should_be_freed{
-//       let des_code = String{"{destructor_fn_name}(&{struct_name});\n"};
+//       let des_code = "{destructor_fn_name}(&{struct_name});\n"
 //       return des_code
 //     }
 //   }
-//   let code = String{""};
+//   let code = ""
 //   return code
 // endfunction
 ///*///
@@ -133,7 +133,7 @@ int main() {
 
   ///*/// 
 
-  let source_file = String{"../examples/01_variables.c"};
+  let source_file = "../examples/01_variables.c"
   #source_file.printLn()
 
   # output_file_name = source_file.split(".")[0] + "_generated.c"
@@ -143,7 +143,7 @@ int main() {
   #output_file_name.print()
 
 
-  let file = String{""};
+  let file = ""
   file.printLn()
 
   let Lines = file.readlinesFrom(source_file)
@@ -169,12 +169,12 @@ int main() {
     let ImportedCodeLines = Vector<String>{50};
 
     for module_name in imported_modules{
-      let relative_path = String{"../Lib/"};
+      let relative_path = "../Lib/"
       relative_path += module_name + ".c"
 
       relative_path.printLn()
 
-      let module_file = String{""};
+      let module_file = ""
       let lines = module_file.readlinesFrom(relative_path)
       #lines.print()
 
