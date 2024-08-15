@@ -1201,7 +1201,7 @@ while index < len(Lines):
                 break
         return expr
 
-    def parse_let(type_name, array_name):
+    def parse_array(type_name, array_name):
         parser.consume_token(lexer.Token.EQUALS)
         parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)
 
@@ -3090,7 +3090,7 @@ while index < len(Lines):
             # print(f"Obtained array type = {type_name}")
             parser.consume_token(lexer.Token.GREATER_THAN)
 
-            parse_let(type_name, array_name)
+            parse_array(type_name, array_name)
         elif check_token(lexer.Token.EQUALS):
             # let str = "Hello World";
             # let obj = Point{10, 20};
