@@ -9,6 +9,22 @@
 import Vector
 import String
 
+// Insert a string at a given index in another string.
+function insert_string(original_string : String, p_index: int, string_to_insert: String) -> String:
+  //return original_string[:index] + string_to_insert + original_string[index:]
+  let left_part = original_string.substr(0, p_index);
+  left_part += string_to_insert
+
+  let length = original_string.len()
+  let diff : int = length - p_index
+  // let diff : int = original_string.len() - p_index
+  // left_part += original_string.substr(p_index, diff);
+  let right_part = original_string.substr(p_index, diff);
+  
+  left_part += right_part
+  return left_part
+endfunction
+
 function escape_quotes(s: String) -> String:
   // Add \ in front of any " in the string.
   // if we find \", then we don't add \ in front of ".
@@ -185,6 +201,12 @@ int main() {
     }
   }
   
+  let s1 = "Hello World"
+  let insert = "virus"
+  let index:int = 2
+
+  let new_string = insert_string(s1, index, insert)
+  new_string.print()
 
   // DESTRUCTOR_CODE //
   ///*///

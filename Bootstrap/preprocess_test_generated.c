@@ -396,6 +396,24 @@ void Symbol__del__(struct Symbol *this) {
 
 ///*///
 
+// Insert a string at a given index in another string.
+struct String insert_string(struct String original_string, int p_index,
+                            struct String string_to_insert) {
+  // return original_string[:index] + string_to_insert + original_string[index:]
+  struct String left_part = Stringsubstr(&original_string, 0, p_index);
+  String__add__(&left_part, Stringc_str(&string_to_insert));
+
+  size_t length = Stringlen(&original_string);
+  int diff = length - p_index;
+  // let diff : int = original_string.len() - p_index
+  // left_part += original_string.substr(p_index, diff);
+  struct String right_part = Stringsubstr(&original_string, p_index, diff);
+
+  String__add__(&left_part, Stringc_str(&right_part));
+  String__del__(&right_part);
+  return left_part;
+}
+
 struct String escape_quotes(struct String s) {
   // Add \ in front of any " in the string.
   // if we find \", then we don't add \ in front of ".
@@ -554,6 +572,18 @@ int main() {
     Vector_String__del__(&ImportedCodeLines);
   }
 
+  struct String s1;
+  String__init__OVDstr(&s1, "Hello World");
+  struct String insert;
+  String__init__OVDstr(&insert, "virus");
+  int index = 2;
+
+  struct String new_string = insert_string(s1, index, insert);
+  Stringprint(&new_string);
+
+  String__del__(&new_string);
+  String__del__(&insert);
+  String__del__(&s1);
   Vector_String__del__(&imported_modules);
   Vector_String__del__(&Lines);
   String__del__(&file);

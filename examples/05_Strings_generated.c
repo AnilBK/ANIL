@@ -349,6 +349,8 @@ int main() {
 
   struct String str;
   String__init__OVDstr(&str, "Hello World");
+  // The following line is also valid, as the above syntax is shorthand for the
+  // statement below. let str = String{"Hello World"};
   StringprintLn(&str);
 
   String__reassign__OVDstr(&str, "Reassign");

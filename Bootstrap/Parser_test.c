@@ -98,12 +98,17 @@ int main() {
   let parser = Parser{};
 
   let LinesCache = []
+  LinesCache.append("#include<stdio.h>")
+  LinesCache.append("int main(){")
 
   if parser.check_token("print"){
     let str_to_write = "printf();"
     let cstr = str_to_write.c_str()
     LinesCache.append(cstr)
   }
+  
+  LinesCache.append("return 0;")
+  LinesCache.append("}")
 
   LinesCache.print()
 

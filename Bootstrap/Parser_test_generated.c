@@ -780,6 +780,8 @@ int main() {
 
   struct List LinesCache;
   List__init__(&LinesCache);
+  ListappendOVDstr(&LinesCache, "#include<stdio.h>");
+  ListappendOVDstr(&LinesCache, "int main(){");
 
   if (Parsercheck_tokenOVDstr(&parser, "print")) {
     struct String str_to_write;
@@ -788,6 +790,9 @@ int main() {
     ListappendOVDstr(&LinesCache, cstr);
     String__del__(&str_to_write);
   }
+
+  ListappendOVDstr(&LinesCache, "return 0;");
+  ListappendOVDstr(&LinesCache, "}");
 
   Listprint(&LinesCache);
 
