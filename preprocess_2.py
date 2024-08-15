@@ -2407,10 +2407,7 @@ while index < len(Lines):
                 r_type = rhs["type"]
                 
                 if (l_type == "str" or l_type == "char*") and (r_type == "str" or r_type == "char*"):
-                    cmp_op = "=="
-                    if negation_boolean_expression:
-                        cmp_op = "!="
-                    comparision_code = f"strcmp({var_to_check},{var_to_check_against}) {cmp_op} 0"
+                    comparision_code = f"strcmp({var_to_check},{var_to_check_against}) {operators_as_str} 0"
                     return comparision_code
                 elif r_type == "string_literal":
                     comparision_code = ""
