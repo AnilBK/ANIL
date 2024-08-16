@@ -12,6 +12,12 @@ class Parser:
     def current_token(self):
         return self.tokens[0]
 
+    def peek_token(self):
+        if len(self.tokens) >= 1:
+            return self.tokens[1]
+        else:
+            return None
+
     def next_token(self):
         _ = self.tokens.pop(0)
 
