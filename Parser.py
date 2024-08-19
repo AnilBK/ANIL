@@ -5,6 +5,7 @@ from ErrorHandler import ErrorHandler
 class Parser:
     def __init__(self, line: str) -> None:
         self.tokens = lexer.get_tokens(line)
+        self.checkpoint_stack = []
 
     def has_tokens_remaining(self) -> bool:
         return len(self.tokens) > 0
@@ -76,3 +77,18 @@ class Parser:
         self.next_token()
 
         return string
+    
+    # Checkpoint tokens.
+    # While parsing, we consume tokens. If we find that we are parsing wrong thing(say expression),
+    # we roll back to the point where, we need to reparse again with different kind of (expression)parser.
+    # Since, consuming token removes the token, we create these checkpoints to recover the tokens that have been consumed.
+    def save_checkpoint(self):
+        self.checkpoint_stack.append(list(self.tokens))
+
+    def rollback_checkpoint(self):
+        if self.checkpoint_stack:
+            self.tokens.clear()
+            self.tokens = self.checkpoint_stack.pop()
+              
+    def clear_checkpoint(self):
+        self.checkpoint_stack.clear()

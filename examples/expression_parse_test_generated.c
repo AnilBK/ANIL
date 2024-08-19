@@ -16,6 +16,7 @@
 
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 // IMPORTS //
 
@@ -332,258 +333,131 @@ struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename) {
   return result;
 }
 
-struct StructInstance {
-  struct String struct_type;
-  struct String struct_name;
-  bool is_templated;
-  struct String templated_data_type;
-  int scope;
-  bool should_be_freed;
-  bool is_pointer_type;
+struct Vector_int {
+  int *arr;
+  int size;
+  int capacity;
 };
 
-void StructInstance__init__(struct StructInstance *this,
-                            struct String p_struct_type,
-                            struct String p_struct_name, bool p_is_templated,
-                            struct String p_templated_data_type, int p_scope) {
-  String__init__OVDstructString(&this->struct_type, p_struct_type);
-  String__init__OVDstructString(&this->struct_name, p_struct_name);
-  String__init__OVDstructString(&this->templated_data_type,
-                                p_templated_data_type);
+// template Vector<int> {
+size_t Vector_intlen(struct Vector_int *this) { return this->size; }
 
-  this->is_templated = p_is_templated;
-
-  this->scope = p_scope;
-
-  this->should_be_freed = true;
-
-  this->is_pointer_type = false;
+int Vector_int__getitem__(struct Vector_int *this, int index) {
+  return *(this->arr + index);
 }
 
-bool StructInstanceis_templated_instance(struct StructInstance *this) {
-  return this->is_templated;
+void Vector_int__init__(struct Vector_int *this, int capacity) {
+  // if we want to use instanced template type in fn body, we use following
+  // syntax.
+  // @ TEMPLATED_DATA_TYPE @
+  this->arr = (int *)malloc(capacity * sizeof(int));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+  this->size = 0;
+  this->capacity = capacity;
 }
 
-bool StructInstanceshould_struct_be_freed(struct StructInstance *this) {
-  return this->should_be_freed;
+void Vector_int__del__(struct Vector_int *this) {
+  free(this->arr);
+  this->arr = NULL;
+  this->size = 0;
+  this->capacity = 0;
 }
 
-void StructInstance__del__(struct StructInstance *this) {
-  String__del__(&this->struct_type);
-  String__del__(&this->struct_name);
-  String__del__(&this->templated_data_type);
-}
-
-struct Symbol {
-  struct String name;
-  struct String data_type;
-};
-
-void Symbol__init__(struct Symbol *this, struct String p_name,
-                    struct String p_data_type) {
-  String__init__OVDstructString(&this->name, p_name);
-
-  String__init__OVDstr(&this->data_type, "");
-  // don't initialize data_type directly from p_data_type, so we can see,
-  // reassign parsing is working as expected.
-  String__reassign__OVDstructString(&this->data_type, p_data_type);
-}
-
-void Symbol__del__(struct Symbol *this) {
-  String__del__(&this->name);
-  String__del__(&this->data_type);
-}
-
-///*///
-
-// Insert a string at a given index in another string.
-struct String insert_string(struct String original_string, int p_index,
-                            struct String string_to_insert) {
-  // return original_string[:index] + string_to_insert + original_string[index:]
-  struct String left_part = Stringsubstr(&original_string, 0, p_index);
-  struct String tmp_string_0 = Stringsubstr(
-      &original_string, p_index, Stringlen(&original_string) - p_index);
-  String__add__(&left_part, Stringc_str(&string_to_insert));
-  String__add__(&left_part, Stringc_str(&tmp_string_0));
-  String__del__(&tmp_string_0);
-  return left_part;
-}
-
-struct String escape_quotes(struct String s) {
-  // Add \ in front of any " in the string.
-  // if we find \", then we don't add \ in front of ".
-  // result variable is in String readLines function.
-  // So, if we use result2 here, the types mix:
-  // TODO : Investigate.
-  struct String result2;
-  String__init__OVDstr(&result2, "");
-  size_t len = Stringlen(&s);
-
-  for (size_t i = 0; i < len; i++) {
-    char c = String__getitem__(&s, i);
-
-    if (c == '\"') {
-
-      if (i == 0) {
-        String__add__(&result2, "\\");
-      } else {
-        int i2 = i - 1;
-
-        if (!(String__getitem__(&s, i2) == '\\')) {
-          String__add__(&result2, "\\");
-        }
-      }
+void Vector_intpush(struct Vector_int *this, int value) {
+  if (this->size == this->capacity) {
+    this->capacity *= 2;
+    this->arr = (int *)realloc(this->arr, this->capacity * sizeof(int));
+    if (this->arr == NULL) {
+      fprintf(stderr, "Memory reallocation failed.\n");
+      exit(EXIT_FAILURE);
     }
-    char c_promoted_0[2] = {c, '\0'};
-    String__add__(&result2, c_promoted_0);
   }
-  return result2;
+  this->arr[this->size++] = value;
 }
 
-struct String get_format_specifier(struct String p_type) {
-  struct String return_type_str;
-  String__init__OVDstr(&return_type_str, "d");
-
-  if (String__eq__(&p_type, "char")) {
-    String__reassign__OVDstr(&return_type_str, "c");
-  } else if (String__eq__(&p_type, "int")) {
-    String__reassign__OVDstr(&return_type_str, "d");
-  } else if (String__eq__(&p_type, "float")) {
-    String__reassign__OVDstr(&return_type_str, "f");
-  } else if (String__eq__(&p_type, "size_t")) {
-    String__reassign__OVDstr(&return_type_str, "llu");
+void Vector_intallocate_more(struct Vector_int *this, int n) {
+  this->capacity += n;
+  this->arr = (int *)realloc(this->arr, this->capacity * sizeof(int));
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory reallocation failed.\n");
+    exit(EXIT_FAILURE);
   }
-  return return_type_str;
 }
 
-struct String get_mangled_fn_name(struct String p_struct_type,
-                                  struct String p_fn_name) {
-  struct String s;
-  String__init__OVDstructString(&s, p_struct_type);
-  String__add__(&s, Stringc_str(&p_fn_name));
-  String__del__(&s);
-  return s;
+void Vector_intpush_unchecked(struct Vector_int *this, int value) {
+  this->arr[this->size++] = value;
 }
 
-struct String
-get_templated_mangled_fn_name(struct String p_struct_type1,
-                              struct String p_fn_name1,
-                              struct String p_templated_data_type1) {
-  struct String s1;
-  String__init__OVDstructString(&s1, p_struct_type1);
-  String__add__(&s1, "_");
-  String__add__(&s1, Stringc_str(&p_templated_data_type1));
-  String__add__(&s1, Stringc_str(&p_fn_name1));
-  return s1;
+bool Vector_int__contains__(struct Vector_int *this, int value) {
+  // This function is an overloaded function.
+  // Here <> in function defination means the base overload.
+  for (size_t i = 0; i < this->size; ++i) {
+    if (this->arr[i] == value) {
+      return true;
+    }
+  }
+  return false;
 }
 
-// function get_destructor_for_struct(p_name : String) -> String:
-//   let instanced_struct_names = Vector<StructInstance>{10};
-//   for m_struct in instanced_struct_names[::-1]{
-//     if m_struct.should_be_freed{
-//       let des_code = "{destructor_fn_name}(&{struct_name});\n"
-//       return des_code
-//     }
-//   }
-//   let code = ""
-//   return code
-// endfunction
-///*///
+void Vector_intprint(struct Vector_int *this) {
+  printf("Vector<int> (size = %d, capacity = %d) : [", this->size,
+         this->capacity);
+  for (size_t i = 0; i < this->size; ++i) {
+    printf("%d", this->arr[i]);
+    if (i < this->size - 1) {
+      printf(", ");
+    }
+  }
+  printf("]\n");
+}
+
+// template Vector<int> }
 
 int main() {
 
   ///*///
 
-  struct String source_file;
-  String__init__OVDstr(&source_file, "../examples/01_variables.c");
-  // source_file.printLn()
-
-  // output_file_name = source_file.split(".")[0] + "_generated.c"
-  // let _split = source_file.split(" ")
-  // let output_file_name = _split[0]
-  // output_file_name += "_generated.c"
-  // output_file_name.print()
-
-  struct String file;
-  String__init__OVDstr(&file, "");
-  StringprintLn(&file);
-
-  struct Vector_String Lines =
-      StringreadlinesFrom(&file, Stringc_str(&source_file));
-  Vector_Stringprint(&Lines);
-
-  struct Vector_String imported_modules;
-  Vector_String__init__(&imported_modules, 5);
-
-  size_t tmp_len_0 = Vector_Stringlen(&Lines);
-  for (size_t i = 0; i < tmp_len_0; i++) {
-    struct String line = Vector_String__getitem__(&Lines, i);
-    struct String Line = Stringstrip(&line);
-
-    if (Stringstartswith(&Line, "import")) {
-      struct Vector_String import_split = Stringsplit(&Line, ' ');
-      // let module_name = import_split[1]
-      // module_name.printLn()
-
-      Vector_Stringpush(&imported_modules,
-                        Vector_String__getitem__(&import_split, 1));
-
-      StringprintLn(&Line);
-      Vector_String__del__(&import_split);
-    }
-    String__del__(&Line);
-  }
-
-  if (Vector_Stringlen(&imported_modules) > 0) {
-    struct Vector_String ImportedCodeLines;
-    Vector_String__init__(&ImportedCodeLines, 50);
-
-    size_t tmp_len_1 = Vector_Stringlen(&imported_modules);
-    for (size_t i = 0; i < tmp_len_1; i++) {
-      struct String module_name =
-          Vector_String__getitem__(&imported_modules, i);
-      struct String relative_path;
-      String__init__OVDstr(&relative_path, "../Lib/");
-      String__add__(&relative_path, Stringc_str(&module_name));
-      String__add__(&relative_path, ".c");
-
-      StringprintLn(&relative_path);
-
-      struct String module_file;
-      String__init__OVDstr(&module_file, "");
-      struct Vector_String lines =
-          StringreadlinesFrom(&module_file, Stringc_str(&relative_path));
-      // lines.print()
-
-      // ImportedCodeLines += lines
-      size_t tmp_len_2 = Vector_Stringlen(&lines);
-      for (size_t j = 0; j < tmp_len_2; j++) {
-        struct String line = Vector_String__getitem__(&lines, j);
-        Vector_Stringpush(&ImportedCodeLines, line);
-      }
-      Vector_String__del__(&lines);
-      String__del__(&module_file);
-      String__del__(&relative_path);
-    }
-    Vector_String__del__(&ImportedCodeLines);
-  }
+  int p_index = 5;
 
   struct String s1;
   String__init__OVDstr(&s1, "Hello World");
-  struct String insert;
-  String__init__OVDstr(&insert, "virus");
-  int index = 2;
 
-  struct String new_string = insert_string(s1, index, insert);
-  Stringprint(&new_string);
+  if (String__getitem__(&s1, 2) == '\\') {
+    String__add__(&s1, "\\");
+  }
 
-  String__del__(&new_string);
-  String__del__(&insert);
+  struct String string_to_insert;
+  String__init__OVDstr(&string_to_insert, "*****");
+
+  struct String left_part = Stringsubstr(&s1, 0, p_index);
+  struct String tmp_string_0 =
+      Stringsubstr(&s1, p_index, Stringlen(&s1) - p_index);
+  String__add__(&left_part, Stringc_str(&string_to_insert));
+  String__add__(&left_part, Stringc_str(&tmp_string_0));
+
+  struct Vector_int vec;
+  Vector_int__init__(&vec, 10);
+
+  Vector_intpush(&vec, 10);
+  Vector_intpush(&vec, 20);
+
+  int x = 69420;
+  int y = Stringlen(&s1);
+  int v = Stringlen(&s1) + x + y - 100 - Stringlen(&s1) +
+          Vector_int__getitem__(&vec, 0);
+
+  printf("The magic number is %d.\n", x);
+  printf("Expression value is is %d.\n", v);
+
+  Vector_int__del__(&vec);
+  String__del__(&tmp_string_0);
+  String__del__(&left_part);
+  String__del__(&string_to_insert);
   String__del__(&s1);
-  Vector_String__del__(&imported_modules);
-  Vector_String__del__(&Lines);
-  String__del__(&file);
-  String__del__(&source_file);
   ///*///
 
   return 0;

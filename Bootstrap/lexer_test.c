@@ -147,11 +147,9 @@ function get_tokens() -> List:
 
   def add_token(p_token):
     if p_token in KEYWORD_TOKENS{
-      let ktk = KEYWORD_TOKENS[p_token]
-      tokens.append(ktk)
+      tokens.append(KEYWORD_TOKENS[p_token])
     }else if p_token in CHARACTER_TOKENS{
-      let ctk = CHARACTER_TOKENS[p_token]
-      tokens.append(ctk)
+      tokens.append(CHARACTER_TOKENS[p_token])
     }else{  
       add_token_raw p_token
     }
@@ -208,15 +206,13 @@ function get_tokens() -> List:
         if token != ""{
           add_token token
         }
-        let int_tk = CHARACTER_TOKENS[Char]
-        tokens.append(int_tk)
+        tokens.append(CHARACTER_TOKENS[Char])
         token = ""
         continue;
       }
 
       if token in CHARACTER_TOKENS{
-        let int_tk = CHARACTER_TOKENS[token]
-        tokens.append(int_tk)
+        tokens.append(CHARACTER_TOKENS[token])
         token = ""
         continue;
       }

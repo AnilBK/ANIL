@@ -762,7 +762,7 @@ struct List Lexerget_tokens(struct Lexer *this) {
 
     if (escape_back_slash) {
 
-      if (Char == '"') {
+      if (Char == '\"') {
         char Char_promoted_0[2] = {Char, '\0'};
         String__add__(&token, Char_promoted_0);
         escape_back_slash = false;
@@ -774,7 +774,7 @@ struct List Lexerget_tokens(struct Lexer *this) {
         String__add__(&token, Char_promoted_1);
         escape_back_slash = false;
       }
-    } else if (Char == '"') {
+    } else if (Char == '\"') {
 
       if (inside_string) {
         // End of string.
@@ -807,12 +807,12 @@ struct List Lexerget_tokens(struct Lexer *this) {
       }
 
       if (Dictionary__contains__(&KEYWORD_TOKENS, Stringc_str(&token))) {
-        int ktk = Dictionary__getitem__(&KEYWORD_TOKENS, Stringc_str(&token));
-        ListappendOVDint(&tokens, ktk);
+        ListappendOVDint(&tokens, Dictionary__getitem__(&KEYWORD_TOKENS,
+                                                        Stringc_str(&token)));
       } else if (Dictionary__contains__(&CHARACTER_TOKENS,
                                         Stringc_str(&token))) {
-        int ctk = Dictionary__getitem__(&CHARACTER_TOKENS, Stringc_str(&token));
-        ListappendOVDint(&tokens, ctk);
+        ListappendOVDint(&tokens, Dictionary__getitem__(&CHARACTER_TOKENS,
+                                                        Stringc_str(&token)));
       } else {
         Listappend_str(&tokens, Stringc_str(&token));
       }
@@ -825,29 +825,28 @@ struct List Lexerget_tokens(struct Lexer *this) {
         if (!String__eq__(&token, "")) {
 
           if (Dictionary__contains__(&KEYWORD_TOKENS, Stringc_str(&token))) {
-            int ktk =
-                Dictionary__getitem__(&KEYWORD_TOKENS, Stringc_str(&token));
-            ListappendOVDint(&tokens, ktk);
+            ListappendOVDint(
+                &tokens,
+                Dictionary__getitem__(&KEYWORD_TOKENS, Stringc_str(&token)));
           } else if (Dictionary__contains__(&CHARACTER_TOKENS,
                                             Stringc_str(&token))) {
-            int ctk =
-                Dictionary__getitem__(&CHARACTER_TOKENS, Stringc_str(&token));
-            ListappendOVDint(&tokens, ctk);
+            ListappendOVDint(
+                &tokens,
+                Dictionary__getitem__(&CHARACTER_TOKENS, Stringc_str(&token)));
           } else {
             Listappend_str(&tokens, Stringc_str(&token));
           }
         }
         char Char_promoted_4[2] = {Char, '\0'};
-        int int_tk = Dictionary__getitem__(&CHARACTER_TOKENS, Char_promoted_4);
-        ListappendOVDint(&tokens, int_tk);
+        ListappendOVDint(
+            &tokens, Dictionary__getitem__(&CHARACTER_TOKENS, Char_promoted_4));
         String__reassign__OVDstr(&token, "");
         continue;
       }
 
       if (Dictionary__contains__(&CHARACTER_TOKENS, Stringc_str(&token))) {
-        int int_tk =
-            Dictionary__getitem__(&CHARACTER_TOKENS, Stringc_str(&token));
-        ListappendOVDint(&tokens, int_tk);
+        ListappendOVDint(&tokens, Dictionary__getitem__(&CHARACTER_TOKENS,
+                                                        Stringc_str(&token)));
         String__reassign__OVDstr(&token, "");
         continue;
       }
@@ -862,11 +861,11 @@ struct List Lexerget_tokens(struct Lexer *this) {
   if (!String__eq__(&token, "")) {
 
     if (Dictionary__contains__(&KEYWORD_TOKENS, Stringc_str(&token))) {
-      int ktk = Dictionary__getitem__(&KEYWORD_TOKENS, Stringc_str(&token));
-      ListappendOVDint(&tokens, ktk);
+      ListappendOVDint(
+          &tokens, Dictionary__getitem__(&KEYWORD_TOKENS, Stringc_str(&token)));
     } else if (Dictionary__contains__(&CHARACTER_TOKENS, Stringc_str(&token))) {
-      int ctk = Dictionary__getitem__(&CHARACTER_TOKENS, Stringc_str(&token));
-      ListappendOVDint(&tokens, ctk);
+      ListappendOVDint(&tokens, Dictionary__getitem__(&CHARACTER_TOKENS,
+                                                      Stringc_str(&token)));
     } else {
       Listappend_str(&tokens, Stringc_str(&token));
     }

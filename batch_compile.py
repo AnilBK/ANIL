@@ -14,6 +14,7 @@ file_names = [
     "examples\\enumerate_source.c",
     "examples\\fileexample.c",
     "examples\\function_example.c",
+    "examples\\expression_parse_test.c",
     "Bootstrap\\lexer_test.c",
     "Bootstrap\\Parser_test.c",
     "Bootstrap\\preprocess_test.c",

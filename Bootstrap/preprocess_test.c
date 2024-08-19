@@ -13,15 +13,7 @@ import String
 function insert_string(original_string : String, p_index: int, string_to_insert: String) -> String:
   //return original_string[:index] + string_to_insert + original_string[index:]
   let left_part = original_string.substr(0, p_index);
-  left_part += string_to_insert
-
-  let length = original_string.len()
-  let diff : int = length - p_index
-  // let diff : int = original_string.len() - p_index
-  // left_part += original_string.substr(p_index, diff);
-  let right_part = original_string.substr(p_index, diff);
-  
-  left_part += right_part
+  left_part += string_to_insert + original_string.substr(p_index, original_string.len() - p_index)
   return left_part
 endfunction
 
@@ -171,11 +163,11 @@ int main() {
     let Line = line.strip()
     if Line.startswith("import"){
       let import_split = Line.split(" ")
-      let module_name = import_split[1]
+      // let module_name = import_split[1]
+      // module_name.printLn()
       
-      imported_modules.push(module_name)
+      imported_modules.push(import_split[1])
 
-      module_name.printLn()
       Line.printLn()
     }
   }
