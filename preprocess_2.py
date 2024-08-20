@@ -1508,57 +1508,8 @@ while index < len(Lines):
         def __init__(self, p_param, p_param_type: ParameterType) -> None:
             self.param = p_param
             self.param_type = p_param_type
-
+            
     def _read_a_parameter():
-        # Parse a number or string..
-        # In any case, just a single symbol.
-        parameter = None
-        parameter_type = ParameterType.UNDEFINED
-
-        tk = parser.current_token()
-        if tk == lexer.Token.QUOTE:
-            parameter = escape_quotes(parser.extract_string_literal())
-            parameter_type = ParameterType.RAW_STRING
-        elif is_variable(tk):
-            parameter = tk
-            if is_variable_str_type(tk):
-                parameter_type = ParameterType.STR_TYPE
-            elif is_variable_string_class(tk):
-                parameter_type = ParameterType.STRING_CLASS
-            elif is_variable_char_type(tk):
-                parameter_type = ParameterType.CHAR_TYPE
-            else:
-                parameter_type = ParameterType.VARIABLE
-            parser.next_token()
-        else:
-            parameter = parse_number()
-            parameter_type = ParameterType.NUMBER
-
-        return Parameter(parameter, parameter_type)
-
-    def _read_parameters_within_round_brackets():
-        # Parse n number of parameters within two round brackets.
-        # (param1)
-        # (param1,param2...paramN)
-        parameters = []
-
-        parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
-        while parser.has_tokens_remaining():
-            curr_param = parser.current_token()
-            if curr_param == lexer.Token.RIGHT_ROUND_BRACKET:
-                break
-
-            parameters.append(_read_a_parameter())
-
-            curr_param = parser.current_token()
-            if curr_param != lexer.Token.RIGHT_ROUND_BRACKET:
-                # There are few other tokens rather than ).
-                # That should be a comma to indicate next parameter.
-                parser.consume_token(lexer.Token.COMMA)
-        parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
-        return parameters
-    
-    def Speculative_read_a_parameter():
         # Parse a number or string..
         # In any case, just a single symbol.
         parameter = None
@@ -1572,7 +1523,7 @@ while index < len(Lines):
             return Parameter(parameter, parameter_type)
 
         parser.save_checkpoint()
-        fn_call_parse_info = speculative_function_call_expression()
+        fn_call_parse_info = function_call_expression()
         if fn_call_parse_info == None:
             parser.rollback_checkpoint()
             parser.clear_checkpoint()
@@ -1647,7 +1598,7 @@ while index < len(Lines):
 
         return Parameter(parameter, parameter_type)
 
-    def Speculative_read_parameters_within_round_brackets():
+    def _read_parameters_within_round_brackets():
         # Parse n number of parameters within two round brackets.
         # (param1)
         # (param1,param2...paramN)
@@ -1659,7 +1610,7 @@ while index < len(Lines):
             if curr_param == lexer.Token.RIGHT_ROUND_BRACKET:
                 break
 
-            parameters.append(Speculative_read_a_parameter())
+            parameters.append(_read_a_parameter())
 
             curr_param = parser.current_token()
             if curr_param != lexer.Token.RIGHT_ROUND_BRACKET:
@@ -1800,7 +1751,7 @@ while index < len(Lines):
         #     |     |    .________ parameters
         #     |     ._____________ target
         #     .___________________ varname
-        fn_call_parse_info = speculative_function_call_expression()
+        fn_call_parse_info = function_call_expression()
         if fn_call_parse_info == None:
             RAISE_ERROR("Parsing function expression failed.")
 
@@ -2274,7 +2225,7 @@ while index < len(Lines):
         if return_value == None:
             # Nothing is number as of now.
             parser.save_checkpoint()
-            fn_call_parse_info = speculative_function_call_expression()
+            fn_call_parse_info = function_call_expression()
             if fn_call_parse_info == None:
                 parser.rollback_checkpoint()
                 parser.clear_checkpoint()
@@ -2326,7 +2277,7 @@ while index < len(Lines):
         if return_value == None:
             # Nothing is string as of now.
             parser.save_checkpoint()
-            fn_call_parse_info = speculative_function_call_expression()
+            fn_call_parse_info = function_call_expression()
             if fn_call_parse_info == None:
                 parser.rollback_checkpoint()
                 parser.clear_checkpoint()
@@ -2477,7 +2428,7 @@ while index < len(Lines):
                 parameters_quoted.append(parameter)
         return parameters_quoted
 
-    def speculative_function_call_expression():
+    def function_call_expression():
         expr = ""
 
         #            V We start parsing from here. 
@@ -2557,7 +2508,7 @@ while index < len(Lines):
 
             if parser.check_token(lexer.Token.LEFT_ROUND_BRACKET):
                 fn_name_unmangled = tk
-                parameters = Speculative_read_parameters_within_round_brackets()
+                parameters = _read_parameters_within_round_brackets()
                 break
             
             next_token = None
@@ -2582,7 +2533,7 @@ while index < len(Lines):
 
             if parser.check_token(lexer.Token.LEFT_ROUND_BRACKET):
                 fn_name_unmangled = tk
-                parameters = Speculative_read_parameters_within_round_brackets()
+                parameters = _read_parameters_within_round_brackets()
                 break
             elif is_member_access_token or parser.check_token(lexer.Token.LEFT_SQUARE_BRACKET):
                 #            V ----------- tk
@@ -2612,7 +2563,7 @@ while index < len(Lines):
                 #               ^
                 fn_name_unmangled = "__getitem__"
                 parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)
-                parameters = [Speculative_read_a_parameter()]
+                parameters = [_read_a_parameter()]
                 parser.consume_token(lexer.Token.RIGHT_SQUARE_BRACKET)
 
                 # [BEGIN] Automatic Conversion for String class
@@ -2734,7 +2685,7 @@ while index < len(Lines):
 
     def parse_term():
         """Parse a variable(a single term)"""
-        parameter_info = Speculative_read_a_parameter()
+        parameter_info = _read_a_parameter()
         parameter = parameter_info.param
         parameter_type = parameter_info.param_type
 
@@ -3005,7 +2956,7 @@ while index < len(Lines):
                     # ctok.push(10)
 
                     parser.rollback_checkpoint()
-                    fn_call_parse_info = speculative_function_call_expression()
+                    fn_call_parse_info = function_call_expression()
                     if fn_call_parse_info == None:
                         RAISE_ERROR("Parsing function expression failed.")
 
@@ -3111,11 +3062,11 @@ while index < len(Lines):
                 #                  ^____ Value
                 #           ^^^_________ Key
                 # parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)
-                parameters = [Speculative_read_a_parameter()]
+                parameters = [_read_a_parameter()]
                 parser.consume_token(lexer.Token.RIGHT_SQUARE_BRACKET)
                 parser.consume_token(lexer.Token.EQUALS)
 
-                parameters.append(Speculative_read_a_parameter())
+                parameters.append(_read_a_parameter())
 
                 # For Dictionary Like Data Items.
                 # TOKEN_MAP["="] = 1
