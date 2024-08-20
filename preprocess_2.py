@@ -2560,7 +2560,7 @@ while index < len(Lines):
             else:
                 parse_result = fn_call_parse_info.function_call_metadata
                 return_type = parse_result["return_type"]
-                if return_type == "struct String" or return_type == "String" or return_type == "str":
+                if return_type in {"struct String", "String", "str"}:
                     return_value = fn_call_parse_info.get_fn_str()
                     token_type = SpeculativeTokenType.STRING_EXPRESSION
                 else:
@@ -3428,7 +3428,7 @@ while index < len(Lines):
                 continue                                
             elif expression_type == ExpressionType.ASSIGNMENT:
                 data_type = struct_instance.struct_type
-                if data_type == "int" or data_type == "bool" or data_type == "float" or data_type == "char": 
+                if data_type in {"int", "bool", "float", "char"}: 
                     value = parser.get_token()
                     LinesCache.append(f"{member_access_string} = {value};\n")
                 else:
