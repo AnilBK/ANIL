@@ -358,7 +358,7 @@ struct Vector_String string_split(struct String str) {
 
   // Add the remaining strings which don't end with \n.
 
-  if (!String__eq__(&line, "")) {
+  if (!(String__eq__(&line, ""))) {
     Vector_Stringpush(&lines, line);
     String__reassign__OVDstr(&line, "");
   }

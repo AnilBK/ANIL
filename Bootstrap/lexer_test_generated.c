@@ -822,7 +822,7 @@ struct List Lexerget_tokens(struct Lexer *this) {
 
       if (Dictionary__contains__(&CHARACTER_TOKENS, Char_promoted_3)) {
 
-        if (!String__eq__(&token, "")) {
+        if (!(String__eq__(&token, ""))) {
 
           if (Dictionary__contains__(&KEYWORD_TOKENS, Stringc_str(&token))) {
             ListappendOVDint(
@@ -858,7 +858,7 @@ struct List Lexerget_tokens(struct Lexer *this) {
 
   // Process the last token.
 
-  if (!String__eq__(&token, "")) {
+  if (!(String__eq__(&token, ""))) {
 
     if (Dictionary__contains__(&KEYWORD_TOKENS, Stringc_str(&token))) {
       ListappendOVDint(
