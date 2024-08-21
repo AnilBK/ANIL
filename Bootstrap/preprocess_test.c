@@ -32,8 +32,7 @@ function escape_quotes(s: String) -> String:
       if i == 0{
         result2 += "\\"
       }else{
-        let i2 : int = i - 1
-        if s[i2] != "\\"{
+        if s[i - 1] != "\\"{
           result2 += "\\"
         }
       }

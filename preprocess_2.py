@@ -1021,7 +1021,7 @@ while index < len(Lines):
                 parser.consume_token(lexer.Token.COLON)
                 parser.consume_token(lexer.Token.COLON)
 
-                step_size = parse_number()
+                step_size = get_integer_expression("Expected integer expression for step_size.")
                 
                 parser.consume_token(lexer.Token.RIGHT_SQUARE_BRACKET)
 
@@ -1139,69 +1139,6 @@ while index < len(Lines):
 
         return data_type_str
 
-    def parse_number():
-        # COLOR["Red"]
-        # ^^^^^^^^^^^^ Constexpr Dictionary.
-        # 10
-        # ^^ Number.
-        # line.len
-        #      ^^^ function returning a number(int).
-
-        # TODO : Functions and struct member access still not supported.
-        # TODO : Use this function more consistently in various parts of the parser.
-
-        expr1 = parser.get_token()
-
-        is_negative = False
-        if expr1 == lexer.Token.MINUS:
-            is_negative = True
-
-            expr1 = parser.get_token()
-
-        return_value = None
-
-        if is_constexpr_dictionary(expr1):
-            return_value = parse_constexpr_dictionary(expr1)
-        elif is_variable_int_type(expr1) or is_variable_size_t_type(expr1):
-            return_value = expr1
-        else:
-            if not expr1.isdigit():
-                RAISE_ERROR(f"{expr1} isnot a number.")
-            return_value = expr1
-
-        if is_negative:
-            return '-' + return_value
-        else:    
-            return return_value
-
-    def parse_integer_expression():
-        expr = ""
-        while parser.has_tokens_remaining():
-            # a = 1
-            tk = parse_number()
-            expr += tk
-
-            if parser.has_tokens_remaining():
-                # a = 1 + 1
-                symbols = {
-                    lexer.Token.PLUS : "+",
-                    lexer.Token.MINUS : "-",
-                    lexer.Token.ASTERISK : "*",
-                    lexer.Token.FRONT_SLASH : "/"
-                }
-
-                current_tk = parser.current_token()
-                if current_tk in symbols:
-                    expr += symbols[current_tk]
-                    parser.next_token()
-                else:
-                    error_msg = f"Unexpected token \"{current_tk}\" in integer expression."
-                    error_msg += f"The following operators (+,-,*,/) are only supported."
-                    RAISE_ERROR(error_msg)
-            else:
-                break
-        return expr
-
     def parse_array(type_name, array_name):
         parser.consume_token(lexer.Token.EQUALS)
         parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)
@@ -1210,7 +1147,7 @@ while index < len(Lines):
 
         while parser.current_token() != lexer.Token.RIGHT_SQUARE_BRACKET:
             if type_name == "int":
-                arr_value = parse_number()
+                arr_value = get_integer_expression(f"Expected integer expression for {array_name}.")
             else:
                 arr_value = parser.get_token()
             array_values.append(arr_value)
@@ -2390,6 +2327,27 @@ while index < len(Lines):
             expression_info.speculative_expression_type = SpeculativeExpressionType.NUMERIC_EXPRESSION
             expression_info.speculative_expression_value = expr
             return expression_info
+
+    def get_integer_expression(msg = None):
+        """
+        Parses and retrieves an integer expression.
+
+        This function attempts to speculatively parse an integer expression. 
+        If the parsing fails, an error is raised with 
+        the provided error message `msg`. If `msg` is not provided, a default error message 
+        "Expected integer expression." is used.
+
+        Args:
+            msg (str, optional): A custom error message to be raised if the integer expression 
+                                 is not successfully parsed. Defaults to None.
+        """
+        integer_expression = speculative_parse_integer_expression()
+        if integer_expression == None:
+            if msg is not None:
+                RAISE_ERROR(msg)
+            else:
+                RAISE_ERROR("Expected integer expression.")
+        return integer_expression.speculative_expression_value
 
     def speculative_parse_string_expression():
         expr = ""
@@ -3602,7 +3560,7 @@ while index < len(Lines):
                 includes_stop = False
                 step = '1'
 
-                start = parse_number()
+                start = get_integer_expression("Exptected integer expression for start value.")
 
                 parser.consume_token(lexer.Token.DOT)
                 parser.consume_token(lexer.Token.DOT)
@@ -3613,14 +3571,14 @@ while index < len(Lines):
                     parser.next_token()
                     includes_stop = True
                 
-                stop = parse_number()
+                stop = get_integer_expression("Exptected integer expression for stop value.")
 
                 # for i in range(1..10,2){  -> 0 >= i < 10
                 #                     ^
                 if parser.check_token(lexer.Token.COMMA):
                     parser.next_token()
 
-                    step = parse_number()
+                    step = get_integer_expression("Exptected integer expression for step value.")
 
                 parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
 
