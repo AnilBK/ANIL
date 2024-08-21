@@ -37,7 +37,7 @@ args = filename_parser.parse_args()
 
 # source_file = "Bootstrap\\lexer_test.c"
 # source_file = "Bootstrap\\Parser_test.c"
-# source_file = "Bootstrap\\preprocess_test.c"
+source_file = "Bootstrap\\preprocess_test.c"
 
 if args.filename:
     source_file = args.filename
@@ -45,9 +45,9 @@ if args.filename:
 
 output_file_name = source_file.split(".")[0] + "_generated.c"
 
-file = open(source_file, "r")
-Lines = file.readlines()
-file.close()
+Lines = []
+with open(source_file, "r") as file:
+    Lines = file.readlines()
 
 imported_modules = []
 
@@ -66,10 +66,9 @@ if len(imported_modules) > 0:
         relative_path = "Lib\\" + module_name + ".c"
         module_file_path = os.path.join(os.getcwd(), relative_path)
 
-        module_file = open(module_file_path, "r")
-        lines = module_file.readlines()
-        module_file.close()
-
+        lines = []
+        with open(module_file_path, "r") as module_file:
+            lines = module_file.readlines()
         ImportedCodeLines += lines
 
     Lines = ImportedCodeLines + Lines
@@ -4268,10 +4267,9 @@ for i in range(len(LinesCache)):
     elif "// DESTRUCTOR_CODE //" in LinesCache[i]:
         LinesCache[i] = symbol_table.destructor_code_for_all_remaining_variables()
 
-outputFile = open(output_file_name, "w")
-for Line in LinesCache:
-    outputFile.writelines(Line)
-outputFile.close()
+with open(output_file_name, "w") as outputFile:
+    for Line in LinesCache:
+        outputFile.writelines(Line)
 
 import subprocess
 
