@@ -109,6 +109,11 @@ def insert_string(original_string, index, string_to_insert) -> str:
     return original_string[:index] + string_to_insert + original_string[index:]
 
 
+def insert_intermediate_lines(index, p_array : list):
+    global Lines
+    Lines = Lines[:index] + p_array + Lines[index:]
+
+
 def escape_quotes(s):
     # Add \ in front of any " in the string.
     # if we find \", then we don't add \ in front of ".
@@ -165,21 +170,6 @@ def get_overloaded_mangled_fn_name(p_struct_type: str, p_fn_name: str, p_paramet
             function_name += data_type_no_spaces
     return function_name
 # UTILS END
-
-
-def get_destructor_for_struct(p_name):
-    for struct in instanced_struct_names[::-1]:
-        if struct.should_be_freed:
-            # Maybe : Check for scope
-            # Since variables can't be repeated across scopes,
-            # We mayn't need to check for scopes.
-            struct_name = struct.struct_name
-            if struct_name == p_name:
-                if struct.struct_type_has_destructor():
-                    destructor_fn_name = struct.get_destructor_fn_name()
-                    des_code = f"{destructor_fn_name}(&{struct_name});\n"
-                    return des_code
-    return None
 
 
 class Symbol:
@@ -417,6 +407,7 @@ class_fn_defination = {
     "end_index": -1,
     "function_destination": "global"#"global"/"class",wether function is defined as global function, or member function of a struct.
 }
+
 #wether we are inside function scope or not.
 is_inside_user_defined_function = False
 
@@ -470,6 +461,7 @@ def get_global_function_by_name(p_fn_name: str):
         if fn.fn_name == p_fn_name:
             return fn
     return None
+
 
 class Struct:
     def __init__(self, p_struct_name: str, p_members: list) -> None:
@@ -733,23 +725,6 @@ def get_struct_defination_of_type(p_struct_type: str) -> Optional[Struct]:
     return None
 
 
-def is_instanced_struct(p_struct_name: str):
-    return any(struct.struct_name == p_struct_name for struct in instanced_struct_names)
-
-
-def get_instanced_struct(p_struct_name) -> Optional[StructInstance]:
-    for struct in instanced_struct_names:
-        if struct.struct_name == p_struct_name:
-            return struct
-    return None
-
-
-def get_struct_type_of_instanced_struct(p_struct_name):
-    for struct in instanced_struct_names:
-        if struct.struct_name == p_struct_name:
-            return struct.struct_type
-
-
 def add_fn_member_to_struct(p_struct_name: str, p_fn: MemberFunction):
     struct_defination = get_struct_defination_of_type(p_struct_name)
     if struct_defination is None:
@@ -780,6 +755,38 @@ def add_fnbody_to_member_to_struct(p_struct_name: str, p_fn_name: str, p_fn_body
             if fn.fn_name == p_fn_name:
                 fn.fn_body = p_fn_body
                 break
+
+
+def is_instanced_struct(p_struct_name: str):
+    return any(struct.struct_name == p_struct_name for struct in instanced_struct_names)
+
+
+def get_instanced_struct(p_struct_name) -> Optional[StructInstance]:
+    for struct in instanced_struct_names:
+        if struct.struct_name == p_struct_name:
+            return struct
+    return None
+
+
+def get_struct_type_of_instanced_struct(p_struct_name):
+    for struct in instanced_struct_names:
+        if struct.struct_name == p_struct_name:
+            return struct.struct_type
+
+
+def get_destructor_for_struct(p_name):
+    for struct in instanced_struct_names[::-1]:
+        if struct.should_be_freed:
+            # Maybe : Check for scope
+            # Since variables can't be repeated across scopes,
+            # We mayn't need to check for scopes.
+            struct_name = struct.struct_name
+            if struct_name == p_name:
+                if struct.struct_type_has_destructor():
+                    destructor_fn_name = struct.get_destructor_fn_name()
+                    des_code = f"{destructor_fn_name}(&{struct_name});\n"
+                    return des_code
+    return None
 
 
 class ObjectInstance:
@@ -966,11 +973,6 @@ while index < len(Lines):
 
     def check_token(token: lexer.Token):
         return parser.check_token(token)
-
-    def insert_intermediate_lines(index, p_array : list):
-        global Lines
-        Lines = Lines[:index] + p_array + Lines[index:]
-
 
     def create_const_charptr_iterator(array_name, current_array_value_variable):
         global LinesCache
