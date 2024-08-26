@@ -1446,6 +1446,7 @@ while index < len(Lines):
         def __init__(self, p_param, p_param_type: ParameterType) -> None:
             self.param = p_param
             self.param_type = p_param_type
+            self.struct_instance = None # For a.b, we may need instance info of b later, for e.g in boolean_expression()
             
     def _read_a_parameter():
         # Parse a number or string..
@@ -1492,6 +1493,11 @@ while index < len(Lines):
                     is_arithmatic_operation = True
 
             if not is_arithmatic_operation:
+                if "struct_instance" in parse_result:
+                    parameter = Parameter(parameter, parameter_type)
+                    parameter.struct_instance = parse_result["struct_instance"]
+                    return parameter
+
                 return Parameter(parameter, parameter_type)
         
         parser.save_checkpoint()
@@ -2420,12 +2426,53 @@ while index < len(Lines):
 
         parser.save_checkpoint()
 
-        # tk = parser.current_token()
-        # s_instance = get_instanced_struct(tk)
-        # if s_instance is None:
-        #     parser.rollback_checkpoint()
-        #     return None
+        def return_member_access_expression():
+            nonlocal member_access_string, struct_instance, child_struct_info    
+            if member_access_string[-1] != ">" or member_access_string[-1] != ".":
+                member_access_string += f"{pointer_access}{tk}"
 
+            if "->" in member_access_string and member_access_string[0] != "&":
+                pass
+                # Turns out this isn't required for MEMBER_ACCESS_CALL's.
+                # TODO : Investigate :P
+                # member_access_string = "&" + member_access_string
+            
+            parsing_fn_call_type = ParsedFunctionCallType.MEMBER_ACCESS_CALL
+
+            parser.next_token()
+
+            type_of_tk = child_struct_info.get_type_of_member(tk)
+            if type_of_tk is None:
+                RAISE_ERROR(f"Struct doesn't have member {tk}.")
+
+            val = random.randrange(100000)
+
+            struct_instance = StructInstance(
+                type_of_tk,
+                f"tmp_struct_name_{str(val)}",
+                False,
+                "",
+                get_current_scope(),
+            )
+            
+            additional_data = {
+                "fn_name": "",
+                "return_type": type_of_tk,
+                "is_return_type_ref_type" : False,
+                "has_parameters": False,
+                "parameters_str": "",
+                "function_call_type": parsing_fn_call_type,
+                "member_access_string": member_access_string,
+                "struct_instance": struct_instance,
+            }
+
+            parser.clear_checkpoint()
+            expression_info = SpeculativeExpressionInfo()
+            expression_info.speculative_expression_type = SpeculativeExpressionType.FUNCTION_CALL_EXPRESSION
+            expression_info.speculative_expression_value = ""
+            expression_info.function_call_metadata = additional_data
+            return expression_info
+    
         while parser.has_tokens_remaining():
             tk = parser.current_token()    
 
@@ -2434,36 +2481,9 @@ while index < len(Lines):
             # current tk is b & we have no tokens remaining.
             if (not parser.has_tokens_remaining()) or (len(parser.tokens) == 1):
                 if child_struct_info is not None:
-                    parser.next_token()
                     is_acessing_struct_member = child_struct_info.has_data_member(tk)
                     if is_acessing_struct_member:
-                        if member_access_string[-1] != ">" or member_access_string[-1] != ".":
-                            member_access_string += f"{pointer_access}{tk}"
-
-                        if "->" in member_access_string and member_access_string[0] != "&":
-                            pass
-                            # Turns out this isn't required for MEMBER_ACCESS_CALL's.
-                            # TODO : Investigate :P
-                            # member_access_string = "&" + member_access_string
-                        
-                        parsing_fn_call_type = ParsedFunctionCallType.MEMBER_ACCESS_CALL
-                        
-                        additional_data = {
-                            "fn_name": "",
-                            "return_type": child_struct_info.get_type_of_member(tk),
-                            "is_return_type_ref_type" : False,
-                            "has_parameters": False,
-                            "parameters_str": "",
-                            "function_call_type": parsing_fn_call_type,
-                            "member_access_string": member_access_string,
-                        }
-
-                        parser.clear_checkpoint()
-                        expression_info = SpeculativeExpressionInfo()
-                        expression_info.speculative_expression_type = SpeculativeExpressionType.FUNCTION_CALL_EXPRESSION
-                        expression_info.speculative_expression_value = ""
-                        expression_info.function_call_metadata = additional_data
-                        return expression_info
+                        return return_member_access_expression()
 
             if parser.check_token(lexer.Token.LEFT_ROUND_BRACKET):
                 fn_name_unmangled = tk
@@ -2484,6 +2504,11 @@ while index < len(Lines):
             if next_token in [lexer.Token.DOT, lexer.Token.LEFT_ROUND_BRACKET,lexer.Token.LEFT_SQUARE_BRACKET]:
                 parser.next_token()
             else:
+                if child_struct_info is not None:
+                    is_acessing_struct_member = child_struct_info.has_data_member(tk)
+                    if is_acessing_struct_member:
+                        return return_member_access_expression()
+
                 # Probably invalid token
                 parser.rollback_checkpoint()
                 return None
@@ -2647,10 +2672,12 @@ while index < len(Lines):
         parameter_info = _read_a_parameter()
         parameter = parameter_info.param
         parameter_type = parameter_info.param_type
+        struct_instance = parameter_info.struct_instance
 
         return {
             "value": parameter,
             "type": parameter_type,
+            "struct_instance": struct_instance
         }
 
     def get_comparision_operator():
@@ -2790,10 +2817,16 @@ while index < len(Lines):
             r_type = rhs["type"]
 
             left_struct_info = get_instanced_struct(var_to_check_against)
-            is_lhs_struct = left_struct_info is not None
+            if left_struct_info == None and lhs["struct_instance"] != None:
+                left_struct_info = lhs["struct_instance"]
+            is_lhs_struct = left_struct_info != None
 
             right_struct_info = get_instanced_struct(var_to_check)
-            is_rhs_struct = right_struct_info is not None
+            if right_struct_info == None and rhs["struct_instance"] != None:
+                # Sometimes var_to_check is a->b, the functionality of get_instanced_struct()
+                # can be acheived by rhs["struct_instance"].
+                right_struct_info = rhs["struct_instance"]
+            is_rhs_struct = right_struct_info != None
 
             negation = operators_as_str == "!="
             
@@ -2841,7 +2874,10 @@ while index < len(Lines):
                         c_str_fn_name = left_struct_info.get_mangled_function_name("c_str")
                         gen_code = f"{fn_name}(&{var_to_check_against}, {c_str_fn_name}(&{var_to_check}))"
                     else:
-                        gen_code = f"{fn_name}(&{var_to_check_against}, {var_to_check})"
+                        if right_struct_info.is_pointer_type:
+                            gen_code = f"{fn_name}({var_to_check_against}, {var_to_check})"
+                        else:
+                            gen_code = f"{fn_name}(&{var_to_check_against}, {var_to_check})"
                     return gen_code
                 else:
                     if is_variable_array_type(var_to_check_against):
@@ -3615,7 +3651,7 @@ while index < len(Lines):
         parser.match_token(lexer.Token.LEFT_CURLY)
         
     elif check_token(lexer.Token.STRUCT):
-        # % struct Point {T x, T y };
+        #  struct Point {T x, T y };
         parser.consume_token(lexer.Token.STRUCT)
         struct_name = parser.get_token()
 
@@ -3642,7 +3678,10 @@ while index < len(Lines):
         struct_members_list = []
 
         while parser.current_token() != lexer.Token.RIGHT_CURLY:
-            struct_member_type = parser.get_token()
+            struct_member_type = parse_data_type() #parser.get_token()
+            if struct_member_type.startswith("struct "):
+                struct_member_type = struct_member_type[len("struct "):]
+            
             pointerless_struct_member_type = struct_member_type
             if parser.check_token(lexer.Token.ASTERISK):
                 struct_member_type += "*"
