@@ -193,8 +193,10 @@ void Vector_Stringpush_unchecked(struct Vector_String *this,
 bool Vector_String__contains__(struct Vector_String *this,
                                struct String value) {
   for (size_t i = 0; i < this->size; ++i) {
-    if (strcmp(this->arr[i].arr, value.arr) == 0) {
-      return true;
+    if (this->arr[i].length == value.length) {
+      if (strcmp(this->arr[i].arr, value.arr) == 0) {
+        return true;
+      }
     }
   }
   return false;

@@ -112,8 +112,10 @@ endc_function
 
 c_function<String> __contains__(value : T) -> bool:
   for (size_t i = 0; i < this->size; ++i) {
-    if(strcmp(this->arr[i].arr,value.arr) == 0){
-      return true;
+    if(this->arr[i].length == value.length){
+      if(strcmp(this->arr[i].arr,value.arr) == 0){
+        return true;
+      }
     }
   }    
   return false;  
