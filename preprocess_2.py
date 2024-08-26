@@ -2847,7 +2847,7 @@ while index < len(Lines):
                     if is_variable_array_type(var_to_check_against):
                         return handle_array_in_operator(var_to_check, var_to_check_against)
 
-                    raise ValueError(f"Target variable {var_to_check_against} is undefined. It is neither an array nor a struct.")
+                    RAISE_ERROR(f"Target variable {var_to_check_against} is undefined. It is neither an array nor a struct.")
 
             return f"{lhs['value']} {operators_as_str} {rhs['value']}"
 
