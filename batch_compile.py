@@ -6,6 +6,7 @@ file_names = [
     "examples\\04_b_Classes.c",
     "examples\\05_Strings.c",
     "examples\\06_Vector.c",
+    "examples\\07_Set.c",
     "examples\\unique_ptr_source.c",
     "examples\\initializer_list.c",
     "examples\\Reflection.c",

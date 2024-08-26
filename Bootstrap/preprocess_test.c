@@ -8,6 +8,7 @@
 ///*///
 import Vector
 import String
+import Set
 
 // Insert a string at a given index in another string.
 function insert_string(original_string : String, p_index: int, string_to_insert: String) -> String:
@@ -155,7 +156,7 @@ int main() {
 
   let Lines = file.readlinesFrom(source_file)
   Lines.print()
-  
+
   let imported_modules = Vector<String>{5};
 
   for line in Lines{
