@@ -28,6 +28,7 @@ args = filename_parser.parse_args()
 # source_file = "examples\\unique_ptr_source.c"
 # source_file = "examples\\initializer_list.c"
 # source_file = "examples\\Reflection.c"
+source_file = "examples\\Annotations.c"
 
 # source_file = "examples\\constexpr_dict.c"
 # source_file = "examples\\decorators_inside_fn_body.c"
@@ -38,7 +39,7 @@ args = filename_parser.parse_args()
 
 # source_file = "Bootstrap\\lexer_test.c"
 # source_file = "Bootstrap\\Parser_test.c"
-source_file = "Bootstrap\\preprocess_test.c"
+# source_file = "Bootstrap\\preprocess_test.c"
 
 if args.filename:
     source_file = args.filename
@@ -895,6 +896,21 @@ constexpr_dictionaries = []
 
 def is_constexpr_dictionary(p_dict_name) -> bool:
     return any(m_dict.dict_name == p_dict_name for m_dict in constexpr_dictionaries)
+
+
+class Annotation:
+    # @route("/Home")
+    #         ^^^^^^ annotation_argument_value
+    #  ^^^^^ annotation_name
+    # function Home():
+    #          ^^^^ annotated_fn_name
+    def __init__(self, p_annotation_name, p_annotation_argument_value, p_annotated_fn_name):
+        self.annotation_name = p_annotation_name
+        self.annotation_argument_value = p_annotation_argument_value
+        self.annotated_fn_name = p_annotated_fn_name
+
+annotations_list = []
+temporary_annotations_list = []
 
 
 ##############################################################################################
@@ -1858,6 +1874,19 @@ while index < len(Lines):
                 #         loop_variable
                 loop_variable = constexpr_parser.get_token()
 
+                # forall annotation_argument_value, annotated_fn_name in annotated_functions_by_name(route)
+                #        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                #                                                are stored in variables_list.
+                variables_list = [loop_variable]
+
+                while True:
+                    if constexpr_parser.check_token(lexer.Token.COMMA):
+                        constexpr_parser.consume_token(lexer.Token.COMMA)
+                        var = constexpr_parser.get_token()
+                        variables_list.append(var)
+                    else:
+                        break
+
                 # forall x : values.push_unchecked x
                 #          ^ in this case(forall x : ...), 
                 # x(params) has all the parameters passed to the macro. 
@@ -1913,9 +1942,15 @@ while index < len(Lines):
                     #           code_to_write
                     code_to_write = line[line.find(":") + 1:]
 
-                    struct_def = get_struct_defination_of_type(class_name)
-                    if struct_def == None:
-                        RAISE_ERROR(f"{class_name} class isn't registered.")
+                    struct_def = None
+                    
+                    if function_name == "annotated_functions_by_name":
+                        # This constexpr function doesn't access struct information.
+                        pass
+                    else:
+                        struct_def = get_struct_defination_of_type(class_name)
+                        if struct_def == None:
+                            RAISE_ERROR(f"{class_name} class isn't registered.")
                     
                     def _get_members():
                         return [stringify(member.member) for member in struct_def.members]
@@ -1929,10 +1964,23 @@ while index < len(Lines):
                                 for struct in instanced_struct_names 
                                 if struct.struct_type == class_name]
                     
+                    def _get_annotated_functions_by_name():
+                        global annotations_list
+
+                        item_list = []
+                        for annotated_item in annotations_list:
+                            if annotated_item.annotation_name == class_name:
+                                arg1 = stringify(annotated_item.annotation_argument_value)
+                                arg2 = stringify(annotated_item.annotated_fn_name)
+                                args_list = [arg1, arg2]
+                                item_list.append(args_list)
+                        return item_list
+
                     constexpr_map: Dict[str, Callable] = {
                         "members_of": _get_members,
                         "member_functions_of": _get_member_functions,
-                        "instances_of_class": _get_instances
+                        "instances_of_class": _get_instances,
+                        "annotated_functions_by_name": _get_annotated_functions_by_name,
                     }
             
                     if function_name in constexpr_map:
@@ -1945,19 +1993,29 @@ while index < len(Lines):
                             error_msg += f"{names}\n"
                         RAISE_ERROR(f"{error_msg}")
 
-                for param in m_params:
-                    # values.push_unchecked x
-                    #                       ^ loop_variable
-                    # ^^^^^^^^^^^^^^^^^^^^^^^ code_to_write
-                    # Our m_params could be 10, 20, 30(which are passed while calling the macro).
-                    # For all the param in m_params, rewrite 'code_to_write' with the 'param'.
-                    # so, the generated code will be like,
-                    # values.push_unchecked(10)
-                    # values.push_unchecked(20)
-                    # values.push_unchecked(30)
-                    gen_code = code_to_write.replace(loop_variable, param) + "\n"
-                    new_code.append(gen_code)
-                new_code.append("\n")
+                if len(variables_list) == 1:
+                    for param in m_params:
+                        # values.push_unchecked x
+                        #                       ^ loop_variable
+                        # ^^^^^^^^^^^^^^^^^^^^^^^ code_to_write
+                        # Our m_params could be 10, 20, 30(which are passed while calling the macro).
+                        # For all the param in m_params, rewrite 'code_to_write' with the 'param'.
+                        # so, the generated code will be like,
+                        # values.push_unchecked(10)
+                        # values.push_unchecked(20)
+                        # values.push_unchecked(30)
+                        gen_code = code_to_write.replace(loop_variable, param) + "\n"
+                        new_code.append(gen_code)
+                    new_code.append("\n")
+                else:
+                    for param in m_params:
+                        if len(variables_list) != len(param):
+                            RAISE_ERROR(f"Macro returns {len(param)} values but {len(variables_list)} variables are unpacked.")
+                        gen_code = code_to_write
+                        for count, var in enumerate(variables_list):
+                            gen_code = gen_code.replace(var, param[count]) + "\n"
+                        new_code.append(gen_code)
+                    new_code.append("\n")
             else:
                 new_code.append(line)
 
@@ -4054,12 +4112,34 @@ while index < len(Lines):
     elif check_token(lexer.Token.AT):
         # @apply_hook("custom_integer_printer", CustomPrint)
         parser.consume_token(lexer.Token.AT)
-        parser.consume_token(lexer.Token.APPLY_HOOK)
-        parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
-        HOOKS_hook_fn_name = parser.extract_string_literal()
-        parser.consume_token(lexer.Token.COMMA)
-        HOOKS_target_fn = parser.get_token()
-        parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
+
+        if check_token(lexer.Token.APPLY_HOOK):
+            parser.consume_token(lexer.Token.APPLY_HOOK)
+            parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
+            HOOKS_hook_fn_name = parser.extract_string_literal()
+            parser.consume_token(lexer.Token.COMMA)
+            HOOKS_target_fn = parser.get_token()
+            parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
+        else:
+            # @route("/Home")
+            #         ^^^^^^ annotation_argument_value
+            #  ^^^^^ annotation_name
+            # function Home():
+            #          ^^^^ annotated_fn_name
+            annotation_name = parser.get_token()
+            parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
+            annotation_argument_value = parser.extract_string_literal()
+            parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
+
+            annotated_item = Annotation(annotation_name, annotation_argument_value, "")
+            # Leave annotated_fn_name empty. Patch it later. 
+            # PATCH_ANNOTATION
+
+            # @default_route("Home")
+            # @route("/Home")
+            # function Home()
+            # Multiple annotations can be stacked line by line, so save it in a stack.
+            temporary_annotations_list.append(annotated_item)
     elif check_token(lexer.Token.FUNCTION):
         # function say()
         # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
@@ -4150,6 +4230,19 @@ while index < len(Lines):
                     func_name = get_overloaded_mangled_fn_name(class_fn_defination["class_name"], function_name, parameters)
                 else:
                     func_name = get_mangled_fn_name(class_fn_defination["class_name"], function_name)
+            
+                if temporary_annotations_list:
+                    RAISE_ERROR("Annotations are not supported for class functions.")
+
+        if not defining_fn_for_custom_class:
+            # Annotations are implemented for global functions only as of now.
+            if temporary_annotations_list:
+                # PATCH_ANNOTATION
+                # Patch stored (stacked) temporary annotations, which didn't have fn_name.
+                for i in range(len(temporary_annotations_list)):
+                    temporary_annotations_list[i].annotated_fn_name = function_name
+                annotations_list.extend(temporary_annotations_list)
+                temporary_annotations_list = []
 
         code = ""
         struct_name = class_fn_defination["class_name"]

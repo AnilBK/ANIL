@@ -10,6 +10,7 @@ file_names = [
     "examples\\unique_ptr_source.c",
     "examples\\initializer_list.c",
     "examples\\Reflection.c",
+    "examples\\Annotations.c",
     "examples\\constexpr_dict.c",
     "examples\\decorators_inside_fn_body.c",
     "examples\\enumerate_source.c",
