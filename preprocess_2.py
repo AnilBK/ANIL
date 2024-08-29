@@ -1442,6 +1442,7 @@ while index < len(Lines):
         NUMBER = 4
         VARIABLE = 5
         BOOLEAN_CONSTANT = 6 # True or False
+        FUNCTION_POINTER = 7
 
     class Parameter:
         def __init__(self, p_param, p_param_type: ParameterType) -> None:
@@ -1540,6 +1541,10 @@ while index < len(Lines):
             elif tk == "false":
                 parameter = tk
                 parameter_type = ParameterType.BOOLEAN_CONSTANT
+            elif is_global_function(tk):
+                parameter = tk
+                parameter_type = ParameterType.FUNCTION_POINTER
+                parser.next_token()
 
         return Parameter(parameter, parameter_type)
 
@@ -1579,6 +1584,8 @@ while index < len(Lines):
                 strs.append(get_type_of_variable(param.param))
             elif param.param_type == ParameterType.STRING_CLASS or param.param_type == "struct String":
                 strs.append("struct String")
+            elif param.param_type == ParameterType.FUNCTION_POINTER:
+                strs.append("fn_ptr")
             else:
                 RAISE_ERROR(f"Unimplemented for {param.param_type}.")
         return strs
