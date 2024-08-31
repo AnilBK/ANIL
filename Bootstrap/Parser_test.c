@@ -11,6 +11,7 @@ import Vector
 import String
 import Dictionary
 import List
+import File
 
 struct Parser{List tokens};
 
@@ -102,7 +103,7 @@ int main() {
   LinesCache.append("int main(){")
 
   if parser.check_token("print"){
-    let str_to_write = "printf();"
+    let str_to_write = "//printf();"
     let cstr = str_to_write.c_str()
     LinesCache.append(cstr)
   }
@@ -111,6 +112,14 @@ int main() {
   LinesCache.append("}")
 
   LinesCache.print()
+
+  let outputFile = File{"Parser_test_output1.c"};
+  for line in LinesCache{
+    if line.is_str(){
+        outputFile.writeline(line.get_str())
+    }
+  }
+
 
   // DESTRUCTOR_CODE //
   ///*///

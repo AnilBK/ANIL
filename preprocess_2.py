@@ -35,6 +35,7 @@ source_file = "examples\\Annotations.c"
 # source_file = "examples\\enumerate_source.c"
 
 # source_file = "examples\\fileexample.c"
+# source_file = "examples\\Files.c"
 # source_file = "examples\\function_example.c"
 
 # source_file = "Bootstrap\\lexer_test.c"

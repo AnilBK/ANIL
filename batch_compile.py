@@ -15,6 +15,7 @@ file_names = [
     "examples\\decorators_inside_fn_body.c",
     "examples\\enumerate_source.c",
     "examples\\fileexample.c",
+    "examples\\Files.c",
     "examples\\function_example.c",
     "examples\\expression_parse_test.c",
     "Bootstrap\\lexer_test.c",

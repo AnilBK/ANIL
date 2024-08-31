@@ -51,6 +51,10 @@ typedef CPLObject *CPLObjectptr;
 
 ///*///
 
+///*///
+
+///*///
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -688,6 +692,25 @@ void ListappendOVDstr(struct List *this, char *p_value) {
   Listappend_str(this, p_value);
 }
 
+struct File {
+  FILE *file_ptr;
+};
+
+void File__init__(struct File *this, char *p_file_name) {
+  this->file_ptr = fopen(p_file_name, "w");
+  if (this->file_ptr == NULL) {
+    printf("Failed to open file %s.\n", p_file_name);
+    exit(0);
+  }
+}
+
+void Filewriteline(struct File *this, char *p_content) {
+  // Write a line to the file with terminating newline.
+  fprintf(this->file_ptr, "%s\n", p_content);
+}
+
+void File__del__(struct File *this) { fclose(this->file_ptr); }
+
 struct Parser {
   struct List tokens;
 };
@@ -787,7 +810,7 @@ int main() {
 
   if (Parsercheck_tokenOVDstr(&parser, "print")) {
     struct String str_to_write;
-    String__init__OVDstr(&str_to_write, "printf();");
+    String__init__OVDstr(&str_to_write, "//printf();");
     char *cstr = Stringc_str(&str_to_write);
     ListappendOVDstr(&LinesCache, cstr);
     String__del__(&str_to_write);
@@ -798,6 +821,19 @@ int main() {
 
   Listprint(&LinesCache);
 
+  struct File outputFile;
+  File__init__(&outputFile, "Parser_test_output1.c");
+  int tmp_len_0 = Listlen(&LinesCache);
+  for (size_t i = 0; i < tmp_len_0; i++) {
+    struct CPLObject line = List__getitem__(&LinesCache, i);
+
+    if (CPLObjectis_str(&line)) {
+      Filewriteline(&outputFile, CPLObjectget_str(&line));
+    }
+    CPLObject__del__(&line);
+  }
+
+  File__del__(&outputFile);
   List__del__(&LinesCache);
   Parser__del__(&parser);
   ///*///
