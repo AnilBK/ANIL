@@ -110,6 +110,10 @@ c_function __del__()
 endc_function
 
 c_function __getitem__(index : int) -> CPLObject:
+  if (index < 0){
+    index += this->size;
+  }
+
   if (index < 0 || index >= this->size) {
     printf("Index %d out of bounds(max : %d).\n", index, this->size - 1);
     exit(EXIT_FAILURE);

@@ -531,6 +531,10 @@ void List__del__(struct List *this) {
 }
 
 struct CPLObject List__getitem__(struct List *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
+
   if (index < 0 || index >= this->size) {
     printf("Index %d out of bounds(max : %d).\n", index, this->size - 1);
     exit(EXIT_FAILURE);
