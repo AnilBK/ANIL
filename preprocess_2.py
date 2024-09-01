@@ -264,6 +264,7 @@ class SymbolTable:
                 if code != None:
                     # print(f"~() = {code}")
                     des_code += code
+                remove_struct_instance(variable)
             del self.symbols[scope_id]
         return des_code
 
@@ -401,6 +402,8 @@ currently_reading_fn_body = ""
 currently_reading_fn_parent_struct = ""
 currently_reading_parameters = []
 should_write_fn_body = True
+
+return_encountered_in_fn = False
 
 # User Defined function properties.
 class_fn_defination = {
@@ -790,6 +793,11 @@ def get_destructor_for_struct(p_name):
                     des_code = f"{destructor_fn_name}(&{struct_name});\n"
                     return des_code
     return None
+
+
+def remove_struct_instance(p_instance_name):
+    global instanced_struct_names
+    instanced_struct_names = [instance for instance in instanced_struct_names if instance.struct_name != p_instance_name]
 
 
 class ObjectInstance:
@@ -4236,7 +4244,8 @@ while index < len(Lines):
 
         is_inside_user_defined_function = True
     elif check_token(lexer.Token.ENDFUNCTION):
-        decrement_scope()
+        if not return_encountered_in_fn:
+            decrement_scope() 
         # ^^^^^^^^^^^^^^^^ This calls destructors.
         # Since, we have return statement, that handles the destructors.
         # If no return, then this should be performed.
@@ -4244,6 +4253,9 @@ while index < len(Lines):
         # TODO : What for void functions??
         # They don't have return statements but their destructors should be called.
         # As of now the destructors aren't called.
+
+        # Reset the flag.
+        return_encountered_in_fn = False
 
         if not is_inside_user_defined_function:
             RAISE_ERROR("End function without being in Function block.")
@@ -4281,15 +4293,8 @@ while index < len(Lines):
             class_fn_defination["end_index"] = -1
             class_fn_defination["function_destination"] = "global"
 
-            # TODO:Should other StructInstances be freed after leaving a scope.
             # Remove 'this*' StructInstance, so it doesn't mess up, as there can be different 'this*' parameters for different classes.
-            i = 0
-            for struct in instanced_struct_names:
-                if struct.struct_name == "this":
-                    # print(f"Removing this from {namespace_name}.")
-                    del instanced_struct_names[i]
-                    break
-                i += 1
+            remove_struct_instance("this")
 
         is_inside_user_defined_function = False
     elif parser.current_token() == lexer.Token.RETURN:
@@ -4335,6 +4340,7 @@ while index < len(Lines):
 
         # Write destructors.
         decrement_scope()
+        return_encountered_in_fn = True
         # Write return itself.
         # We assume we have single return statement.
         if create_temporary:
