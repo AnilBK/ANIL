@@ -21,26 +21,23 @@ endfunction
 function escape_quotes(s: String) -> String:
   // Add \ in front of any " in the string.
   // if we find \", then we don't add \ in front of ".
-  // result variable is in String readLines function.
-  // So, if we use result2 here, the types mix:
-  // TODO : Investigate.
-  let result2 = "";
+  let result = "";
   let len = s.len()
 
   for i in range(0..len){
     let c = s[i]
     if c == "\""{
       if i == 0{
-        result2 += "\\"
+        result += "\\"
       }else{
         if s[i - 1] != "\\"{
-          result2 += "\\"
+          result += "\\"
         }
       }
     }
-    result2 += c
+    result += c
   }
-  return result2
+  return result
 endfunction
 
 function get_format_specifier(p_type: String) -> String:
@@ -69,6 +66,17 @@ function get_templated_mangled_fn_name(p_struct_type1: String, p_fn_name1: Strin
   s1 += "_" + p_templated_data_type1 + p_fn_name1
   return s1
 endfunction
+
+// Cached Items.
+// If any structs have __init__ method, then we register them here.
+// This could be stored in StructDefination.
+let structs_with_constructors = Set{5};
+
+function has_constructors(p_struct_type : String) -> bool:
+  return p_struct_type in structs_with_constructors
+endfunction
+
+
 
 struct StructInstance{String struct_type, String struct_name,bool is_templated,String templated_data_type,int scope,bool should_be_freed, bool is_pointer_type};
 
@@ -120,26 +128,13 @@ function __del__()
 endfunction
 endnamespace
 
-
-// function get_destructor_for_struct(p_name : String) -> String:
-//   let instanced_struct_names = Vector<StructInstance>{10};
-//   for m_struct in instanced_struct_names[::-1]{
-//     if m_struct.should_be_freed{
-//       let des_code = "{destructor_fn_name}(&{struct_name});\n"
-//       return des_code
-//     }
-//   }
-//   let code = ""
-//   return code
-// endfunction
 ///*///
-
 
 int main() {
 
   // clang-format off
 
-  ///*/// 
+  ///*/// main()
 
   let source_file = "../examples/01_variables.c"
   #source_file.printLn()

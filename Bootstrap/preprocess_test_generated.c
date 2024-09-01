@@ -460,11 +460,8 @@ struct String insert_string(struct String original_string, int p_index,
 struct String escape_quotes(struct String s) {
   // Add \ in front of any " in the string.
   // if we find \", then we don't add \ in front of ".
-  // result variable is in String readLines function.
-  // So, if we use result2 here, the types mix:
-  // TODO : Investigate.
-  struct String result2;
-  String__init__OVDstr(&result2, "");
+  struct String result;
+  String__init__OVDstr(&result, "");
   size_t len = Stringlen(&s);
 
   for (size_t i = 0; i < len; i++) {
@@ -473,18 +470,18 @@ struct String escape_quotes(struct String s) {
     if (c == '\"') {
 
       if (i == 0) {
-        String__add__(&result2, "\\");
+        String__add__(&result, "\\");
       } else {
 
         if (!(String__getitem__(&s, i - 1) == '\\')) {
-          String__add__(&result2, "\\");
+          String__add__(&result, "\\");
         }
       }
     }
     char c_promoted_0[2] = {c, '\0'};
-    String__add__(&result2, c_promoted_0);
+    String__add__(&result, c_promoted_0);
   }
-  return result2;
+  return result;
 }
 
 struct String get_format_specifier(struct String p_type) {
@@ -508,7 +505,6 @@ struct String get_mangled_fn_name(struct String p_struct_type,
   struct String s;
   String__init__OVDstructString(&s, p_struct_type);
   String__add__(&s, Stringc_str(&p_fn_name));
-  String__del__(&s);
   return s;
 }
 
@@ -524,22 +520,22 @@ get_templated_mangled_fn_name(struct String p_struct_type1,
   return s1;
 }
 
-// function get_destructor_for_struct(p_name : String) -> String:
-//   let instanced_struct_names = Vector<StructInstance>{10};
-//   for m_struct in instanced_struct_names[::-1]{
-//     if m_struct.should_be_freed{
-//       let des_code = "{destructor_fn_name}(&{struct_name});\n"
-//       return des_code
-//     }
-//   }
-//   let code = ""
-//   return code
-// endfunction
+// Cached Items.
+// If any structs have __init__ method, then we register them here.
+// This could be stored in StructDefination.
+struct Set structs_with_constructors;
+
+bool has_constructors(struct String p_struct_type) {
+  return Set__contains__(&structs_with_constructors, p_struct_type);
+}
+
 ///*///
 
 int main() {
 
-  ///*///
+  ///*/// main()
+  // Global Variables Initialization.
+  Set__init__(&structs_with_constructors, 5);
 
   struct String source_file;
   String__init__OVDstr(&source_file, "../examples/01_variables.c");
@@ -631,6 +627,7 @@ int main() {
   Vector_String__del__(&Lines);
   String__del__(&file);
   String__del__(&source_file);
+  Set__del__(&structs_with_constructors);
   ///*///
 
   return 0;

@@ -89,6 +89,11 @@ struct_definations = []
 instanced_struct_names = []
 GlobalStructInitCode = ""
 
+# Write __init__ code of structs defined in global scope.
+# This code will be written at the start of main function marked by ///*/// main()
+global_variables_initialization_code = []
+main_fn_found = False
+
 # Cached Items.
 # If any structs have __init__ method, then we register them here.
 # This could be stored in StructDefination.
@@ -974,6 +979,19 @@ while index < len(Lines):
         continue
     elif Line.startswith("///*///"):
         is_inside_new_code = not is_inside_new_code
+        if "main()" in Line:
+            if main_fn_found:
+                RAISE_ERROR("Main function already declared. Can't declare another main function.")
+            else:
+                main_fn_found = True
+                LinesCache.append(Line)
+                if len(global_variables_initialization_code) > 0:
+                    LinesCache.append("//Global Variables Initialization.\n")
+                    for g_code in global_variables_initialization_code:
+                        LinesCache.append(g_code)
+                    global_variables_initialization_code = []
+                    LinesCache.append("\n")
+                continue
 
     if not is_inside_new_code:
         # Normal C code, so just write that.
@@ -2985,7 +3003,12 @@ while index < len(Lines):
                         RAISE_ERROR("Parsing function expression failed.")
 
                     code = fn_call_parse_info.get_fn_str()
-                    LinesCache.append(f"{code};\n")
+
+                    if tk == "__init__" and (not main_fn_found) and (not is_inside_user_defined_function):
+                        # Found a constructor function in global scope.
+                        global_variables_initialization_code.append(f"{code};\n")
+                    else:
+                        LinesCache.append(f"{code};\n")
                 elif StructInfo.has_macro(tk):
                     # macro type functinons
                     struct_name = StructInfo.name
@@ -4363,6 +4386,12 @@ while index < len(Lines):
         is_inside_name_space = False
     else:
         LinesCache.append(Line)
+
+if len(global_variables_initialization_code) > 0 and not main_fn_found:
+    print("====== Global Initialization Code ======")
+    for g_code in global_variables_initialization_code:
+        print(g_code)
+    RAISE_ERROR("Couldn't find main function to place global variable initialization code.")
 
 for i in range(len(LinesCache)):
     if "// STRUCT_DEFINATIONS //" in LinesCache[i]:
