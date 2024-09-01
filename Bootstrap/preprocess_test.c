@@ -9,6 +9,8 @@
 import Vector
 import String
 import Set
+import Dictionary
+import List
 
 // Insert a string at a given index in another string.
 function insert_string(original_string : String, p_index: int, string_to_insert: String) -> String:
@@ -127,6 +129,39 @@ function __del__()
   this.data_type.__del__()
 endfunction
 endnamespace
+
+struct SymbolTable{Dictionary symbols, List scope_stack};
+
+namespace SymbolTable
+function __init__()
+  this.symbols.__init__()
+  this.scope_stack.__init__()
+endfunction
+
+function enter_scope()
+
+endfunction
+
+function current_scope() -> int:
+  if this.scope_stack.len() == 0{
+    this.enter_scope()
+  }
+
+  // let val = this.scope_stack[-1]
+  // if val.is_int(){
+  //   return val.get_int()
+  // }
+
+  return -1
+endfunction
+
+function __del__()
+  this.scope_stack.__del__()
+endfunction
+endnamespace
+
+let symbol_table = SymbolTable{};
+
 
 ///*///
 
