@@ -46,7 +46,7 @@ Iterator create_iterator_from_array(int *array, int len) {
 
 int main() {
 
-  ///*///
+  ///*/// main()
 
   int arr[] = {1, 2, 3, 4, 5};
   unsigned int arr_array_size = 5;

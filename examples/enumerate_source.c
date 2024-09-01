@@ -48,7 +48,7 @@ int main() {
 
   // clang-format off
 
-  ///*///
+  ///*/// main()
 
   let arr<int> = [ 1, 2, 3, 4, 5 ];
   for index,value in enumerate arr{

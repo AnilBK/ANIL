@@ -10,7 +10,7 @@ int main() {
 
   // clang-format off
 
-  ///*///
+  ///*///  main()
 
   let x : int = 69420
   print("The magic number is {x}.\n");

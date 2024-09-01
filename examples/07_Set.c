@@ -10,7 +10,7 @@ int main() {
 
   // clang-format off
 
-  ///*///
+  ///*/// main()
   import Vector
   import String
   import Set

@@ -589,7 +589,7 @@ void Vector_charprint(struct Vector_char *this) {
 
 int main() {
 
-  ///*///
+  ///*/// main()
 
   struct Vector_int a;
   Vector_int__init__(&a, 10);

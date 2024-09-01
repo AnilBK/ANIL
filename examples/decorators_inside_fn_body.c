@@ -35,7 +35,7 @@ void CustomIntPrint(int data) {
 int main() {
 
 
-  ///*///
+  ///*/// main()
 
   let node = Node{10};
 

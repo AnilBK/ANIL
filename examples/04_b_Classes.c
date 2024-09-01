@@ -9,7 +9,7 @@ int main() {
 
   // clang-format off
 
-  ///*///
+  ///*///  main()
 
   struct Point {int x, int y};
   let p1 = Point{20, 50};

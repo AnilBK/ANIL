@@ -6,7 +6,7 @@
 
 int main() {
 
-  ///*///
+  ///*///  main()
 
   int x = 69420;
   printf("The magic number is %d.\n", x);

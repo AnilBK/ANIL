@@ -27,7 +27,7 @@ void UniquePtr_char__del__(struct UniquePtr_char *this) { free(this->arr); }
 
 int main() {
 
-  ///*///
+  ///*/// main()
 
   struct UniquePtr_char ptr;
   UniquePtr_char__init__(&ptr, 100);

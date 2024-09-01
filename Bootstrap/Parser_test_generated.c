@@ -798,7 +798,7 @@ bool Parserconsume_token(struct Parser *this, int p_token) {
 
 int main() {
 
-  ///*///
+  ///*/// main()
 
   struct Parser parser;
   Parser__init__(&parser);

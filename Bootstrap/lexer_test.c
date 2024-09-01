@@ -239,7 +239,7 @@ int main() {
 
 // clang-format off
 
-  ///*///
+  ///*/// main()
 
   let lexer = Lexer{};
   let tokens = lexer.get_tokens();

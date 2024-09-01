@@ -29,7 +29,7 @@ void File__del__(struct File *this) { fclose(this->file_ptr); }
 
 int main() {
 
-  ///*///
+  ///*/// main()
 
   struct File outputFile;
   File__init__(&outputFile, "hello.txt");

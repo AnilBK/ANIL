@@ -51,7 +51,7 @@ endfunction
     main() {
   // clang-format off
 
-  ///*///
+  ///*/// main()
   let string = "Hello World from String.\n"
   string.print()
 

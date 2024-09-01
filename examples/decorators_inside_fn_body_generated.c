@@ -37,7 +37,7 @@ void CustomIntPrint(int data) {
 
 int main() {
 
-  ///*///
+  ///*/// main()
 
   struct Node node;
   Node__init__(&node, 10);

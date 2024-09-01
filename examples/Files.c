@@ -10,7 +10,7 @@ int main() {
 
 // clang-format off
 
-  ///*///
+  ///*/// main()
   import File
 
   let outputFile = File{"hello.txt"};

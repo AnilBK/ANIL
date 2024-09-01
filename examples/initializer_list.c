@@ -10,7 +10,7 @@ int main() {
 
   // clang-format off
 
-  ///*///
+  ///*/// main()
   import Vector
 
   let values = Vector<int>{8};

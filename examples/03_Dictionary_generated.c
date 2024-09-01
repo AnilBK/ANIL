@@ -94,7 +94,7 @@ void Dictionary__setitem__(struct Dictionary *this, char *p_key_str,
 
 int main() {
 
-  ///*///
+  ///*///  main()
 
   // Compile time dictionary. See constexpr_dict.c
   // Also See, Bootstrap/lexer_test.c.

@@ -383,7 +383,7 @@ void Setprint(struct Set *this) {
 
 int main() {
 
-  ///*///
+  ///*/// main()
 
   struct String s1;
   String__init__OVDstr(&s1, "apple");

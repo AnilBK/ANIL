@@ -381,7 +381,7 @@ get_templated_mangled_fn_name(struct String p_struct_type1,
 
 int main() {
 
-  ///*///
+  ///*/// main()
   struct String string;
   String__init__OVDstr(&string, "Hello World from String.\n");
   Stringprint(&string);

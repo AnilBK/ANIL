@@ -54,7 +54,7 @@ struct Vector_float {
 
 int main() {
 
-  ///*///
+  ///*///  main()
 
   struct Point p1;
   p1.x = 20;

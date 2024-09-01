@@ -10,7 +10,7 @@ int main() {
 
   // clang-format off
 
-  ///*///
+  ///*/// main()
   import UniquePtr
 
   let ptr = UniquePtr<char>{100};

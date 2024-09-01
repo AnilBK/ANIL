@@ -11,7 +11,7 @@ int main() {
 
   // Currently we Support {"String" : int} dictionary only.
 
-  ///*///
+  ///*/// main()
 
   int color = 255;
   int color2 = 200;

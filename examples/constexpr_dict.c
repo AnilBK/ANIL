@@ -15,7 +15,7 @@ int main() {
 
   // Currently we Support {"String" : int} dictionary only.
   
-  ///*///
+  ///*/// main()
 
   constexpr Color = {"Red":255, "Green":200}
   constexpr Age = {"Anil":22, "Universe":10000}

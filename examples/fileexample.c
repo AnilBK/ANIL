@@ -39,7 +39,7 @@ endfunction
 
 int main() {
 
-  ///*/// 
+  ///*/// main() 
   let str = "Hello"
   str.printLn()
   

@@ -28,7 +28,7 @@ void Rectangleprint_param(struct Rectangle *this, int param) {
 
 int main() {
 
-  ///*///
+  ///*/// main()
 
   struct Rectangle rect;
   Rectangle__init__(&rect, 10, 20);

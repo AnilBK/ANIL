@@ -35,7 +35,7 @@ int main() {
 
   // clang-format off
 
-  ///*/// 
+  ///*/// main()
   
   let rect = Rectangle{10, 20};
   rect.area();

@@ -59,7 +59,7 @@ void About() { printf("Anil BK\n"); }
 
 int main() {
 
-  ///*///
+  ///*/// main()
 
   struct FunctionDictionary router;
   FunctionDictionary__init__(&router);

@@ -337,7 +337,7 @@ struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename) {
 
 int main() {
 
-  ///*///
+  ///*/// main()
 
   char c_str1[18] = "C Style Strings\n";
   // Such strings are very limited in functionality and only looping as below is

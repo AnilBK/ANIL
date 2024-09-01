@@ -281,7 +281,7 @@ void ListappendOVDstr(struct List *this, char *p_value) {
 
 int main() {
 
-  ///*///
+  ///*/// main()
 
   struct List vector_class_members;
   List__init__(&vector_class_members);

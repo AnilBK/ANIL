@@ -98,7 +98,7 @@ void Vector_intprint(struct Vector_int *this) {
 
 int main() {
 
-  ///*///
+  ///*/// main()
 
   struct Vector_int values;
   Vector_int__init__(&values, 8);

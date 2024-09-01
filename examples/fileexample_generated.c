@@ -373,7 +373,7 @@ struct Vector_String string_split(struct String str) {
 
 int main() {
 
-  ///*///
+  ///*/// main()
   struct String str;
   String__init__OVDstr(&str, "Hello");
   StringprintLn(&str);

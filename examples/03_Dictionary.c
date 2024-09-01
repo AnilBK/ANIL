@@ -10,7 +10,7 @@ int main() {
 
   // clang-format off
 
-  ///*///
+  ///*///  main()
   import Dictionary
 
   // Compile time dictionary. See constexpr_dict.c
