@@ -1616,52 +1616,6 @@ while index < len(Lines):
         # To denote x = A.B;
         MEMBER_ACCESS_CALL =  2
 
-    def _parse_struct_member_access(tk, base_struct_info, child_struct_info, member_access_string, pointer_access):
-        struct_instance = None
-
-        # let expr = A.B.C.Function()
-        #            | ^ ^ child struct
-        #            ^ base struct
-
-        # let expr = A.Function()
-        #             ^
-        # In this case, 'A' is instanced struct, so we can get its defination.
-        # We haven't set 'base_struct_info' so, we can make this check to know
-        # that this is the base struct.
-        if base_struct_info is None:
-            struct_instance = get_instanced_struct(tk)
-            if struct_instance is None:
-                RAISE_ERROR(f"{tk} isn't an instanced struct.")
-            base_struct_info = struct_instance.get_struct_defination()
-            child_struct_info = base_struct_info
-
-            if struct_instance.is_pointer_type:
-                member_access_string = f"{tk}"
-                pointer_access = "->"
-            else:
-                member_access_string = f"&{tk}"
-                pointer_access = "."
-        else:
-            type_of_tk = child_struct_info.get_type_of_member(tk)
-            if type_of_tk is None:
-                RAISE_ERROR(f"Struct doesn't have member {tk}.")
-
-            val = random.randrange(100000)
-
-            struct_instance = StructInstance(
-                type_of_tk,
-                f"tmp_struct_name_{str(val)}",
-                False,
-                "",
-                get_current_scope(),
-            )
-
-            child_struct_info = struct_instance.get_struct_defination()
-
-            member_access_string += f"{pointer_access}{tk}"
-            pointer_access = "."
-        return base_struct_info, child_struct_info, member_access_string, pointer_access, struct_instance
-
     class ParseErrorException(Exception):
         def __init__(self, message):
             self.message = message
@@ -2992,7 +2946,7 @@ while index < len(Lines):
                         expression_type = ExpressionType.FUNCTION_CALL
                         break
 
-                base_struct_info, child_struct_info, member_access_string, pointer_access, struct_instance = _parse_struct_member_access(tk, base_struct_info, child_struct_info, member_access_string, pointer_access)
+                base_struct_info, child_struct_info, member_access_string, pointer_access, struct_instance = Speculative_parse_struct_member_access(tk, base_struct_info, child_struct_info, member_access_string, pointer_access)
             
                 tk = parser.get_token()
                 
