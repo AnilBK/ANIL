@@ -57,6 +57,13 @@ typedef CPLObject *CPLObjectptr;
 
 ///*///
 
+///*///
+///////////////////////////////////////////
+#include <stdlib.h>
+#include <time.h>
+
+///*///
+
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -737,6 +744,16 @@ void ListappendOVDstr(struct List *this, char *p_value) {
   Listappend_str(this, p_value);
 }
 
+struct Random {
+  char dummy;
+};
+
+void Random__init__(struct Random *this) { srand(time(0)); }
+
+int Randomrandrange(struct Random *this, int upper_limit) {
+  return rand() % upper_limit;
+}
+
 struct StructInstance {
   struct String struct_type;
   struct String struct_name;
@@ -823,6 +840,10 @@ int SymbolTablecurrent_scope(struct SymbolTable *this) {
   // }
 
   return -1;
+}
+
+void SymbolTablenew_unique_scope_id(struct SymbolTable *this) {
+  int random_index = Randomrandrange(&random, 100000);
 }
 
 void SymbolTable__del__(struct SymbolTable *this) {
@@ -916,6 +937,8 @@ bool has_constructors(struct String p_struct_type) {
   return Set__contains__(&structs_with_constructors, p_struct_type);
 }
 
+struct Random random;
+
 struct SymbolTable symbol_table;
 
 ///*///
@@ -925,6 +948,7 @@ int main() {
   ///*/// main()
   // Global Variables Initialization.
   Set__init__(&structs_with_constructors, 5);
+  Random__init__(&random);
   SymbolTable__init__(&symbol_table);
 
   struct String source_file;

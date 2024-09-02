@@ -11,6 +11,7 @@ import String
 import Set
 import Dictionary
 import List
+import Random
 
 // Insert a string at a given index in another string.
 function insert_string(original_string : String, p_index: int, string_to_insert: String) -> String:
@@ -130,6 +131,8 @@ function __del__()
 endfunction
 endnamespace
 
+let random = Random{};
+
 struct SymbolTable{Dictionary symbols, List scope_stack};
 
 namespace SymbolTable
@@ -153,6 +156,10 @@ function current_scope() -> int:
   // }
 
   return -1
+endfunction
+
+function new_unique_scope_id()
+  let random_index = random.randrange(100000)
 endfunction
 
 function __del__()
