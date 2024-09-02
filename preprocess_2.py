@@ -392,6 +392,7 @@ class NestingLevel(Enum):
     FOR_LOOP = 0
     IF_STATEMENT = 1
     ELSE_STATEMENT = 2
+    WHILE_STATEMENT = 3
 
 
 nesting_levels = []
@@ -1581,9 +1582,11 @@ while index < len(Lines):
             if tk == "true":
                 parameter = tk
                 parameter_type = ParameterType.BOOLEAN_CONSTANT
+                parser.next_token()
             elif tk == "false":
                 parameter = tk
                 parameter_type = ParameterType.BOOLEAN_CONSTANT
+                parser.next_token()
             elif is_global_function(tk):
                 parameter = tk
                 parameter_type = ParameterType.FUNCTION_POINTER
@@ -3218,6 +3221,10 @@ while index < len(Lines):
             _ = nesting_levels.pop(-1)
             decrement_scope()
             LinesCache.append("}\n")
+        elif top_of_stack == NestingLevel.WHILE_STATEMENT:
+            _ = nesting_levels.pop(-1)
+            decrement_scope()
+            LinesCache.append("}\n")
         else:
             RAISE_ERROR("UnImplemented Right Curly.")
     elif check_token(lexer.Token.HASH):
@@ -3701,7 +3708,15 @@ while index < len(Lines):
                 create_normal_array_iterator(array_name, current_array_value_variable)
         
         parser.match_token(lexer.Token.LEFT_CURLY)
-        
+    elif check_token(lexer.Token.WHILE):
+        nesting_levels.append(NestingLevel.WHILE_STATEMENT)
+        increment_scope()
+
+        parser.consume_token(lexer.Token.WHILE)
+        code = boolean_expression()
+        parser.consume_token(lexer.Token.LEFT_CURLY)
+
+        LinesCache.append(f"\nwhile({code}){{\n")
     elif check_token(lexer.Token.STRUCT):
         #  struct Point {T x, T y };
         parser.consume_token(lexer.Token.STRUCT)

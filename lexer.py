@@ -51,6 +51,7 @@ class Token(Enum):
     FRONT_SLASH = 47
     AMPERSAND = 48
     CONST = 49
+    WHILE = 50
 
 
 CHARACTER_TOKENS = {
@@ -86,6 +87,7 @@ KEYWORD_TOKENS = {
     "struct": Token.STRUCT,
     "match": Token.MATCH,
     "for": Token.FOR,
+    "while": Token.WHILE,
     "if": Token.IF,
     "in": Token.IN,
     "Option": Token.OPTION,
