@@ -159,7 +159,25 @@ function current_scope() -> int:
 endfunction
 
 function new_unique_scope_id()
-  let random_index = random.randrange(100000)
+  if this.scope_stack.len() == 0{
+    // return 0
+  }
+
+  let latest_scope = this.current_scope()
+  let new_scope : int = latest_scope + 1
+
+  if new_scope in this.scope_stack{
+    while true{
+      let random_index = random.randrange(100000)
+      if random_index in this.scope_stack{
+      
+      }else{
+        new_scope = random_index
+        break;
+      }
+    }
+  }
+
 endfunction
 
 function __del__()
