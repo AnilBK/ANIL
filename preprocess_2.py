@@ -2819,8 +2819,10 @@ while index < len(Lines):
     def handle_struct_equality(var_to_check_against, var_to_check, r_type, struct_info, negation):
         parameters = [Parameter(var_to_check, r_type)]
 
-        fn_name = struct_info.get_mangled_function_name("__eq__", _parameters_to_types_str_list(parameters))
-        return_type = struct_info.get_return_type_of_fn("__eq__", _parameters_to_types_str_list(parameters))
+        parameters_str_list = _parameters_to_types_str_list(parameters)
+
+        fn_name = struct_info.get_mangled_function_name("__eq__", parameters_str_list)
+        return_type = struct_info.get_return_type_of_fn("__eq__", parameters_str_list)
         code = f'{fn_name}(&{var_to_check_against}, {var_to_check})'
 
         if negation:
@@ -2891,8 +2893,11 @@ while index < len(Lines):
                 var_to_check_against = rhs["value"]
 
                 if is_rhs_struct:
-                    fn_name = right_struct_info.get_mangled_function_name("__contains__")
-                    contains_fn_args = right_struct_info.get_fn_arguments("__contains__")
+                    parameters = [Parameter(var_to_check, l_type)]
+                    parameters_str_list = _parameters_to_types_str_list(parameters)
+
+                    fn_name = right_struct_info.get_mangled_function_name("__contains__", parameters_str_list)
+                    contains_fn_args = right_struct_info.get_fn_arguments("__contains__", parameters_str_list)
 
                     is_var_to_check_string_object = is_lhs_struct and left_struct_info.struct_type == "String"
 
@@ -2942,6 +2947,9 @@ while index < len(Lines):
 
     if len(parser.tokens) > 0:
         parsed_member = parser.current_token()
+
+        if parsed_member == "new_scope":
+            pass
 
         instanced_struct_info = get_instanced_struct(parsed_member)
         is_instanced_struct_ = instanced_struct_info != None
