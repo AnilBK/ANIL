@@ -3172,6 +3172,15 @@ while index < len(Lines):
             else:
                 RAISE_ERROR("Expected a boolean value.")
             continue
+        elif is_variable_int_type(parsed_member):
+            # new_scope = random_index
+            parser.next_token()
+
+            parser.consume_token(lexer.Token.EQUALS)
+            value_to_assign = get_integer_expression("Expected integer expression to reassign to existing integer named \"{parsed_member}\".")
+            
+            LinesCache.append(f"{parsed_member} = {value_to_assign}; \n")
+            continue
     else:
         LinesCache.append("\n")
         continue
@@ -3656,7 +3665,7 @@ while index < len(Lines):
                 includes_stop = False
                 step = '1'
 
-                start = get_integer_expression("Exptected integer expression for start value.")
+                start = get_integer_expression("Expected integer expression for start value.")
 
                 parser.consume_token(lexer.Token.DOT)
                 parser.consume_token(lexer.Token.DOT)
@@ -3667,14 +3676,14 @@ while index < len(Lines):
                     parser.next_token()
                     includes_stop = True
                 
-                stop = get_integer_expression("Exptected integer expression for stop value.")
+                stop = get_integer_expression("Expected integer expression for stop value.")
 
                 # for i in range(1..10,2){  -> 0 >= i < 10
                 #                     ^
                 if parser.check_token(lexer.Token.COMMA):
                     parser.next_token()
 
-                    step = get_integer_expression("Exptected integer expression for step value.")
+                    step = get_integer_expression("Expected integer expression for step value.")
 
                 parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
 
