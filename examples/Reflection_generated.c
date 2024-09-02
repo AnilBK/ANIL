@@ -187,6 +187,36 @@ struct CPLObject Listpop(struct List *this, int index) {
   return popped_node;
 }
 
+bool List__contains__OVDint(struct List *this, int p_value) {
+  CPLObject *current = this->head;
+  while (current != NULL) {
+    if (current->data_type == INT) {
+      int data = current->data.int_data;
+
+      if (data == p_value) {
+        return true;
+      }
+    }
+    current = current->next;
+  }
+  return false;
+}
+
+bool List__contains__OVDstr(struct List *this, char *p_value) {
+  CPLObject *current = this->head;
+  while (current != NULL) {
+    if (current->data_type == STRING) {
+      char *data = current->data.str_data;
+
+      if (strcmp(data, p_value) == 0) {
+        return true;
+      }
+    }
+    current = current->next;
+  }
+  return false;
+}
+
 void Listprint(struct List *this) {
   CPLObject *current = this->head;
   printf("[");

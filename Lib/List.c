@@ -174,6 +174,38 @@ c_function pop(index : int) -> CPLObject:
   return popped_node;
 endc_function
 
+c_function __contains__<>(p_value : int) -> bool:
+  CPLObject *current = this->head;
+  while (current != NULL) {
+    if (current->data_type == INT) {
+      int data = current->data.int_data;
+
+      if (data == p_value){
+        return true;
+      }
+
+    }
+    current = current->next;
+  }
+  return false;
+endc_function
+
+c_function __contains__<>(p_value : str) -> bool:
+  CPLObject *current = this->head;
+  while (current != NULL) {
+    if (current->data_type == STRING) {
+      char* data = current->data.str_data;
+
+      if (strcmp(data,p_value) == 0){
+        return true;
+      }
+
+    }
+    current = current->next;
+  }
+  return false;
+endc_function
+
 c_function print()
   CPLObject *current = this->head;
   printf("[");
