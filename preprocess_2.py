@@ -2948,9 +2948,6 @@ while index < len(Lines):
     if len(parser.tokens) > 0:
         parsed_member = parser.current_token()
 
-        if parsed_member == "new_scope":
-            pass
-
         instanced_struct_info = get_instanced_struct(parsed_member)
         is_instanced_struct_ = instanced_struct_info != None
 
