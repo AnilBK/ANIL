@@ -334,6 +334,14 @@ int main() {
 
   Listprint(&test_list);
 
+  if (List__contains__OVDint(&test_list, 10)) {
+    printf("10 is in the list.");
+  }
+
+  if (!List__contains__OVDint(&test_list, 5)) {
+    printf("5 is not in the list.");
+  }
+
   CPLObject__del__(&node);
   List__del__(&test_list);
   ///*///

@@ -52,6 +52,7 @@ class Token(Enum):
     AMPERSAND = 48
     CONST = 49
     WHILE = 50
+    NOT = 51
 
 
 CHARACTER_TOKENS = {
@@ -97,6 +98,7 @@ KEYWORD_TOKENS = {
     "endc_function": Token.ENDCFUNCTION,
     "enddef": Token.ENDDEF,
     "else": Token.ELSE,
+    "not": Token.NOT,
     "True": Token.TRUE,
     "False": Token.FALSE,
     "constexpr": Token.CONSTEXPR,

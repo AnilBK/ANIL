@@ -2731,7 +2731,7 @@ while index < len(Lines):
         }
 
     def get_comparision_operator():
-        """Read comparision operator (if any) which includes >, <, >=, <=, ==, !=, in"""
+        """Read comparision operator (if any) which includes >, <, >=, <=, ==, !=, in, not in"""
         has_comparision_operator = False
         operators_as_str = ""
 
@@ -2764,6 +2764,13 @@ while index < len(Lines):
 
                 has_comparision_operator = True
                 operators_as_str = "in"
+            elif token == lexer.Token.NOT:
+                parser.consume_token(lexer.Token.NOT)
+                # not is implemented only for in to make 'not in'.
+                parser.consume_token(lexer.Token.IN)
+
+                has_comparision_operator = True
+                operators_as_str = "not in"
 
         return {
             "has_comparision_operator": has_comparision_operator,
@@ -2892,10 +2899,14 @@ while index < len(Lines):
                     var_to_check_against, var_to_check, l_type, r_type,
                     left_struct_info, is_lhs_struct, negation
                 )
-            elif operators_as_str == "in":
+            elif operators_as_str == "in" or operators_as_str == "not in":
                 # if var_to_check in var_to_check_against {
+                # if random_index not in this.scope_stack{
                 var_to_check = lhs["value"]
                 var_to_check_against = rhs["value"]
+
+                if operators_as_str == "not in":
+                    negation = True
 
                 if is_rhs_struct:
                     # Create a function expression and merge the tokens to the current parser.
@@ -2910,11 +2921,18 @@ while index < len(Lines):
                     if fn_call_parse_info == None:
                         RAISE_ERROR(f"For \"{CPL_code}\", Boolean expression fn call parsing failed.")
                     else:
-                        return fn_call_parse_info.get_fn_str()
+                        code = fn_call_parse_info.get_fn_str()
+                        if negation:
+                            return f"!{code}" 
+                        else:
+                            return code
                 else:
                     if is_variable_array_type(var_to_check_against):
-                        return handle_array_in_operator(var_to_check, var_to_check_against)
-
+                        code = handle_array_in_operator(var_to_check, var_to_check_against)
+                        if negation:
+                            return f"!{code}" 
+                        else:
+                            return code
                     RAISE_ERROR(f"Target variable {var_to_check_against} is undefined. It is neither an array nor a struct.")
 
             return f"{lhs['value']} {operators_as_str} {rhs['value']}"

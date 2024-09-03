@@ -406,9 +406,7 @@ bool Set__contains__(struct Set *this, struct String value) {
 
 void Setadd(struct Set *this, struct String value) {
 
-  if (Set__contains__(this, value)) {
-
-  } else {
+  if (!Set__contains__(this, value)) {
     Vector_Stringpush(&this->arr, value);
   }
 }
@@ -886,9 +884,7 @@ void SymbolTablenew_unique_scope_id(struct SymbolTable *this) {
     while (true) {
       int random_index = Randomrandrange(&random, 100000);
 
-      if (List__contains__OVDint(&this->scope_stack, random_index)) {
-
-      } else {
+      if (!List__contains__OVDint(&this->scope_stack, random_index)) {
         new_scope = random_index;
         break;
       }

@@ -363,9 +363,7 @@ bool Set__contains__(struct Set *this, struct String value) {
 
 void Setadd(struct Set *this, struct String value) {
 
-  if (Set__contains__(this, value)) {
-
-  } else {
+  if (!Set__contains__(this, value)) {
     Vector_Stringpush(&this->arr, value);
   }
 }

@@ -169,9 +169,8 @@ function new_unique_scope_id()
   if new_scope in this.scope_stack{
     while true{
       let random_index = random.randrange(100000)
-      if random_index in this.scope_stack{
-      
-      }else{
+
+      if random_index not in this.scope_stack{
         new_scope = random_index
         break;
       }

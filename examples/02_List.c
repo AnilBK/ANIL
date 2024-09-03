@@ -37,6 +37,14 @@ int main() {
 
   test_list.print()
 
+  if 10 in test_list{
+    print("10 is in the list.")
+  }
+
+  if 5 not in test_list{
+    print("5 is not in the list.")
+  }
+
   // DESTRUCTOR_CODE //
   ///*///
       // clang-format on

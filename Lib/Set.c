@@ -27,11 +27,9 @@ function __contains__(value : String) -> bool:
 endfunction
 
 function add(value : String)
-    if value in this{
-    
-    }else{
-        this.arr.push(value)
-    }
+  if value not in this{
+    this.arr.push(value)
+  }
 endfunction
 
 function print()
