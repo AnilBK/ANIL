@@ -2817,13 +2817,18 @@ while index < len(Lines):
         return f"!({code})" if negation else code
 
     def handle_struct_equality(var_to_check_against, var_to_check, r_type, struct_info, negation):
-        parameters = [Parameter(var_to_check, r_type)]
+        code = ""
 
-        parameters_str_list = _parameters_to_types_str_list(parameters)
-
-        fn_name = struct_info.get_mangled_function_name("__eq__", parameters_str_list)
-        return_type = struct_info.get_return_type_of_fn("__eq__", parameters_str_list)
-        code = f'{fn_name}(&{var_to_check_against}, {var_to_check})'
+        # Create a function expression and merge the tokens to the current parser.
+        # Parse the function expression using the recently merged tokens.
+        CPL_code = f"{var_to_check_against}.__eq__({var_to_check})".replace("->",".")
+        fn_parser = Parser.Parser(CPL_code)
+        parser.tokens = fn_parser.tokens + parser.tokens
+        fn_call_parse_info = function_call_expression()
+        if fn_call_parse_info == None:
+            RAISE_ERROR(f"For \"{CPL_code}\", Struct equality fn call parsing failed.")
+        else:
+            code = fn_call_parse_info.get_fn_str()
 
         if negation:
             code = f"!{code}"
@@ -2893,47 +2898,19 @@ while index < len(Lines):
                 var_to_check_against = rhs["value"]
 
                 if is_rhs_struct:
-                    parameters = [Parameter(var_to_check, l_type)]
-                    parameters_str_list = _parameters_to_types_str_list(parameters)
-
-                    fn_name = right_struct_info.get_mangled_function_name("__contains__", parameters_str_list)
-                    contains_fn_args = right_struct_info.get_fn_arguments("__contains__", parameters_str_list)
-
-                    is_var_to_check_string_object = is_lhs_struct and left_struct_info.struct_type == "String"
-
-                    # Get the data type for the first function argument.
-                    param_type = contains_fn_args[0].data_type
-                    expects_string_argument = param_type in {"char*", "str"}
-
-                    if l_type == ParameterType.CHAR_TYPE:
-                        gen_code = ""
-                        # if var_to_check in var_to_check_against {
-                        #    ^^^^^^^^^^^^ this is a char
-                        # but the function signature for "__contains__" expects a char*/str.
-                        # So, promote the char variable to a string.
-                        if expects_string_argument:
-                            var_to_check = promote_char_to_string(var_to_check)
-
-                    if l_type == ParameterType.RAW_STRING:
-                        gen_code = (
-                            f'{fn_name}(&{var_to_check_against}, "{var_to_check}")'
-                        )
-                    elif expects_string_argument and is_var_to_check_string_object:
-                        # For Automatic Conversion for String class.
-                        # for token in Character_Tokens:
-                        #     ^^^^     ^^^^^^^^^^^^^^^^
-                        #         String               Dictionary
-                        # The __contains__ for Dictionary expects a string,
-                        # And the string class has a c_str method that returns char*,
-                        # so implement this for String Class. Could be extended to any classes with c_str() method. Food for thought :)
-                        c_str_fn_name = left_struct_info.get_mangled_function_name("c_str")
-                        gen_code = f"{fn_name}(&{var_to_check_against}, {c_str_fn_name}(&{var_to_check}))"
+                    # Create a function expression and merge the tokens to the current parser.
+                    # Parse the function expression using the recently merged tokens.
+                    CPL_code = f"{var_to_check_against}.__contains__({var_to_check})"
+                    if lhs['type'] == ParameterType.RAW_STRING:
+                        CPL_code = f"{var_to_check_against}.__contains__(\"{var_to_check}\")"
+                    CPL_code = CPL_code.replace("->",".")
+                    fn_parser = Parser.Parser(CPL_code)
+                    parser.tokens = fn_parser.tokens + parser.tokens
+                    fn_call_parse_info = function_call_expression()
+                    if fn_call_parse_info == None:
+                        RAISE_ERROR(f"For \"{CPL_code}\", Boolean expression fn call parsing failed.")
                     else:
-                        if right_struct_info.is_pointer_type:
-                            gen_code = f"{fn_name}({var_to_check_against}, {var_to_check})"
-                        else:
-                            gen_code = f"{fn_name}(&{var_to_check_against}, {var_to_check})"
-                    return gen_code
+                        return fn_call_parse_info.get_fn_str()
                 else:
                     if is_variable_array_type(var_to_check_against):
                         return handle_array_in_operator(var_to_check, var_to_check_against)
