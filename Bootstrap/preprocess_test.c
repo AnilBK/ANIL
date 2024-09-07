@@ -145,13 +145,7 @@ function current_scope() -> int:
   return this.scope_stack[-1]
 endfunction
 
-function enter_scope()
-
-endfunction
-
-
-
-function new_unique_scope_id()
+function new_unique_scope_id() -> int:
   if this.scope_stack.len() == 0{
     // return 0
   }
@@ -169,9 +163,97 @@ function new_unique_scope_id()
       }
     }
   }
-
+  return new_scope
 endfunction
 
+function enter_scope()
+  let new_scope_id = this.new_unique_scope_id()
+  this.scope_stack.push(new_scope_id)
+  // this.symbols[new_scope_id] = OrderedDict()
+endfunction
+
+function destructor_for_all_variables_in_scope(scope_id : int) -> String:
+  // Return the destructor code for all variables in the provided scope
+  // And, free(unregister) those variables as well.
+  let des_code = "";
+  if scope_id in this.symbols{
+    // for variable in reversed(this.symbols[scope_id]):
+    //     # Call the destructor for the variable
+    //     # print(f"Destroying variable '{variable}' in scope {scope_id}")
+    //     code = get_destructor_for_struct(variable)
+    //     if code != None:
+    //         # print(f"~() = {code}")
+    //         des_code += code
+    //     remove_struct_instance(variable)
+    // del this.symbols[scope_id]
+  }
+  return des_code
+endfunction
+
+function exit_scope()
+  if this.scope_stack.len() > 0{
+    let exiting_scope_id = this.scope_stack.pop()
+    let destructor_code = this.destructor_for_all_variables_in_scope(exiting_scope_id)
+    if destructor_code != ""{
+      // LinesCache.append(destructor_code)
+    }
+  }
+
+  // No more scopes remaining.
+  // Create one so current_scope() wont return list index out of range, because scope_stack is empty.
+  if this.scope_stack.len() == 0{
+    this.enter_scope()
+  }
+endfunction
+
+function print_symbol_table()
+  print("-------------------Symbol Table------------------")
+  print("Unimplemented")
+  print("-------------------------------------------------")
+endfunction
+
+function declare_variable(name : String, p_type : String)
+  let current_scope = this.current_scope()
+
+  // if name in this.symbols[current_scope]:
+  //     this.print_symbol_table()
+  //     RAISE_ERROR(f"Variable '{name}' already declared in this scope.")
+
+  // for scope in this.scope_stack{
+  //     if name in this.symbols[scope]:
+  //         this.print_symbol_table()
+  //         RAISE_ERROR(
+  //             f"Variable '{name}' already declared in previous scope {scope}."
+  //         )
+  // }
+
+  // this.symbols[current_scope][name] = Symbol(name, p_type)
+endfunction
+
+function find_variable(name : String)
+  // for scope in this.scope_stack[::-1]{
+  //     if name in this.symbols[scope]:
+  //         return this.symbols[scope][name]
+  // }
+  // return None
+endfunction
+
+function destructor_code_for_all_remaining_variables() -> String:
+  let destructor_code = "";
+  while true{
+    if this.scope_stack.len() > 0{
+      let exiting_scope_id = this.scope_stack.pop()
+      let des_code = this.destructor_for_all_variables_in_scope(exiting_scope_id)
+      if des_code != ""{
+        destructor_code += des_code
+      }
+    }else{
+      break;
+    }
+  }
+  return destructor_code
+endfunction
+    
 function __del__()
   this.scope_stack.__del__()
 endfunction

@@ -242,6 +242,14 @@ void Vector_Stringpush_unchecked(struct Vector_String *this,
   this->arr[this->size++] = value;
 }
 
+struct String Vector_Stringpop(struct Vector_String *this) {
+  if (this->size == 0) {
+    fprintf(stderr, "Pop from empty Vector.\n");
+    exit(EXIT_FAILURE);
+  }
+  return this->arr[--this->size];
+}
+
 bool Vector_String__contains__(struct Vector_String *this,
                                struct String value) {
   for (size_t i = 0; i < this->size; ++i) {
@@ -909,6 +917,14 @@ void Vector_intpush_unchecked(struct Vector_int *this, int value) {
   this->arr[this->size++] = value;
 }
 
+int Vector_intpop(struct Vector_int *this) {
+  if (this->size == 0) {
+    fprintf(stderr, "Pop from empty Vector.\n");
+    exit(EXIT_FAILURE);
+  }
+  return this->arr[--this->size];
+}
+
 bool Vector_int__contains__(struct Vector_int *this, int value) {
   // This function is an overloaded function.
   // Here <> in function defination means the base overload.
@@ -944,13 +960,11 @@ void SymbolTable__init__(struct SymbolTable *this) {
   Vector_int__init__(&this->scope_stack, 5);
 }
 
-void SymbolTableenter_scope(struct SymbolTable *this) {}
-
 int SymbolTablecurrent_scope(struct SymbolTable *this) {
   return Vector_int__getitem__(&this->scope_stack, -1);
 }
 
-void SymbolTablenew_unique_scope_id(struct SymbolTable *this) {
+int SymbolTablenew_unique_scope_id(struct SymbolTable *this) {
 
   if (Vector_intlen(&this->scope_stack) == 0) {
     // return 0
@@ -970,6 +984,115 @@ void SymbolTablenew_unique_scope_id(struct SymbolTable *this) {
       }
     }
   }
+  return new_scope;
+}
+
+void SymbolTableenter_scope(struct SymbolTable *this) {
+  int new_scope_id = SymbolTablenew_unique_scope_id(this);
+  Vector_intpush(&this->scope_stack, new_scope_id);
+  // this.symbols[new_scope_id] = OrderedDict()
+}
+
+struct String
+SymbolTabledestructor_for_all_variables_in_scope(struct SymbolTable *this,
+                                                 int scope_id) {
+  // Return the destructor code for all variables in the provided scope
+  // And, free(unregister) those variables as well.
+  struct String des_code;
+  String__init__OVDstr(&des_code, "");
+
+  if (Dictionary__contains__(&this->symbols, scope_id)) {
+    // for variable in reversed(this.symbols[scope_id]):
+    //     # Call the destructor for the variable
+    //     # print(f"Destroying variable '{variable}' in scope {scope_id}")
+    //     code = get_destructor_for_struct(variable)
+    //     if code != None:
+    //         # print(f"~() = {code}")
+    //         des_code += code
+    //     remove_struct_instance(variable)
+    // del this.symbols[scope_id]
+  }
+  return des_code;
+}
+
+void SymbolTableexit_scope(struct SymbolTable *this) {
+
+  if (Vector_intlen(&this->scope_stack) > 0) {
+    int exiting_scope_id = Vector_intpop(&this->scope_stack);
+    struct String destructor_code =
+        SymbolTabledestructor_for_all_variables_in_scope(this,
+                                                         exiting_scope_id);
+
+    if (!(String__eq__(&destructor_code, ""))) {
+      // LinesCache.append(destructor_code)
+    }
+    String__del__(&destructor_code);
+  }
+
+  // No more scopes remaining.
+  // Create one so current_scope() wont return list index out of range, because
+  // scope_stack is empty.
+
+  if (Vector_intlen(&this->scope_stack) == 0) {
+    SymbolTableenter_scope(this);
+  }
+}
+
+void SymbolTableprint_symbol_table(struct SymbolTable *this) {
+  printf("-------------------Symbol Table------------------");
+  printf("Unimplemented");
+  printf("-------------------------------------------------");
+}
+
+void SymbolTabledeclare_variable(struct SymbolTable *this, struct String name,
+                                 struct String p_type) {
+  int current_scope = SymbolTablecurrent_scope(this);
+
+  // if name in this.symbols[current_scope]:
+  //     this.print_symbol_table()
+  //     RAISE_ERROR(f"Variable '{name}' already declared in this scope.")
+
+  // for scope in this.scope_stack{
+  //     if name in this.symbols[scope]:
+  //         this.print_symbol_table()
+  //         RAISE_ERROR(
+  //             f"Variable '{name}' already declared in previous scope
+  //             {scope}."
+  //         )
+  // }
+
+  // this.symbols[current_scope][name] = Symbol(name, p_type)
+}
+
+void SymbolTablefind_variable(struct SymbolTable *this, struct String name) {
+  // for scope in this.scope_stack[::-1]{
+  //     if name in this.symbols[scope]:
+  //         return this.symbols[scope][name]
+  // }
+  // return None
+}
+
+struct String SymbolTabledestructor_code_for_all_remaining_variables(
+    struct SymbolTable *this) {
+  struct String destructor_code;
+  String__init__OVDstr(&destructor_code, "");
+
+  while (true) {
+
+    if (Vector_intlen(&this->scope_stack) > 0) {
+      int exiting_scope_id = Vector_intpop(&this->scope_stack);
+      struct String des_code = SymbolTabledestructor_for_all_variables_in_scope(
+          this, exiting_scope_id);
+
+      if (!(String__eq__(&des_code, ""))) {
+        String__add__(&destructor_code, Stringc_str(&des_code));
+      }
+      String__del__(&des_code);
+    } else {
+      break;
+    }
+  }
+  return destructor_code;
 }
 
 void SymbolTable__del__(struct SymbolTable *this) {
