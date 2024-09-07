@@ -133,30 +133,23 @@ endnamespace
 
 let random = Random{};
 
-struct SymbolTable{Dictionary symbols, List scope_stack};
+struct SymbolTable{Dictionary symbols, Vector<int> scope_stack};
 
 namespace SymbolTable
 function __init__()
   this.symbols.__init__()
-  this.scope_stack.__init__()
+  this.scope_stack.__init__(5)
+endfunction
+
+function current_scope() -> int:
+  return this.scope_stack[-1]
 endfunction
 
 function enter_scope()
 
 endfunction
 
-function current_scope() -> int:
-  if this.scope_stack.len() == 0{
-    this.enter_scope()
-  }
 
-  // let val = this.scope_stack[-1]
-  // if val.is_int(){
-  //   return val.get_int()
-  // }
-
-  return -1
-endfunction
 
 function new_unique_scope_id()
   if this.scope_stack.len() == 0{

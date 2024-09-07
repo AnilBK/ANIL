@@ -170,6 +170,9 @@ struct Vector_String {
 size_t Vector_Stringlen(struct Vector_String *this) { return this->size; }
 
 struct String Vector_String__getitem__(struct Vector_String *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
   // Vector<String> Specialization:
   // Returns &T ie &String, which means the return type is reference type.
   // So, the returned String isn't freed by the destructor.
@@ -844,47 +847,124 @@ void Symbol__del__(struct Symbol *this) {
   String__del__(&this->data_type);
 }
 
+struct Vector_int {
+  int *arr;
+  int size;
+  int capacity;
+};
+
+// template Vector<int> {
+size_t Vector_intlen(struct Vector_int *this) { return this->size; }
+
+int Vector_int__getitem__(struct Vector_int *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
+  return *(this->arr + index);
+}
+
+void Vector_int__init__(struct Vector_int *this, int capacity) {
+  // if we want to use instanced template type in fn body, we use following
+  // syntax.
+  // @ TEMPLATED_DATA_TYPE @
+  this->arr = (int *)malloc(capacity * sizeof(int));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+  this->size = 0;
+  this->capacity = capacity;
+}
+
+void Vector_int__del__(struct Vector_int *this) {
+  free(this->arr);
+  this->arr = NULL;
+  this->size = 0;
+  this->capacity = 0;
+}
+
+void Vector_intpush(struct Vector_int *this, int value) {
+  if (this->size == this->capacity) {
+    this->capacity *= 2;
+    this->arr = (int *)realloc(this->arr, this->capacity * sizeof(int));
+    if (this->arr == NULL) {
+      fprintf(stderr, "Memory reallocation failed.\n");
+      exit(EXIT_FAILURE);
+    }
+  }
+  this->arr[this->size++] = value;
+}
+
+void Vector_intallocate_more(struct Vector_int *this, int n) {
+  this->capacity += n;
+  this->arr = (int *)realloc(this->arr, this->capacity * sizeof(int));
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory reallocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+}
+
+void Vector_intpush_unchecked(struct Vector_int *this, int value) {
+  this->arr[this->size++] = value;
+}
+
+bool Vector_int__contains__(struct Vector_int *this, int value) {
+  // This function is an overloaded function.
+  // Here <> in function defination means the base overload.
+  for (size_t i = 0; i < this->size; ++i) {
+    if (this->arr[i] == value) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void Vector_intprint(struct Vector_int *this) {
+  printf("Vector<int> (size = %d, capacity = %d) : [", this->size,
+         this->capacity);
+  for (size_t i = 0; i < this->size; ++i) {
+    printf("%d", this->arr[i]);
+    if (i < this->size - 1) {
+      printf(", ");
+    }
+  }
+  printf("]\n");
+}
+
+// template Vector<int> }
+
 struct SymbolTable {
   struct Dictionary symbols;
-  struct List scope_stack;
+  struct Vector_int scope_stack;
 };
 
 void SymbolTable__init__(struct SymbolTable *this) {
   Dictionary__init__(&this->symbols);
-  List__init__(&this->scope_stack);
+  Vector_int__init__(&this->scope_stack, 5);
 }
 
 void SymbolTableenter_scope(struct SymbolTable *this) {}
 
 int SymbolTablecurrent_scope(struct SymbolTable *this) {
-
-  if (Listlen(&this->scope_stack) == 0) {
-    SymbolTableenter_scope(this);
-  }
-
-  // let val = this.scope_stack[-1]
-  // if val.is_int(){
-  //   return val.get_int()
-  // }
-
-  return -1;
+  return Vector_int__getitem__(&this->scope_stack, -1);
 }
 
 void SymbolTablenew_unique_scope_id(struct SymbolTable *this) {
 
-  if (Listlen(&this->scope_stack) == 0) {
+  if (Vector_intlen(&this->scope_stack) == 0) {
     // return 0
   }
 
   int latest_scope = SymbolTablecurrent_scope(this);
   int new_scope = latest_scope + 1;
 
-  if (List__contains__OVDint(&this->scope_stack, new_scope)) {
+  if (Vector_int__contains__(&this->scope_stack, new_scope)) {
 
     while (true) {
       int random_index = Randomrandrange(&random, 100000);
 
-      if (!List__contains__OVDint(&this->scope_stack, random_index)) {
+      if (!Vector_int__contains__(&this->scope_stack, random_index)) {
         new_scope = random_index;
         break;
       }
@@ -893,7 +973,7 @@ void SymbolTablenew_unique_scope_id(struct SymbolTable *this) {
 }
 
 void SymbolTable__del__(struct SymbolTable *this) {
-  List__del__(&this->scope_stack);
+  Vector_int__del__(&this->scope_stack);
 }
 
 ///*///
