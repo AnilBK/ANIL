@@ -192,8 +192,6 @@ class SymbolTable:
         self.scope_stack = []
 
     def current_scope(self):
-        if len(self.scope_stack) == 0:
-            self.enter_scope()
         return self.scope_stack[-1]
 
     def new_unique_scope_id(self):
@@ -227,6 +225,11 @@ class SymbolTable:
             )
             if destructor_code != "":
                 LinesCache.append(destructor_code)
+        
+        # No more scopes remaining.
+        # Create one so current_scope() wont return list index out of range, because scope_stack is empty.
+        if not self.scope_stack:
+            self.enter_scope()
 
     def print_symbol_table(self):
         print("-------------------Symbol Table------------------")
