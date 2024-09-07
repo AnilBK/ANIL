@@ -12,10 +12,12 @@ c_function len() -> size_t:
 endc_function
 
 c_function<> __getitem__(index : int) -> T:
+  if (index < 0){index += this->size;}
   return *(this->arr + index);
 endc_function
 
 c_function<String> __getitem__(index : int) -> &T:
+  if (index < 0){index += this->size;}
   // Vector<String> Specialization: 
   // Returns &T ie &String, which means the return type is reference type.
   // So, the returned String isn't freed by the destructor.

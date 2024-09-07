@@ -162,6 +162,9 @@ struct Vector_String {
 size_t Vector_Stringlen(struct Vector_String *this) { return this->size; }
 
 struct String Vector_String__getitem__(struct Vector_String *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
   // Vector<String> Specialization:
   // Returns &T ie &String, which means the return type is reference type.
   // So, the returned String isn't freed by the destructor.

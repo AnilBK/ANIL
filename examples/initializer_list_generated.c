@@ -22,6 +22,9 @@ struct Vector_int {
 size_t Vector_intlen(struct Vector_int *this) { return this->size; }
 
 int Vector_int__getitem__(struct Vector_int *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
   return *(this->arr + index);
 }
 

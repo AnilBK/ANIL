@@ -121,6 +121,9 @@ struct Vector_String {
 size_t Vector_Stringlen(struct Vector_String *this) { return this->size; }
 
 struct String Vector_String__getitem__(struct Vector_String *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
   // Vector<String> Specialization:
   // Returns &T ie &String, which means the return type is reference type.
   // So, the returned String isn't freed by the destructor.
@@ -345,6 +348,9 @@ struct Vector_int {
 size_t Vector_intlen(struct Vector_int *this) { return this->size; }
 
 int Vector_int__getitem__(struct Vector_int *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
   return *(this->arr + index);
 }
 
@@ -429,6 +435,9 @@ struct Vector_float {
 size_t Vector_floatlen(struct Vector_float *this) { return this->size; }
 
 float Vector_float__getitem__(struct Vector_float *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
   return *(this->arr + index);
 }
 
@@ -513,6 +522,9 @@ struct Vector_char {
 size_t Vector_charlen(struct Vector_char *this) { return this->size; }
 
 char Vector_char__getitem__(struct Vector_char *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
   return *(this->arr + index);
 }
 
