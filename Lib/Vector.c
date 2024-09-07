@@ -101,6 +101,14 @@ c_function push_unchecked(value : T)
   this->arr[this->size++] = value;
 endc_function
 
+c_function pop() -> T:
+  if (this->size == 0) {
+    fprintf(stderr, "Pop from empty Vector.\n");
+    exit(EXIT_FAILURE);
+  }
+  return this->arr[--this->size];
+endc_function
+
 c_function<> __contains__(value : T) -> bool:
   // This function is an overloaded function.
   // Here <> in function defination means the base overload.

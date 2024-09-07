@@ -74,6 +74,14 @@ void Vector_intpush_unchecked(struct Vector_int *this, int value) {
   this->arr[this->size++] = value;
 }
 
+int Vector_intpop(struct Vector_int *this) {
+  if (this->size == 0) {
+    fprintf(stderr, "Pop from empty Vector.\n");
+    exit(EXIT_FAILURE);
+  }
+  return this->arr[--this->size];
+}
+
 bool Vector_int__contains__(struct Vector_int *this, int value) {
   // This function is an overloaded function.
   // Here <> in function defination means the base overload.

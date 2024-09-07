@@ -230,6 +230,14 @@ void Vector_Stringpush_unchecked(struct Vector_String *this,
   this->arr[this->size++] = value;
 }
 
+struct String Vector_Stringpop(struct Vector_String *this) {
+  if (this->size == 0) {
+    fprintf(stderr, "Pop from empty Vector.\n");
+    exit(EXIT_FAILURE);
+  }
+  return this->arr[--this->size];
+}
+
 bool Vector_String__contains__(struct Vector_String *this,
                                struct String value) {
   for (size_t i = 0; i < this->size; ++i) {

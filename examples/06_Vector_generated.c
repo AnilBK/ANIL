@@ -193,6 +193,14 @@ void Vector_Stringpush_unchecked(struct Vector_String *this,
   this->arr[this->size++] = value;
 }
 
+struct String Vector_Stringpop(struct Vector_String *this) {
+  if (this->size == 0) {
+    fprintf(stderr, "Pop from empty Vector.\n");
+    exit(EXIT_FAILURE);
+  }
+  return this->arr[--this->size];
+}
+
 bool Vector_String__contains__(struct Vector_String *this,
                                struct String value) {
   for (size_t i = 0; i < this->size; ++i) {
@@ -400,6 +408,14 @@ void Vector_intpush_unchecked(struct Vector_int *this, int value) {
   this->arr[this->size++] = value;
 }
 
+int Vector_intpop(struct Vector_int *this) {
+  if (this->size == 0) {
+    fprintf(stderr, "Pop from empty Vector.\n");
+    exit(EXIT_FAILURE);
+  }
+  return this->arr[--this->size];
+}
+
 bool Vector_int__contains__(struct Vector_int *this, int value) {
   // This function is an overloaded function.
   // Here <> in function defination means the base overload.
@@ -487,6 +503,14 @@ void Vector_floatpush_unchecked(struct Vector_float *this, float value) {
   this->arr[this->size++] = value;
 }
 
+float Vector_floatpop(struct Vector_float *this) {
+  if (this->size == 0) {
+    fprintf(stderr, "Pop from empty Vector.\n");
+    exit(EXIT_FAILURE);
+  }
+  return this->arr[--this->size];
+}
+
 bool Vector_float__contains__(struct Vector_float *this, float value) {
   // This function is an overloaded function.
   // Here <> in function defination means the base overload.
@@ -572,6 +596,14 @@ void Vector_charallocate_more(struct Vector_char *this, int n) {
 
 void Vector_charpush_unchecked(struct Vector_char *this, char value) {
   this->arr[this->size++] = value;
+}
+
+char Vector_charpop(struct Vector_char *this) {
+  if (this->size == 0) {
+    fprintf(stderr, "Pop from empty Vector.\n");
+    exit(EXIT_FAILURE);
+  }
+  return this->arr[--this->size];
 }
 
 bool Vector_char__contains__(struct Vector_char *this, char value) {
