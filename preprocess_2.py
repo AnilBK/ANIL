@@ -1114,6 +1114,68 @@ while index < len(Lines):
             f"int {current_array_value_variable} = {array_name}_enumerator.val;\n"
         )
 
+    def create_range_iterator(current_array_value_variable):
+        # for i in range(1..10){    -> 0 >= i < 10
+        # for i in range(1..10,2){  -> 0 >= i < 10
+        # for i in range(1..=10,2){ -> 0 >= i <= 10
+        #                       ^     step
+        #                    ^        stop
+        #                ^            start
+        parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
+
+        includes_stop = False
+        step = '1'
+
+        start = get_integer_expression("Expected integer expression for start value.")
+
+        parser.consume_token(lexer.Token.DOT)
+        parser.consume_token(lexer.Token.DOT)
+
+        if parser.check_token(lexer.Token.EQUALS):
+            # for i in range(1..=10,2){ -> 0 >= i <= 10
+            #                   ^                
+            parser.next_token()
+            includes_stop = True
+        
+        stop = get_integer_expression("Expected integer expression for stop value.")
+
+        # for i in range(1..10,2){  -> 0 >= i < 10
+        #                     ^
+        if parser.check_token(lexer.Token.COMMA):
+            parser.next_token()
+
+            step = get_integer_expression("Expected integer expression for step value.")
+
+        parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
+
+        stopping_condition = "<"
+        if includes_stop:
+            if step[0] == "-":
+                if stop == "0":
+                    stopping_condition = "!"
+                else:
+                    stopping_condition = ">"
+            stopping_condition += "="
+
+        increment_operation = "++"
+        if step != '1':
+            increment_operation = f"+={step}"
+
+        if stop == "0":
+            LinesCache.append(
+                f"for (size_t {current_array_value_variable} = {start}; {current_array_value_variable} {stopping_condition} (size_t) - 1; {current_array_value_variable}{increment_operation}){{\n"
+            )
+        elif step[0] == "-":
+            LinesCache.append(
+                f"for (size_t {current_array_value_variable} = {stop}; {current_array_value_variable} {stopping_condition} {start}; {current_array_value_variable}{increment_operation}){{\n"
+            )
+        else:
+            LinesCache.append(
+                f"for (size_t {current_array_value_variable} = {start}; {current_array_value_variable} {stopping_condition} {stop}; {current_array_value_variable}{increment_operation}){{\n"
+            )
+        REGISTER_VARIABLE(current_array_value_variable, "size_t")
+
+
     def parse_data_type(inner=False):
         # inner is used as a tag for name mangling during recursive data parsing.
 
@@ -3657,65 +3719,7 @@ while index < len(Lines):
                 )
             elif array_name == "range":
                 # If we have some list named range, then it will be parsed earlier above ^^^.
-                # for i in range(1..10){    -> 0 >= i < 10
-                # for i in range(1..10,2){  -> 0 >= i < 10
-                # for i in range(1..=10,2){ -> 0 >= i <= 10
-                #                       ^     step
-                #                    ^        stop
-                #                ^            start
-                parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
-
-                includes_stop = False
-                step = '1'
-
-                start = get_integer_expression("Expected integer expression for start value.")
-
-                parser.consume_token(lexer.Token.DOT)
-                parser.consume_token(lexer.Token.DOT)
-
-                if parser.check_token(lexer.Token.EQUALS):
-                    # for i in range(1..=10,2){ -> 0 >= i <= 10
-                    #                   ^                
-                    parser.next_token()
-                    includes_stop = True
-                
-                stop = get_integer_expression("Expected integer expression for stop value.")
-
-                # for i in range(1..10,2){  -> 0 >= i < 10
-                #                     ^
-                if parser.check_token(lexer.Token.COMMA):
-                    parser.next_token()
-
-                    step = get_integer_expression("Expected integer expression for step value.")
-
-                parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
-
-                stopping_condition = "<"
-                if includes_stop:
-                    if step[0] == "-":
-                        if stop == "0":
-                            stopping_condition = "!"
-                        else:
-                            stopping_condition = ">"
-                    stopping_condition += "="
-
-                increment_operation = "++"
-                if step != '1':
-                    increment_operation = f"+={step}"
-
-                if stop == "0":
-                    LinesCache.append(
-                        f"for (size_t {current_array_value_variable} = {start}; {current_array_value_variable} {stopping_condition} (size_t) - 1; {current_array_value_variable}{increment_operation}){{\n"
-                    )
-                elif step[0] == "-":
-                    LinesCache.append(
-                        f"for (size_t {current_array_value_variable} = {stop}; {current_array_value_variable} {stopping_condition} {start}; {current_array_value_variable}{increment_operation}){{\n"
-                    )
-                else:
-                    LinesCache.append(
-                        f"for (size_t {current_array_value_variable} = {start}; {current_array_value_variable} {stopping_condition} {stop}; {current_array_value_variable}{increment_operation}){{\n"
-                    )
-                REGISTER_VARIABLE(current_array_value_variable, "size_t")
+                create_range_iterator(current_array_value_variable)
             else:
                 create_normal_array_iterator(array_name, current_array_value_variable)
         
