@@ -3699,8 +3699,25 @@ while index < len(Lines):
         if is_enumerated_for_loop:
             parser.consume_token(lexer.Token.ENUMERATE)
 
-        array_name = parser.get_token()
-        
+        is_struct = False
+
+        array_name = ""
+
+        if parser.current_token() == "range":
+            array_name = "range"
+            parser.next_token()
+        else:
+            # Workaround to fix a[] and a[::-1] parsing issues.
+            # a.b
+            if parser.peek_token() == lexer.Token.DOT:
+                parsed_term = parse_term()
+                array_name = parsed_term["value"]
+                is_struct = parsed_term != None and parsed_term["struct_instance"] != None
+                array_name = array_name.replace("->",".")
+            else:
+                array_name = parser.get_token()
+                is_struct = is_instanced_struct(array_name)
+
         if is_enumerated_for_loop:
             create_array_enumerator(
                 array_name, ranged_index_item_variable, current_array_value_variable
@@ -3708,7 +3725,7 @@ while index < len(Lines):
         else:
             if is_variable_const_char_ptr(array_name):
                 create_const_charptr_iterator(array_name, current_array_value_variable)
-            elif is_instanced_struct(array_name):
+            elif is_struct:
                 # This generates new CPL code which creates a for loop(which makes a new scope).
                 # We already have created a scope above by increment scope.
                 # We call decrement_scope() to compensate that.

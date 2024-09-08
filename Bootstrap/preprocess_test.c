@@ -219,13 +219,13 @@ function declare_variable(name : String, p_type : String)
   //     this.print_symbol_table()
   //     RAISE_ERROR(f"Variable '{name}' already declared in this scope.")
 
-  // for scope in this.scope_stack{
+  for scope in this.scope_stack{
   //     if name in this.symbols[scope]:
   //         this.print_symbol_table()
   //         RAISE_ERROR(
   //             f"Variable '{name}' already declared in previous scope {scope}."
   //         )
-  // }
+  }
 
   // this.symbols[current_scope][name] = Symbol(name, p_type)
 endfunction

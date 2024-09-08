@@ -1052,14 +1052,16 @@ void SymbolTabledeclare_variable(struct SymbolTable *this, struct String name,
   //     this.print_symbol_table()
   //     RAISE_ERROR(f"Variable '{name}' already declared in this scope.")
 
-  // for scope in this.scope_stack{
-  //     if name in this.symbols[scope]:
-  //         this.print_symbol_table()
-  //         RAISE_ERROR(
-  //             f"Variable '{name}' already declared in previous scope
-  //             {scope}."
-  //         )
-  // }
+  size_t tmp_len_1 = Vector_intlen(&this->scope_stack);
+  for (size_t i = 0; i < tmp_len_1; i++) {
+    int scope = Vector_int__getitem__(&this->scope_stack, i);
+    //     if name in this.symbols[scope]:
+    //         this.print_symbol_table()
+    //         RAISE_ERROR(
+    //             f"Variable '{name}' already declared in previous scope
+    //             {scope}."
+    //         )
+  }
 
   // this.symbols[current_scope][name] = Symbol(name, p_type)
 }
@@ -1221,8 +1223,8 @@ int main() {
   struct Vector_String imported_modules;
   Vector_String__init__(&imported_modules, 5);
 
-  size_t tmp_len_1 = Vector_Stringlen(&Lines);
-  for (size_t i = 0; i < tmp_len_1; i++) {
+  size_t tmp_len_2 = Vector_Stringlen(&Lines);
+  for (size_t i = 0; i < tmp_len_2; i++) {
     struct String line = Vector_String__getitem__(&Lines, i);
     struct String Line = Stringstrip(&line);
 
@@ -1244,8 +1246,8 @@ int main() {
     struct Vector_String ImportedCodeLines;
     Vector_String__init__(&ImportedCodeLines, 50);
 
-    size_t tmp_len_2 = Vector_Stringlen(&imported_modules);
-    for (size_t i = 0; i < tmp_len_2; i++) {
+    size_t tmp_len_3 = Vector_Stringlen(&imported_modules);
+    for (size_t i = 0; i < tmp_len_3; i++) {
       struct String module_name =
           Vector_String__getitem__(&imported_modules, i);
       struct String relative_path;
@@ -1262,8 +1264,8 @@ int main() {
       // lines.print()
 
       // ImportedCodeLines += lines
-      size_t tmp_len_3 = Vector_Stringlen(&lines);
-      for (size_t j = 0; j < tmp_len_3; j++) {
+      size_t tmp_len_4 = Vector_Stringlen(&lines);
+      for (size_t j = 0; j < tmp_len_4; j++) {
         struct String line = Vector_String__getitem__(&lines, j);
         Vector_Stringpush(&ImportedCodeLines, line);
       }
