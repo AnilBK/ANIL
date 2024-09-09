@@ -3563,6 +3563,11 @@ while index < len(Lines):
                     LinesCache.append(f"{POD_type} {array_name} = \'{char_value}\';\n")
                     REGISTER_VARIABLE(array_name, f"{POD_type}")
                     continue
+                elif POD_type == "bool":
+                    boolean_expr = boolean_expression()
+                    LinesCache.append(f"{POD_type} {array_name} = {boolean_expr};\n")
+                    REGISTER_VARIABLE(array_name, f"{POD_type}")
+                    continue
                 else:
                     RAISE_ERROR(
                         f'Parsing POD Type "{POD_type}" not Implemented as of now.'
