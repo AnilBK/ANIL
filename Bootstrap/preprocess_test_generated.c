@@ -64,6 +64,15 @@ typedef CPLObject *CPLObjectptr;
 
 ///*///
 
+///*///
+// Dictionary of <int, list<String>>
+// This is just for Symbol Table in preprocess_test as we dont have
+// Dictionary<int, String> as of now.
+
+// Ordered Dictionary of key(int) and value(list of string).
+
+///*///
+
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -793,6 +802,166 @@ int Randomrandrange(struct Random *this, int upper_limit) {
   return rand() % upper_limit;
 }
 
+struct int_str_list {
+  int key;
+  struct Vector_String value;
+};
+
+void int_str_list__init__(struct int_str_list *this, int p_key) {
+  this->key = p_key;
+  Vector_String__init__(&this->value, 5);
+}
+
+void int_str_list__del__(struct int_str_list *this) {
+  Vector_String__del__(&this->value);
+}
+
+struct Vector_int_str_list {
+  struct int_str_list *arr;
+  int size;
+  int capacity;
+};
+
+// template Vector<int_str_list> {
+size_t Vector_int_str_listlen(struct Vector_int_str_list *this) {
+  return this->size;
+}
+
+struct int_str_list
+Vector_int_str_list__getitem__(struct Vector_int_str_list *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
+  return *(this->arr + index);
+}
+
+void Vector_int_str_list__init__(struct Vector_int_str_list *this,
+                                 int capacity) {
+  // if we want to use instanced template type in fn body, we use following
+  // syntax.
+  // @ TEMPLATED_DATA_TYPE @
+  this->arr =
+      (struct int_str_list *)malloc(capacity * sizeof(struct int_str_list));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+  this->size = 0;
+  this->capacity = capacity;
+}
+
+void Vector_int_str_list__del__(struct Vector_int_str_list *this) {
+  free(this->arr);
+  this->arr = NULL;
+  this->size = 0;
+  this->capacity = 0;
+}
+
+void Vector_int_str_listpush(struct Vector_int_str_list *this,
+                             struct int_str_list value) {
+  if (this->size == this->capacity) {
+    this->capacity *= 2;
+    this->arr = (struct int_str_list *)realloc(
+        this->arr, this->capacity * sizeof(struct int_str_list));
+    if (this->arr == NULL) {
+      fprintf(stderr, "Memory reallocation failed.\n");
+      exit(EXIT_FAILURE);
+    }
+  }
+  this->arr[this->size++] = value;
+}
+
+void Vector_int_str_listallocate_more(struct Vector_int_str_list *this, int n) {
+  this->capacity += n;
+  this->arr = (struct int_str_list *)realloc(
+      this->arr, this->capacity * sizeof(struct int_str_list));
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory reallocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+}
+
+void Vector_int_str_listpush_unchecked(struct Vector_int_str_list *this,
+                                       struct int_str_list value) {
+  this->arr[this->size++] = value;
+}
+
+struct int_str_list Vector_int_str_listpop(struct Vector_int_str_list *this) {
+  if (this->size == 0) {
+    fprintf(stderr, "Pop from empty Vector.\n");
+    exit(EXIT_FAILURE);
+  }
+  return this->arr[--this->size];
+}
+
+bool Vector_int_str_list__contains__(struct Vector_int_str_list *this,
+                                     struct int_str_list value) {
+  // This function is an overloaded function.
+  // Here <> in function defination means the base overload.
+  for (size_t i = 0; i < this->size; ++i) {
+    if (this->arr[i] == value) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void Vector_int_str_listprint(struct Vector_int_str_list *this) {
+  // Default overload.
+  printf("Dynamic Array (size = %d, capacity = %d) : [ ]", this->size,
+         this->capacity);
+  // struct int_str_list will be replaced by the actual templated data type.
+  printf("Unknown Format Specifier for type struct int_str_list.\n");
+}
+
+// template Vector<int_str_list> }
+
+struct Dict_int_string {
+  struct Vector_int_str_list pairs;
+};
+
+void Dict_int_string__init__(struct Dict_int_string *this) {
+  Vector_int_str_list__init__(&this->pairs, 5);
+}
+
+bool Dict_int_string__contains__(struct Dict_int_string *this, int p_key) {
+  bool found = false;
+  size_t tmp_len_1 = Vector_int_str_listlen(&this->pairs);
+  for (size_t i = 0; i < tmp_len_1; i++) {
+    struct int_str_list pair = Vector_int_str_list__getitem__(&this->pairs, i);
+
+    if (&pair.key == p_key) {
+      found = true;
+      // no break because the pair should be destructed at the end of the scope.
+      // break doesn't do that as of now.
+    }
+    int_str_list__del__(&pair);
+  }
+  return found;
+}
+
+void Dict_int_stringkey_exists_quit(struct Dict_int_string *this) {
+  fprintf(stderr, "Pop from empty Vector.\n");
+  exit(EXIT_FAILURE);
+}
+
+void Dict_int_stringadd_key(struct Dict_int_string *this, int p_key) {
+
+  if (Dict_int_string__contains__(this, p_key)) {
+    Dict_int_stringkey_exists_quit(this);
+  } else {
+    struct int_str_list s;
+    int_str_list__init__(&s, p_key);
+    Vector_int_str_listpush(&this->pairs, s);
+    int_str_list__del__(&s);
+  }
+}
+
+void Dict_int_string__del__(struct Dict_int_string *this) {
+  Vector_int_str_list__del__(&this->pairs);
+}
+
 struct StructInstance {
   struct String struct_type;
   struct String struct_name;
@@ -951,12 +1120,12 @@ void Vector_intprint(struct Vector_int *this) {
 // template Vector<int> }
 
 struct SymbolTable {
-  struct Dictionary symbols;
+  struct Dict_int_string symbols;
   struct Vector_int scope_stack;
 };
 
 void SymbolTable__init__(struct SymbolTable *this) {
-  Dictionary__init__(&this->symbols);
+  Dict_int_string__init__(&this->symbols);
   Vector_int__init__(&this->scope_stack, 5);
 }
 
@@ -991,6 +1160,7 @@ void SymbolTableenter_scope(struct SymbolTable *this) {
   int new_scope_id = SymbolTablenew_unique_scope_id(this);
   Vector_intpush(&this->scope_stack, new_scope_id);
   // this.symbols[new_scope_id] = OrderedDict()
+  Dict_int_stringadd_key(&this->symbols, new_scope_id);
 }
 
 struct String
@@ -1001,7 +1171,7 @@ SymbolTabledestructor_for_all_variables_in_scope(struct SymbolTable *this,
   struct String des_code;
   String__init__OVDstr(&des_code, "");
 
-  if (Dictionary__contains__(&this->symbols, scope_id)) {
+  if (Dict_int_string__contains__(&this->symbols, scope_id)) {
     // for variable in reversed(this.symbols[scope_id]):
     //     # Call the destructor for the variable
     //     # print(f"Destroying variable '{variable}' in scope {scope_id}")
@@ -1052,8 +1222,8 @@ void SymbolTabledeclare_variable(struct SymbolTable *this, struct String name,
   //     this.print_symbol_table()
   //     RAISE_ERROR(f"Variable '{name}' already declared in this scope.")
 
-  size_t tmp_len_1 = Vector_intlen(&this->scope_stack);
-  for (size_t i = 0; i < tmp_len_1; i++) {
+  size_t tmp_len_2 = Vector_intlen(&this->scope_stack);
+  for (size_t i = 0; i < tmp_len_2; i++) {
     int scope = Vector_int__getitem__(&this->scope_stack, i);
     //     if name in this.symbols[scope]:
     //         this.print_symbol_table()
@@ -1223,8 +1393,8 @@ int main() {
   struct Vector_String imported_modules;
   Vector_String__init__(&imported_modules, 5);
 
-  size_t tmp_len_2 = Vector_Stringlen(&Lines);
-  for (size_t i = 0; i < tmp_len_2; i++) {
+  size_t tmp_len_3 = Vector_Stringlen(&Lines);
+  for (size_t i = 0; i < tmp_len_3; i++) {
     struct String line = Vector_String__getitem__(&Lines, i);
     struct String Line = Stringstrip(&line);
 
@@ -1246,8 +1416,8 @@ int main() {
     struct Vector_String ImportedCodeLines;
     Vector_String__init__(&ImportedCodeLines, 50);
 
-    size_t tmp_len_3 = Vector_Stringlen(&imported_modules);
-    for (size_t i = 0; i < tmp_len_3; i++) {
+    size_t tmp_len_4 = Vector_Stringlen(&imported_modules);
+    for (size_t i = 0; i < tmp_len_4; i++) {
       struct String module_name =
           Vector_String__getitem__(&imported_modules, i);
       struct String relative_path;
@@ -1264,8 +1434,8 @@ int main() {
       // lines.print()
 
       // ImportedCodeLines += lines
-      size_t tmp_len_4 = Vector_Stringlen(&lines);
-      for (size_t j = 0; j < tmp_len_4; j++) {
+      size_t tmp_len_5 = Vector_Stringlen(&lines);
+      for (size_t j = 0; j < tmp_len_5; j++) {
         struct String line = Vector_String__getitem__(&lines, j);
         Vector_Stringpush(&ImportedCodeLines, line);
       }

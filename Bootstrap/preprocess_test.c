@@ -12,6 +12,7 @@ import Set
 import Dictionary
 import List
 import Random
+import Dict_int_string
 
 // Insert a string at a given index in another string.
 function insert_string(original_string : String, p_index: int, string_to_insert: String) -> String:
@@ -133,7 +134,7 @@ endnamespace
 
 let random = Random{};
 
-struct SymbolTable{Dictionary symbols, Vector<int> scope_stack};
+struct SymbolTable{Dict_int_string symbols, Vector<int> scope_stack};
 
 namespace SymbolTable
 function __init__()
@@ -170,6 +171,7 @@ function enter_scope()
   let new_scope_id = this.new_unique_scope_id()
   this.scope_stack.push(new_scope_id)
   // this.symbols[new_scope_id] = OrderedDict()
+  this.symbols.add_key(new_scope_id)
 endfunction
 
 function destructor_for_all_variables_in_scope(scope_id : int) -> String:
