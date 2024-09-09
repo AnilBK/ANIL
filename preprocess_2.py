@@ -2558,13 +2558,16 @@ while index < len(Lines):
 
             val = random.randrange(100000)
 
-            struct_instance = StructInstance(
-                type_of_tk,
-                f"tmp_struct_name_{str(val)}",
-                False,
-                "",
-                get_current_scope(),
-            )
+            struct_instance = None
+            if get_struct_defination_of_type(type_of_tk) != None:
+                # If we are acessing say a.b where b is int, then we dont need to create an instance.
+                struct_instance = StructInstance(
+                    type_of_tk,
+                    f"tmp_struct_name_{str(val)}",
+                    False,
+                    "",
+                    get_current_scope(),
+                )
             
             additional_data = {
                 "fn_name": "",
