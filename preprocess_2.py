@@ -165,11 +165,7 @@ def get_overloaded_mangled_fn_name(p_struct_type: str, p_fn_name: str, p_paramet
     function_name = get_mangled_fn_name(p_struct_type, p_fn_name)
     function_name += "OVD"
     for param in p_parameters:
-        data_type = ""
-        if isinstance(param,str):
-            data_type = param
-        else:
-            data_type = param.data_type
+        data_type = param
         if data_type == "char*":
             function_name += "str"
         else:
@@ -3872,7 +3868,10 @@ while index < len(Lines):
             should_write_fn_body = False
         else:
             if is_overloaded:
-                fn_name = get_overloaded_mangled_fn_name(struct_name, fn_name, parameters)
+                # Get datatype from MemberDataType,
+                # as get_overloaded_mangled_fn_name requires list of strings(data_type).
+                data_types_str_list = [p.data_type for p in parameters]
+                fn_name = get_overloaded_mangled_fn_name(struct_name, fn_name, data_types_str_list)
             else:
                 fn_name = get_mangled_fn_name(struct_name, fn_name)
 
@@ -4261,7 +4260,10 @@ while index < len(Lines):
                 class_fn_defination["start_index"] = len(LinesCache)
 
                 if is_overloaded:
-                    func_name = get_overloaded_mangled_fn_name(class_fn_defination["class_name"], function_name, parameters)
+                    # Get datatype from MemberDataType,
+                    # as get_overloaded_mangled_fn_name requires list of strings(data_type).
+                    data_types_str_list = [p.data_type for p in parameters]
+                    func_name = get_overloaded_mangled_fn_name(class_fn_defination["class_name"], function_name, data_types_str_list)
                 else:
                     func_name = get_mangled_fn_name(class_fn_defination["class_name"], function_name)
             
