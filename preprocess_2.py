@@ -2892,7 +2892,7 @@ while index < len(Lines):
 
         # Create a function expression and merge the tokens to the current parser.
         # Parse the function expression using the recently merged tokens.
-        CPL_code = f"{var_to_check_against}.__eq__({var_to_check})".replace("->",".")
+        CPL_code = f"{var_to_check_against}.__eq__({var_to_check})".replace("->",".").replace("&","")
         fn_parser = Parser.Parser(CPL_code)
         parser.tokens = fn_parser.tokens + parser.tokens
         fn_call_parse_info = function_call_expression()
