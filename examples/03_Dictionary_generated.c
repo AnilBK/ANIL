@@ -1,95 +1,104 @@
-
-
+#include <stdbool.h>
 #include <string.h>
 
-typedef struct {
-  char *key_str;
-} Key;
+#define TABLE_SIZE 101
 
-typedef struct {
-  Key key;
+typedef struct KeyValuePair {
+  char *key_str;
   int value;
+  struct KeyValuePair *next;
 } KeyValuePair;
 
 // We don't have arrays inside our custom struct datatype,so vvv.
 typedef struct {
-  KeyValuePair pair[45];
-} KeyValuePairs;
+  KeyValuePair *table[TABLE_SIZE];
+} KeyValueTable;
+
+unsigned int hash(char *str) {
+  unsigned int hash = 5381;
+  int c;
+  while ((c = *str++)) {
+    hash = ((hash << 5) + hash) + c; // hash * 33 + c
+  }
+  return hash % TABLE_SIZE;
+}
 
 ///*///
 
 ///*///
-
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 // IMPORTS //
 
 struct Dictionary {
-  int added_values;
-  KeyValuePairs pairs;
+  KeyValueTable table;
 };
 
-void Dictionary__init__(struct Dictionary *this) { this->added_values = 0; }
-
-void Dictionaryadd_key_value(struct Dictionary *this, char *p_key_str,
-                             int p_value) {
-  KeyValuePair pair;
-  pair.key.key_str = p_key_str;
-  pair.value = p_value;
-  this->pairs.pair[this->added_values++] = pair;
-}
-
-void Dictionaryprint(struct Dictionary *this) {
-  printf("{\n");
-  for (int i = 0; i < this->added_values; i++) {
-    char *key = this->pairs.pair[i].key.key_str;
-    int value = this->pairs.pair[i].value;
-    printf("\"%s\" : %d,\n", key, value);
+void Dictionary__init__(struct Dictionary *this) {
+  for (int i = 0; i < TABLE_SIZE; i++) {
+    this->table.table[i] = NULL;
   }
-  printf("}\n");
 }
 
-bool Dictionary__contains__(struct Dictionary *this, char *p_key) {
-  for (size_t i = 0; i < this->added_values; i++) {
-    char *key = this->pairs.pair[i].key.key_str;
-    int value = this->pairs.pair[i].value;
-    if (strcmp(key, p_key) == 0) {
-      return true;
+void Dictionary__del__(struct Dictionary *this) {
+  for (int i = 0; i < TABLE_SIZE; i++) {
+    KeyValuePair *pair = this->table.table[i];
+    while (pair != NULL) {
+      KeyValuePair *next = pair->next;
+      // free(pair->key_str);
+      // ^^^^^ This is not dynamically allocated key string, so shouldn't free
+      // it.
+      free(pair);
+      pair = next;
     }
   }
-  return false;
-}
-
-int Dictionaryget_value_from_key(struct Dictionary *this, char *p_key) {
-  for (size_t i = 0; i < this->added_values; i++) {
-    char *key = this->pairs.pair[i].key.key_str;
-    int value = this->pairs.pair[i].value;
-    if (strcmp(key, p_key) == 0) {
-      return value;
-    }
-  }
-  return 0;
 }
 
 int Dictionary__getitem__(struct Dictionary *this, char *p_key) {
-  for (size_t i = 0; i < this->added_values; i++) {
-    char *key = this->pairs.pair[i].key.key_str;
-    int value = this->pairs.pair[i].value;
-    if (strcmp(key, p_key) == 0) {
-      return value;
+  unsigned int index = hash(p_key);
+  KeyValuePair *pair = this->table.table[index];
+  while (pair != NULL) {
+    if (strcmp(pair->key_str, p_key) == 0) {
+      return pair->value;
     }
+    pair = pair->next;
   }
   return 0;
 }
 
 void Dictionary__setitem__(struct Dictionary *this, char *p_key_str,
                            int p_value) {
-  KeyValuePair pair;
-  pair.key.key_str = p_key_str;
-  pair.value = p_value;
-  this->pairs.pair[this->added_values++] = pair;
+  unsigned int index = hash(p_key_str);
+  KeyValuePair *new_pair = (KeyValuePair *)malloc(sizeof(KeyValuePair));
+  new_pair->key_str = p_key_str;
+  new_pair->value = p_value;
+  new_pair->next = this->table.table[index];
+  this->table.table[index] = new_pair;
+}
+
+bool Dictionary__contains__(struct Dictionary *this, char *p_key) {
+  unsigned int index = hash(p_key);
+  KeyValuePair *pair = this->table.table[index];
+  while (pair != NULL) {
+    if (strcmp(pair->key_str, p_key) == 0) {
+      return true;
+    }
+    pair = pair->next;
+  }
+  return false;
+}
+
+void Dictionaryprint(struct Dictionary *this) {
+  printf("{\n");
+  for (int i = 0; i < TABLE_SIZE; i++) {
+    KeyValuePair *pair = this->table.table[i];
+    while (pair != NULL) {
+      printf("\"%s\" : %d,\n", pair->key_str, pair->value);
+      pair = pair->next;
+    }
+  }
+  printf("}\n");
 }
 
 int main() {
@@ -109,6 +118,7 @@ int main() {
 
   Dictionaryprint(&dict);
 
+  Dictionary__del__(&dict);
   ///*///
 
   return 0;
