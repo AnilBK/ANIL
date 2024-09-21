@@ -1,6 +1,7 @@
 import Parser
 import lexer
 from ErrorHandler import ErrorHandler
+from input_variables_gui_manager import InputVariablesGUI
 
 from typing import Callable, Dict, Optional
 from enum import Enum
@@ -17,6 +18,7 @@ filename_parser.add_argument("--filename", help="Name of source file to be compi
 args = filename_parser.parse_args()
 
 # source_file = "examples\\01_variables.c"
+source_file = "examples\\01_variables_GUI_Input.c"
 # source_file = "examples\\02_List.c"
 # source_file = "examples\\03_Dictionary.c"
 # source_file = "examples\\04_Classes.c"
@@ -28,7 +30,7 @@ args = filename_parser.parse_args()
 # source_file = "examples\\unique_ptr_source.c"
 # source_file = "examples\\initializer_list.c"
 # source_file = "examples\\Reflection.c"
-source_file = "examples\\Annotations.c"
+# source_file = "examples\\Annotations.c"
 
 # source_file = "examples\\constexpr_dict.c"
 # source_file = "examples\\decorators_inside_fn_body.c"
@@ -108,6 +110,9 @@ templated_data_type_mapping = {}
 # This list stores all the individual structs that make up a final templated data type temporarily.
 # This list is then assigned to the appropriate key to the dictionary above.
 templated_data_type_mapping_list = []
+
+is_inside_form = False
+gui_manager = InputVariablesGUI()
 
 # UTILS BEGIN
 
@@ -318,6 +323,8 @@ def decrement_scope():
 
 def REGISTER_VARIABLE(p_var_name: str, p_var_data_type: str) -> None:
     symbol_table.declare_variable(p_var_name, p_var_data_type)
+    if is_inside_form:
+        gui_manager.process_variable(p_var_name, p_var_data_type)
 
 
 def get_type_of_variable(p_var_name):
@@ -992,6 +999,21 @@ while index < len(Lines):
                     global_variables_initialization_code = []
                     LinesCache.append("\n")
                 continue
+    elif Line.startswith("<form>"):
+        if is_inside_form:
+            RAISE_ERROR("Form within a form, not allowed.")
+        else:
+            is_inside_form = True
+        continue
+    elif Line.startswith("</form>"):
+        if not is_inside_form:
+            RAISE_ERROR("Not inside a form, can't close it.")
+        else:
+            is_inside_form = False
+            gui_code = gui_manager.get_window_code()
+            for code in gui_code:
+                LinesCache.append(code)
+        continue
 
     if not is_inside_new_code:
         # Normal C code, so just write that.
@@ -3552,6 +3574,23 @@ while index < len(Lines):
                         RAISE_ERROR(f"Expected integer expression for {array_name}.")
                     integer_value = integer_expression.speculative_expression_value
                     LinesCache.append(f"{POD_type} {array_name} = {integer_value};\n")
+
+                    # <form>
+                    # let age : int = 10 ## 10, 20, 30
+                    #                    ^^^
+                    if is_inside_form:
+                        if parser.has_tokens_remaining():
+                            if parser.current_token() == lexer.Token.HASH:
+                                parser.next_token()
+
+                                if parser.has_tokens_remaining():
+                                    if parser.current_token() == lexer.Token.HASH:
+                                        parser.next_token()
+
+                                        options = Line[Line.rfind("#") + 1:]
+                                        options = [option.strip() for option in options.split(",")]
+                                        gui_manager.add_gui_item_option(options)
+
                     REGISTER_VARIABLE(array_name, f"{POD_type}")
                     continue
                 elif POD_type == "char":
@@ -4456,6 +4495,12 @@ for i in range(len(LinesCache)):
         LinesCache[i] = GlobalStructInitCode
     elif "// DESTRUCTOR_CODE //" in LinesCache[i]:
         LinesCache[i] = symbol_table.destructor_code_for_all_remaining_variables()
+    elif "// HWND_VARIABLE_DECLARATIONS //" in LinesCache[i]:
+        LinesCache[i] = gui_manager.get_hwnd_variable_declaration_code()
+    elif "// GUI_NODES_CREATION //" in LinesCache[i]:
+        LinesCache[i] = gui_manager.get_gui_nodes_creation_code()
+    elif "// ASSIGN_GUI_OUTPUTS //" in LinesCache[i]:
+        LinesCache[i] = gui_manager.get_gui_assignment_code()
 
 with open(output_file_name, "w") as outputFile:
     for Line in LinesCache:

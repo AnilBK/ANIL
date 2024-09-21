@@ -1,5 +1,6 @@
 file_names = [
     "examples\\01_variables.c",
+    "examples\\01_variables_GUI_Input.c",
     "examples\\02_List.c",
     "examples\\03_Dictionary.c",
     "examples\\04_Classes.c",
