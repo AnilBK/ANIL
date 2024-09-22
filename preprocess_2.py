@@ -204,12 +204,8 @@ class SymbolTable:
         latest_scope = self.current_scope()
         new_scope = latest_scope + 1
 
-        if new_scope in self.scope_stack:
-            while True:
-                random_index = random.randrange(100000)
-                if not (random_index in self.scope_stack):
-                    new_scope = random_index
-                    break
+        while new_scope in self.scope_stack:
+            new_scope = random.randrange(100000)
 
         return new_scope
 
