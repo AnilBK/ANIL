@@ -182,18 +182,43 @@ def get_overloaded_mangled_fn_name(p_struct_type: str, p_fn_name: str, p_paramet
 
 
 class Symbol:
-    def __init__(self, p_name, p_data_type):
-        self.name = p_name
-        self.data_type = p_data_type
+    def __init__(self, name, data_type):
+        self.name = name
+        self.data_type = data_type
 
+class Scope:
+    def __init__(self, scope_id):
+        self.scope_id = scope_id
+        self.symbols = OrderedDict()
+
+    def declare_variable(self, name, p_type):
+        if name in self.symbols:
+            RAISE_ERROR(f"Variable '{name}' is already declared in this scope.")
+        self.symbols[name] = Symbol(name, p_type)
+
+    def lookup_variable(self, name):
+        return self.symbols.get(name, None)
+
+    def destructor_for_all_variables(self):
+        des_code = ""
+        for variable in reversed(self.symbols):
+            code = get_destructor_for_struct(variable)
+            if code is not None:
+                des_code += code
+            remove_struct_instance(variable)
+        self.symbols.clear()
+        return des_code
 
 class SymbolTable:
     def __init__(self):
-        self.symbols = {}
+        self.scopes = {}
         self.scope_stack = []
 
     def current_scope(self):
         return self.scope_stack[-1]
+
+    def get_scope_by_id(self, id):
+        return self.scopes[id]
 
     def new_unique_scope_id(self):
         if len(self.scope_stack) == 0:
@@ -212,17 +237,16 @@ class SymbolTable:
     def enter_scope(self):
         new_scope_id = self.new_unique_scope_id()
         self.scope_stack.append(new_scope_id)
-        self.symbols[new_scope_id] = OrderedDict()
+        self.scopes[new_scope_id] = Scope(new_scope_id)
 
     def exit_scope(self):
         if self.scope_stack:
             exiting_scope_id = self.scope_stack.pop()
-            destructor_code = self.destructor_for_all_variables_in_scope(
-                exiting_scope_id
-            )
+            destructor_code = self.get_scope_by_id(exiting_scope_id).destructor_for_all_variables()
             if destructor_code != "":
                 LinesCache.append(destructor_code)
-        
+            del self.scopes[exiting_scope_id]
+
         # No more scopes remaining.
         # Create one so current_scope() wont return list index out of range, because scope_stack is empty.
         if not self.scope_stack:
@@ -230,59 +254,41 @@ class SymbolTable:
 
     def print_symbol_table(self):
         print("-------------------Symbol Table------------------")
-        for scope in self.scope_stack:
-            for name,symbol in self.symbols[scope].items():
-                print(f"{scope} {name} {symbol.data_type}")
+        for scope_id in self.scope_stack:
+            scope = self.get_scope_by_id(scope_id)
+            for name, symbol in scope.symbols.items():
+                print(f"{scope_id} {name} {symbol.data_type}")
         print("-------------------------------------------------")
 
     def declare_variable(self, name, p_type):
-        current_scope = self.current_scope()
+        current_scope = self.get_scope_by_id(self.current_scope())
 
-        if name in self.symbols[current_scope]:
+        if name in current_scope.symbols:
             self.print_symbol_table()
             RAISE_ERROR(f"Variable '{name}' already declared in this scope.")
 
-        for scope in self.scope_stack:
-            if name in self.symbols[scope]:
+        for scope_id in self.scope_stack:
+            if name in self.get_scope_by_id(scope_id).symbols:
                 self.print_symbol_table()
-                RAISE_ERROR(
-                    f"Variable '{name}' already declared in previous scope {scope}."
-                )
+                RAISE_ERROR(f"Variable '{name}' already declared in previous scope {scope_id}.")
 
-        self.symbols[current_scope][name] = Symbol(name, p_type)
+        current_scope.declare_variable(name, p_type)
 
-    def find_variable(self, name):
-        for scope in reversed(self.scope_stack):
-            if name in self.symbols[scope]:
-                return self.symbols[scope][name]
+    def lookup_variable(self, name):
+        for scope_id in reversed(self.scope_stack):
+            variable = self.get_scope_by_id(scope_id).lookup_variable(name)
+            if variable:
+                return variable
         return None
-
-    def destructor_for_all_variables_in_scope(self, scope_id):
-        # Return the destructor code for all variables in the provided scope
-        # And, free(unregister) those variables as well.
-        des_code = ""
-        if scope_id in self.symbols:
-            for variable in reversed(self.symbols[scope_id]):
-                # Call the destructor for the variable
-                # print(f"Destroying variable '{variable}' in scope {scope_id}")
-                code = get_destructor_for_struct(variable)
-                if code != None:
-                    # print(f"~() = {code}")
-                    des_code += code
-                remove_struct_instance(variable)
-            del self.symbols[scope_id]
-        return des_code
 
     def destructor_code_for_all_remaining_variables(self):
         destructor_code = ""
-        while True:
-            if self.scope_stack:
-                exiting_scope_id = self.scope_stack.pop()
-                des_code = self.destructor_for_all_variables_in_scope(exiting_scope_id)
-                if des_code != "":
-                    destructor_code += des_code
-            else:
-                break
+        while self.scope_stack:
+            exiting_scope_id = self.scope_stack.pop()
+            des_code = self.get_scope_by_id(exiting_scope_id).destructor_for_all_variables()
+            if des_code != "":
+                destructor_code += des_code
+            del self.scopes[exiting_scope_id]
         return destructor_code
 
 
@@ -324,7 +330,7 @@ def REGISTER_VARIABLE(p_var_name: str, p_var_data_type: str) -> None:
 
 
 def get_type_of_variable(p_var_name):
-    var = symbol_table.find_variable(p_var_name)
+    var = symbol_table.lookup_variable(p_var_name)
     if var == None:
         return None
     else:
