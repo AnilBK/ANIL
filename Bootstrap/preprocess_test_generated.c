@@ -1154,17 +1154,10 @@ int SymbolTablenew_unique_scope_id(struct SymbolTable *this) {
   int latest_scope = SymbolTablecurrent_scope(this);
   int new_scope = latest_scope + 1;
 
-  if (Vector_int__contains__(&this->scope_stack, new_scope)) {
-
-    while (true) {
-      int random_index = Randomrandrange(&random, 100000);
-
-      if (!Vector_int__contains__(&this->scope_stack, random_index)) {
-        new_scope = random_index;
-        break;
-      }
-    }
+  while (Vector_int__contains__(&this->scope_stack, new_scope)) {
+    new_scope = Randomrandrange(&random, 100000);
   }
+
   return new_scope;
 }
 

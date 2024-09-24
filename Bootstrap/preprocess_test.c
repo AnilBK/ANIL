@@ -154,16 +154,10 @@ function new_unique_scope_id() -> int:
   let latest_scope = this.current_scope()
   let new_scope : int = latest_scope + 1
 
-  if new_scope in this.scope_stack{
-    while true{
-      let random_index = random.randrange(100000)
-
-      if random_index not in this.scope_stack{
-        new_scope = random_index
-        break;
-      }
-    }
+  while new_scope in this.scope_stack{
+    new_scope = random.randrange(100000)
   }
+
   return new_scope
 endfunction
 
