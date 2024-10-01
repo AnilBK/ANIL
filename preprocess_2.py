@@ -39,6 +39,7 @@ source_file = "examples\\01_variables_GUI_Input.c"
 # source_file = "examples\\fileexample.c"
 # source_file = "examples\\Files.c"
 # source_file = "examples\\function_example.c"
+# source_file = "examples\\WebServer.c"
 
 # source_file = "Bootstrap\\lexer_test.c"
 # source_file = "Bootstrap\\Parser_test.c"
