@@ -2338,7 +2338,8 @@ while index < len(Lines):
         current_token = parser.current_token()
         if current_token == lexer.Token.QUOTE:
             # str = "Hello World"
-            string = parser.extract_string_literal()
+            string = escape_quotes(parser.extract_string_literal())
+
             return_value = f"\"{string}\""
             exact_type = "c_str"
             token_type = SpeculativeTokenType.STRING_LITERAL

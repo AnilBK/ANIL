@@ -777,23 +777,11 @@ void Parser__init__(struct Parser *this) {
 
   List__init__(&this->tokens);
   ListappendOVDstr(&this->tokens, "print");
-  ListappendOVDint(&this->tokens, 0);
-  ListappendOVDstr(&this->tokens, "arr");
-  ListappendOVDint(&this->tokens, 1);
-  ListappendOVDint(&this->tokens, 2);
-  ListappendOVDstr(&this->tokens, "1");
-  ListappendOVDint(&this->tokens, 5);
-  ListappendOVDstr(&this->tokens, "2");
-  ListappendOVDint(&this->tokens, 5);
-  ListappendOVDstr(&this->tokens, "3");
-  ListappendOVDint(&this->tokens, 5);
-  ListappendOVDstr(&this->tokens, "4");
-  ListappendOVDint(&this->tokens, 5);
-  ListappendOVDstr(&this->tokens, "5");
-  ListappendOVDint(&this->tokens, 3);
-  ListappendOVDint(&this->tokens, 4);
-  ListappendOVDint(&this->tokens, 8);
-  ListappendOVDint(&this->tokens, 0);
+  ListappendOVDint(&this->tokens, 21);
+  ListappendOVDint(&this->tokens, 18);
+  ListappendOVDstr(&this->tokens, "Hello World");
+  ListappendOVDint(&this->tokens, 18);
+  ListappendOVDint(&this->tokens, 22);
 }
 
 void Parser__del__(struct Parser *this) {
@@ -849,6 +837,37 @@ bool Parserconsume_token(struct Parser *this, int p_token) {
   Parsernext_token(this);
 }
 
+struct String Parserextract_string_literal(struct Parser *this) {
+  /*
+  Extract the string defined inside the quotes "...".
+  And, advances the parser to the next token.
+  It expects the following Tokens: Token.QUOTE, Actual string, Token.QUOTE.
+  */
+  Parserconsume_token(this, 18);
+
+  struct CPLObject string_tk = Parserget_token(this);
+
+  Parsermatch_token(this, 18);
+  Parsernext_token(this);
+
+  struct String string;
+  String__init__OVDstr(&string, "");
+
+  if (CPLObjectis_str(&string_tk)) {
+    char *str = CPLObjectget_str(&string_tk);
+    // TODO: Reassign bug(reassign expressions not implemented).
+    // So do above workaround.
+    // What we want is string = string_tk.get_str()
+    String__reassign__OVDstr(&string, str);
+  } else {
+    printf("Expected a string literal.");
+    exit(EXIT_FAILURE);
+  }
+
+  CPLObject__del__(&string_tk);
+  return string;
+}
+
 ///*///
 
 ///*///
@@ -866,11 +885,21 @@ int main() {
   ListappendOVDstr(&LinesCache, "int main(){");
 
   if (Parsercheck_tokenOVDstr(&parser, "print")) {
+    Parsernext_token(&parser);
+
+    Parserconsume_token(&parser, 21);
+    struct String actual_str = Parserextract_string_literal(&parser);
+    Parserconsume_token(&parser, 22);
+
     struct String str_to_write;
-    String__init__OVDstr(&str_to_write, "//printf();");
+    String__init__OVDstr(&str_to_write, "printf(");
+    String__add__(&str_to_write, "\"");
+    String__add__(&str_to_write, Stringc_str(&actual_str));
+    String__add__(&str_to_write, "\");");
     char *cstr = Stringc_str(&str_to_write);
     ListappendOVDstr(&LinesCache, cstr);
     String__del__(&str_to_write);
+    String__del__(&actual_str);
   }
 
   ListappendOVDstr(&LinesCache, "return 0;");
