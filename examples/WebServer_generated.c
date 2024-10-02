@@ -88,7 +88,7 @@ void HTTPServerInternal_SendResponse(HttpResponse *res, const char *body,
 
 ///*///
 
-///*/////gcc -o .\serve_generated .\serve_generated.c -lws2_32
+///*/////gcc -o .\WebServer .\WebServer_generated.c -lws2_32
 #include <stdio.h>
 
 // IMPORTS //
