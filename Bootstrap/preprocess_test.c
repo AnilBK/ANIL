@@ -126,10 +126,105 @@ function __init__(p_name : String, p_data_type : String)
   this.data_type = p_data_type
 endfunction
 
+function get_name() -> String:
+  return this.name
+endfunction
+
+function get_data_type() -> String:
+  return this.data_type
+endfunction
+
 function __del__()
   this.name.__del__()
   this.data_type.__del__()
 endfunction
+endnamespace
+
+struct NameSymbolPair{String name, Symbol symbol};
+
+namespace NameSymbolPair
+
+function __init__(p_name : String, p_symbol : Symbol)
+  this.name.__init__(p_name)
+  this.symbol.__init__(p_symbol.get_name(), p_symbol.get_data_type())
+endfunction
+
+function uncopied_name() -> &String:
+  return this.name
+endfunction
+
+function get_name() -> String:
+  // Duplicate the string and return it.
+  let n1 = this.uncopied_name()
+  let name = ""
+  name = n1
+  return name
+endfunction
+
+function get_symbol() -> Symbol:
+  return this.symbol
+endfunction
+
+endnamespace
+
+struct Scope{int scope_id, Vector<NameSymbolPair> symbols};
+
+namespace Scope
+
+function __init__(p_scope_id : int)
+  this.scope_id = p_scope_id
+  this.symbols.__init__(5)
+endfunction
+
+c_function quit()
+  printf("Error... Exiting.");
+  exit(0);
+endc_function
+
+function declare_variable(name : String, p_type : String)
+  for s in this.symbols{
+    let n = s.get_name()
+    if n.c_str() == name.c_str(){
+      this.quit()
+    }
+  }
+
+  let symbol = Symbol{name, p_type};
+  let name_symbol_pair = NameSymbolPair{name, symbol};
+
+  this.symbols.push(name_symbol_pair)
+endfunction
+
+function lookup_variable(name : String) -> Symbol:
+  let s1 = "test_name";
+  let d1 = "test_data_type";
+
+  for s in this.symbols{
+    let n = s.get_name()
+    if n.c_str() == name.c_str(){
+      let sss = s.get_symbol()
+      let s1name = sss.get_name()
+      let s1datatype = sss.get_data_type()
+      // Doing this because we can't directly reassign expressions.
+
+      s1 = s1name
+      d1 = s1datatype
+    }
+  }
+
+  if s1 == "test_name"{
+    // Our variables wasnt modified inside, that means lookup unsucessful.
+    this.quit()
+  }
+
+  let Sym1 = Symbol{s1, d1};
+  return Sym1
+endfunction
+
+function __del__()
+  this.symbols.__del__()
+endfunction
+
 endnamespace
 
 let random = Random{};
