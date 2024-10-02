@@ -13,9 +13,13 @@ class InputVariablesGUI:
         self.hwnd_variables_list = []
         self.gui_code = []
         self.gui_item_options = []
+        self.default_value = ""
 
     def add_gui_item_option(self, option):
         self.gui_item_options.extend(option)
+
+    def register_default_value(self, value):
+        self.default_value = value
 
     def process_int_variable(self, p_var_name):
         has_options = len(self.gui_item_options) > 0
@@ -39,6 +43,11 @@ class InputVariablesGUI:
         else:
             self.gui_code.append(f'// {p_var_name} Input (Number field)')
             self.gui_code.append(f'h{p_var_name}Input = CreateWindowW(L"Edit", L"", WS_VISIBLE | WS_CHILD | WS_BORDER | ES_NUMBER, {self.g_x} + 100, {self.g_y}, 200, 25, hwnd, NULL, NULL, NULL);')
+            
+            if self.default_value != "":
+                self.gui_code.append(f'// Set default value for {p_var_name} Input')
+                self.gui_code.append(f'SetWindowTextW(h{p_var_name}Input, L"{self.default_value}");')
+
             item.associated_gui_variable_names.append(f"h{p_var_name}Input")
 
         self.gui_item_options = []
@@ -56,6 +65,10 @@ class InputVariablesGUI:
         self.gui_code.append(f'h{p_var_name}Checkbox = CreateWindowW(L"Button", L"", WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX, {self.g_x} + 100, {self.g_y}, 200, 25, hwnd, NULL, NULL, NULL);')
         item.associated_gui_variable_names.append(f"h{p_var_name}Checkbox")
 
+        if self.default_value == "true":
+            self.gui_code.append(f'// Set default value for {p_var_name} Checkbox to checked')
+            self.gui_code.append(f'SendMessage(h{p_var_name}Checkbox, BM_SETCHECK, BST_CHECKED, 0);');
+
         self.hwnd_variables_list.append(item)
         self.g_y += 40
 
@@ -64,6 +77,10 @@ class InputVariablesGUI:
             self.process_int_variable(p_var_name)
         elif p_var_data_type == "bool":
             self.process_bool_variable(p_var_name)
+            
+        # Clear default value.
+        # Default value was set before calling process_variable().
+        self.default_value = ""
 
     def get_window_code(self):
         code = f"""

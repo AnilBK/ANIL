@@ -63,19 +63,13 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdsho
 
   <form>
   let car_age : int = 5 ## 5, 10, 15
-  let car_mileage : int = 20000
-  let is_electric : bool = false
+  let car_mileage : int = 200
+  let is_electric : bool = true
   </form>
 
   print("Car age is {car_age} years.\n");
   print("Car mileage is {car_mileage} miles.\n");
   print("Is the car electric? {is_electric}.\n");
-
-  // Char uses " " but the contents inside it should be of length 1. 
-  let car_type : char = "S" // S for Sedan, T for Truck, etc.
-  print("The car type is {car_type}.\n");
-
-  let car_prices : arr<int> = [20000, 25000, 30000, 35000, 40000, 45000];
 
   // DESTRUCTOR_CODE //
   ///*///

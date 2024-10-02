@@ -55,6 +55,8 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wParam,
     hcar_mileageInput = CreateWindowW(
         L"Edit", L"", WS_VISIBLE | WS_CHILD | WS_BORDER | ES_NUMBER, 10 + 100,
         50, 200, 25, hwnd, NULL, NULL, NULL);
+    // Set default value for car_mileage Input
+    SetWindowTextW(hcar_mileageInput, L"200");
     // is_electric Checkbox Label(To the Left)
     his_electricCheckboxLabel =
         CreateWindowW(L"Static", L"is_electric:", WS_VISIBLE | WS_CHILD, 10, 90,
@@ -63,6 +65,8 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wParam,
     his_electricCheckbox =
         CreateWindowW(L"Button", L"", WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX,
                       10 + 100, 90, 200, 25, hwnd, NULL, NULL, NULL);
+    // Set default value for is_electric Checkbox to checked
+    SendMessage(his_electricCheckbox, BM_SETCHECK, BST_CHECKED, 0);
     hSubmitButton = CreateWindowW(L"Button", L"Submit", WS_VISIBLE | WS_CHILD,
                                   10, 130, 100, 25, hwnd, (HMENU)1, NULL, NULL);
     break;
@@ -116,8 +120,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args,
   ///*///  main()
 
   int car_age = 5;
-  int car_mileage = 20000;
-  bool is_electric = false;
+  int car_mileage = 200;
+  bool is_electric = true;
 
   WNDCLASSW wc = {0};
   wc.hbrBackground = (HBRUSH)(COLOR_WINDOW);
@@ -146,13 +150,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args,
   printf("Car age is %d years.\n", car_age);
   printf("Car mileage is %d miles.\n", car_mileage);
   printf("Is the car electric? %d.\n", is_electric);
-
-  // Char uses " " but the contents inside it should be of length 1.
-  char car_type = 'S';
-  printf("The car type is %c.\n", car_type);
-
-  int car_prices[] = {20000, 25000, 30000, 35000, 40000, 45000};
-  unsigned int car_prices_array_size = 6;
 
   ///*///
 

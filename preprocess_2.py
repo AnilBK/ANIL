@@ -3589,6 +3589,7 @@ while index < len(Lines):
                     # let age : int = 10 ## 10, 20, 30
                     #                    ^^^
                     if is_inside_form:
+                        gui_manager.register_default_value(integer_value)
                         if parser.has_tokens_remaining():
                             if parser.current_token() == lexer.Token.HASH:
                                 parser.next_token()
@@ -3615,6 +3616,11 @@ while index < len(Lines):
                 elif POD_type == "bool":
                     boolean_expr = boolean_expression()
                     LinesCache.append(f"{POD_type} {array_name} = {boolean_expr};\n")
+
+                    if is_inside_form:
+                        if boolean_expr == "true":
+                            gui_manager.register_default_value("true")
+                    
                     REGISTER_VARIABLE(array_name, f"{POD_type}")
                     continue
                 else:
