@@ -804,6 +804,24 @@ void ListappendOVDstr(struct List *this, char *p_value) {
   Listappend_str(this, p_value);
 }
 
+void ListappendOVDstructCPLObject(struct List *this, struct CPLObject p_value) {
+
+  if (CPLObjectis_int(&p_value)) {
+    Listappend_int(this, CPLObjectget_int(&p_value));
+  } else if (CPLObjectis_str(&p_value)) {
+    Listappend_str(this, CPLObjectget_str(&p_value));
+  }
+}
+
+void List__reassign__(struct List *this, struct List p_list) {
+  int tmp_len_1 = Listlen(&p_list);
+  for (size_t i = 0; i < tmp_len_1; i++) {
+    struct CPLObject item = List__getitem__(&p_list, i);
+    ListappendOVDstructCPLObject(this, item);
+    CPLObject__del__(&item);
+  }
+}
+
 struct Random {
   char dummy;
 };
@@ -939,8 +957,8 @@ void Dict_int_string__init__(struct Dict_int_string *this) {
 
 bool Dict_int_string__contains__(struct Dict_int_string *this, int p_key) {
   bool found = false;
-  size_t tmp_len_1 = Vector_int_str_listlen(&this->pairs);
-  for (size_t i = 0; i < tmp_len_1; i++) {
+  size_t tmp_len_2 = Vector_int_str_listlen(&this->pairs);
+  for (size_t i = 0; i < tmp_len_2; i++) {
     struct int_str_list pair = Vector_int_str_list__getitem__(&this->pairs, i);
 
     if (&pair.key == p_key) {
@@ -1227,8 +1245,8 @@ void SymbolTabledeclare_variable(struct SymbolTable *this, struct String name,
   //     this.print_symbol_table()
   //     RAISE_ERROR(f"Variable '{name}' already declared in this scope.")
 
-  size_t tmp_len_2 = Vector_intlen(&this->scope_stack);
-  for (size_t i = 0; i < tmp_len_2; i++) {
+  size_t tmp_len_3 = Vector_intlen(&this->scope_stack);
+  for (size_t i = 0; i < tmp_len_3; i++) {
     int scope = Vector_int__getitem__(&this->scope_stack, i);
     //     if name in this.symbols[scope]:
     //         this.print_symbol_table()
@@ -1398,8 +1416,8 @@ int main() {
   struct Vector_String imported_modules;
   Vector_String__init__(&imported_modules, 5);
 
-  size_t tmp_len_3 = Vector_Stringlen(&Lines);
-  for (size_t i = 0; i < tmp_len_3; i++) {
+  size_t tmp_len_4 = Vector_Stringlen(&Lines);
+  for (size_t i = 0; i < tmp_len_4; i++) {
     struct String line = Vector_String__getitem__(&Lines, i);
     struct String Line = Stringstrip(&line);
 
@@ -1421,8 +1439,8 @@ int main() {
     struct Vector_String ImportedCodeLines;
     Vector_String__init__(&ImportedCodeLines, 50);
 
-    size_t tmp_len_4 = Vector_Stringlen(&imported_modules);
-    for (size_t i = 0; i < tmp_len_4; i++) {
+    size_t tmp_len_5 = Vector_Stringlen(&imported_modules);
+    for (size_t i = 0; i < tmp_len_5; i++) {
       struct String module_name =
           Vector_String__getitem__(&imported_modules, i);
       struct String relative_path;
@@ -1439,8 +1457,8 @@ int main() {
       // lines.print()
 
       // ImportedCodeLines += lines
-      size_t tmp_len_5 = Vector_Stringlen(&lines);
-      for (size_t j = 0; j < tmp_len_5; j++) {
+      size_t tmp_len_6 = Vector_Stringlen(&lines);
+      for (size_t j = 0; j < tmp_len_6; j++) {
         struct String line = Vector_String__getitem__(&lines, j);
         Vector_Stringpush(&ImportedCodeLines, line);
       }

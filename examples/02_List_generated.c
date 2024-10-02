@@ -305,6 +305,24 @@ void ListappendOVDstr(struct List *this, char *p_value) {
   Listappend_str(this, p_value);
 }
 
+void ListappendOVDstructCPLObject(struct List *this, struct CPLObject p_value) {
+
+  if (CPLObjectis_int(&p_value)) {
+    Listappend_int(this, CPLObjectget_int(&p_value));
+  } else if (CPLObjectis_str(&p_value)) {
+    Listappend_str(this, CPLObjectget_str(&p_value));
+  }
+}
+
+void List__reassign__(struct List *this, struct List p_list) {
+  int tmp_len_0 = Listlen(&p_list);
+  for (size_t i = 0; i < tmp_len_0; i++) {
+    struct CPLObject item = List__getitem__(&p_list, i);
+    ListappendOVDstructCPLObject(this, item);
+    CPLObject__del__(&item);
+  }
+}
+
 int main() {
 
   ///*///  main()
@@ -335,13 +353,20 @@ int main() {
   Listprint(&test_list);
 
   if (List__contains__OVDint(&test_list, 10)) {
-    printf("10 is in the list.");
+    printf("10 is in the list.\n");
   }
 
   if (!List__contains__OVDint(&test_list, 5)) {
-    printf("5 is not in the list.");
+    printf("5 is not in the list.\n");
   }
 
+  printf("Duplicating List:");
+  struct List test_list2;
+  List__init__(&test_list2);
+  List__reassign__(&test_list2, test_list);
+  Listprint(&test_list2);
+
+  List__del__(&test_list2);
   CPLObject__del__(&node);
   List__del__(&test_list);
   ///*///

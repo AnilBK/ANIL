@@ -278,6 +278,21 @@ endfunction
 function append<>(p_value : str)
   this.append_str(p_value)
 endfunction
+
+function append<>(p_value : CPLObject)
+  if p_value.is_int(){
+    this.append_int(p_value.get_int())
+  }else if p_value.is_str(){
+    this.append_str(p_value.get_str())
+  }
+endfunction
+
+function __reassign__(p_list: List)
+  for item in p_list{
+    this.append(item)
+  }
+endfunction
+
 endnamespace
 
 ///*///

@@ -23,13 +23,7 @@ function __init__(line : String)
   let tokens = lexer.get_tokens(line)
 
   this.tokens.__init__()
-  for token in tokens{
-    if token.is_str(){
-      this.tokens.append(token.get_str())
-    }else{
-        this.tokens.append(token.get_int())
-    }
-  }
+  this.tokens = tokens
 endfunction
 
 function __del__()

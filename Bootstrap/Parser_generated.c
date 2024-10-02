@@ -822,6 +822,24 @@ void ListappendOVDstr(struct List *this, char *p_value) {
   Listappend_str(this, p_value);
 }
 
+void ListappendOVDstructCPLObject(struct List *this, struct CPLObject p_value) {
+
+  if (CPLObjectis_int(&p_value)) {
+    Listappend_int(this, CPLObjectget_int(&p_value));
+  } else if (CPLObjectis_str(&p_value)) {
+    Listappend_str(this, CPLObjectget_str(&p_value));
+  }
+}
+
+void List__reassign__(struct List *this, struct List p_list) {
+  int tmp_len_0 = Listlen(&p_list);
+  for (size_t i = 0; i < tmp_len_0; i++) {
+    struct CPLObject item = List__getitem__(&p_list, i);
+    ListappendOVDstructCPLObject(this, item);
+    CPLObject__del__(&item);
+  }
+}
+
 struct File {
   FILE *file_ptr;
 };
@@ -896,7 +914,6 @@ struct List Lexerget_tokens(struct Lexer *this, struct String p_line) {
   struct String line_org;
   String__init__OVDstr(&line_org, "");
   String__reassign__OVDstructString(&line_org, p_line);
-  //   line_org = p_line
   struct String line = Stringstrip(&line_org);
   size_t length = Stringlen(&line);
 
@@ -911,8 +928,8 @@ struct List Lexerget_tokens(struct Lexer *this, struct String p_line) {
 
   StringprintLn(&line);
 
-  size_t tmp_len_0 = Stringlen(&line);
-  for (size_t i = 0; i < tmp_len_0; i++) {
+  size_t tmp_len_1 = Stringlen(&line);
+  for (size_t i = 0; i < tmp_len_1; i++) {
     char Char = String__getitem__(&line, i);
     // print("{Char}")
 
@@ -1044,17 +1061,7 @@ void Parser__init__(struct Parser *this, struct String line) {
   struct List tokens = Lexerget_tokens(&lexer, line);
 
   List__init__(&this->tokens);
-  int tmp_len_1 = Listlen(&tokens);
-  for (size_t i = 0; i < tmp_len_1; i++) {
-    struct CPLObject token = List__getitem__(&tokens, i);
-
-    if (CPLObjectis_str(&token)) {
-      ListappendOVDstr(&this->tokens, CPLObjectget_str(&token));
-    } else {
-      ListappendOVDint(&this->tokens, CPLObjectget_int(&token));
-    }
-    CPLObject__del__(&token);
-  }
+  List__reassign__(&this->tokens, tokens);
   List__del__(&tokens);
 }
 

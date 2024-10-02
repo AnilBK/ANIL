@@ -38,12 +38,17 @@ int main() {
   test_list.print()
 
   if 10 in test_list{
-    print("10 is in the list.")
+    print("10 is in the list.\n")
   }
 
   if 5 not in test_list{
-    print("5 is not in the list.")
+    print("5 is not in the list.\n")
   }
+
+  print("Duplicating List:")
+  let test_list2 = []
+  test_list2 = test_list
+  test_list2.print()
 
   // DESTRUCTOR_CODE //
   ///*///
