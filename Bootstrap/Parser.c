@@ -12,22 +12,24 @@ import String
 import Dictionary
 import List
 import File
-
-constexpr Token = {"LET" : 0, "EQUALS" : 1, "LEFT_SQUARE_BRACKET" : 2, "RIGHT_SQUARE_BRACKET" : 3, "SEMICOLON" : 4, "COMMA" : 5, "PERCENT" : 6, "LEFT_CURLY" : 7, "RIGHT_CURLY" : 8, "STRUCT" : 9, "MATCH" : 10, "FOR" : 11, "IF" : 12, "IN" : 13, "OPTION" : 14, "SMALLER_THAN" : 15, "GREATER_THAN" : 16, "ENUMERATE" : 17, "QUOTE" : 18, "PLUS" : 19, "LEFT_ROUND_BRACKET" : 21, "RIGHT_ROUND_BRACKET" : 22, "COLON" : 23, "DOT" : 24, "ASTERISK" : 25, "MINUS" : 26, "DEF" : 27, "CFUNCTION" : 28, "ENDDEF" : 29, "ENDFN" : 30, "ELSE" : 31, "TRUE" : 32, "FALSE" : 33, "CONSTEXPR" : 34, "HASH" : 35, "INCLUDE" : 36, "AT" : 37, "APPLY_HOOK" : 38, "HOOK_BEGIN" : 39, "HOOK_END" : 40, "EXCLAMATION" : 41}
+import Lexer
 
 struct Parser{List tokens};
 
 namespace Parser
-function __init__()
-  print("Parser Constructor.\n")
-    
+
+function __init__(line : String)
+  let lexer = Lexer{};
+  let tokens = lexer.get_tokens(line)
+
   this.tokens.__init__()
-  this.tokens.append("print")
-  this.tokens.append(Token["LEFT_ROUND_BRACKET"])
-  this.tokens.append(Token["QUOTE"])
-  this.tokens.append("Hello World")
-  this.tokens.append(Token["QUOTE"])
-  this.tokens.append(Token["RIGHT_ROUND_BRACKET"])
+  for token in tokens{
+    if token.is_str(){
+      this.tokens.append(token.get_str())
+    }else{
+        this.tokens.append(token.get_int())
+    }
+  }
 endfunction
 
 function __del__()
@@ -114,11 +116,14 @@ int main() {
 
   ///*/// main()
 
-  let parser = Parser{};
+  let Line = "print("
+  Line += "\"Hello World!\");"
 
-  let LinesCache = []
-  LinesCache.append("#include<stdio.h>")
-  LinesCache.append("int main(){")
+  let parser = Parser{Line};
+
+  let GeneratedLines = []
+  GeneratedLines.append("#include<stdio.h>")
+  GeneratedLines.append("int main(){")
 
   if parser.check_token("print"){
     parser.next_token()
@@ -127,19 +132,19 @@ int main() {
     let actual_str = parser.extract_string_literal()
     parser.consume_token(Token["RIGHT_ROUND_BRACKET"])
 
-    let str_to_write = "printf(";
+    let str_to_write = "printf("
     str_to_write += "\"" + actual_str + "\");"
     let cstr = str_to_write.c_str()
-    LinesCache.append(cstr)
+    GeneratedLines.append(cstr)
   }
   
-  LinesCache.append("return 0;")
-  LinesCache.append("}")
+  GeneratedLines.append("return 0;")
+  GeneratedLines.append("}")
 
-  LinesCache.print()
+  GeneratedLines.print()
 
   let outputFile = File{"Parser_test_output1.c"};
-  for line in LinesCache{
+  for line in GeneratedLines{
     if line.is_str(){
         outputFile.writeline(line.get_str())
     }

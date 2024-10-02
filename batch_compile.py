@@ -21,7 +21,7 @@ file_names = [
     "examples\\expression_parse_test.c",
     "examples\\WebServer.c",
     "Bootstrap\\lexer_test.c",
-    "Bootstrap\\Parser_test.c",
+    "Bootstrap\\Parser.c",
     "Bootstrap\\preprocess_test.c",
 ]
 

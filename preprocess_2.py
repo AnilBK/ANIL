@@ -42,7 +42,7 @@ source_file = "examples\\01_variables_GUI_Input.c"
 # source_file = "examples\\WebServer.c"
 
 # source_file = "Bootstrap\\lexer_test.c"
-# source_file = "Bootstrap\\Parser_test.c"
+source_file = "Bootstrap\\Parser.c"
 # source_file = "Bootstrap\\preprocess_test.c"
 
 if args.filename:

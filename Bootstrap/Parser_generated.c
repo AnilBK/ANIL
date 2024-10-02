@@ -67,6 +67,79 @@ typedef CPLObject *CPLObjectptr;
 #include <stdio.h>
 #include <stdlib.h>
 
+void CustomPrint(int data) {
+  // printf("This is a custom print wrapper. [%d]\n", data);
+
+  // The macro is in str, val pair because it is in this format in TOKEN_MAP
+  // below.
+
+#define token_case(str, val)                                                   \
+  case val:                                                                    \
+    msg = str;                                                                 \
+    break
+
+  char *msg;
+
+  switch (data) {
+    token_case("LET", 0);
+    token_case("EQUALS", 1);
+    token_case("LEFT_SQUARE_BRACKET", 2);
+    token_case("RIGHT_SQUARE_BRACKET", 3);
+    token_case("SEMICOLON", 4);
+    token_case("COMMA", 5);
+    token_case("PERCENT", 6);
+    token_case("LEFT_CURLY", 7);
+    token_case("RIGHT_CURLY", 8);
+    token_case("STRUCT", 9);
+    token_case("MATCH", 10);
+    token_case("FOR", 11);
+    token_case("IF", 12);
+    token_case("IN", 13);
+    token_case("OPTION", 14);
+    token_case("SMALLER_THAN", 15);
+    token_case("GREATER_THAN", 16);
+    token_case("ENUMERATE", 17);
+    token_case("QUOTE", 18);
+    token_case("PLUS", 19);
+    token_case("LEFT_ROUND_BRACKET", 21);
+    token_case("RIGHT_ROUND_BRACKET", 22);
+    token_case("COLON", 23);
+    token_case("DOT", 24);
+    token_case("ASTERISK", 25);
+    token_case("MINUS", 26);
+    token_case("DEF", 27);
+    token_case("c_function", 28);
+    token_case("ENDDEF", 29);
+    token_case("ENDFN", 30);
+    token_case("ELSE", 31);
+    token_case("TRUE", 32);
+    token_case("FALSE", 33);
+    token_case("CONSTEXPR", 34);
+    token_case("HASH", 35);
+    token_case("INCLUDE", 36);
+    token_case("AT", 37);
+    token_case("APPLY_HOOK", 38);
+    token_case("HOOK_BEGIN", 39);
+    token_case("HOOK_END", 40);
+    token_case("EXCLAMATION", 41);
+  default: {
+    msg = "UNDEFINED: ";
+    break;
+  }
+  }
+
+  printf("Token : %s", msg);
+
+#undef token_case
+}
+
+///*///
+
+///*///
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 // IMPORTS //
 
 struct String {
@@ -768,20 +841,221 @@ void Filewriteline(struct File *this, char *p_content) {
 
 void File__del__(struct File *this) { fclose(this->file_ptr); }
 
+struct Lexer {
+  int dummy;
+};
+
+struct List Lexerget_tokens(struct Lexer *this, struct String p_line) {
+  struct Dictionary CHARACTER_TOKENS;
+  Dictionary__init__(&CHARACTER_TOKENS);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "=", 1);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "[", 2);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "]", 3);
+  Dictionary__setitem__(&CHARACTER_TOKENS, ";", 4);
+  Dictionary__setitem__(&CHARACTER_TOKENS, ",", 5);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "%", 6);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "{", 7);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "}", 8);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "<", 15);
+  Dictionary__setitem__(&CHARACTER_TOKENS, ">", 16);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "\"", 18);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "+", 19);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "(", 21);
+  Dictionary__setitem__(&CHARACTER_TOKENS, ")", 22);
+  Dictionary__setitem__(&CHARACTER_TOKENS, ":", 23);
+  Dictionary__setitem__(&CHARACTER_TOKENS, ".", 24);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "*", 25);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "-", 26);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "#", 35);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "@", 37);
+  Dictionary__setitem__(&CHARACTER_TOKENS, "!", 41);
+
+  struct Dictionary KEYWORD_TOKENS;
+  Dictionary__init__(&KEYWORD_TOKENS);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "let", 0);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "struct", 9);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "match", 10);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "for", 11);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "if", 12);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "in", 13);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "Option", 14);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "enumerate", 17);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "def", 27);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "c_function", 28);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "enddef", 29);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "endfunc", 30);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "else", 31);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "True", 32);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "False", 33);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "constexpr", 34);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "include", 36);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "apply_hook", 38);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "hook_begin", 39);
+  Dictionary__setitem__(&KEYWORD_TOKENS, "hook_end", 40);
+
+  struct String line_org;
+  String__init__OVDstr(&line_org, "");
+  String__reassign__OVDstructString(&line_org, p_line);
+  //   line_org = p_line
+  struct String line = Stringstrip(&line_org);
+  size_t length = Stringlen(&line);
+
+  struct String token;
+  String__init__OVDstr(&token, "");
+
+  struct List tokens;
+  List__init__(&tokens);
+
+  bool inside_string = false;
+  bool escape_back_slash = false;
+
+  StringprintLn(&line);
+
+  size_t tmp_len_0 = Stringlen(&line);
+  for (size_t i = 0; i < tmp_len_0; i++) {
+    char Char = String__getitem__(&line, i);
+    // print("{Char}")
+
+    if (escape_back_slash) {
+
+      if (Char == '\"') {
+        char Char_promoted_0[2] = {Char, '\0'};
+        String__add__(&token, Char_promoted_0);
+        escape_back_slash = false;
+      } else if (Char == '\\') {
+        String__add__(&token, "\\\\");
+        escape_back_slash = false;
+      } else {
+        char Char_promoted_1[2] = {Char, '\0'};
+        String__add__(&token, Char_promoted_1);
+        escape_back_slash = false;
+      }
+    } else if (Char == '\"') {
+
+      if (inside_string) {
+        // End of string.
+        inside_string = false;
+
+        // Single character tokens like = are tokenized by add_token(),
+        // so we use the following method.
+        // "=" the inner equals to shouldn't be tokenized.
+        Listappend_str(&tokens, Stringc_str(&token));
+
+        String__reassign__OVDstr(&token, "");
+      } else {
+        // Start of string.
+        inside_string = true;
+      }
+      ListappendOVDint(&tokens, 18);
+    } else if (inside_string) {
+
+      if (Char == '\\') {
+        escape_back_slash = true;
+        continue;
+      }
+
+      char Char_promoted_2[2] = {Char, '\0'};
+      String__add__(&token, Char_promoted_2);
+    } else if (Char == ' ') {
+
+      if (String__eq__(&token, "")) {
+        continue;
+      }
+
+      if (Dictionary__contains__(&KEYWORD_TOKENS, Stringc_str(&token))) {
+        ListappendOVDint(&tokens, Dictionary__getitem__(&KEYWORD_TOKENS,
+                                                        Stringc_str(&token)));
+      } else if (Dictionary__contains__(&CHARACTER_TOKENS,
+                                        Stringc_str(&token))) {
+        ListappendOVDint(&tokens, Dictionary__getitem__(&CHARACTER_TOKENS,
+                                                        Stringc_str(&token)));
+      } else {
+        Listappend_str(&tokens, Stringc_str(&token));
+      }
+      String__reassign__OVDstr(&token, "");
+    } else {
+      char Char_promoted_3[2] = {Char, '\0'};
+
+      if (Dictionary__contains__(&CHARACTER_TOKENS, Char_promoted_3)) {
+
+        if (!(String__eq__(&token, ""))) {
+
+          if (Dictionary__contains__(&KEYWORD_TOKENS, Stringc_str(&token))) {
+            ListappendOVDint(
+                &tokens,
+                Dictionary__getitem__(&KEYWORD_TOKENS, Stringc_str(&token)));
+          } else if (Dictionary__contains__(&CHARACTER_TOKENS,
+                                            Stringc_str(&token))) {
+            ListappendOVDint(
+                &tokens,
+                Dictionary__getitem__(&CHARACTER_TOKENS, Stringc_str(&token)));
+          } else {
+            Listappend_str(&tokens, Stringc_str(&token));
+          }
+        }
+        char Char_promoted_4[2] = {Char, '\0'};
+        ListappendOVDint(
+            &tokens, Dictionary__getitem__(&CHARACTER_TOKENS, Char_promoted_4));
+        String__reassign__OVDstr(&token, "");
+        continue;
+      }
+
+      if (Dictionary__contains__(&CHARACTER_TOKENS, Stringc_str(&token))) {
+        ListappendOVDint(&tokens, Dictionary__getitem__(&CHARACTER_TOKENS,
+                                                        Stringc_str(&token)));
+        String__reassign__OVDstr(&token, "");
+        continue;
+      }
+
+      char Char_promoted_5[2] = {Char, '\0'};
+      String__add__(&token, Char_promoted_5);
+    }
+  }
+
+  // Process the last token.
+
+  if (!(String__eq__(&token, ""))) {
+
+    if (Dictionary__contains__(&KEYWORD_TOKENS, Stringc_str(&token))) {
+      ListappendOVDint(
+          &tokens, Dictionary__getitem__(&KEYWORD_TOKENS, Stringc_str(&token)));
+    } else if (Dictionary__contains__(&CHARACTER_TOKENS, Stringc_str(&token))) {
+      ListappendOVDint(&tokens, Dictionary__getitem__(&CHARACTER_TOKENS,
+                                                      Stringc_str(&token)));
+    } else {
+      Listappend_str(&tokens, Stringc_str(&token));
+    }
+  }
+
+  String__del__(&token);
+  String__del__(&line);
+  String__del__(&line_org);
+  Dictionary__del__(&KEYWORD_TOKENS);
+  Dictionary__del__(&CHARACTER_TOKENS);
+  return tokens;
+}
+
 struct Parser {
   struct List tokens;
 };
 
-void Parser__init__(struct Parser *this) {
-  printf("Parser Constructor.\n");
+void Parser__init__(struct Parser *this, struct String line) {
+  struct Lexer lexer;
+  struct List tokens = Lexerget_tokens(&lexer, line);
 
   List__init__(&this->tokens);
-  ListappendOVDstr(&this->tokens, "print");
-  ListappendOVDint(&this->tokens, 21);
-  ListappendOVDint(&this->tokens, 18);
-  ListappendOVDstr(&this->tokens, "Hello World");
-  ListappendOVDint(&this->tokens, 18);
-  ListappendOVDint(&this->tokens, 22);
+  int tmp_len_1 = Listlen(&tokens);
+  for (size_t i = 0; i < tmp_len_1; i++) {
+    struct CPLObject token = List__getitem__(&tokens, i);
+
+    if (CPLObjectis_str(&token)) {
+      ListappendOVDstr(&this->tokens, CPLObjectget_str(&token));
+    } else {
+      ListappendOVDint(&this->tokens, CPLObjectget_int(&token));
+    }
+    CPLObject__del__(&token);
+  }
+  List__del__(&tokens);
 }
 
 void Parser__del__(struct Parser *this) {
@@ -876,13 +1150,17 @@ int main() {
 
   ///*/// main()
 
-  struct Parser parser;
-  Parser__init__(&parser);
+  struct String Line;
+  String__init__OVDstr(&Line, "print(");
+  String__add__(&Line, "\"Hello World!\");");
 
-  struct List LinesCache;
-  List__init__(&LinesCache);
-  ListappendOVDstr(&LinesCache, "#include<stdio.h>");
-  ListappendOVDstr(&LinesCache, "int main(){");
+  struct Parser parser;
+  Parser__init__(&parser, Line);
+
+  struct List GeneratedLines;
+  List__init__(&GeneratedLines);
+  ListappendOVDstr(&GeneratedLines, "#include<stdio.h>");
+  ListappendOVDstr(&GeneratedLines, "int main(){");
 
   if (Parsercheck_tokenOVDstr(&parser, "print")) {
     Parsernext_token(&parser);
@@ -897,21 +1175,21 @@ int main() {
     String__add__(&str_to_write, Stringc_str(&actual_str));
     String__add__(&str_to_write, "\");");
     char *cstr = Stringc_str(&str_to_write);
-    ListappendOVDstr(&LinesCache, cstr);
+    ListappendOVDstr(&GeneratedLines, cstr);
     String__del__(&str_to_write);
     String__del__(&actual_str);
   }
 
-  ListappendOVDstr(&LinesCache, "return 0;");
-  ListappendOVDstr(&LinesCache, "}");
+  ListappendOVDstr(&GeneratedLines, "return 0;");
+  ListappendOVDstr(&GeneratedLines, "}");
 
-  Listprint(&LinesCache);
+  Listprint(&GeneratedLines);
 
   struct File outputFile;
   File__init__(&outputFile, "Parser_test_output1.c");
-  int tmp_len_0 = Listlen(&LinesCache);
-  for (size_t i = 0; i < tmp_len_0; i++) {
-    struct CPLObject line = List__getitem__(&LinesCache, i);
+  int tmp_len_2 = Listlen(&GeneratedLines);
+  for (size_t i = 0; i < tmp_len_2; i++) {
+    struct CPLObject line = List__getitem__(&GeneratedLines, i);
 
     if (CPLObjectis_str(&line)) {
       Filewriteline(&outputFile, CPLObjectget_str(&line));
@@ -920,8 +1198,9 @@ int main() {
   }
 
   File__del__(&outputFile);
-  List__del__(&LinesCache);
+  List__del__(&GeneratedLines);
   Parser__del__(&parser);
+  String__del__(&Line);
   ///*///
 
   return 0;
