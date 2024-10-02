@@ -48,7 +48,6 @@ source_file = "examples\\01_variables_GUI_Input.c"
 if args.filename:
     source_file = args.filename
 
-
 output_file_name = source_file.split(".")[0] + "_generated.c"
 
 Lines = []
@@ -68,15 +67,22 @@ for Line in Lines:
 
 if len(imported_modules) > 0:
     ImportedCodeLines = []
+
+    source_dir = os.path.dirname(os.path.abspath(source_file)) 
+
     for module_name in imported_modules:
-        relative_path = "Lib\\" + module_name + ".c"
+        relative_path = os.path.join("Lib", module_name + ".c")
         module_file_path = os.path.join(os.getcwd(), relative_path)
 
-        lines = []
-        with open(module_file_path, "r") as module_file:
-            lines = module_file.readlines()
-        ImportedCodeLines += lines
+        if not os.path.exists(module_file_path):
+            module_file_path = os.path.join(source_dir, module_name + ".c")
 
+        if os.path.exists(module_file_path):
+            with open(module_file_path, "r") as module_file:
+                ImportedCodeLines.extend(module_file.readlines())
+        else:
+            raise FileNotFoundError(f"Module {module_name}.c not found in Lib or source file directory.")
+    
     Lines = ImportedCodeLines + Lines
 
 
