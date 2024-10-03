@@ -329,11 +329,12 @@ endfunction
 function exit_scope()
   if this.scope_stack.len() > 0{
     let exiting_scope_id = this.scope_stack.pop()
-    let destructor_code = ""
-    //let destructor_code = this.destructor_for_all_variables_in_scope(exiting_scope_id)
+    let scope = this.get_scope_by_id(exiting_scope_id)
+    let destructor_code = scope.destructor_for_all_variables()
     if destructor_code != ""{
       // LinesCache.append(destructor_code)
     }
+    this.remove_scope_by_id(exiting_scope_id)
   }
 
   // No more scopes remaining.
@@ -350,7 +351,8 @@ function print_symbol_table()
 endfunction
 
 function declare_variable(name : String, p_type : String)
-  let current_scope = this.current_scope()
+  let current_scope_id = this.current_scope()
+  let current_scope = this.get_scope_by_id(current_scope_id)
 
   // if name in this.symbols[current_scope]:
   //     this.print_symbol_table()
@@ -367,12 +369,13 @@ function declare_variable(name : String, p_type : String)
   // this.symbols[current_scope][name] = Symbol(name, p_type)
 endfunction
 
-function find_variable(name : String)
-  // for scope in this.scope_stack[::-1]{
-  //     if name in this.symbols[scope]:
-  //         return this.symbols[scope][name]
-  // }
-  // return None
+function lookup_variable(name : String)
+  let len = this.scope_stack.len()
+  for i in range(0..=len-1,-1){
+    let scope_id = this.scope_stack[i]
+    let scope = this.get_scope_by_id(scope_id)
+    let variable = scope.lookup_variable(name)
+  }
 endfunction
     
 function __del__()

@@ -1698,15 +1698,15 @@ void SymbolTableexit_scope(struct SymbolTable *this) {
 
   if (Vector_intlen(&this->scope_stack) > 0) {
     int exiting_scope_id = Vector_intpop(&this->scope_stack);
-    struct String destructor_code;
-    String__init__OVDstr(&destructor_code, "");
-    // let destructor_code =
-    // this.destructor_for_all_variables_in_scope(exiting_scope_id)
+    struct Scope scope = SymbolTableget_scope_by_id(this, exiting_scope_id);
+    struct String destructor_code = Scopedestructor_for_all_variables(&scope);
 
     if (!(String__eq__(&destructor_code, ""))) {
       // LinesCache.append(destructor_code)
     }
+    SymbolTableremove_scope_by_id(this, exiting_scope_id);
     String__del__(&destructor_code);
+    Scope__del__(&scope);
   }
 
   // No more scopes remaining.
@@ -1726,7 +1726,9 @@ void SymbolTableprint_symbol_table(struct SymbolTable *this) {
 
 void SymbolTabledeclare_variable(struct SymbolTable *this, struct String name,
                                  struct String p_type) {
-  int current_scope = SymbolTablecurrent_scope(this);
+  int current_scope_id = SymbolTablecurrent_scope(this);
+  struct Scope current_scope =
+      SymbolTableget_scope_by_id(this, current_scope_id);
 
   // if name in this.symbols[current_scope]:
   //     this.print_symbol_table()
@@ -1744,14 +1746,18 @@ void SymbolTabledeclare_variable(struct SymbolTable *this, struct String name,
   }
 
   // this.symbols[current_scope][name] = Symbol(name, p_type)
+  Scope__del__(&current_scope);
 }
 
-void SymbolTablefind_variable(struct SymbolTable *this, struct String name) {
-  // for scope in this.scope_stack[::-1]{
-  //     if name in this.symbols[scope]:
-  //         return this.symbols[scope][name]
-  // }
-  // return None
+void SymbolTablelookup_variable(struct SymbolTable *this, struct String name) {
+  size_t len = Vector_intlen(&this->scope_stack);
+  for (size_t i = len - 1; i >= 0; i += -1) {
+    int scope_id = Vector_int__getitem__(&this->scope_stack, i);
+    struct Scope scope = SymbolTableget_scope_by_id(this, scope_id);
+    struct Symbol variable = Scopelookup_variable(&scope, name);
+    Symbol__del__(&variable);
+    Scope__del__(&scope);
+  }
 }
 
 void SymbolTable__del__(struct SymbolTable *this) {
