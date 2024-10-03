@@ -13,6 +13,7 @@ import Dictionary
 import List
 import Random
 import Dict_int_string
+import ErrorHandler
 
 // Insert a string at a given index in another string.
 function insert_string(original_string : String, p_index: int, string_to_insert: String) -> String:
@@ -176,16 +177,12 @@ function __init__(p_scope_id : int)
   this.symbols.__init__(5)
 endfunction
 
-c_function quit()
-  printf("Error... Exiting.");
-  exit(0);
-endc_function
-
 function declare_variable(name : String, p_type : String)
   for s in this.symbols{
     let n = s.get_name()
     if n.c_str() == name.c_str(){
-      this.quit()
+      let e = ErrorHandler{};
+      e.RAISE_ERROR("Variable already declared.")
     }
   }
 
@@ -214,11 +211,17 @@ function lookup_variable(name : String) -> Symbol:
 
   if s1 == "test_name"{
     // Our variables wasnt modified inside, that means lookup unsucessful.
-    this.quit()
+    let e = ErrorHandler{};
+    e.RAISE_ERROR("Didnt find Variable.")
   }
 
   let Sym1 = Symbol{s1, d1};
   return Sym1
+endfunction
+
+function destructor_for_all_variables() -> String:
+  let d = ""
+  return d
 endfunction
 
 function __del__()
@@ -229,16 +232,45 @@ endnamespace
 
 let random = Random{};
 
-struct SymbolTable{Dict_int_string symbols, Vector<int> scope_stack};
+struct ScopeScopeIDPair{int scope_id, Scope scope};
+
+namespace ScopeScopeIDPair
+function __init__(p_scope_id : int)
+  this.scope_id = p_scope_id
+  this.scope.__init__(p_scope_id)
+endfunction
+
+function get_scope_id() -> int:
+  return this.scope_id
+endfunction
+
+function __del__()
+  this.scope.__del__()
+endfunction
+
+endnamespace
+
+struct SymbolTable{Vector<ScopeScopeIDPair> scopes, Vector<int> scope_stack};
 
 namespace SymbolTable
 function __init__()
-  this.symbols.__init__()
+  this.scopes.__init__(5)
   this.scope_stack.__init__(5)
 endfunction
 
 function current_scope() -> int:
   return this.scope_stack[-1]
+endfunction
+
+function get_scope_by_id(id : int) -> Scope:
+  for s in this.scopes{
+    if s.scope_id == id{
+      return s.scope
+    }
+  }
+
+  let e = ErrorHandler{};
+  e.RAISE_ERROR("Didnt find scope of provided id.")
 endfunction
 
 function new_unique_scope_id() -> int:
@@ -259,32 +291,46 @@ endfunction
 function enter_scope()
   let new_scope_id = this.new_unique_scope_id()
   this.scope_stack.push(new_scope_id)
-  // this.symbols[new_scope_id] = OrderedDict()
-  this.symbols.add_key(new_scope_id)
+
+  let scope_pair = ScopeScopeIDPair{new_scope_id};
+  this.scopes.push(scope_pair)
 endfunction
 
-function destructor_for_all_variables_in_scope(scope_id : int) -> String:
-  // Return the destructor code for all variables in the provided scope
-  // And, free(unregister) those variables as well.
-  let des_code = "";
-  if scope_id in this.symbols{
-    // for variable in reversed(this.symbols[scope_id]):
-    //     # Call the destructor for the variable
-    //     # print(f"Destroying variable '{variable}' in scope {scope_id}")
-    //     code = get_destructor_for_struct(variable)
-    //     if code != None:
-    //         # print(f"~() = {code}")
-    //         des_code += code
-    //     remove_struct_instance(variable)
-    // del this.symbols[scope_id]
+function remove_scope_by_id(scope_id : int)
+  let id_to_remove = Vector<int>{1};
+  let index : int = 0
+  for scope in this.scopes{
+    let id = scope.get_scope_id()
+    if id == scope_id{
+      id_to_remove.push(index)
+    }
+    index = index + 1
   }
-  return des_code
+
+  for idx in id_to_remove[::-1]{
+    this.scopes.remove_at(idx)
+  }
+endfunction
+
+function destructor_code_for_all_remaining_variables() -> String:
+  let destructor_code = "";
+  while this.scope_stack.len() > 0{
+    let exiting_scope_id = this.scope_stack.pop()
+    let scope = this.get_scope_by_id(exiting_scope_id)
+    let des_code = scope.destructor_for_all_variables()
+    if des_code != ""{
+      destructor_code += des_code
+    }
+    this.remove_scope_by_id(exiting_scope_id)
+  }
+  return destructor_code
 endfunction
 
 function exit_scope()
   if this.scope_stack.len() > 0{
     let exiting_scope_id = this.scope_stack.pop()
-    let destructor_code = this.destructor_for_all_variables_in_scope(exiting_scope_id)
+    let destructor_code = ""
+    //let destructor_code = this.destructor_for_all_variables_in_scope(exiting_scope_id)
     if destructor_code != ""{
       // LinesCache.append(destructor_code)
     }
@@ -328,24 +374,9 @@ function find_variable(name : String)
   // }
   // return None
 endfunction
-
-function destructor_code_for_all_remaining_variables() -> String:
-  let destructor_code = "";
-  while true{
-    if this.scope_stack.len() > 0{
-      let exiting_scope_id = this.scope_stack.pop()
-      let des_code = this.destructor_for_all_variables_in_scope(exiting_scope_id)
-      if des_code != ""{
-        destructor_code += des_code
-      }
-    }else{
-      break;
-    }
-  }
-  return destructor_code
-endfunction
     
 function __del__()
+  this.scopes.__del__()
   this.scope_stack.__del__()
 endfunction
 endnamespace

@@ -81,6 +81,11 @@ typedef CPLObject *CPLObjectptr;
 
 ///*///
 
+#include <stdlib.h>
+
+///*///
+
+///*///
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -265,6 +270,22 @@ struct String Vector_Stringpop(struct Vector_String *this) {
     exit(EXIT_FAILURE);
   }
   return this->arr[--this->size];
+}
+
+void Vector_Stringremove_at(struct Vector_String *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
+
+  if (index < 0 || index >= this->size) {
+    fprintf(stderr, "Index out of bounds.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for (int i = index; i < this->size - 1; i++) {
+    this->arr[i] = this->arr[i + 1];
+  }
+  this->size--;
 }
 
 bool Vector_String__contains__(struct Vector_String *this,
@@ -925,6 +946,22 @@ struct int_str_list Vector_int_str_listpop(struct Vector_int_str_list *this) {
   return this->arr[--this->size];
 }
 
+void Vector_int_str_listremove_at(struct Vector_int_str_list *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
+
+  if (index < 0 || index >= this->size) {
+    fprintf(stderr, "Index out of bounds.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for (int i = index; i < this->size - 1; i++) {
+    this->arr[i] = this->arr[i + 1];
+  }
+  this->size--;
+}
+
 bool Vector_int_str_list__contains__(struct Vector_int_str_list *this,
                                      struct int_str_list value) {
   // This function is an overloaded function.
@@ -990,6 +1027,15 @@ void Dict_int_stringadd_key(struct Dict_int_string *this, int p_key) {
 
 void Dict_int_string__del__(struct Dict_int_string *this) {
   Vector_int_str_list__del__(&this->pairs);
+}
+
+struct ErrorHandler {
+  char dummy;
+};
+
+void ErrorHandlerRAISE_ERROR(struct ErrorHandler *this, char *p_error_msg) {
+  fprintf(stderr, p_error_msg);
+  exit(EXIT_FAILURE);
 }
 
 struct StructInstance {
@@ -1173,6 +1219,23 @@ Vector_NameSymbolPairpop(struct Vector_NameSymbolPair *this) {
   return this->arr[--this->size];
 }
 
+void Vector_NameSymbolPairremove_at(struct Vector_NameSymbolPair *this,
+                                    int index) {
+  if (index < 0) {
+    index += this->size;
+  }
+
+  if (index < 0 || index >= this->size) {
+    fprintf(stderr, "Index out of bounds.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for (int i = index; i < this->size - 1; i++) {
+    this->arr[i] = this->arr[i + 1];
+  }
+  this->size--;
+}
+
 bool Vector_NameSymbolPair__contains__(struct Vector_NameSymbolPair *this,
                                        struct NameSymbolPair value) {
   // This function is an overloaded function.
@@ -1205,11 +1268,6 @@ void Scope__init__(struct Scope *this, int p_scope_id) {
   Vector_NameSymbolPair__init__(&this->symbols, 5);
 }
 
-void Scopequit(struct Scope *this) {
-  printf("Error... Exiting.");
-  exit(0);
-}
-
 void Scopedeclare_variable(struct Scope *this, struct String name,
                            struct String p_type) {
   size_t tmp_len_3 = Vector_NameSymbolPairlen(&this->symbols);
@@ -1219,7 +1277,8 @@ void Scopedeclare_variable(struct Scope *this, struct String name,
     struct String n = NameSymbolPairget_name(&s);
 
     if (strcmp(Stringc_str(&name), Stringc_str(&n)) == 0) {
-      Scopequit(this);
+      struct ErrorHandler e;
+      ErrorHandlerRAISE_ERROR(&e, "Variable already declared.");
     }
     String__del__(&n);
   }
@@ -1262,7 +1321,8 @@ struct Symbol Scopelookup_variable(struct Scope *this, struct String name) {
 
   if (String__eq__(&s1, "test_name")) {
     // Our variables wasnt modified inside, that means lookup unsucessful.
-    Scopequit(this);
+    struct ErrorHandler e;
+    ErrorHandlerRAISE_ERROR(&e, "Didnt find Variable.");
   }
 
   struct Symbol Sym1;
@@ -1272,9 +1332,154 @@ struct Symbol Scopelookup_variable(struct Scope *this, struct String name) {
   return Sym1;
 }
 
+struct String Scopedestructor_for_all_variables(struct Scope *this) {
+  struct String d;
+  String__init__OVDstr(&d, "");
+  return d;
+}
+
 void Scope__del__(struct Scope *this) {
   Vector_NameSymbolPair__del__(&this->symbols);
 }
+
+struct ScopeScopeIDPair {
+  int scope_id;
+  struct Scope scope;
+};
+
+void ScopeScopeIDPair__init__(struct ScopeScopeIDPair *this, int p_scope_id) {
+  this->scope_id = p_scope_id;
+  Scope__init__(&this->scope, p_scope_id);
+}
+
+int ScopeScopeIDPairget_scope_id(struct ScopeScopeIDPair *this) {
+  return this->scope_id;
+}
+
+void ScopeScopeIDPair__del__(struct ScopeScopeIDPair *this) {
+  Scope__del__(&this->scope);
+}
+
+struct Vector_ScopeScopeIDPair {
+  struct ScopeScopeIDPair *arr;
+  int size;
+  int capacity;
+};
+
+// template Vector<ScopeScopeIDPair> {
+size_t Vector_ScopeScopeIDPairlen(struct Vector_ScopeScopeIDPair *this) {
+  return this->size;
+}
+
+struct ScopeScopeIDPair
+Vector_ScopeScopeIDPair__getitem__(struct Vector_ScopeScopeIDPair *this,
+                                   int index) {
+  if (index < 0) {
+    index += this->size;
+  }
+  return *(this->arr + index);
+}
+
+void Vector_ScopeScopeIDPair__init__(struct Vector_ScopeScopeIDPair *this,
+                                     int capacity) {
+  // if we want to use instanced template type in fn body, we use following
+  // syntax.
+  // @ TEMPLATED_DATA_TYPE @
+  this->arr = (struct ScopeScopeIDPair *)malloc(
+      capacity * sizeof(struct ScopeScopeIDPair));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+  this->size = 0;
+  this->capacity = capacity;
+}
+
+void Vector_ScopeScopeIDPair__del__(struct Vector_ScopeScopeIDPair *this) {
+  free(this->arr);
+  this->arr = NULL;
+  this->size = 0;
+  this->capacity = 0;
+}
+
+void Vector_ScopeScopeIDPairpush(struct Vector_ScopeScopeIDPair *this,
+                                 struct ScopeScopeIDPair value) {
+  if (this->size == this->capacity) {
+    this->capacity *= 2;
+    this->arr = (struct ScopeScopeIDPair *)realloc(
+        this->arr, this->capacity * sizeof(struct ScopeScopeIDPair));
+    if (this->arr == NULL) {
+      fprintf(stderr, "Memory reallocation failed.\n");
+      exit(EXIT_FAILURE);
+    }
+  }
+  this->arr[this->size++] = value;
+}
+
+void Vector_ScopeScopeIDPairallocate_more(struct Vector_ScopeScopeIDPair *this,
+                                          int n) {
+  this->capacity += n;
+  this->arr = (struct ScopeScopeIDPair *)realloc(
+      this->arr, this->capacity * sizeof(struct ScopeScopeIDPair));
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory reallocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+}
+
+void Vector_ScopeScopeIDPairpush_unchecked(struct Vector_ScopeScopeIDPair *this,
+                                           struct ScopeScopeIDPair value) {
+  this->arr[this->size++] = value;
+}
+
+struct ScopeScopeIDPair
+Vector_ScopeScopeIDPairpop(struct Vector_ScopeScopeIDPair *this) {
+  if (this->size == 0) {
+    fprintf(stderr, "Pop from empty Vector.\n");
+    exit(EXIT_FAILURE);
+  }
+  return this->arr[--this->size];
+}
+
+void Vector_ScopeScopeIDPairremove_at(struct Vector_ScopeScopeIDPair *this,
+                                      int index) {
+  if (index < 0) {
+    index += this->size;
+  }
+
+  if (index < 0 || index >= this->size) {
+    fprintf(stderr, "Index out of bounds.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for (int i = index; i < this->size - 1; i++) {
+    this->arr[i] = this->arr[i + 1];
+  }
+  this->size--;
+}
+
+bool Vector_ScopeScopeIDPair__contains__(struct Vector_ScopeScopeIDPair *this,
+                                         struct ScopeScopeIDPair value) {
+  // This function is an overloaded function.
+  // Here <> in function defination means the base overload.
+  for (size_t i = 0; i < this->size; ++i) {
+    if (this->arr[i] == value) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void Vector_ScopeScopeIDPairprint(struct Vector_ScopeScopeIDPair *this) {
+  // Default overload.
+  printf("Dynamic Array (size = %d, capacity = %d) : [ ]", this->size,
+         this->capacity);
+  // struct ScopeScopeIDPair will be replaced by the actual templated data type.
+  printf("Unknown Format Specifier for type struct ScopeScopeIDPair.\n");
+}
+
+// template Vector<ScopeScopeIDPair> }
 
 struct Vector_int {
   int *arr;
@@ -1346,6 +1551,22 @@ int Vector_intpop(struct Vector_int *this) {
   return this->arr[--this->size];
 }
 
+void Vector_intremove_at(struct Vector_int *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
+
+  if (index < 0 || index >= this->size) {
+    fprintf(stderr, "Index out of bounds.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for (int i = index; i < this->size - 1; i++) {
+    this->arr[i] = this->arr[i + 1];
+  }
+  this->size--;
+}
+
 bool Vector_int__contains__(struct Vector_int *this, int value) {
   // This function is an overloaded function.
   // Here <> in function defination means the base overload.
@@ -1372,17 +1593,33 @@ void Vector_intprint(struct Vector_int *this) {
 // template Vector<int> }
 
 struct SymbolTable {
-  struct Dict_int_string symbols;
+  struct Vector_ScopeScopeIDPair scopes;
   struct Vector_int scope_stack;
 };
 
 void SymbolTable__init__(struct SymbolTable *this) {
-  Dict_int_string__init__(&this->symbols);
+  Vector_ScopeScopeIDPair__init__(&this->scopes, 5);
   Vector_int__init__(&this->scope_stack, 5);
 }
 
 int SymbolTablecurrent_scope(struct SymbolTable *this) {
   return Vector_int__getitem__(&this->scope_stack, -1);
+}
+
+struct Scope SymbolTableget_scope_by_id(struct SymbolTable *this, int id) {
+  size_t tmp_len_5 = Vector_ScopeScopeIDPairlen(&this->scopes);
+  for (size_t i = 0; i < tmp_len_5; i++) {
+    struct ScopeScopeIDPair s =
+        Vector_ScopeScopeIDPair__getitem__(&this->scopes, i);
+
+    if (&s.scope_id == id) {
+      return &s.scope;
+      ScopeScopeIDPair__del__(&s);
+    }
+  }
+
+  struct ErrorHandler e;
+  ErrorHandlerRAISE_ERROR(&e, "Didnt find scope of provided id.");
 }
 
 int SymbolTablenew_unique_scope_id(struct SymbolTable *this) {
@@ -1404,39 +1641,67 @@ int SymbolTablenew_unique_scope_id(struct SymbolTable *this) {
 void SymbolTableenter_scope(struct SymbolTable *this) {
   int new_scope_id = SymbolTablenew_unique_scope_id(this);
   Vector_intpush(&this->scope_stack, new_scope_id);
-  // this.symbols[new_scope_id] = OrderedDict()
-  Dict_int_stringadd_key(&this->symbols, new_scope_id);
+
+  struct ScopeScopeIDPair scope_pair;
+  ScopeScopeIDPair__init__(&scope_pair, new_scope_id);
+  Vector_ScopeScopeIDPairpush(&this->scopes, scope_pair);
+  ScopeScopeIDPair__del__(&scope_pair);
 }
 
-struct String
-SymbolTabledestructor_for_all_variables_in_scope(struct SymbolTable *this,
-                                                 int scope_id) {
-  // Return the destructor code for all variables in the provided scope
-  // And, free(unregister) those variables as well.
-  struct String des_code;
-  String__init__OVDstr(&des_code, "");
+void SymbolTableremove_scope_by_id(struct SymbolTable *this, int scope_id) {
+  struct Vector_int id_to_remove;
+  Vector_int__init__(&id_to_remove, 1);
+  int index = 0;
+  size_t tmp_len_6 = Vector_ScopeScopeIDPairlen(&this->scopes);
+  for (size_t i = 0; i < tmp_len_6; i++) {
+    struct ScopeScopeIDPair scope =
+        Vector_ScopeScopeIDPair__getitem__(&this->scopes, i);
+    int id = ScopeScopeIDPairget_scope_id(&scope);
 
-  if (Dict_int_string__contains__(&this->symbols, scope_id)) {
-    // for variable in reversed(this.symbols[scope_id]):
-    //     # Call the destructor for the variable
-    //     # print(f"Destroying variable '{variable}' in scope {scope_id}")
-    //     code = get_destructor_for_struct(variable)
-    //     if code != None:
-    //         # print(f"~() = {code}")
-    //         des_code += code
-    //     remove_struct_instance(variable)
-    // del this.symbols[scope_id]
+    if (id == scope_id) {
+      Vector_intpush(&id_to_remove, index);
+    }
+    index = index + 1;
+    ScopeScopeIDPair__del__(&scope);
   }
-  return des_code;
+
+  size_t tmp_len_7 = Vector_intlen(&id_to_remove);
+  tmp_len_7 -= 1;
+  for (size_t i = tmp_len_7; i != (size_t)-1; i += -1) {
+    int idx = Vector_int__getitem__(&id_to_remove, i);
+    Vector_ScopeScopeIDPairremove_at(&this->scopes, idx);
+  }
+  Vector_int__del__(&id_to_remove);
+}
+
+struct String SymbolTabledestructor_code_for_all_remaining_variables(
+    struct SymbolTable *this) {
+  struct String destructor_code;
+  String__init__OVDstr(&destructor_code, "");
+
+  while (Vector_intlen(&this->scope_stack) > 0) {
+    int exiting_scope_id = Vector_intpop(&this->scope_stack);
+    struct Scope scope = SymbolTableget_scope_by_id(this, exiting_scope_id);
+    struct String des_code = Scopedestructor_for_all_variables(&scope);
+
+    if (!(String__eq__(&des_code, ""))) {
+      String__add__(&destructor_code, Stringc_str(&des_code));
+    }
+    SymbolTableremove_scope_by_id(this, exiting_scope_id);
+    String__del__(&des_code);
+    Scope__del__(&scope);
+  }
+  return destructor_code;
 }
 
 void SymbolTableexit_scope(struct SymbolTable *this) {
 
   if (Vector_intlen(&this->scope_stack) > 0) {
     int exiting_scope_id = Vector_intpop(&this->scope_stack);
-    struct String destructor_code =
-        SymbolTabledestructor_for_all_variables_in_scope(this,
-                                                         exiting_scope_id);
+    struct String destructor_code;
+    String__init__OVDstr(&destructor_code, "");
+    // let destructor_code =
+    // this.destructor_for_all_variables_in_scope(exiting_scope_id)
 
     if (!(String__eq__(&destructor_code, ""))) {
       // LinesCache.append(destructor_code)
@@ -1467,8 +1732,8 @@ void SymbolTabledeclare_variable(struct SymbolTable *this, struct String name,
   //     this.print_symbol_table()
   //     RAISE_ERROR(f"Variable '{name}' already declared in this scope.")
 
-  size_t tmp_len_5 = Vector_intlen(&this->scope_stack);
-  for (size_t i = 0; i < tmp_len_5; i++) {
+  size_t tmp_len_8 = Vector_intlen(&this->scope_stack);
+  for (size_t i = 0; i < tmp_len_8; i++) {
     int scope = Vector_int__getitem__(&this->scope_stack, i);
     //     if name in this.symbols[scope]:
     //         this.print_symbol_table()
@@ -1489,30 +1754,8 @@ void SymbolTablefind_variable(struct SymbolTable *this, struct String name) {
   // return None
 }
 
-struct String SymbolTabledestructor_code_for_all_remaining_variables(
-    struct SymbolTable *this) {
-  struct String destructor_code;
-  String__init__OVDstr(&destructor_code, "");
-
-  while (true) {
-
-    if (Vector_intlen(&this->scope_stack) > 0) {
-      int exiting_scope_id = Vector_intpop(&this->scope_stack);
-      struct String des_code = SymbolTabledestructor_for_all_variables_in_scope(
-          this, exiting_scope_id);
-
-      if (!(String__eq__(&des_code, ""))) {
-        String__add__(&destructor_code, Stringc_str(&des_code));
-      }
-      String__del__(&des_code);
-    } else {
-      break;
-    }
-  }
-  return destructor_code;
-}
-
 void SymbolTable__del__(struct SymbolTable *this) {
+  Vector_ScopeScopeIDPair__del__(&this->scopes);
   Vector_int__del__(&this->scope_stack);
 }
 
@@ -1638,8 +1881,8 @@ int main() {
   struct Vector_String imported_modules;
   Vector_String__init__(&imported_modules, 5);
 
-  size_t tmp_len_6 = Vector_Stringlen(&Lines);
-  for (size_t i = 0; i < tmp_len_6; i++) {
+  size_t tmp_len_9 = Vector_Stringlen(&Lines);
+  for (size_t i = 0; i < tmp_len_9; i++) {
     struct String line = Vector_String__getitem__(&Lines, i);
     struct String Line = Stringstrip(&line);
 
@@ -1661,8 +1904,8 @@ int main() {
     struct Vector_String ImportedCodeLines;
     Vector_String__init__(&ImportedCodeLines, 50);
 
-    size_t tmp_len_7 = Vector_Stringlen(&imported_modules);
-    for (size_t i = 0; i < tmp_len_7; i++) {
+    size_t tmp_len_10 = Vector_Stringlen(&imported_modules);
+    for (size_t i = 0; i < tmp_len_10; i++) {
       struct String module_name =
           Vector_String__getitem__(&imported_modules, i);
       struct String relative_path;
@@ -1679,8 +1922,8 @@ int main() {
       // lines.print()
 
       // ImportedCodeLines += lines
-      size_t tmp_len_8 = Vector_Stringlen(&lines);
-      for (size_t j = 0; j < tmp_len_8; j++) {
+      size_t tmp_len_11 = Vector_Stringlen(&lines);
+      for (size_t j = 0; j < tmp_len_11; j++) {
         struct String line = Vector_String__getitem__(&lines, j);
         Vector_Stringpush(&ImportedCodeLines, line);
       }
