@@ -357,6 +357,7 @@ int main() {
   Listappend_str(&vector_class_member_functions, "allocate_more");
   Listappend_str(&vector_class_member_functions, "push_unchecked");
   Listappend_str(&vector_class_member_functions, "pop");
+  Listappend_str(&vector_class_member_functions, "remove_at");
   Listappend_str(&vector_class_member_functions, "__contains__");
   Listappend_str(&vector_class_member_functions, "__contains__");
   Listappend_str(&vector_class_member_functions, "print");

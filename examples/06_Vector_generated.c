@@ -201,6 +201,22 @@ struct String Vector_Stringpop(struct Vector_String *this) {
   return this->arr[--this->size];
 }
 
+void Vector_Stringremove_at(struct Vector_String *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
+
+  if (index < 0 || index >= this->size) {
+    fprintf(stderr, "Index out of bounds.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for (int i = index; i < this->size - 1; i++) {
+    this->arr[i] = this->arr[i + 1];
+  }
+  this->size--;
+}
+
 bool Vector_String__contains__(struct Vector_String *this,
                                struct String value) {
   for (size_t i = 0; i < this->size; ++i) {
@@ -416,6 +432,22 @@ int Vector_intpop(struct Vector_int *this) {
   return this->arr[--this->size];
 }
 
+void Vector_intremove_at(struct Vector_int *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
+
+  if (index < 0 || index >= this->size) {
+    fprintf(stderr, "Index out of bounds.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for (int i = index; i < this->size - 1; i++) {
+    this->arr[i] = this->arr[i + 1];
+  }
+  this->size--;
+}
+
 bool Vector_int__contains__(struct Vector_int *this, int value) {
   // This function is an overloaded function.
   // Here <> in function defination means the base overload.
@@ -509,6 +541,22 @@ float Vector_floatpop(struct Vector_float *this) {
     exit(EXIT_FAILURE);
   }
   return this->arr[--this->size];
+}
+
+void Vector_floatremove_at(struct Vector_float *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
+
+  if (index < 0 || index >= this->size) {
+    fprintf(stderr, "Index out of bounds.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for (int i = index; i < this->size - 1; i++) {
+    this->arr[i] = this->arr[i + 1];
+  }
+  this->size--;
 }
 
 bool Vector_float__contains__(struct Vector_float *this, float value) {
@@ -606,6 +654,22 @@ char Vector_charpop(struct Vector_char *this) {
   return this->arr[--this->size];
 }
 
+void Vector_charremove_at(struct Vector_char *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
+
+  if (index < 0 || index >= this->size) {
+    fprintf(stderr, "Index out of bounds.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for (int i = index; i < this->size - 1; i++) {
+    this->arr[i] = this->arr[i + 1];
+  }
+  this->size--;
+}
+
 bool Vector_char__contains__(struct Vector_char *this, char value) {
   // This function is an overloaded function.
   // Here <> in function defination means the base overload.
@@ -647,6 +711,12 @@ int main() {
   if (Vector_int__contains__(&a, 10)) {
     printf("10 is in the vector. \n");
   }
+
+  printf("Removing index 2 item.\n");
+  Vector_intremove_at(&a, 2);
+
+  Vector_intprint(&a);
+  printf("\n");
 
   struct Vector_float b;
   Vector_float__init__(&b, 10);

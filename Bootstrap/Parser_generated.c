@@ -323,6 +323,22 @@ struct String Vector_Stringpop(struct Vector_String *this) {
   return this->arr[--this->size];
 }
 
+void Vector_Stringremove_at(struct Vector_String *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
+
+  if (index < 0 || index >= this->size) {
+    fprintf(stderr, "Index out of bounds.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for (int i = index; i < this->size - 1; i++) {
+    this->arr[i] = this->arr[i + 1];
+  }
+  this->size--;
+}
+
 bool Vector_String__contains__(struct Vector_String *this,
                                struct String value) {
   for (size_t i = 0; i < this->size; ++i) {

@@ -82,6 +82,22 @@ int Vector_intpop(struct Vector_int *this) {
   return this->arr[--this->size];
 }
 
+void Vector_intremove_at(struct Vector_int *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
+
+  if (index < 0 || index >= this->size) {
+    fprintf(stderr, "Index out of bounds.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for (int i = index; i < this->size - 1; i++) {
+    this->arr[i] = this->arr[i + 1];
+  }
+  this->size--;
+}
+
 bool Vector_int__contains__(struct Vector_int *this, int value) {
   // This function is an overloaded function.
   // Here <> in function defination means the base overload.

@@ -26,6 +26,12 @@ int main() {
     print("10 is in the vector. \n")
   }
 
+  print("Removing index 2 item.\n")
+  a.remove_at(2)
+
+  a.print()
+  print("\n")
+
   let b = Vector<float>{10};
   b.push(10)
   b.push(40)

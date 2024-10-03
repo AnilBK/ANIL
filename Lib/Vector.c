@@ -109,6 +109,22 @@ c_function pop() -> T:
   return this->arr[--this->size];
 endc_function
 
+c_function remove_at(index : int)
+  if (index < 0) {
+    index += this->size;
+  }
+
+  if (index < 0 || index >= this->size) {
+    fprintf(stderr, "Index out of bounds.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for (int i = index; i < this->size - 1; i++) {
+    this->arr[i] = this->arr[i + 1];
+  }
+  this->size--;
+endc_function
+
 c_function<> __contains__(value : T) -> bool:
   // This function is an overloaded function.
   // Here <> in function defination means the base overload.
