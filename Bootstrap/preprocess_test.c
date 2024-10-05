@@ -180,7 +180,7 @@ endfunction
 function declare_variable(name : String, p_type : String)
   for s in this.symbols{
     let n = s.get_name()
-    if n.c_str() == name.c_str(){
+    if n == name{
       let e = ErrorHandler{};
       e.RAISE_ERROR("Variable already declared.")
     }
@@ -198,7 +198,7 @@ function lookup_variable(name : String) -> Symbol:
 
   for s in this.symbols{
     let n = s.get_name()
-    if n.c_str() == name.c_str(){
+    if n == name{
       let sss = s.get_symbol()
       let s1name = sss.get_name()
       let s1datatype = sss.get_data_type()

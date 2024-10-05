@@ -1276,7 +1276,7 @@ void Scopedeclare_variable(struct Scope *this, struct String name,
         Vector_NameSymbolPair__getitem__(&this->symbols, i);
     struct String n = NameSymbolPairget_name(&s);
 
-    if (strcmp(Stringc_str(&name), Stringc_str(&n)) == 0) {
+    if (String__eq__(&n, Stringc_str(&name))) {
       struct ErrorHandler e;
       ErrorHandlerRAISE_ERROR(&e, "Variable already declared.");
     }
@@ -1304,7 +1304,7 @@ struct Symbol Scopelookup_variable(struct Scope *this, struct String name) {
         Vector_NameSymbolPair__getitem__(&this->symbols, i);
     struct String n = NameSymbolPairget_name(&s);
 
-    if (strcmp(Stringc_str(&name), Stringc_str(&n)) == 0) {
+    if (String__eq__(&n, Stringc_str(&name))) {
       struct Symbol sss = NameSymbolPairget_symbol(&s);
       struct String s1name = Symbolget_name(&sss);
       struct String s1datatype = Symbolget_data_type(&sss);

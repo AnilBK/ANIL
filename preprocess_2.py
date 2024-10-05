@@ -2936,6 +2936,9 @@ while index < len(Lines):
         if negation:
             code = f"!{code}"
 
+        if struct_info.struct_type == "String" and r_type == ParameterType.STRING_CLASS:
+            return code
+
         return {"code": code, "return_type": return_type}
 
     def handle_char_equality(var_to_check_against, var_to_check, l_type, negation):
