@@ -121,6 +121,13 @@ templated_data_type_mapping_list = []
 is_inside_form = False
 gui_manager = InputVariablesGUI()
 
+# When a fn is declared, we need to track all the scopes inside it,
+# such that for return statements we can generate destructor code for all the required variables in those scopes.
+tracking_scopes_for_current_fn = False
+tracked_scopes_for_current_fn = []
+# All the function parameters are registerd here, such that they may be freed when the function ends.
+registered_function_parameters = []
+
 # UTILS BEGIN
 
 
@@ -205,16 +212,24 @@ class Scope:
 
     def lookup_variable(self, name):
         return self.symbols.get(name, None)
-
-    def destructor_for_all_variables(self):
-        des_code = ""
-        for variable in reversed(self.symbols):
-            code = get_destructor_for_struct(variable)
+    
+    def get_destructor_code_for_all_variables(self):
+        destructor_code = ""
+        for symbol in reversed(self.symbols):
+            code = get_destructor_for_struct(symbol)
             if code is not None:
-                des_code += code
-            remove_struct_instance(variable)
+                destructor_code += code
+        return destructor_code
+
+    def remove_all_variables(self):
+        for symbol in self.symbols:
+            remove_struct_instance(symbol)
         self.symbols.clear()
-        return des_code
+
+    def get_destructor_for_all_variables_and_remove(self):
+        destructor_code = self.get_destructor_code_for_all_variables()
+        self.remove_all_variables()
+        return destructor_code
 
 class SymbolTable:
     def __init__(self):
@@ -246,12 +261,25 @@ class SymbolTable:
         self.scope_stack.append(new_scope_id)
         self.scopes[new_scope_id] = Scope(new_scope_id)
 
+        if tracking_scopes_for_current_fn:
+            if new_scope_id not in tracked_scopes_for_current_fn:
+                tracked_scopes_for_current_fn.append(new_scope_id)
+            # For for loops, we increment scope and the for loop generates CPL code which increments scope.
+            # Apparently new_scope_id is added again,
+            # such that the destructor code is generated twice. So we make this check(Shouldn't be needed optimally).
+
     def exit_scope(self):
         if self.scope_stack:
             exiting_scope_id = self.scope_stack.pop()
-            destructor_code = self.get_scope_by_id(exiting_scope_id).destructor_for_all_variables()
-            if destructor_code != "":
-                LinesCache.append(destructor_code)
+
+            if exiting_scope_id in scopes_with_return_stmnt:
+                # We have found return statement in this scope.
+                # The return statement has already written the destructor code for all the variables in this scope.
+                pass
+            else:
+                destructor_code = self.get_scope_by_id(exiting_scope_id).get_destructor_code_for_all_variables()
+                if destructor_code != "":
+                    LinesCache.append(destructor_code)
             del self.scopes[exiting_scope_id]
 
         # No more scopes remaining.
@@ -292,7 +320,7 @@ class SymbolTable:
         destructor_code = ""
         while self.scope_stack:
             exiting_scope_id = self.scope_stack.pop()
-            des_code = self.get_scope_by_id(exiting_scope_id).destructor_for_all_variables()
+            des_code = self.get_scope_by_id(exiting_scope_id).get_destructor_for_all_variables_and_remove()
             if des_code != "":
                 destructor_code += des_code
             del self.scopes[exiting_scope_id]
@@ -425,6 +453,7 @@ currently_reading_parameters = []
 should_write_fn_body = True
 
 return_encountered_in_fn = False
+scopes_with_return_stmnt = []
 
 # User Defined function properties.
 class_fn_defination = {
@@ -693,6 +722,15 @@ class StructInstance:
             )
         else:
             StructInfo = self.get_struct_defination()
+
+            if StructInfo.template_defination_variable != "":
+                # For templated functions as we are generating code, we don't have actual type of instantiated template.
+                # So, we leave placeholder for the templated type to be patched later.
+                # Patch @TEMPLATED_DATA_TYPE@ later.
+                return get_templated_mangled_fn_name(
+                    self.struct_type, p_fn_name, "@PATCH_TEMPLATED_DATA_TYPE@"
+                )
+
             if StructInfo.function_is_overloaded(p_fn_name):
                 return get_overloaded_mangled_fn_name(self.struct_type, p_fn_name, parameters if parameters != None else [])
             else:
@@ -1452,6 +1490,11 @@ while index < len(Lines):
 
                 templated_fn_code = templated_fn_code.replace(
                     "@TEMPLATED_DATA_TYPE@", m_templated_data_type
+                )
+            elif "@PATCH_TEMPLATED_DATA_TYPE@" in templated_fn_code:
+                m_templated_data_type = templated_data_type
+                templated_fn_code = templated_fn_code.replace(
+                    "@PATCH_TEMPLATED_DATA_TYPE@", m_templated_data_type
                 )
 
             GlobalStructInitCode += templated_fn_code
@@ -4101,6 +4144,9 @@ while index < len(Lines):
                 )
 
                 """
+        
+            for param in registered_function_parameters:
+                remove_struct_instance(param)
 
             add_fnbody_to_member_to_struct(
                 currently_reading_fn_parent_struct,
@@ -4110,6 +4156,7 @@ while index < len(Lines):
             currently_reading_fn_body = ""
             should_write_fn_body = True
             is_inside_struct_c_function = False
+            registered_function_parameters = []
         else:
             RAISE_ERROR("End c_function without being in c_function block.")
     elif check_token(lexer.Token.DEF):
@@ -4245,6 +4292,10 @@ while index < len(Lines):
         # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN) -> return_type
         parser.consume_token(lexer.Token.FUNCTION)
 
+        should_write_fn_body = True
+        scopes_with_return_stmnt = []
+        registered_function_parameters = []
+
         function_declaration = parse_function_declaration()
 
         function_name = function_declaration["fn_name"]
@@ -4297,6 +4348,7 @@ while index < len(Lines):
                 instance.should_be_freed = False
 
                 instanced_struct_names.append(instance)
+                registered_function_parameters.append(param_name)
             REGISTER_VARIABLE(param_name, param_type)
 
 
@@ -4346,6 +4398,12 @@ while index < len(Lines):
                 annotations_list.extend(temporary_annotations_list)
                 temporary_annotations_list = []
 
+        if defining_fn_for_custom_class:
+            struct_def = get_struct_defination_of_type(class_fn_defination["class_name"])
+            if struct_def != None:
+                if struct_def.is_templated():
+                    should_write_fn_body = False
+
         code = ""
         struct_name = class_fn_defination["class_name"]
 
@@ -4374,7 +4432,8 @@ while index < len(Lines):
         fn.is_return_type_ref_type = is_return_type_ref_type
         
         if defining_fn_for_custom_class:
-            GlobalStructInitCode += code
+            if should_write_fn_body:
+                GlobalStructInitCode += code
             add_fn_member_to_struct(class_fn_defination["class_name"], fn)
             class_fn_defination["function_destination"] = "class"
         else:
@@ -4382,19 +4441,20 @@ while index < len(Lines):
             class_fn_defination["function_destination"] = "global"
 
         is_inside_user_defined_function = True
+
+        tracking_scopes_for_current_fn = True
+        tracked_scopes_for_current_fn.append(curr_scope)
     elif check_token(lexer.Token.ENDFUNCTION):
+        current_scope = get_current_scope()
+
         if not return_encountered_in_fn:
             decrement_scope() 
-        # ^^^^^^^^^^^^^^^^ This calls destructors.
-        # Since, we have return statement, that handles the destructors.
-        # If no return, then this should be performed.
-        # TODO : Check this logic once.
-        # TODO : What for void functions??
-        # They don't have return statements but their destructors should be called.
-        # As of now the destructors aren't called.
-
-        # Reset the flag.
-        return_encountered_in_fn = False
+        else:
+            # Remove all struct instances form current scope.
+            # decrement_scope() above automatically does this.
+            for scope in tracked_scopes_for_current_fn[::-1]:
+                if scope in symbol_table.scopes:
+                    symbol_table.get_scope_by_id(scope).remove_all_variables()
 
         if not is_inside_user_defined_function:
             RAISE_ERROR("End function without being in Function block.")
@@ -4402,23 +4462,20 @@ while index < len(Lines):
         if is_inside_struct_c_function:
             RAISE_ERROR("Use \"endc_function\" to close a c function and not \"end_function\".")
 
-        code = "}\n"
-        LinesCache.append(code)
         class_fn_defination["end_index"] = len(LinesCache)
 
         if class_fn_defination["function_destination"] == "class":
             fn_body = ""
-            for i in range(class_fn_defination["start_index"] + 1, class_fn_defination["end_index"]-1):
+            for i in range(class_fn_defination["start_index"] + 1, class_fn_defination["end_index"]):
                 line = LinesCache[i]
-                # print(line)
                 fn_body += line
 
             del LinesCache[class_fn_defination["start_index"] : class_fn_defination["end_index"]]
             # When using FUNCTION, C code is generated from CPL code.
             # The c code is part of the function body and not needed in LinesCache.
             # So, remove it from LinesCache after adding the function body to the struct.
-
-            GlobalStructInitCode += fn_body + "\n}\n\n"
+            if should_write_fn_body:
+                GlobalStructInitCode += fn_body + "\n}\n\n"
 
             add_fnbody_to_member_to_struct(
                 class_fn_defination["class_name"],
@@ -4435,6 +4492,27 @@ while index < len(Lines):
             # Remove 'this*' StructInstance, so it doesn't mess up, as there can be different 'this*' parameters for different classes.
             remove_struct_instance("this")
 
+        else:
+            if should_write_fn_body:
+                code = "}\n"
+                LinesCache.append(code)
+        
+        # Remove all the variables that were brought into scope by the function.
+        for param in registered_function_parameters:
+            remove_struct_instance(param)
+
+        for struct in instanced_struct_names:
+            if struct.scope in tracked_scopes_for_current_fn:
+                remove_struct_instance(struct.struct_name)
+
+        tracking_scopes_for_current_fn = False
+        tracked_scopes_for_current_fn = []
+        registered_function_parameters = []
+
+        return_encountered_in_fn = False
+        scopes_with_return_stmnt = []
+
+        should_write_fn_body = True
         is_inside_user_defined_function = False
     elif parser.current_token() == lexer.Token.RETURN:
         parser.consume_token(lexer.Token.RETURN)
@@ -4464,22 +4542,28 @@ while index < len(Lines):
             create_temporary = True
             LinesCache.append(f"{fn_return_type} return_name = {fn_return_code};\n")
 
+        current_scope = get_current_scope()
+
         # return s
         #        ^  s shouldn't be freed, because it is returned.
         # Should be the job of the caller to free it.
         i = 0
         for struct in instanced_struct_names:
-            if (
-                struct.struct_name == result
-                and struct.scope == get_current_scope()
-            ):
+            if struct.struct_name == result and struct.scope == current_scope:
                 instanced_struct_names[i].should_be_freed = False
                 break
             i += 1
 
         # Write destructors.
-        decrement_scope()
+        for scope in tracked_scopes_for_current_fn[::-1]:
+            if scope in symbol_table.scopes:
+                destructor_code = symbol_table.get_scope_by_id(scope).get_destructor_code_for_all_variables()
+                if destructor_code != "":
+                    LinesCache.append(destructor_code)
+
         return_encountered_in_fn = True
+        scopes_with_return_stmnt.append(current_scope)
+
         # Write return itself.
         # We assume we have single return statement.
         if create_temporary:
