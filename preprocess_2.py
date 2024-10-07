@@ -1229,10 +1229,10 @@ while index < len(Lines):
         if not inner:
             templated_data_type_mapping_list = []
         
-        if is_struct_type:
-            templated_data_type_mapping_list.append(data_type_str)
+        templated_data_type_mapping_list.append(data_type_str)
 
-            if not inner:
+        if not inner:
+            if is_struct_type:
                 data_type_str = f"struct {data_type_str}"
 
         # Vector<String>
