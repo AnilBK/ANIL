@@ -14,6 +14,7 @@ import List
 import Random
 import Dict_int_string
 import ErrorHandler
+import Optional
 
 // Insert a string at a given index in another string.
 function insert_string(original_string : String, p_index: int, string_to_insert: String) -> String:
@@ -66,10 +67,10 @@ function get_mangled_fn_name(p_struct_type: String, p_fn_name: String) -> String
   return s
 endfunction
 
-function get_templated_mangled_fn_name(p_struct_type1: String, p_fn_name1: String, p_templated_data_type1: String) -> String:
-  let s1 = String{p_struct_type1};
-  s1 += "_" + p_templated_data_type1 + p_fn_name1
-  return s1
+function get_templated_mangled_fn_name(p_struct_type: String, p_fn_name: String, p_templated_data_type: String) -> String:
+  let s = String{p_struct_type};
+  s += "_" + p_templated_data_type + p_fn_name
+  return s
 endfunction
 
 // Cached Items.
@@ -192,31 +193,23 @@ function declare_variable(name : String, p_type : String)
   this.symbols.push(name_symbol_pair)
 endfunction
 
-function lookup_variable(name : String) -> Symbol:
-  let s1 = "test_name";
-  let d1 = "test_data_type";
+function lookup_variable(name : String) -> Optional<Symbol>:
+  let variable = Optional<Symbol>{};
 
   for s in this.symbols{
     let n = s.get_name()
     if n == name{
-      let sss = s.get_symbol()
-      let s1name = sss.get_name()
-      let s1datatype = sss.get_data_type()
-      // Doing this because we can't directly reassign expressions.
+      let sym = s.get_symbol()
+      let s_name = sym.get_name()
+      let s_data_type = sym.get_data_type()
 
-      s1 = s1name
-      d1 = s1datatype
+      let Sym1 = Symbol{s_name, s_data_type};
+      variable.set_value(Sym1)
+      return variable
     }
   }
 
-  if s1 == "test_name"{
-    // Our variables wasnt modified inside, that means lookup unsucessful.
-    let e = ErrorHandler{};
-    e.RAISE_ERROR("Didnt find Variable.")
-  }
-
-  let Sym1 = Symbol{s1, d1};
-  return Sym1
+  return variable
 endfunction
 
 function destructor_for_all_variables() -> String:

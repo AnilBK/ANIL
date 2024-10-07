@@ -8,6 +8,7 @@ file_names = [
     "examples\\05_Strings.c",
     "examples\\06_Vector.c",
     "examples\\07_Set.c",
+    "examples\\08_Optional.c",
     "examples\\unique_ptr_source.c",
     "examples\\initializer_list.c",
     "examples\\Reflection.c",

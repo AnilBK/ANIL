@@ -86,6 +86,10 @@ typedef CPLObject *CPLObjectptr;
 ///*///
 
 ///*///
+///*///
+
+///*///
+
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -1292,11 +1296,41 @@ void Scopedeclare_variable(struct Scope *this, struct String name,
   Symbol__del__(&symbol);
 }
 
-struct Symbol Scopelookup_variable(struct Scope *this, struct String name) {
-  struct String s1;
-  String__init__OVDstr(&s1, "test_name");
-  struct String d1;
-  String__init__OVDstr(&d1, "test_data_type");
+struct Optional_Symbol {
+  bool _has_value;
+  struct Symbol _value;
+};
+
+// template Optional<Symbol> {
+void Optional_Symbol__init__(struct Optional_Symbol *this) {
+  this->_has_value = false;
+}
+
+bool Optional_Symbolhas_value(struct Optional_Symbol *this) {
+  return this->_has_value;
+}
+
+struct Symbol Optional_Symbolget_value(struct Optional_Symbol *this) {
+  return this->_value;
+}
+
+void Optional_Symbol_set_value(struct Optional_Symbol *this,
+                               struct Symbol p_value) {
+  this->_value = p_value;
+}
+
+void Optional_Symbolset_value(struct Optional_Symbol *this,
+                              struct Symbol p_value) {
+  this->_has_value = true;
+  Optional_Symbol_set_value(this, p_value);
+}
+
+// template Optional<Symbol> }
+
+struct Optional_Symbol Scopelookup_variable(struct Scope *this,
+                                            struct String name) {
+  struct Optional_Symbol variable;
+  Optional_Symbol__init__(&variable);
 
   size_t tmp_len_4 = Vector_NameSymbolPairlen(&this->symbols);
   for (size_t i = 0; i < tmp_len_4; i++) {
@@ -1305,31 +1339,24 @@ struct Symbol Scopelookup_variable(struct Scope *this, struct String name) {
     struct String n = NameSymbolPairget_name(&s);
 
     if (String__eq__(&n, Stringc_str(&name))) {
-      struct Symbol sss = NameSymbolPairget_symbol(&s);
-      struct String s1name = Symbolget_name(&sss);
-      struct String s1datatype = Symbolget_data_type(&sss);
-      // Doing this because we can't directly reassign expressions.
+      struct Symbol sym = NameSymbolPairget_symbol(&s);
+      struct String s_name = Symbolget_name(&sym);
+      struct String s_data_type = Symbolget_data_type(&sym);
 
-      String__reassign__OVDstructString(&s1, s1name);
-      String__reassign__OVDstructString(&d1, s1datatype);
-      String__del__(&s1datatype);
-      String__del__(&s1name);
-      Symbol__del__(&sss);
+      struct Symbol Sym1;
+      Symbol__init__(&Sym1, s_name, s_data_type);
+      Optional_Symbolset_value(&variable, Sym1);
+      Symbol__del__(&Sym1);
+      String__del__(&s_data_type);
+      String__del__(&s_name);
+      Symbol__del__(&sym);
+      String__del__(&n);
+      return variable;
     }
     String__del__(&n);
   }
 
-  if (String__eq__(&s1, "test_name")) {
-    // Our variables wasnt modified inside, that means lookup unsucessful.
-    struct ErrorHandler e;
-    ErrorHandlerRAISE_ERROR(&e, "Didnt find Variable.");
-  }
-
-  struct Symbol Sym1;
-  Symbol__init__(&Sym1, s1, d1);
-  String__del__(&d1);
-  String__del__(&s1);
-  return Sym1;
+  return variable;
 }
 
 struct String Scopedestructor_for_all_variables(struct Scope *this) {
@@ -1613,9 +1640,10 @@ struct Scope SymbolTableget_scope_by_id(struct SymbolTable *this, int id) {
         Vector_ScopeScopeIDPair__getitem__(&this->scopes, i);
 
     if (&s.scope_id == id) {
-      return &s.scope;
       ScopeScopeIDPair__del__(&s);
+      return &s.scope;
     }
+    ScopeScopeIDPair__del__(&s);
   }
 
   struct ErrorHandler e;
@@ -1754,8 +1782,7 @@ void SymbolTablelookup_variable(struct SymbolTable *this, struct String name) {
   for (size_t i = len - 1; i >= 0; i += -1) {
     int scope_id = Vector_int__getitem__(&this->scope_stack, i);
     struct Scope scope = SymbolTableget_scope_by_id(this, scope_id);
-    struct Symbol variable = Scopelookup_variable(&scope, name);
-    Symbol__del__(&variable);
+    struct Optional_Symbol variable = Scopelookup_variable(&scope, name);
     Scope__del__(&scope);
   }
 }
@@ -1832,15 +1859,15 @@ struct String get_mangled_fn_name(struct String p_struct_type,
 }
 
 struct String
-get_templated_mangled_fn_name(struct String p_struct_type1,
-                              struct String p_fn_name1,
-                              struct String p_templated_data_type1) {
-  struct String s1;
-  String__init__OVDstructString(&s1, p_struct_type1);
-  String__add__(&s1, "_");
-  String__add__(&s1, Stringc_str(&p_templated_data_type1));
-  String__add__(&s1, Stringc_str(&p_fn_name1));
-  return s1;
+get_templated_mangled_fn_name(struct String p_struct_type,
+                              struct String p_fn_name,
+                              struct String p_templated_data_type) {
+  struct String s;
+  String__init__OVDstructString(&s, p_struct_type);
+  String__add__(&s, "_");
+  String__add__(&s, Stringc_str(&p_templated_data_type));
+  String__add__(&s, Stringc_str(&p_fn_name));
+  return s;
 }
 
 // Cached Items.

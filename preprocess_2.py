@@ -26,6 +26,7 @@ source_file = "examples\\01_variables_GUI_Input.c"
 # source_file = "examples\\05_Strings.c"
 # source_file = "examples\\06_Vector.c"
 # source_file = "examples\\07_Set.c"
+# source_file = "examples\\08_Optional.c"
 
 # source_file = "examples\\unique_ptr_source.c"
 # source_file = "examples\\initializer_list.c"
