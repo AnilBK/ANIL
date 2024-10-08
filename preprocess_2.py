@@ -3058,6 +3058,9 @@ while index < len(Lines):
                     if lhs['type'] == ParameterType.RAW_STRING:
                         CPL_code = f"{var_to_check_against}.__contains__(\"{var_to_check}\")"
                     CPL_code = CPL_code.replace("->",".")
+                    if CPL_code[0] == "&":
+                        CPL_code = CPL_code[1:]
+
                     fn_parser = Parser.Parser(CPL_code)
                     parser.tokens = fn_parser.tokens + parser.tokens
                     fn_call_parse_info = function_call_expression()
