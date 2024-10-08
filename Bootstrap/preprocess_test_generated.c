@@ -1272,8 +1272,7 @@ void Scope__init__(struct Scope *this, int p_scope_id) {
   Vector_NameSymbolPair__init__(&this->symbols, 5);
 }
 
-void Scopedeclare_variable(struct Scope *this, struct String name,
-                           struct String p_type) {
+bool Scopecontains_symbol(struct Scope *this, struct String name) {
   size_t tmp_len_3 = Vector_NameSymbolPairlen(&this->symbols);
   for (size_t i = 0; i < tmp_len_3; i++) {
     struct NameSymbolPair s =
@@ -1281,10 +1280,20 @@ void Scopedeclare_variable(struct Scope *this, struct String name,
     struct String n = NameSymbolPairget_name(&s);
 
     if (String__eq__(&n, Stringc_str(&name))) {
-      struct ErrorHandler e;
-      ErrorHandlerRAISE_ERROR(&e, "Variable already declared.");
+      String__del__(&n);
+      return true;
     }
     String__del__(&n);
+  }
+  return false;
+}
+
+void Scopedeclare_variable(struct Scope *this, struct String name,
+                           struct String p_type) {
+
+  if (Scopecontains_symbol(this, name)) {
+    struct ErrorHandler e;
+    ErrorHandlerRAISE_ERROR(&e, "Variable already declared.");
   }
 
   struct Symbol symbol;
@@ -1653,7 +1662,7 @@ struct Scope SymbolTableget_scope_by_id(struct SymbolTable *this, int id) {
 int SymbolTablenew_unique_scope_id(struct SymbolTable *this) {
 
   if (Vector_intlen(&this->scope_stack) == 0) {
-    // return 0
+    return 0;
   }
 
   int latest_scope = SymbolTablecurrent_scope(this);
@@ -1758,33 +1767,48 @@ void SymbolTabledeclare_variable(struct SymbolTable *this, struct String name,
   struct Scope current_scope =
       SymbolTableget_scope_by_id(this, current_scope_id);
 
-  // if name in this.symbols[current_scope]:
-  //     this.print_symbol_table()
-  //     RAISE_ERROR(f"Variable '{name}' already declared in this scope.")
+  if (Scopecontains_symbol(&current_scope, name)) {
+    SymbolTableprint_symbol_table(this);
+    struct ErrorHandler e;
+    ErrorHandlerRAISE_ERROR(&e, "Variable already declared.");
+  }
 
   size_t tmp_len_8 = Vector_intlen(&this->scope_stack);
   for (size_t i = 0; i < tmp_len_8; i++) {
-    int scope = Vector_int__getitem__(&this->scope_stack, i);
-    //     if name in this.symbols[scope]:
-    //         this.print_symbol_table()
-    //         RAISE_ERROR(
-    //             f"Variable '{name}' already declared in previous scope
-    //             {scope}."
-    //         )
+    int scope_id = Vector_int__getitem__(&this->scope_stack, i);
+    struct Scope scope = SymbolTableget_scope_by_id(this, scope_id);
+
+    if (Scopecontains_symbol(&scope, name)) {
+      SymbolTableprint_symbol_table(this);
+      struct ErrorHandler e;
+      ErrorHandlerRAISE_ERROR(&e,
+                              "Variable already declared in previous scopes.");
+    }
+    Scope__del__(&scope);
   }
 
-  // this.symbols[current_scope][name] = Symbol(name, p_type)
+  Scopedeclare_variable(&current_scope, name, p_type);
   Scope__del__(&current_scope);
 }
 
-void SymbolTablelookup_variable(struct SymbolTable *this, struct String name) {
+struct Optional_Symbol SymbolTablelookup_variable(struct SymbolTable *this,
+                                                  struct String name) {
   size_t len = Vector_intlen(&this->scope_stack);
   for (size_t i = len - 1; i >= 0; i += -1) {
     int scope_id = Vector_int__getitem__(&this->scope_stack, i);
     struct Scope scope = SymbolTableget_scope_by_id(this, scope_id);
     struct Optional_Symbol variable = Scopelookup_variable(&scope, name);
+
+    if (Optional_Symbolhas_value(&variable)) {
+      Scope__del__(&scope);
+      return variable;
+    }
     Scope__del__(&scope);
   }
+
+  struct Optional_Symbol none;
+  Optional_Symbol__init__(&none);
+  return none;
 }
 
 void SymbolTable__del__(struct SymbolTable *this) {

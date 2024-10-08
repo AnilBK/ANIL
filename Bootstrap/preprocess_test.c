@@ -178,13 +178,20 @@ function __init__(p_scope_id : int)
   this.symbols.__init__(5)
 endfunction
 
-function declare_variable(name : String, p_type : String)
+function contains_symbol(name : String) -> bool:
   for s in this.symbols{
     let n = s.get_name()
     if n == name{
-      let e = ErrorHandler{};
-      e.RAISE_ERROR("Variable already declared.")
+      return true
     }
+  }
+  return false
+endfunction
+
+function declare_variable(name : String, p_type : String)
+  if this.contains_symbol(name){
+    let e = ErrorHandler{};    
+    e.RAISE_ERROR("Variable already declared.")
   }
 
   let symbol = Symbol{name, p_type};
@@ -268,7 +275,7 @@ endfunction
 
 function new_unique_scope_id() -> int:
   if this.scope_stack.len() == 0{
-    // return 0
+    return 0
   }
 
   let latest_scope = this.current_scope()
@@ -347,28 +354,37 @@ function declare_variable(name : String, p_type : String)
   let current_scope_id = this.current_scope()
   let current_scope = this.get_scope_by_id(current_scope_id)
 
-  // if name in this.symbols[current_scope]:
-  //     this.print_symbol_table()
-  //     RAISE_ERROR(f"Variable '{name}' already declared in this scope.")
-
-  for scope in this.scope_stack{
-  //     if name in this.symbols[scope]:
-  //         this.print_symbol_table()
-  //         RAISE_ERROR(
-  //             f"Variable '{name}' already declared in previous scope {scope}."
-  //         )
+  if current_scope.contains_symbol(name){
+    this.print_symbol_table()
+    let e = ErrorHandler{};    
+    e.RAISE_ERROR("Variable already declared.")
   }
 
-  // this.symbols[current_scope][name] = Symbol(name, p_type)
+  for scope_id in this.scope_stack{
+    let scope = this.get_scope_by_id(scope_id)
+    if scope.contains_symbol(name){
+      this.print_symbol_table()
+      let e = ErrorHandler{};    
+      e.RAISE_ERROR("Variable already declared in previous scopes.")
+    }
+  }
+
+  current_scope.declare_variable(name, p_type)
 endfunction
 
-function lookup_variable(name : String)
+function lookup_variable(name : String) -> Optional<Symbol>:
   let len = this.scope_stack.len()
   for i in range(0..=len-1,-1){
     let scope_id = this.scope_stack[i]
     let scope = this.get_scope_by_id(scope_id)
     let variable = scope.lookup_variable(name)
+    if variable.has_value(){
+      return variable
+    }
   }
+
+  let none = Optional<Symbol>{};
+  return none
 endfunction
     
 function __del__()
