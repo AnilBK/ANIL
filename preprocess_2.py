@@ -1251,6 +1251,11 @@ while index < len(Lines):
         # ^^^^^^
         data_type = parser.get_token()
 
+        # struct Vector
+        # ^^^^^^
+        if data_type == lexer.Token.STRUCT:
+            data_type = parser.get_token() 
+
         if data_type == "str":
             # str is an alias for char*, even though in most places we have checks for both "char*" and "str".
             data_type = "char*"
@@ -3891,9 +3896,7 @@ while index < len(Lines):
         struct_members_list = []
 
         while parser.current_token() != lexer.Token.RIGHT_CURLY:
-            struct_member_type = parse_data_type() #parser.get_token()
-            if struct_member_type.startswith("struct "):
-                struct_member_type = struct_member_type[len("struct "):]
+            struct_member_type = parse_data_type()
             
             pointerless_struct_member_type = struct_member_type
             if parser.check_token(lexer.Token.ASTERISK):
