@@ -395,6 +395,86 @@ endnamespace
 
 let symbol_table = SymbolTable{};
 
+function get_current_scope() -> int:
+  return symbol_table.current_scope()
+endfunction
+
+function increment_scope()
+  symbol_table.enter_scope()
+endfunction
+
+function decrement_scope()
+  symbol_table.exit_scope()
+endfunction
+
+function REGISTER_VARIABLE(p_var_name : String, p_var_data_type : String)
+  symbol_table.declare_variable(p_var_name, p_var_data_type)
+endfunction
+
+function get_type_of_variable(p_var_name : String) -> Optional<String>:
+  let return_type = Optional<String>{};
+
+  let var = symbol_table.lookup_variable(p_var_name)
+  if var.has_value(){
+    let symbol = var.get_value()
+    return_type.set_value(symbol.get_data_type())  
+  }
+
+  return return_type
+endfunction
+
+function is_variable_of_type(p_var_name : String, p_type : String) -> bool:
+  let var_type = get_type_of_variable(p_var_name)
+  if var_type.has_value(){
+    let value = var_type.get_value()
+    // TODO : value is freed before the boolean comparision.
+    return value == p_type
+  }
+  return false
+endfunction
+
+function is_variable(p_var_name : String) -> bool:
+  let var_type = get_type_of_variable(p_var_name)
+  return var_type.has_value()
+endfunction
+
+function is_variable_char_type(p_var_name : String) -> bool:
+  let type = "char"
+  return is_variable_of_type(p_var_name, type)
+endfunction
+
+function is_variable_const_char_ptr(p_var_name : String) -> bool:
+  let type = "c_str"
+  return is_variable_of_type(p_var_name, type)
+endfunction
+
+function is_variable_str_type(p_var_name : String) -> bool:
+  let type1 = "str"
+  let type2 = "char*"
+
+  if is_variable_of_type(p_var_name, type1){
+    if is_variable_of_type(p_var_name, type2){
+      return true
+    }
+  }
+
+  return false
+endfunction
+
+function is_variable_boolean_type(p_var_name : String) -> bool:
+  let type = "bool"
+  return is_variable_of_type(p_var_name, type)
+endfunction
+
+function is_variable_int_type(p_var_name : String) -> bool:
+  let type = "int"
+  return is_variable_of_type(p_var_name, type)
+endfunction
+
+function is_variable_size_t_type(p_var_name : String) -> bool:
+  let type = "size_t"
+  return is_variable_of_type(p_var_name, type)
+endfunction
 
 ///*///
 

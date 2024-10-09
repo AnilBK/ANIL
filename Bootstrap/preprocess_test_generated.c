@@ -1816,6 +1816,37 @@ void SymbolTable__del__(struct SymbolTable *this) {
   Vector_int__del__(&this->scope_stack);
 }
 
+struct Optional_String {
+  bool _has_value;
+  struct String _value;
+};
+
+// template Optional<String> {
+void Optional_String__init__(struct Optional_String *this) {
+  this->_has_value = false;
+}
+
+bool Optional_Stringhas_value(struct Optional_String *this) {
+  return this->_has_value;
+}
+
+struct String Optional_Stringget_value(struct Optional_String *this) {
+  return this->_value;
+}
+
+void Optional_String_set_value(struct Optional_String *this,
+                               struct String p_value) {
+  this->_value = p_value;
+}
+
+void Optional_Stringset_value(struct Optional_String *this,
+                              struct String p_value) {
+  this->_has_value = true;
+  Optional_String_set_value(this, p_value);
+}
+
+// template Optional<String> }
+
 ///*///
 
 // Insert a string at a given index in another string.
@@ -1906,6 +1937,105 @@ bool has_constructors(struct String p_struct_type) {
 struct Random random;
 
 struct SymbolTable symbol_table;
+
+int get_current_scope() { return SymbolTablecurrent_scope(&symbol_table); }
+
+void increment_scope() { SymbolTableenter_scope(&symbol_table); }
+
+void decrement_scope() { SymbolTableexit_scope(&symbol_table); }
+
+void REGISTER_VARIABLE(struct String p_var_name,
+                       struct String p_var_data_type) {
+  SymbolTabledeclare_variable(&symbol_table, p_var_name, p_var_data_type);
+}
+
+struct Optional_String get_type_of_variable(struct String p_var_name) {
+  struct Optional_String return_type;
+  Optional_String__init__(&return_type);
+
+  struct Optional_Symbol var =
+      SymbolTablelookup_variable(&symbol_table, p_var_name);
+
+  if (Optional_Symbolhas_value(&var)) {
+    struct Symbol symbol = Optional_Symbolget_value(&var);
+    Optional_Stringset_value(&return_type, Symbolget_data_type(&symbol));
+    Symbol__del__(&symbol);
+  }
+
+  return return_type;
+}
+
+bool is_variable_of_type(struct String p_var_name, struct String p_type) {
+  struct Optional_String var_type = get_type_of_variable(p_var_name);
+
+  if (Optional_Stringhas_value(&var_type)) {
+    struct String value = Optional_Stringget_value(&var_type);
+    // TODO : value is freed before the boolean comparision.
+    String__del__(&value);
+    return String__eq__(&value, Stringc_str(&p_type));
+  }
+  return false;
+}
+
+bool is_variable(struct String p_var_name) {
+  struct Optional_String var_type = get_type_of_variable(p_var_name);
+  return Optional_Stringhas_value(&var_type);
+}
+
+bool is_variable_char_type(struct String p_var_name) {
+  struct String type;
+  String__init__OVDstr(&type, "char");
+  String__del__(&type);
+  return is_variable_of_type(p_var_name, type);
+}
+
+bool is_variable_const_char_ptr(struct String p_var_name) {
+  struct String type;
+  String__init__OVDstr(&type, "c_str");
+  String__del__(&type);
+  return is_variable_of_type(p_var_name, type);
+}
+
+bool is_variable_str_type(struct String p_var_name) {
+  struct String type1;
+  String__init__OVDstr(&type1, "str");
+  struct String type2;
+  String__init__OVDstr(&type2, "char*");
+
+  if (is_variable_of_type(p_var_name, type1)) {
+
+    if (is_variable_of_type(p_var_name, type2)) {
+      String__del__(&type2);
+      String__del__(&type1);
+      return true;
+    }
+  }
+
+  String__del__(&type2);
+  String__del__(&type1);
+  return false;
+}
+
+bool is_variable_boolean_type(struct String p_var_name) {
+  struct String type;
+  String__init__OVDstr(&type, "bool");
+  String__del__(&type);
+  return is_variable_of_type(p_var_name, type);
+}
+
+bool is_variable_int_type(struct String p_var_name) {
+  struct String type;
+  String__init__OVDstr(&type, "int");
+  String__del__(&type);
+  return is_variable_of_type(p_var_name, type);
+}
+
+bool is_variable_size_t_type(struct String p_var_name) {
+  struct String type;
+  String__init__OVDstr(&type, "size_t");
+  String__del__(&type);
+  return is_variable_of_type(p_var_name, type);
+}
 
 ///*///
 
