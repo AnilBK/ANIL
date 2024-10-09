@@ -2467,7 +2467,11 @@ while index < len(Lines):
 
                 if has_parameters:
                     parameters_str = parse_result["parameters_str"]
-                    code = f"{fn_name}({member_access_string}, {parameters_str})"
+                    # For global fn, member_access_string is empty.
+                    if member_access_string != "":
+                        code = f"{fn_name}({member_access_string}, {parameters_str})"
+                    else:
+                        code = f"{fn_name}({parameters_str})"
                 else:
                     # Function hooks take no parameters.
                     global HOOKS_hook_fn_name
