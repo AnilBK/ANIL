@@ -1241,9 +1241,14 @@ while index < len(Lines):
             )
         REGISTER_VARIABLE(current_array_value_variable, "size_t")
 
-
-    def parse_data_type(inner=False):
+    def parse_data_type(inner = False, incomplete_types = None):
         # inner is used as a tag for name mangling during recursive data parsing.
+
+        # For templated struct like struct<T> A{X<T> B};
+        #                                  ^ is stored in 'incomplete_types'.
+        # That means while parsing if we encounter 'T' like for X<T>, 
+        # we dont mangle X<T> and leave as it is to hint that it should be mangled,
+        # during template instantiation and not parsing phase.
 
         # String,Vector<String>
         # This all should be parsed.
@@ -1302,14 +1307,24 @@ while index < len(Lines):
                     f"Struct type {data_type} isn't a template class and can't be used to instantiate new data types."
                 )
             """
-
             is_templated = True
 
-            inner_data_type = parse_data_type(inner=True)
-            data_type_str += f"_{inner_data_type}"
+            inner_data_type = parse_data_type(inner=True, incomplete_types=incomplete_types)
+
             parser.consume_token(lexer.Token.GREATER_THAN)
 
-            instantiate_template(data_type, inner_data_type)
+            if (incomplete_types != None) and (inner_data_type in incomplete_types):
+                # We dont mangle templated data types.
+                # Keep them in A<B> format to later parse again with appropriate types.
+                data_type_str += f"<{inner_data_type}>"
+                return data_type_str
+            else:
+                data_type_str += f"_{inner_data_type}"
+                instantiate_template(data_type, inner_data_type)
+        else:
+            if incomplete_types != None:
+                if data_type in incomplete_types:
+                    return data_type
 
         if is_templated:
             #Convert "struct Vector_String" to "Vector_String"
@@ -1372,10 +1387,49 @@ while index < len(Lines):
         struct_code = f"struct {m_struct_name}  {{\n"
 
         struct_members_list = StructInfo.members
+        struct_members_list_with_template_types_resolved = []
+        
         for struct_member in struct_members_list:
             type = struct_member.data_type
             mem = struct_member.member
             is_generic = struct_member.is_generic
+
+            # Replace the unresolved template types with actual instantiation type.
+            if "<" in type:
+                # type : 'struct DictObject<T>**'
+                #                           ^ template_type
+                #                ^^^^^^^^^^   base_type
+
+                # Works for 1 level of templating like A<T>.
+
+                ST_index = type.find("<")
+                GT_index = type.find(">", ST_index)
+
+                template_type = type[ST_index+ 1 : GT_index]
+                type = type.replace(template_type, templated_data_type)
+
+                # get everything left to <
+                base_type = type[:ST_index]
+                # 'struct DictObject'
+
+                if base_type.startswith("struct "):
+                    #strip "struct " from base_type
+                    base_type = base_type[len("struct "):]
+                    # 'DictObject'
+
+                instantiate_template(base_type, templated_data_type)
+
+                #struct Vector<T>
+                #get everything left to <
+                mangled_resolved_type_ptrless = type[:type.find("<")]
+                mangled_resolved_type_ptrless += f"_{templated_data_type}"
+
+                # Add all the required number of pointers.
+                mangled_resolved_type_ptrless += "*" * type.count("*")
+
+                type = mangled_resolved_type_ptrless
+                # now type is 'struct DictObject_int**'
+
             if is_generic:
                 if "*" in type:
                     actual_type, star = type.split("*")
@@ -1386,11 +1440,18 @@ while index < len(Lines):
                 if is_data_type_struct_object(templated_data_type):
                     type = f"struct {type}"
 
+            if type.startswith("Self"):
+                type = type.replace("Self", f"struct {m_struct_name}", 1)
+
+            struct_members_list_with_template_types_resolved.append(
+                MemberDataType(type, mem, is_generic)
+            )
+
             struct_code += f"{type} {mem};\n"
         struct_code += f"}};\n\n"
 
         # Register this templated struct in order to insantiate the same generic type in the future.
-        struct_data = Struct(m_struct_name, struct_members_list)
+        struct_data = Struct(m_struct_name, struct_members_list_with_template_types_resolved)
         # struct_data.is_class_templated = True
         # if is_data_type_struct_object(templated_data_type):
         #     struct_data.templated_data_type = f"struct {templated_data_type}"
@@ -1502,6 +1563,35 @@ while index < len(Lines):
                 templated_fn_code = templated_fn_code.replace(
                     "@PATCH_TEMPLATED_DATA_TYPE@", m_templated_data_type
                 )
+            
+            if "@SELF@" in templated_fn_code:
+                templated_fn_code = templated_fn_code.replace(
+                    "@SELF@", f"struct {templated_struct_name}"
+                )
+            
+            if "@TYPEOF(" in templated_fn_code:
+                # Replaces @TYPEOF(var_name) with type of the struct member(var_name) without any pointers.
+                
+                # @TYPEOF(var_name)
+                #         ^^^^^^^^   type_name
+                # ^^^^^^^^^^^^^^^^   tag_text
+                
+                start_pos = templated_fn_code.find("@TYPEOF(")
+                end_pos = templated_fn_code.find(")", start_pos)
+                
+                type_name = templated_fn_code[start_pos + len("@TYPEOF(") : end_pos]
+                tag_text = templated_fn_code[start_pos: end_pos + 1]
+
+                for struct_member in struct_members_list_with_template_types_resolved:
+                    type = struct_member.data_type
+                    mem = struct_member.member
+                    is_generic = struct_member.is_generic
+
+                    if mem == type_name:
+                        # Strip away pointers.
+                        # (We could add another @tag@ to get full data type with pointers)
+                        ptr_less_data_type = type.replace("*", "")
+                        templated_fn_code = templated_fn_code.replace(tag_text, ptr_less_data_type) 
 
             GlobalStructInitCode += templated_fn_code
 
@@ -3877,6 +3967,13 @@ while index < len(Lines):
 
         generic_data_types = []
 
+        incomplete_types = []
+        # For templated struct like struct<T> A{X<T> B};
+        #                                  ^ is stored in 'incomplete_types'.
+        # That means while parsing if we encounter 'T' like for X<T>, 
+        # we dont mangle X<T> and leave as it is to hint that it should be mangled,
+        # during template instantiation and not parsing phase.
+
         if parser.check_token(lexer.Token.SMALLER_THAN):
             parser.next_token()
             is_struct_templated = True
@@ -3889,6 +3986,8 @@ while index < len(Lines):
             parser.next_token()
             parser.consume_token(lexer.Token.GREATER_THAN)
 
+            incomplete_types.append(generic_data_type)
+
         # print(f"Found Struct Defination : {struct_name}")
 
         parser.consume_token(lexer.Token.LEFT_CURLY)
@@ -3896,12 +3995,15 @@ while index < len(Lines):
         struct_members_list = []
 
         while parser.current_token() != lexer.Token.RIGHT_CURLY:
-            struct_member_type = parse_data_type()
+            struct_member_type = parse_data_type(inner=False, incomplete_types=incomplete_types)
             
             pointerless_struct_member_type = struct_member_type
-            if parser.check_token(lexer.Token.ASTERISK):
+
+            # Pointer, Pointer to pointer, pointer to ...
+            while parser.check_token(lexer.Token.ASTERISK):
                 struct_member_type += "*"
                 parser.next_token()
+
             struct_member = parser.current_token()
 
             is_generic = False
