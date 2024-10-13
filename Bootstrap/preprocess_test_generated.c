@@ -21,20 +21,10 @@
 ///*///
 
 #include <stdbool.h>
+#include <stdio.h>
 #include <string.h>
 
 #define TABLE_SIZE 101
-
-typedef struct KeyValuePair {
-  char *key_str;
-  int value;
-  struct KeyValuePair *next;
-} KeyValuePair;
-
-// We don't have arrays inside our custom struct datatype,so vvv.
-typedef struct {
-  KeyValuePair *table[TABLE_SIZE];
-} KeyValueTable;
 
 unsigned int hash(char *str) {
   unsigned int hash = 5381;
@@ -48,6 +38,7 @@ unsigned int hash(char *str) {
 ///*///
 
 ///*///
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -473,76 +464,6 @@ void Setprint(struct Set *this) {
     printf(",");
   }
   printf("]\n");
-}
-
-struct Dictionary {
-  KeyValueTable table;
-};
-
-void Dictionary__init__(struct Dictionary *this) {
-  for (int i = 0; i < TABLE_SIZE; i++) {
-    this->table.table[i] = NULL;
-  }
-}
-
-void Dictionary__del__(struct Dictionary *this) {
-  for (int i = 0; i < TABLE_SIZE; i++) {
-    KeyValuePair *pair = this->table.table[i];
-    while (pair != NULL) {
-      KeyValuePair *next = pair->next;
-      // free(pair->key_str);
-      // ^^^^^ This is not dynamically allocated key string, so shouldn't free
-      // it.
-      free(pair);
-      pair = next;
-    }
-  }
-}
-
-int Dictionary__getitem__(struct Dictionary *this, char *p_key) {
-  unsigned int index = hash(p_key);
-  KeyValuePair *pair = this->table.table[index];
-  while (pair != NULL) {
-    if (strcmp(pair->key_str, p_key) == 0) {
-      return pair->value;
-    }
-    pair = pair->next;
-  }
-  return 0;
-}
-
-void Dictionary__setitem__(struct Dictionary *this, char *p_key_str,
-                           int p_value) {
-  unsigned int index = hash(p_key_str);
-  KeyValuePair *new_pair = (KeyValuePair *)malloc(sizeof(KeyValuePair));
-  new_pair->key_str = p_key_str;
-  new_pair->value = p_value;
-  new_pair->next = this->table.table[index];
-  this->table.table[index] = new_pair;
-}
-
-bool Dictionary__contains__(struct Dictionary *this, char *p_key) {
-  unsigned int index = hash(p_key);
-  KeyValuePair *pair = this->table.table[index];
-  while (pair != NULL) {
-    if (strcmp(pair->key_str, p_key) == 0) {
-      return true;
-    }
-    pair = pair->next;
-  }
-  return false;
-}
-
-void Dictionaryprint(struct Dictionary *this) {
-  printf("{\n");
-  for (int i = 0; i < TABLE_SIZE; i++) {
-    KeyValuePair *pair = this->table.table[i];
-    while (pair != NULL) {
-      printf("\"%s\" : %d,\n", pair->key_str, pair->value);
-      pair = pair->next;
-    }
-  }
-  printf("}\n");
 }
 
 struct CPLObject {

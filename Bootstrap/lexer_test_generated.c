@@ -15,20 +15,10 @@
 ///*///
 
 #include <stdbool.h>
+#include <stdio.h>
 #include <string.h>
 
 #define TABLE_SIZE 101
-
-typedef struct KeyValuePair {
-  char *key_str;
-  int value;
-  struct KeyValuePair *next;
-} KeyValuePair;
-
-// We don't have arrays inside our custom struct datatype,so vvv.
-typedef struct {
-  KeyValuePair *table[TABLE_SIZE];
-} KeyValueTable;
 
 unsigned int hash(char *str) {
   unsigned int hash = 5381;
@@ -42,6 +32,7 @@ unsigned int hash(char *str) {
 ///*///
 
 ///*///
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -407,76 +398,6 @@ struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename) {
   return result;
 }
 
-struct Dictionary {
-  KeyValueTable table;
-};
-
-void Dictionary__init__(struct Dictionary *this) {
-  for (int i = 0; i < TABLE_SIZE; i++) {
-    this->table.table[i] = NULL;
-  }
-}
-
-void Dictionary__del__(struct Dictionary *this) {
-  for (int i = 0; i < TABLE_SIZE; i++) {
-    KeyValuePair *pair = this->table.table[i];
-    while (pair != NULL) {
-      KeyValuePair *next = pair->next;
-      // free(pair->key_str);
-      // ^^^^^ This is not dynamically allocated key string, so shouldn't free
-      // it.
-      free(pair);
-      pair = next;
-    }
-  }
-}
-
-int Dictionary__getitem__(struct Dictionary *this, char *p_key) {
-  unsigned int index = hash(p_key);
-  KeyValuePair *pair = this->table.table[index];
-  while (pair != NULL) {
-    if (strcmp(pair->key_str, p_key) == 0) {
-      return pair->value;
-    }
-    pair = pair->next;
-  }
-  return 0;
-}
-
-void Dictionary__setitem__(struct Dictionary *this, char *p_key_str,
-                           int p_value) {
-  unsigned int index = hash(p_key_str);
-  KeyValuePair *new_pair = (KeyValuePair *)malloc(sizeof(KeyValuePair));
-  new_pair->key_str = p_key_str;
-  new_pair->value = p_value;
-  new_pair->next = this->table.table[index];
-  this->table.table[index] = new_pair;
-}
-
-bool Dictionary__contains__(struct Dictionary *this, char *p_key) {
-  unsigned int index = hash(p_key);
-  KeyValuePair *pair = this->table.table[index];
-  while (pair != NULL) {
-    if (strcmp(pair->key_str, p_key) == 0) {
-      return true;
-    }
-    pair = pair->next;
-  }
-  return false;
-}
-
-void Dictionaryprint(struct Dictionary *this) {
-  printf("{\n");
-  for (int i = 0; i < TABLE_SIZE; i++) {
-    KeyValuePair *pair = this->table.table[i];
-    while (pair != NULL) {
-      printf("\"%s\" : %d,\n", pair->key_str, pair->value);
-      pair = pair->next;
-    }
-  }
-  printf("}\n");
-}
-
 struct CPLObject {
   CPLObject_Data data;
   CPLObject_DataType data_type;
@@ -784,53 +705,136 @@ struct Lexer {
 };
 
 struct List Lexerget_tokens(struct Lexer *this) {
+  struct DictObject_int {
+    char *key_str;
+    int value;
+    struct DictObject_int *next;
+  };
 
-  struct Dictionary CHARACTER_TOKENS;
-  Dictionary__init__(&CHARACTER_TOKENS);
-  Dictionary__setitem__(&CHARACTER_TOKENS, "=", 1);
-  Dictionary__setitem__(&CHARACTER_TOKENS, "[", 2);
-  Dictionary__setitem__(&CHARACTER_TOKENS, "]", 3);
-  Dictionary__setitem__(&CHARACTER_TOKENS, ";", 4);
-  Dictionary__setitem__(&CHARACTER_TOKENS, ",", 5);
-  Dictionary__setitem__(&CHARACTER_TOKENS, "%", 6);
-  Dictionary__setitem__(&CHARACTER_TOKENS, "{", 7);
-  Dictionary__setitem__(&CHARACTER_TOKENS, "}", 8);
-  Dictionary__setitem__(&CHARACTER_TOKENS, "<", 15);
-  Dictionary__setitem__(&CHARACTER_TOKENS, ">", 16);
-  Dictionary__setitem__(&CHARACTER_TOKENS, "\"", 18);
-  Dictionary__setitem__(&CHARACTER_TOKENS, "+", 19);
-  Dictionary__setitem__(&CHARACTER_TOKENS, "(", 21);
-  Dictionary__setitem__(&CHARACTER_TOKENS, ")", 22);
-  Dictionary__setitem__(&CHARACTER_TOKENS, ":", 23);
-  Dictionary__setitem__(&CHARACTER_TOKENS, ".", 24);
-  Dictionary__setitem__(&CHARACTER_TOKENS, "*", 25);
-  Dictionary__setitem__(&CHARACTER_TOKENS, "-", 26);
-  Dictionary__setitem__(&CHARACTER_TOKENS, "#", 35);
-  Dictionary__setitem__(&CHARACTER_TOKENS, "@", 37);
-  Dictionary__setitem__(&CHARACTER_TOKENS, "!", 41);
+  // template DictObject<int> {
+  // template DictObject<int> }
 
-  struct Dictionary KEYWORD_TOKENS;
-  Dictionary__init__(&KEYWORD_TOKENS);
-  Dictionary__setitem__(&KEYWORD_TOKENS, "let", 0);
-  Dictionary__setitem__(&KEYWORD_TOKENS, "struct", 9);
-  Dictionary__setitem__(&KEYWORD_TOKENS, "match", 10);
-  Dictionary__setitem__(&KEYWORD_TOKENS, "for", 11);
-  Dictionary__setitem__(&KEYWORD_TOKENS, "if", 12);
-  Dictionary__setitem__(&KEYWORD_TOKENS, "in", 13);
-  Dictionary__setitem__(&KEYWORD_TOKENS, "Option", 14);
-  Dictionary__setitem__(&KEYWORD_TOKENS, "enumerate", 17);
-  Dictionary__setitem__(&KEYWORD_TOKENS, "def", 27);
-  Dictionary__setitem__(&KEYWORD_TOKENS, "c_function", 28);
-  Dictionary__setitem__(&KEYWORD_TOKENS, "enddef", 29);
-  Dictionary__setitem__(&KEYWORD_TOKENS, "endfunc", 30);
-  Dictionary__setitem__(&KEYWORD_TOKENS, "else", 31);
-  Dictionary__setitem__(&KEYWORD_TOKENS, "True", 32);
-  Dictionary__setitem__(&KEYWORD_TOKENS, "False", 33);
-  Dictionary__setitem__(&KEYWORD_TOKENS, "constexpr", 34);
-  Dictionary__setitem__(&KEYWORD_TOKENS, "include", 36);
-  Dictionary__setitem__(&KEYWORD_TOKENS, "apply_hook", 38);
-  Dictionary__setitem__(&KEYWORD_TOKENS, "hook_begin", 39);
-  Dictionary__setitem__(&KEYWORD_TOKENS, "hook_end", 40);
+  struct Dictionary_int {
+    struct DictObject_int **table;
+  };
+
+  // template Dictionary<int> {
+  void Dictionary_int__init__(struct Dictionary_int * this) {
+    this->table = (struct DictObject_int **)malloc(
+        TABLE_SIZE * sizeof(struct DictObject_int *));
+    for (int i = 0; i < TABLE_SIZE; i++) {
+      this->table[i] = NULL;
+    }
+  }
+
+  void Dictionary_int__del__(struct Dictionary_int * this) {
+    for (int i = 0; i < TABLE_SIZE; i++) {
+      struct DictObject_int *pair = this->table[i];
+      while (pair != NULL) {
+        struct DictObject_int *next = pair->next;
+        // Do not free key_str since it's not dynamically allocated
+        free(pair);
+        pair = next;
+      }
+    }
+    free(this->table); // Free the table itself
+  }
+
+  int Dictionary_int__getitem__(struct Dictionary_int * this, char *p_key) {
+    unsigned int index = hash(p_key);
+    struct DictObject_int *pair = this->table[index];
+    while (pair != NULL) {
+      if (strcmp(pair->key_str, p_key) == 0) {
+        return pair->value;
+      }
+      pair = pair->next;
+    }
+    return 0;
+  }
+
+  void Dictionary_int__setitem__(struct Dictionary_int * this, char *p_key_str,
+                                 int p_value) {
+    unsigned int index = hash(p_key_str);
+    struct DictObject_int *new_pair =
+        (struct DictObject_int *)malloc(sizeof(struct DictObject_int));
+    new_pair->key_str = p_key_str;
+    new_pair->value = p_value;
+    new_pair->next = this->table[index];
+    this->table[index] = new_pair;
+  }
+
+  bool Dictionary_int__contains__(struct Dictionary_int * this, char *p_key) {
+    unsigned int index = hash(p_key);
+    struct DictObject_int *pair = this->table[index];
+    while (pair != NULL) {
+      if (strcmp(pair->key_str, p_key) == 0) {
+        return true;
+      }
+      pair = pair->next;
+    }
+    return false;
+  }
+
+  void Dictionary_intprint(struct Dictionary_int * this) {
+    printf("{\n");
+    for (int i = 0; i < TABLE_SIZE; i++) {
+      struct DictObject_int *pair = this->table[i];
+      while (pair != NULL) {
+        printf("\"%s\" : %d,\n", pair->key_str, pair->value);
+        pair = pair->next;
+      }
+    }
+    printf("}\n");
+  }
+
+  // template Dictionary<int> }
+
+  struct Dictionary_int CHARACTER_TOKENS;
+  Dictionary_int__init__(&CHARACTER_TOKENS);
+  Dictionary_int__setitem__(&CHARACTER_TOKENS, "=", 1);
+  Dictionary_int__setitem__(&CHARACTER_TOKENS, "[", 2);
+  Dictionary_int__setitem__(&CHARACTER_TOKENS, "]", 3);
+  Dictionary_int__setitem__(&CHARACTER_TOKENS, ";", 4);
+  Dictionary_int__setitem__(&CHARACTER_TOKENS, ",", 5);
+  Dictionary_int__setitem__(&CHARACTER_TOKENS, "%", 6);
+  Dictionary_int__setitem__(&CHARACTER_TOKENS, "{", 7);
+  Dictionary_int__setitem__(&CHARACTER_TOKENS, "}", 8);
+  Dictionary_int__setitem__(&CHARACTER_TOKENS, "<", 15);
+  Dictionary_int__setitem__(&CHARACTER_TOKENS, ">", 16);
+  Dictionary_int__setitem__(&CHARACTER_TOKENS, "\"", 18);
+  Dictionary_int__setitem__(&CHARACTER_TOKENS, "+", 19);
+  Dictionary_int__setitem__(&CHARACTER_TOKENS, "(", 21);
+  Dictionary_int__setitem__(&CHARACTER_TOKENS, ")", 22);
+  Dictionary_int__setitem__(&CHARACTER_TOKENS, ":", 23);
+  Dictionary_int__setitem__(&CHARACTER_TOKENS, ".", 24);
+  Dictionary_int__setitem__(&CHARACTER_TOKENS, "*", 25);
+  Dictionary_int__setitem__(&CHARACTER_TOKENS, "-", 26);
+  Dictionary_int__setitem__(&CHARACTER_TOKENS, "#", 35);
+  Dictionary_int__setitem__(&CHARACTER_TOKENS, "@", 37);
+  Dictionary_int__setitem__(&CHARACTER_TOKENS, "!", 41);
+
+  struct Dictionary_int KEYWORD_TOKENS;
+  Dictionary_int__init__(&KEYWORD_TOKENS);
+  Dictionary_int__setitem__(&KEYWORD_TOKENS, "let", 0);
+  Dictionary_int__setitem__(&KEYWORD_TOKENS, "struct", 9);
+  Dictionary_int__setitem__(&KEYWORD_TOKENS, "match", 10);
+  Dictionary_int__setitem__(&KEYWORD_TOKENS, "for", 11);
+  Dictionary_int__setitem__(&KEYWORD_TOKENS, "if", 12);
+  Dictionary_int__setitem__(&KEYWORD_TOKENS, "in", 13);
+  Dictionary_int__setitem__(&KEYWORD_TOKENS, "Option", 14);
+  Dictionary_int__setitem__(&KEYWORD_TOKENS, "enumerate", 17);
+  Dictionary_int__setitem__(&KEYWORD_TOKENS, "def", 27);
+  Dictionary_int__setitem__(&KEYWORD_TOKENS, "c_function", 28);
+  Dictionary_int__setitem__(&KEYWORD_TOKENS, "enddef", 29);
+  Dictionary_int__setitem__(&KEYWORD_TOKENS, "endfunc", 30);
+  Dictionary_int__setitem__(&KEYWORD_TOKENS, "else", 31);
+  Dictionary_int__setitem__(&KEYWORD_TOKENS, "True", 32);
+  Dictionary_int__setitem__(&KEYWORD_TOKENS, "False", 33);
+  Dictionary_int__setitem__(&KEYWORD_TOKENS, "constexpr", 34);
+  Dictionary_int__setitem__(&KEYWORD_TOKENS, "include", 36);
+  Dictionary_int__setitem__(&KEYWORD_TOKENS, "apply_hook", 38);
+  Dictionary_int__setitem__(&KEYWORD_TOKENS, "hook_begin", 39);
+  Dictionary_int__setitem__(&KEYWORD_TOKENS, "hook_end", 40);
 
   struct String line_org;
   String__init__OVDstr(&line_org, "  let arr = [ 1, 2, 3, 4 , 5 ]; } let");
@@ -899,13 +903,13 @@ struct List Lexerget_tokens(struct Lexer *this) {
         continue;
       }
 
-      if (Dictionary__contains__(&KEYWORD_TOKENS, Stringc_str(&token))) {
-        ListappendOVDint(&tokens, Dictionary__getitem__(&KEYWORD_TOKENS,
-                                                        Stringc_str(&token)));
-      } else if (Dictionary__contains__(&CHARACTER_TOKENS,
-                                        Stringc_str(&token))) {
-        ListappendOVDint(&tokens, Dictionary__getitem__(&CHARACTER_TOKENS,
-                                                        Stringc_str(&token)));
+      if (Dictionary_int__contains__(&KEYWORD_TOKENS, Stringc_str(&token))) {
+        ListappendOVDint(&tokens, Dictionary_int__getitem__(
+                                      &KEYWORD_TOKENS, Stringc_str(&token)));
+      } else if (Dictionary_int__contains__(&CHARACTER_TOKENS,
+                                            Stringc_str(&token))) {
+        ListappendOVDint(&tokens, Dictionary_int__getitem__(
+                                      &CHARACTER_TOKENS, Stringc_str(&token)));
       } else {
         Listappend_str(&tokens, Stringc_str(&token));
       }
@@ -913,33 +917,34 @@ struct List Lexerget_tokens(struct Lexer *this) {
     } else {
       char Char_promoted_3[2] = {Char, '\0'};
 
-      if (Dictionary__contains__(&CHARACTER_TOKENS, Char_promoted_3)) {
+      if (Dictionary_int__contains__(&CHARACTER_TOKENS, Char_promoted_3)) {
 
         if (!(String__eq__(&token, ""))) {
 
-          if (Dictionary__contains__(&KEYWORD_TOKENS, Stringc_str(&token))) {
-            ListappendOVDint(
-                &tokens,
-                Dictionary__getitem__(&KEYWORD_TOKENS, Stringc_str(&token)));
-          } else if (Dictionary__contains__(&CHARACTER_TOKENS,
-                                            Stringc_str(&token))) {
-            ListappendOVDint(
-                &tokens,
-                Dictionary__getitem__(&CHARACTER_TOKENS, Stringc_str(&token)));
+          if (Dictionary_int__contains__(&KEYWORD_TOKENS,
+                                         Stringc_str(&token))) {
+            ListappendOVDint(&tokens,
+                             Dictionary_int__getitem__(&KEYWORD_TOKENS,
+                                                       Stringc_str(&token)));
+          } else if (Dictionary_int__contains__(&CHARACTER_TOKENS,
+                                                Stringc_str(&token))) {
+            ListappendOVDint(&tokens,
+                             Dictionary_int__getitem__(&CHARACTER_TOKENS,
+                                                       Stringc_str(&token)));
           } else {
             Listappend_str(&tokens, Stringc_str(&token));
           }
         }
         char Char_promoted_4[2] = {Char, '\0'};
-        ListappendOVDint(
-            &tokens, Dictionary__getitem__(&CHARACTER_TOKENS, Char_promoted_4));
+        ListappendOVDint(&tokens, Dictionary_int__getitem__(&CHARACTER_TOKENS,
+                                                            Char_promoted_4));
         String__reassign__OVDstr(&token, "");
         continue;
       }
 
-      if (Dictionary__contains__(&CHARACTER_TOKENS, Stringc_str(&token))) {
-        ListappendOVDint(&tokens, Dictionary__getitem__(&CHARACTER_TOKENS,
-                                                        Stringc_str(&token)));
+      if (Dictionary_int__contains__(&CHARACTER_TOKENS, Stringc_str(&token))) {
+        ListappendOVDint(&tokens, Dictionary_int__getitem__(
+                                      &CHARACTER_TOKENS, Stringc_str(&token)));
         String__reassign__OVDstr(&token, "");
         continue;
       }
@@ -953,12 +958,13 @@ struct List Lexerget_tokens(struct Lexer *this) {
 
   if (!(String__eq__(&token, ""))) {
 
-    if (Dictionary__contains__(&KEYWORD_TOKENS, Stringc_str(&token))) {
-      ListappendOVDint(
-          &tokens, Dictionary__getitem__(&KEYWORD_TOKENS, Stringc_str(&token)));
-    } else if (Dictionary__contains__(&CHARACTER_TOKENS, Stringc_str(&token))) {
-      ListappendOVDint(&tokens, Dictionary__getitem__(&CHARACTER_TOKENS,
-                                                      Stringc_str(&token)));
+    if (Dictionary_int__contains__(&KEYWORD_TOKENS, Stringc_str(&token))) {
+      ListappendOVDint(&tokens, Dictionary_int__getitem__(&KEYWORD_TOKENS,
+                                                          Stringc_str(&token)));
+    } else if (Dictionary_int__contains__(&CHARACTER_TOKENS,
+                                          Stringc_str(&token))) {
+      ListappendOVDint(&tokens, Dictionary_int__getitem__(&CHARACTER_TOKENS,
+                                                          Stringc_str(&token)));
     } else {
       Listappend_str(&tokens, Stringc_str(&token));
     }
@@ -967,8 +973,8 @@ struct List Lexerget_tokens(struct Lexer *this) {
   String__del__(&token);
   String__del__(&line);
   String__del__(&line_org);
-  Dictionary__del__(&KEYWORD_TOKENS);
-  Dictionary__del__(&CHARACTER_TOKENS);
+  Dictionary_int__del__(&KEYWORD_TOKENS);
+  Dictionary_int__del__(&CHARACTER_TOKENS);
   return tokens;
 }
 

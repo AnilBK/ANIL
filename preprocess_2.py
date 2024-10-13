@@ -3838,7 +3838,7 @@ while index < len(Lines):
 
                 # Emit CPL code to create a struct 'Dictionary' object of Lib/Dictionary.
                 # This line will be parsed by the compiler in next line.
-                CPL_code = f"let {array_name} = Dictionary{{ }};\n"
+                CPL_code = f"let {array_name} = Dictionary<int>{{ }};\n"
 
                 index_to_insert_at = index
                 Lines.insert(index_to_insert_at, CPL_code)

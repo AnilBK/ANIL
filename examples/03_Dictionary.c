@@ -18,7 +18,7 @@ int main() {
 
   let dict = {};
   // The following line is also valid, as the above syntax is shorthand for the statement below. 
-  // let dict = Dictionary{};
+  // let dict = Dictionary<int>{};
   dict["One"] = NUMBERS["ONE"]
   dict["Two"] = NUMBERS["TWO"]
   dict["Three"] = 3
