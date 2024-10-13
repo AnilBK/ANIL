@@ -1443,11 +1443,19 @@ while index < len(Lines):
             if type.startswith("Self"):
                 type = type.replace("Self", f"struct {m_struct_name}", 1)
 
+
+            type_without_pointers = type.replace("*", "")
+            if is_data_type_struct_object(type_without_pointers):
+                struct_code += f"struct {type} {mem};\n"
+            else:
+                struct_code += f"{type} {mem};\n"
+
+            if type.startswith("struct "):
+                type = type[len("struct "):]
             struct_members_list_with_template_types_resolved.append(
                 MemberDataType(type, mem, is_generic)
             )
 
-            struct_code += f"{type} {mem};\n"
         struct_code += f"}};\n\n"
 
         # Register this templated struct in order to insantiate the same generic type in the future.
@@ -1591,6 +1599,8 @@ while index < len(Lines):
                         # Strip away pointers.
                         # (We could add another @tag@ to get full data type with pointers)
                         ptr_less_data_type = type.replace("*", "")
+                        if is_data_type_struct_object(ptr_less_data_type):
+                            ptr_less_data_type = "struct " + ptr_less_data_type
                         templated_fn_code = templated_fn_code.replace(tag_text, ptr_less_data_type) 
 
             GlobalStructInitCode += templated_fn_code
@@ -3996,7 +4006,12 @@ while index < len(Lines):
 
         while parser.current_token() != lexer.Token.RIGHT_CURLY:
             struct_member_type = parse_data_type(inner=False, incomplete_types=incomplete_types)
-            
+
+            # parse_data_type returns "struct Vector" with struct keyword.
+            # We dont write "struct" for MemberDataTypes, so we need to strip it.
+            if struct_member_type.startswith("struct "):
+                struct_member_type = struct_member_type[len("struct "):]
+
             pointerless_struct_member_type = struct_member_type
 
             # Pointer, Pointer to pointer, pointer to ...
