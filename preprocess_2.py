@@ -4733,6 +4733,10 @@ while index < len(Lines):
         parser.consume_token(lexer.Token.ENDNAMESPACE)
         if not is_inside_name_space:
             RAISE_ERROR("Isn't inside a namespace.First, declare a new namespace as \"namespace 'namespace_name'\"")
+        
+        if is_inside_user_defined_function:
+            RAISE_ERROR('Use "endfunction" to close a function and not "endnamespace".')
+
         namespace_name = ""
         is_inside_name_space = False
     else:
