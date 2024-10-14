@@ -97,7 +97,14 @@ match_struct_type_info = []
 
 struct_definations = []
 instanced_struct_names = []
+
 GlobalStructInitCode = ""
+# While we are emitting functions in global scope, we emit it to GlobalStructInitCode.
+# If we instantiate templates as we are writing these global functions, it is also emitted to GlobalStructInitCode.
+# That means our entire templated struct code and its member functions are also emitted in the middle of global function code.
+# So before emitting a function, we mark the position where we are emitting the global function code, so
+# that template function code maybe inserted there(right before the function we are emitting).
+GlobalStructInitCodeInterceptionPoint = -1
 
 # Write __init__ code of structs defined in global scope.
 # This code will be written at the start of main function marked by ///*/// main()
@@ -1464,7 +1471,16 @@ while index < len(Lines):
         # if is_data_type_struct_object(templated_data_type):
         #     struct_data.templated_data_type = f"struct {templated_data_type}"
 
-        GlobalStructInitCode += struct_code
+        global GlobalStructInitCodeInterceptionPoint
+
+        if GlobalStructInitCodeInterceptionPoint != -1:
+            # If we are in the middle of a function, we need to insert this struct code at the interception point.
+            # The interception point is set to the point where we started writing function body.
+            # Because we can't insert this code at the middle of the function.
+            GlobalStructInitCode = insert_string(GlobalStructInitCode, GlobalStructInitCodeInterceptionPoint, struct_code)
+            GlobalStructInitCodeInterceptionPoint += len(struct_code)
+        else:
+            GlobalStructInitCode += struct_code
 
         templated_fn_code = f"//template {struct_type}<{templated_data_type}> {{\n"
 
@@ -1603,7 +1619,11 @@ while index < len(Lines):
                             ptr_less_data_type = "struct " + ptr_less_data_type
                         templated_fn_code = templated_fn_code.replace(tag_text, ptr_less_data_type) 
 
-            GlobalStructInitCode += templated_fn_code
+            if GlobalStructInitCodeInterceptionPoint != -1:
+                GlobalStructInitCode = insert_string(GlobalStructInitCode, GlobalStructInitCodeInterceptionPoint, templated_fn_code)
+                GlobalStructInitCodeInterceptionPoint += len(templated_fn_code)
+            else:
+                GlobalStructInitCode += templated_fn_code
 
             global struct_definations
             struct_definations.append(struct_data)
@@ -4561,6 +4581,7 @@ while index < len(Lines):
         
         if defining_fn_for_custom_class:
             if should_write_fn_body:
+                GlobalStructInitCodeInterceptionPoint = len(GlobalStructInitCode)
                 GlobalStructInitCode += code
             add_fn_member_to_struct(class_fn_defination["class_name"], fn)
             class_fn_defination["function_destination"] = "class"
@@ -4639,6 +4660,8 @@ while index < len(Lines):
 
         return_encountered_in_fn = False
         scopes_with_return_stmnt = []
+
+        GlobalStructInitCodeInterceptionPoint = -1
 
         should_write_fn_body = True
         is_inside_user_defined_function = False
