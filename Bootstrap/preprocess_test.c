@@ -15,6 +15,7 @@ import Random
 import Dict_int_string
 import ErrorHandler
 import Optional
+import OrderedDict
 
 // Insert a string at a given index in another string.
 function insert_string(original_string : String, p_index: int, string_to_insert: String) -> String:
@@ -169,54 +170,28 @@ endfunction
 
 endnamespace
 
-struct Scope{int scope_id, Vector<NameSymbolPair> symbols};
+struct Scope{int scope_id, OrderedDict<Symbol> symbols};
 
 namespace Scope
 
 function __init__(p_scope_id : int)
   this.scope_id = p_scope_id
-  this.symbols.__init__(5)
-endfunction
-
-function contains_symbol(name : String) -> bool:
-  for s in this.symbols{
-    let n = s.get_name()
-    if n == name{
-      return true
-    }
-  }
-  return false
+  this.symbols.__init__()
 endfunction
 
 function declare_variable(name : String, p_type : String)
-  if this.contains_symbol(name){
+  if name in this.symbols{
     let e = ErrorHandler{};    
     e.RAISE_ERROR("Variable already declared.")
   }
 
   let symbol = Symbol{name, p_type};
-  let name_symbol_pair = NameSymbolPair{name, symbol};
-
-  this.symbols.push(name_symbol_pair)
+  this.symbols.push(symbol)
 endfunction
 
 function lookup_variable(name : String) -> Optional<Symbol>:
-  let variable = Optional<Symbol>{};
-
-  for s in this.symbols{
-    let n = s.get_name()
-    if n == name{
-      let sym = s.get_symbol()
-      let s_name = sym.get_name()
-      let s_data_type = sym.get_data_type()
-
-      let Sym1 = Symbol{s_name, s_data_type};
-      variable.set_value(Sym1)
-      return variable
-    }
-  }
-
-  return variable
+  let res = this.symbols.get(name);
+  return res
 endfunction
 
 function destructor_for_all_variables() -> String:
@@ -354,7 +329,7 @@ function declare_variable(name : String, p_type : String)
   let current_scope_id = this.current_scope()
   let current_scope = this.get_scope_by_id(current_scope_id)
 
-  if current_scope.contains_symbol(name){
+  if name in current_scope.symbols{
     this.print_symbol_table()
     let e = ErrorHandler{};    
     e.RAISE_ERROR("Variable already declared.")
@@ -362,7 +337,7 @@ function declare_variable(name : String, p_type : String)
 
   for scope_id in this.scope_stack{
     let scope = this.get_scope_by_id(scope_id)
-    if scope.contains_symbol(name){
+    if name in scope.symbols{
       this.print_symbol_table()
       let e = ErrorHandler{};    
       e.RAISE_ERROR("Variable already declared in previous scopes.")

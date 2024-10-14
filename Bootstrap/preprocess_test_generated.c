@@ -81,6 +81,12 @@ typedef CPLObject *CPLObjectptr;
 
 ///*///
 
+///*///
+
+// Currently Implemented for Symbol Struct(preprocess_test.c).
+
+///*///
+
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -963,6 +969,35 @@ void ErrorHandlerRAISE_ERROR(struct ErrorHandler *this, char *p_error_msg) {
   exit(EXIT_FAILURE);
 }
 
+struct Optional_Symbol {
+  bool _has_value;
+  Symbol _value;
+};
+
+// template Optional<Symbol> {
+void Optional_Symbol__init__(struct Optional_Symbol *this) {
+  this->_has_value = false;
+}
+
+bool Optional_Symbolhas_value(struct Optional_Symbol *this) {
+  return this->_has_value;
+}
+
+Symbol Optional_Symbolget_value(struct Optional_Symbol *this) {
+  return this->_value;
+}
+
+void Optional_Symbol_set_value(struct Optional_Symbol *this, Symbol p_value) {
+  this->_value = p_value;
+}
+
+void Optional_Symbolset_value(struct Optional_Symbol *this, Symbol p_value) {
+  this->_has_value = true;
+  Optional_Symbol_set_value(this, p_value);
+}
+
+// template Optional<Symbol> }
+
 struct StructInstance {
   struct String struct_type;
   struct String struct_name;
@@ -1062,231 +1097,115 @@ struct Symbol NameSymbolPairget_symbol(struct NameSymbolPair *this) {
   return this->symbol;
 }
 
-struct Vector_NameSymbolPair {
-  struct NameSymbolPair *arr;
-  int size;
-  int capacity;
+struct OrderedDictObject_Symbol {
+  char *key_str;
+  struct Symbol value;
+  struct OrderedDictObject_Symbol *next;
 };
 
-// template Vector<NameSymbolPair> {
-size_t Vector_NameSymbolPairlen(struct Vector_NameSymbolPair *this) {
-  return this->size;
+// template OrderedDictObject<Symbol> {
+// template OrderedDictObject<Symbol> }
+
+struct OrderedDict_Symbol {
+  struct OrderedDictObject_Symbol *nodes;
+};
+
+// template OrderedDict<Symbol> {
+void OrderedDict_Symbol__init__(struct OrderedDict_Symbol *this) {
+  this->nodes = NULL;
 }
 
-struct NameSymbolPair
-Vector_NameSymbolPair__getitem__(struct Vector_NameSymbolPair *this,
-                                 int index) {
-  if (index < 0) {
-    index += this->size;
+void OrderedDict_Symbol__del__(struct OrderedDict_Symbol *this) {
+  struct OrderedDictObject_Symbol *node = this->nodes;
+  while (node != NULL) {
+    struct OrderedDictObject_Symbol *temp = node;
+    node = node->next;
+    free(temp);
   }
-  return *(this->arr + index);
 }
 
-void Vector_NameSymbolPair__init__(struct Vector_NameSymbolPair *this,
-                                   int capacity) {
-  // if we want to use instanced template type in fn body, we use following
-  // syntax.
-  // @ TEMPLATED_DATA_TYPE @
-  this->arr =
-      (struct NameSymbolPair *)malloc(capacity * sizeof(struct NameSymbolPair));
-
-  if (this->arr == NULL) {
-    fprintf(stderr, "Memory allocation failed.\n");
-    exit(EXIT_FAILURE);
-  }
-  this->size = 0;
-  this->capacity = capacity;
-}
-
-void Vector_NameSymbolPair__del__(struct Vector_NameSymbolPair *this) {
-  free(this->arr);
-  this->arr = NULL;
-  this->size = 0;
-  this->capacity = 0;
-}
-
-void Vector_NameSymbolPairpush(struct Vector_NameSymbolPair *this,
-                               struct NameSymbolPair value) {
-  if (this->size == this->capacity) {
-    this->capacity *= 2;
-    this->arr = (struct NameSymbolPair *)realloc(
-        this->arr, this->capacity * sizeof(struct NameSymbolPair));
-    if (this->arr == NULL) {
-      fprintf(stderr, "Memory reallocation failed.\n");
-      exit(EXIT_FAILURE);
+Symbol OrderedDict_Symbol__getitem__(struct OrderedDict_Symbol *this,
+                                     char *p_key) {
+  struct OrderedDictObject_Symbol *node = this->nodes;
+  while (node != NULL) {
+    struct OrderedDictObject_Symbol *temp = node;
+    if (strcmp(node->key_str, p_key) == 0) {
+      return node->value;
     }
+    node = node->next;
+    free(temp);
   }
-  this->arr[this->size++] = value;
+
+  struct OrderedDictObject_Symbol item;
+  return item;
 }
 
-void Vector_NameSymbolPairallocate_more(struct Vector_NameSymbolPair *this,
-                                        int n) {
-  this->capacity += n;
-  this->arr = (struct NameSymbolPair *)realloc(
-      this->arr, this->capacity * sizeof(struct NameSymbolPair));
-  if (this->arr == NULL) {
-    fprintf(stderr, "Memory reallocation failed.\n");
-    exit(EXIT_FAILURE);
-  }
+void OrderedDict_Symbol__setitem__(struct OrderedDict_Symbol *this,
+                                   char *p_key_str, int p_value) {
+  // TODO!
+  struct OrderedDictObject_Symbol item;
+  return item;
 }
 
-void Vector_NameSymbolPairpush_unchecked(struct Vector_NameSymbolPair *this,
-                                         struct NameSymbolPair value) {
-  this->arr[this->size++] = value;
-}
-
-struct NameSymbolPair
-Vector_NameSymbolPairpop(struct Vector_NameSymbolPair *this) {
-  if (this->size == 0) {
-    fprintf(stderr, "Pop from empty Vector.\n");
-    exit(EXIT_FAILURE);
-  }
-  return this->arr[--this->size];
-}
-
-void Vector_NameSymbolPairremove_at(struct Vector_NameSymbolPair *this,
-                                    int index) {
-  if (index < 0) {
-    index += this->size;
-  }
-
-  if (index < 0 || index >= this->size) {
-    fprintf(stderr, "Index out of bounds.\n");
-    exit(EXIT_FAILURE);
-  }
-
-  for (int i = index; i < this->size - 1; i++) {
-    this->arr[i] = this->arr[i + 1];
-  }
-  this->size--;
-}
-
-bool Vector_NameSymbolPair__contains__(struct Vector_NameSymbolPair *this,
-                                       struct NameSymbolPair value) {
-  // This function is an overloaded function.
-  // Here <> in function defination means the base overload.
-  for (size_t i = 0; i < this->size; ++i) {
-    if (this->arr[i] == value) {
+bool OrderedDict_Symbol__contains__(struct OrderedDict_Symbol *this,
+                                    char *p_key) {
+  struct OrderedDictObject_Symbol *node = this->nodes;
+  while (node != NULL) {
+    if (strcmp(node->key_str, p_key) == 0) {
       return true;
     }
+    node = node->next;
   }
   return false;
 }
 
-void Vector_NameSymbolPairprint(struct Vector_NameSymbolPair *this) {
-  // Default overload.
-  printf("Dynamic Array (size = %d, capacity = %d) : [ ]", this->size,
-         this->capacity);
-  // struct NameSymbolPair will be replaced by the actual templated data type.
-  printf("Unknown Format Specifier for type struct NameSymbolPair.\n");
+struct Optional_Symbol OrderedDict_Symbolget(struct OrderedDict_Symbol *this,
+                                             char *key) {
+  struct Optional_Symbol res;
+  Optional_Symbol__init__(&res);
+
+  if (OrderedDict_Symbol__contains__(this, key)) {
+    Symbol value = OrderedDict_Symbol__getitem__(this, key);
+    Optional_Symbolset_value(&res, value);
+  }
+  return res;
 }
 
-// template Vector<NameSymbolPair> }
+void OrderedDict_Symbolpush(struct OrderedDict_Symbol *this, Symbol symbol) {
+  // TODO !
+}
+
+// template OrderedDict<Symbol> }
 
 struct Scope {
   int scope_id;
-  struct Vector_NameSymbolPair symbols;
+  struct OrderedDict_Symbol symbols;
 };
 
 void Scope__init__(struct Scope *this, int p_scope_id) {
   this->scope_id = p_scope_id;
-  Vector_NameSymbolPair__init__(&this->symbols, 5);
-}
-
-bool Scopecontains_symbol(struct Scope *this, struct String name) {
-  size_t tmp_len_3 = Vector_NameSymbolPairlen(&this->symbols);
-  for (size_t i = 0; i < tmp_len_3; i++) {
-    struct NameSymbolPair s =
-        Vector_NameSymbolPair__getitem__(&this->symbols, i);
-    struct String n = NameSymbolPairget_name(&s);
-
-    if (String__eq__(&n, Stringc_str(&name))) {
-      String__del__(&n);
-      return true;
-    }
-    String__del__(&n);
-  }
-  return false;
+  OrderedDict_Symbol__init__(&this->symbols);
 }
 
 void Scopedeclare_variable(struct Scope *this, struct String name,
                            struct String p_type) {
 
-  if (Scopecontains_symbol(this, name)) {
+  if (OrderedDict_Symbol__contains__(&this->symbols, Stringc_str(&name))) {
     struct ErrorHandler e;
     ErrorHandlerRAISE_ERROR(&e, "Variable already declared.");
   }
 
   struct Symbol symbol;
   Symbol__init__(&symbol, name, p_type);
-  struct NameSymbolPair name_symbol_pair;
-  NameSymbolPair__init__(&name_symbol_pair, name, symbol);
-
-  Vector_NameSymbolPairpush(&this->symbols, name_symbol_pair);
+  OrderedDict_Symbolpush(&this->symbols, symbol);
   Symbol__del__(&symbol);
 }
 
-struct Optional_Symbol {
-  bool _has_value;
-  struct Symbol _value;
-};
-
-// template Optional<Symbol> {
-void Optional_Symbol__init__(struct Optional_Symbol *this) {
-  this->_has_value = false;
-}
-
-bool Optional_Symbolhas_value(struct Optional_Symbol *this) {
-  return this->_has_value;
-}
-
-struct Symbol Optional_Symbolget_value(struct Optional_Symbol *this) {
-  return this->_value;
-}
-
-void Optional_Symbol_set_value(struct Optional_Symbol *this,
-                               struct Symbol p_value) {
-  this->_value = p_value;
-}
-
-void Optional_Symbolset_value(struct Optional_Symbol *this,
-                              struct Symbol p_value) {
-  this->_has_value = true;
-  Optional_Symbol_set_value(this, p_value);
-}
-
-// template Optional<Symbol> }
-
 struct Optional_Symbol Scopelookup_variable(struct Scope *this,
                                             struct String name) {
-  struct Optional_Symbol variable;
-  Optional_Symbol__init__(&variable);
-
-  size_t tmp_len_4 = Vector_NameSymbolPairlen(&this->symbols);
-  for (size_t i = 0; i < tmp_len_4; i++) {
-    struct NameSymbolPair s =
-        Vector_NameSymbolPair__getitem__(&this->symbols, i);
-    struct String n = NameSymbolPairget_name(&s);
-
-    if (String__eq__(&n, Stringc_str(&name))) {
-      struct Symbol sym = NameSymbolPairget_symbol(&s);
-      struct String s_name = Symbolget_name(&sym);
-      struct String s_data_type = Symbolget_data_type(&sym);
-
-      struct Symbol Sym1;
-      Symbol__init__(&Sym1, s_name, s_data_type);
-      Optional_Symbolset_value(&variable, Sym1);
-      Symbol__del__(&Sym1);
-      String__del__(&s_data_type);
-      String__del__(&s_name);
-      Symbol__del__(&sym);
-      String__del__(&n);
-      return variable;
-    }
-    String__del__(&n);
-  }
-
-  return variable;
+  struct Optional_Symbol res =
+      OrderedDict_Symbolget(&this->symbols, Stringc_str(&name));
+  return res;
 }
 
 struct String Scopedestructor_for_all_variables(struct Scope *this) {
@@ -1296,7 +1215,7 @@ struct String Scopedestructor_for_all_variables(struct Scope *this) {
 }
 
 void Scope__del__(struct Scope *this) {
-  Vector_NameSymbolPair__del__(&this->symbols);
+  OrderedDict_Symbol__del__(&this->symbols);
 }
 
 struct ScopeScopeIDPair {
@@ -1564,8 +1483,8 @@ int SymbolTablecurrent_scope(struct SymbolTable *this) {
 }
 
 struct Scope SymbolTableget_scope_by_id(struct SymbolTable *this, int id) {
-  size_t tmp_len_5 = Vector_ScopeScopeIDPairlen(&this->scopes);
-  for (size_t i = 0; i < tmp_len_5; i++) {
+  size_t tmp_len_3 = Vector_ScopeScopeIDPairlen(&this->scopes);
+  for (size_t i = 0; i < tmp_len_3; i++) {
     struct ScopeScopeIDPair s =
         Vector_ScopeScopeIDPair__getitem__(&this->scopes, i);
 
@@ -1610,8 +1529,8 @@ void SymbolTableremove_scope_by_id(struct SymbolTable *this, int scope_id) {
   struct Vector_int id_to_remove;
   Vector_int__init__(&id_to_remove, 1);
   int index = 0;
-  size_t tmp_len_6 = Vector_ScopeScopeIDPairlen(&this->scopes);
-  for (size_t i = 0; i < tmp_len_6; i++) {
+  size_t tmp_len_4 = Vector_ScopeScopeIDPairlen(&this->scopes);
+  for (size_t i = 0; i < tmp_len_4; i++) {
     struct ScopeScopeIDPair scope =
         Vector_ScopeScopeIDPair__getitem__(&this->scopes, i);
     int id = ScopeScopeIDPairget_scope_id(&scope);
@@ -1623,9 +1542,9 @@ void SymbolTableremove_scope_by_id(struct SymbolTable *this, int scope_id) {
     ScopeScopeIDPair__del__(&scope);
   }
 
-  size_t tmp_len_7 = Vector_intlen(&id_to_remove);
-  tmp_len_7 -= 1;
-  for (size_t i = tmp_len_7; i != (size_t)-1; i += -1) {
+  size_t tmp_len_5 = Vector_intlen(&id_to_remove);
+  tmp_len_5 -= 1;
+  for (size_t i = tmp_len_5; i != (size_t)-1; i += -1) {
     int idx = Vector_int__getitem__(&id_to_remove, i);
     Vector_ScopeScopeIDPairremove_at(&this->scopes, idx);
   }
@@ -1688,18 +1607,19 @@ void SymbolTabledeclare_variable(struct SymbolTable *this, struct String name,
   struct Scope current_scope =
       SymbolTableget_scope_by_id(this, current_scope_id);
 
-  if (Scopecontains_symbol(&current_scope, name)) {
+  if (OrderedDict_Symbol__contains__(&current_scope.symbols,
+                                     Stringc_str(&name))) {
     SymbolTableprint_symbol_table(this);
     struct ErrorHandler e;
     ErrorHandlerRAISE_ERROR(&e, "Variable already declared.");
   }
 
-  size_t tmp_len_8 = Vector_intlen(&this->scope_stack);
-  for (size_t i = 0; i < tmp_len_8; i++) {
+  size_t tmp_len_6 = Vector_intlen(&this->scope_stack);
+  for (size_t i = 0; i < tmp_len_6; i++) {
     int scope_id = Vector_int__getitem__(&this->scope_stack, i);
     struct Scope scope = SymbolTableget_scope_by_id(this, scope_id);
 
-    if (Scopecontains_symbol(&scope, name)) {
+    if (OrderedDict_Symbol__contains__(&scope.symbols, Stringc_str(&name))) {
       SymbolTableprint_symbol_table(this);
       struct ErrorHandler e;
       ErrorHandlerRAISE_ERROR(&e,
@@ -1989,8 +1909,8 @@ int main() {
   struct Vector_String imported_modules;
   Vector_String__init__(&imported_modules, 5);
 
-  size_t tmp_len_9 = Vector_Stringlen(&Lines);
-  for (size_t i = 0; i < tmp_len_9; i++) {
+  size_t tmp_len_7 = Vector_Stringlen(&Lines);
+  for (size_t i = 0; i < tmp_len_7; i++) {
     struct String line = Vector_String__getitem__(&Lines, i);
     struct String Line = Stringstrip(&line);
 
@@ -2012,8 +1932,8 @@ int main() {
     struct Vector_String ImportedCodeLines;
     Vector_String__init__(&ImportedCodeLines, 50);
 
-    size_t tmp_len_10 = Vector_Stringlen(&imported_modules);
-    for (size_t i = 0; i < tmp_len_10; i++) {
+    size_t tmp_len_8 = Vector_Stringlen(&imported_modules);
+    for (size_t i = 0; i < tmp_len_8; i++) {
       struct String module_name =
           Vector_String__getitem__(&imported_modules, i);
       struct String relative_path;
@@ -2030,8 +1950,8 @@ int main() {
       // lines.print()
 
       // ImportedCodeLines += lines
-      size_t tmp_len_11 = Vector_Stringlen(&lines);
-      for (size_t j = 0; j < tmp_len_11; j++) {
+      size_t tmp_len_9 = Vector_Stringlen(&lines);
+      for (size_t j = 0; j < tmp_len_9; j++) {
         struct String line = Vector_String__getitem__(&lines, j);
         Vector_Stringpush(&ImportedCodeLines, line);
       }
