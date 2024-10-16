@@ -18,6 +18,11 @@ You can find example CPL code in the [examples/](examples/) directory.
 ```bash 
 python preprocess_2.py
 ```
+Alternatively, you can specify the filename directly by running:
+```bash
+python preprocess_2.py --filename examples\FILE_NAME*.c
+```
+
 4. This will generate a FILE_NAME*_generated.c file. Compile the generated c file using a C compiler and execute the generated executable.
 
 ## Features:

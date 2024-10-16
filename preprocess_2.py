@@ -49,7 +49,8 @@ source_file = "Bootstrap\\Parser.c"
 if args.filename:
     source_file = args.filename
 
-output_file_name = source_file.split(".")[0] + "_generated.c"
+base_name, ext = os.path.splitext(os.path.basename(source_file))
+output_file_name = os.path.join(os.path.dirname(source_file), base_name + "_generated" + ext)
 
 Lines = []
 with open(source_file, "r") as file:
