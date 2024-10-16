@@ -1,16 +1,16 @@
-import Parser
-import lexer
-from ErrorHandler import ErrorHandler
-from input_variables_gui_manager import InputVariablesGUI
-
-from typing import Callable, Dict, Optional
-from enum import Enum
-import re
 import os
+import re
 import random
+import argparse
 from collections import OrderedDict
 
-import argparse
+from enum import Enum
+from typing import Callable, Dict, Optional
+
+import lexer
+import Parser
+from ErrorHandler import ErrorHandler
+from input_variables_gui_manager import InputVariablesGUI
 
 # We don't typically pass filenames through command line, this is mostly for batch compile operations.
 filename_parser = argparse.ArgumentParser()
