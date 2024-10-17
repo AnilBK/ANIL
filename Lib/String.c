@@ -8,13 +8,13 @@
 struct String{char* arr, int length, int capacity};
 
 namespace String
-c_function c_str() -> str:
-  return this->arr;
-endc_function
+function c_str() -> str:
+  return this.arr
+endfunction
 
-c_function len() -> size_t:
-  return this->length;
-endc_function
+function len() -> size_t:
+  return this.length
+endfunction
 
 c_function __getitem__(index: int) -> char:
   return *(this->arr + index);

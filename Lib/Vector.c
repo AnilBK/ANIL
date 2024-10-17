@@ -7,9 +7,9 @@
 struct Vector<T>{T* arr,int size,int capacity};
 
 namespace Vector
-c_function len() -> size_t:
-  return this->size;
-endc_function
+function len() -> size_t:
+  return this.size
+endfunction
 
 c_function<> __getitem__(index : int) -> T:
   if (index < 0){index += this->size;}
@@ -33,8 +33,8 @@ c_function __init__(capacity : int)
   this->arr = (@TEMPLATED_DATA_TYPE@ *)malloc(capacity * sizeof(@TEMPLATED_DATA_TYPE@));
 
   if (this->arr == NULL) {
-      fprintf(stderr, "Memory allocation failed.\n");
-      exit(EXIT_FAILURE);
+    fprintf(stderr, "Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
   }
   this->size = 0;
   this->capacity = capacity;
@@ -59,13 +59,13 @@ c_function<String> __del__()
 endc_function
 
 c_function<> push(value : T)
-   if (this->size == this->capacity) {
-      this->capacity *= 2;
-      this->arr = (@TEMPLATED_DATA_TYPE@ *)realloc(this->arr, this->capacity * sizeof(@TEMPLATED_DATA_TYPE@));
-      if (this->arr == NULL) {
-        fprintf(stderr, "Memory reallocation failed.\n");
-        exit(EXIT_FAILURE);
-      }
+  if (this->size == this->capacity) {
+    this->capacity *= 2;
+    this->arr = (@TEMPLATED_DATA_TYPE@ *)realloc(this->arr, this->capacity * sizeof(@TEMPLATED_DATA_TYPE@));
+    if (this->arr == NULL) {
+      fprintf(stderr, "Memory reallocation failed.\n");
+      exit(EXIT_FAILURE);
+    }
   }
   this->arr[this->size++] = value;
 endc_function
@@ -77,13 +77,13 @@ c_function<String> push(value : T)
   struct String str;
   String__init__OVDstructString(&str, value);
 
-   if (this->size == this->capacity) {
-      this->capacity *= 2;
-      this->arr = (@TEMPLATED_DATA_TYPE@ *)realloc(this->arr, this->capacity * sizeof(@TEMPLATED_DATA_TYPE@));
-      if (this->arr == NULL) {
-        fprintf(stderr, "Memory reallocation failed.\n");
-        exit(EXIT_FAILURE);
-      }
+  if (this->size == this->capacity) {
+    this->capacity *= 2;
+    this->arr = (@TEMPLATED_DATA_TYPE@ *)realloc(this->arr, this->capacity * sizeof(@TEMPLATED_DATA_TYPE@));
+    if (this->arr == NULL) {
+      fprintf(stderr, "Memory reallocation failed.\n");
+      exit(EXIT_FAILURE);
+    }
   }
   this->arr[this->size++] = str;
 endc_function
