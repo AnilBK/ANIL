@@ -19,7 +19,7 @@ function __init__(count : int)
 endfunction  
 
 function __del__()
-    this.arr.__del__()
+  this.arr.__del__()
 endfunction
 
 function __contains__(value : String) -> bool:
