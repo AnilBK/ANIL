@@ -969,35 +969,6 @@ void ErrorHandlerRAISE_ERROR(struct ErrorHandler *this, char *p_error_msg) {
   exit(EXIT_FAILURE);
 }
 
-struct Optional_Symbol {
-  bool _has_value;
-  Symbol _value;
-};
-
-// template Optional<Symbol> {
-void Optional_Symbol__init__(struct Optional_Symbol *this) {
-  this->_has_value = false;
-}
-
-bool Optional_Symbolhas_value(struct Optional_Symbol *this) {
-  return this->_has_value;
-}
-
-Symbol Optional_Symbolget_value(struct Optional_Symbol *this) {
-  return this->_value;
-}
-
-void Optional_Symbol_set_value(struct Optional_Symbol *this, Symbol p_value) {
-  this->_value = p_value;
-}
-
-void Optional_Symbolset_value(struct Optional_Symbol *this, Symbol p_value) {
-  this->_has_value = true;
-  Optional_Symbol_set_value(this, p_value);
-}
-
-// template Optional<Symbol> }
-
 struct StructInstance {
   struct String struct_type;
   struct String struct_name;
@@ -1124,8 +1095,8 @@ void OrderedDict_Symbol__del__(struct OrderedDict_Symbol *this) {
   }
 }
 
-Symbol OrderedDict_Symbol__getitem__(struct OrderedDict_Symbol *this,
-                                     char *p_key) {
+struct Symbol OrderedDict_Symbol__getitem__(struct OrderedDict_Symbol *this,
+                                            char *p_key) {
   struct OrderedDictObject_Symbol *node = this->nodes;
   while (node != NULL) {
     struct OrderedDictObject_Symbol *temp = node;
@@ -1136,7 +1107,7 @@ Symbol OrderedDict_Symbol__getitem__(struct OrderedDict_Symbol *this,
     free(temp);
   }
 
-  struct OrderedDictObject_Symbol item;
+  struct Symbol item;
   return item;
 }
 
@@ -1163,15 +1134,17 @@ struct Optional_Symbol OrderedDict_Symbolget(struct OrderedDict_Symbol *this,
                                              char *key) {
   struct Optional_Symbol res;
   Optional_Symbol__init__(&res);
-
-  if (OrderedDict_Symbol__contains__(this, key)) {
-    Symbol value = OrderedDict_Symbol__getitem__(this, key);
-    Optional_Symbolset_value(&res, value);
-  }
   return res;
+  // let res = Optional<Symbol>{};
+  // if key in this{
+  //   let value = this.__getitem__(key);
+  //   res.set_value(value);
+  // }
+  // return res
 }
 
-void OrderedDict_Symbolpush(struct OrderedDict_Symbol *this, Symbol symbol) {
+void OrderedDict_Symbolpush(struct OrderedDict_Symbol *this,
+                            struct Symbol symbol) {
   // TODO !
 }
 
@@ -1200,6 +1173,37 @@ void Scopedeclare_variable(struct Scope *this, struct String name,
   OrderedDict_Symbolpush(&this->symbols, symbol);
   Symbol__del__(&symbol);
 }
+
+struct Optional_Symbol {
+  bool _has_value;
+  struct Symbol _value;
+};
+
+// template Optional<Symbol> {
+void Optional_Symbol__init__(struct Optional_Symbol *this) {
+  this->_has_value = false;
+}
+
+bool Optional_Symbolhas_value(struct Optional_Symbol *this) {
+  return this->_has_value;
+}
+
+struct Symbol Optional_Symbolget_value(struct Optional_Symbol *this) {
+  return this->_value;
+}
+
+void Optional_Symbol_set_value(struct Optional_Symbol *this,
+                               struct Symbol p_value) {
+  this->_value = p_value;
+}
+
+void Optional_Symbolset_value(struct Optional_Symbol *this,
+                              struct Symbol p_value) {
+  this->_has_value = true;
+  Optional_Symbol_set_value(this, p_value);
+}
+
+// template Optional<Symbol> }
 
 struct Optional_Symbol Scopelookup_variable(struct Scope *this,
                                             struct String name) {

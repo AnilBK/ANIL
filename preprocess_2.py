@@ -1548,6 +1548,9 @@ while index < len(Lines):
                         return_type = templated_data_type
                         if is_data_type_struct_object(return_type):
                             return_type = "struct " + return_type
+                    elif f"<{defined_struct.template_defination_variable}>" in return_type:
+                        # OrderedDictObject<T>, T = Symbol -> OrderedDictObject_Symbol
+                        return_type = return_type.replace(f"<{defined_struct.template_defination_variable}>", "_" + templated_data_type)
 
                     # Register this function, but if it is templated, resolved the templated type and write the function.
                     m_fn = MemberFunction(fn_name, parameters_copy, return_type)
@@ -2283,7 +2286,7 @@ while index < len(Lines):
         # Shouldn't happen as the caller functions have already verified the presence of the dictionaries.
         RAISE_ERROR(f"Constexpr dictionary {p_dict_name} is undefined.")
 
-    def parse_function_declaration():
+    def parse_function_declaration(incomplete_types = None):
         # parse everything after function/c_function token.
         # function<> append<>(p_value : int) -> return_type
         #         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -2379,7 +2382,7 @@ while index < len(Lines):
                     is_return_type_ref_type = True
                     parser.next_token()
 
-                return_type = parse_data_type()
+                return_type = parse_data_type(False, incomplete_types)
                 parser.consume_token(lexer.Token.COLON)
 
         return {
@@ -4098,8 +4101,9 @@ while index < len(Lines):
         # print(StructInfo.members)  # [['X', 'a', True], ['float', 'b', False]]
 
         is_struct_templated = StructInfo.is_templated()
+        incomplete_types = [StructInfo.template_defination_variable] if is_struct_templated else None
 
-        function_declaration = parse_function_declaration()
+        function_declaration = parse_function_declaration(incomplete_types = incomplete_types)
 
         fn_name = function_declaration["fn_name"] 
         return_type = function_declaration["return_type"]
