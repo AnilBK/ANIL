@@ -90,12 +90,6 @@ if len(imported_modules) > 0:
 
 LinesCache = []
 
-inside_match_loop = False
-match_condition_count = 0
-match_variable_name = ""
-match_type = "variable"  # variable,struct
-match_struct_type_info = []
-
 struct_definations = []
 instanced_struct_names = []
 
@@ -3527,116 +3521,6 @@ while index < len(Lines):
             parts = Line.split("#", 1)
             line_without_hash = parts[1]
             LinesCache.append(f" //{line_without_hash}")
-    elif inside_match_loop:
-        if "%}" in Line:
-            inside_match_loop = False
-            # LinesCache.append("}\n")
-        elif match_type == "variable":
-            # 1 => printf("One");
-            rhs = Line.split("=>")
-            match_condition_value = rhs[0].strip()
-            statements = rhs[1].strip()
-
-            is_else_condition = False
-            if match_condition_count == 0:
-                LinesCache.append("if ")
-            else:
-                if match_condition_value == "_":
-                    is_else_condition = True
-                    LinesCache.append("else")
-                else:
-                    LinesCache.append("else if")
-
-            if is_else_condition:
-                LinesCache.append(f"{{\n")
-            else:
-                # 3 | 4 | 5
-                if "|" in match_condition_value:
-                    values_to_test = match_condition_value.split("|")
-
-                    statement_list = []
-                    for value in values_to_test:
-                        statement_list.append(f"{match_variable_name} == {value}")
-                    combined_statement = " || ".join(statement_list)
-                    LinesCache.append(f" ({combined_statement}){{\n")
-                elif "..." in match_condition_value:
-                    # 5 ... 10
-                    operands = match_condition_value.split("...")
-                    start_range = operands[0]
-                    end_range = operands[1]
-                    LinesCache.append(
-                        f" ( {match_variable_name} >= {start_range} && {match_variable_name} <= {end_range} ){{\n"
-                    )
-                else:
-                    LinesCache.append(
-                        f" ( {match_variable_name} == {match_condition_value}){{\n"
-                    )
-            LinesCache.append(f"    {statements} \n}}\n")
-
-            match_condition_count += 1
-        elif match_type == "struct":
-            # (0, 0) => printf("Origin.");
-            rhs = Line.split("=>")
-            match_condition = rhs[0].strip()
-            statements = rhs[1].strip()
-
-            type, name = match_struct_type_info
-            # print(match_struct_type_info)
-
-            match_condition = match_condition.split("(")[1]
-            match_condition = match_condition.split(")")[0]
-            conds = match_condition.split(",")
-
-            # Get all the members for the given struct type.
-            StructInfo = get_struct_defination_of_type(type)
-            if StructInfo is None:
-                RAISE_ERROR("Struct undefined.")
-            members = StructInfo.members
-
-            cond_struct_members_pair = list(zip(conds, members))
-            condition_list = []
-            assignment_list = []
-
-            # (x,y,z)
-            are_all_conditions_assignments = all(
-                conds.strip().isnumeric() for conds, memb in cond_struct_members_pair
-            )
-
-            for conds, memb in cond_struct_members_pair:
-                conds = conds.strip()
-                if conds == "_":
-                    continue
-                elif conds.isnumeric():
-                    condition_list.append(f"({name}.{memb} ==  {conds})")
-                    # print(f"if({name}.{memb} ==  {conds}){{")
-                else:
-                    assignment_list.append(f"int {conds} = {name}.{memb};")
-                    # print(f"float {conds} = {name}.{memb};")
-
-            # print(" && ".join(condition_list))
-            conditions_joined = " && ".join(condition_list)
-
-            # Bug: #(x,y,z) condition works only on the last arm of match.
-            # (x,y,z) is final pattern same as using _.
-            # so there can be only one such condition ;D
-            # if are_all_conditions_assignments:
-            #    LinesCache.append("else{")
-            if match_condition_count == 0:
-                LinesCache.append("if")
-            else:
-                LinesCache.append("else if")
-
-            if len(condition_list) == 0:
-                # (x,y,z), (_,_,_)
-                conditions_joined = "true"
-            LinesCache.append(f"({conditions_joined})\n{{\n")
-
-            if len(assignment_list) > 0:
-                assignment_joined = "\n".join(assignment_list)
-                LinesCache.append(f"    {assignment_joined} \n\n")
-            LinesCache.append(f"    {statements} \n}}\n")
-
-            match_condition_count += 1
     elif parser.current_token() == "print":
         # print("Hello {meaning}")
         parser.next_token()
@@ -3671,34 +3555,6 @@ while index < len(Lines):
             str_to_write += "," + ",".join(extracted_var_name_list)
         str_to_write += ");\n"
         LinesCache.append(str_to_write)
-    elif check_token(lexer.Token.MATCH):
-        # % match x{
-        parser.consume_token(lexer.Token.MATCH)
-        match_variable_name = parser.get_token()
-        # print(f"Matching variable {match_variable_name}")
-        parser.match_token(lexer.Token.LEFT_CURLY)
-
-        inside_match_loop = True
-        match_condition_count = 0
-
-        is_Struct = False
-        user_struct_type = ""
-        type = ""
-        name = ""
-        # [struct_type,struct_name]
-        for s in instanced_struct_names:
-            type = s.struct_type
-            name = s.struct_name
-            if name == match_variable_name:
-                is_Struct = True
-                user_struct_type = type
-                break
-
-        if is_Struct:
-            match_struct_type_info = [type, name]
-            match_type = "struct"  # variable,struct
-        else:
-            match_type = "variable"  # variable,struct
     elif check_token(lexer.Token.CONST):
         parser.consume_token(lexer.Token.CONST)
 
