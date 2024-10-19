@@ -475,7 +475,7 @@ void Setprint(struct Set *this) {
 struct CPLObject {
   CPLObject_Data data;
   CPLObject_DataType data_type;
-  CPLObject *next;
+  struct CPLObject *next;
 };
 
 void CPLObject__init__OVDint(struct CPLObject *this, int p_value) {
@@ -537,8 +537,8 @@ bool CPLObject__eq__OVDstr(struct CPLObject *this, char *p_value) {
 }
 
 struct List {
-  CPLObject *head;
-  CPLObject *tail;
+  struct CPLObject *head;
+  struct CPLObject *tail;
   int size;
 };
 

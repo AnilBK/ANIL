@@ -2,6 +2,7 @@ import os
 import re
 import random
 import argparse
+import copy
 from collections import OrderedDict
 
 from enum import Enum
@@ -655,7 +656,12 @@ class Struct:
             type = struct_member.data_type
             mem = struct_member.member
             is_generic = struct_member.is_generic
-            if is_data_type_struct_object(type):
+
+            type_without_pointers = type.replace("*", "")
+            # This get_struct_initialization_code() maybe called before itself has been registered
+            # to global struct definations. In that case 'is_data_type_struct_object()' returns false.
+            # So, we check if the type is same as this struct name, in that case it is a struct.
+            if type_without_pointers == self.name or is_data_type_struct_object(type_without_pointers):
                 struct_code += f"struct {type} {mem};\n"
             else:
                 struct_code += f"{type} {mem};\n"
@@ -670,6 +676,165 @@ class Struct:
                 RAISE_ERROR(f"{self.name}({p_instance_name}) doesn't have the function name : {p_fn_name}")
             else:
                 RAISE_ERROR(f"{self.name} doesn't have the function name : {p_fn_name}")
+
+    # Template Instantiation Related Code.     
+    
+    # Note : To be called by instantiate_template() only.
+    def remove_unwanted_template_fn_overloads(self, p_template_type: str) -> None:
+        indices_to_remove = []
+
+        for index, fn in enumerate(self.member_functions):
+            if fn.is_overloaded_function:
+                use_this_overload = False
+
+                if fn.overload_for_template_type == p_template_type:
+                    # This current function is the suitable overload.
+                    use_this_overload = True
+                else:
+                    # Check if any other function with the same name is a better overload.
+                    has_suitable_overload = any(m_fn.fn_name == fn.fn_name and m_fn.overload_for_template_type == p_template_type for m_fn in self.member_functions)
+
+                    if not has_suitable_overload:
+                        # If no other suitable overload is found, check for the base overload.
+                        if fn.overload_for_template_type == "#BASE#":
+                            use_this_overload = True
+
+                # If this function is not the suitable overload, mark it for removal.
+                if not use_this_overload:
+                    indices_to_remove.append(index)
+
+        for index in reversed(indices_to_remove):
+            del self.member_functions[index]
+
+
+    def substitute_template_for_member_types(self, p_templated_type: str) -> None:
+        for struct_member in self.members:
+            type = struct_member.data_type
+            is_generic = struct_member.is_generic
+
+            # Replace the unresolved template types with actual instantiation type.
+            if "<" in type:
+                # type : 'struct DictObject<T>**'
+                #                           ^ template_type
+                #                ^^^^^^^^^^   base_type
+
+                # Works for 1 level of templating like A<T>.
+
+                ST_index = type.find("<")
+                GT_index = type.find(">", ST_index)
+
+                template_type = type[ST_index+ 1 : GT_index]
+                type = type.replace(template_type, p_templated_type)
+
+                # get everything left to <
+                base_type = type[:ST_index]
+                # 'struct DictObject'
+
+                if base_type.startswith("struct "):
+                    #strip "struct " from base_type
+                    base_type = base_type[len("struct "):]
+                    # 'DictObject'
+
+                instantiate_template(base_type, p_templated_type)
+
+                #struct Vector<T>
+                #get everything left to <
+                mangled_resolved_type_ptrless = type[:type.find("<")]
+                mangled_resolved_type_ptrless += f"_{p_templated_type}"
+
+                # Add all the required number of pointers.
+                mangled_resolved_type_ptrless += "*" * type.count("*")
+
+                type = mangled_resolved_type_ptrless
+                # now type is 'struct DictObject_int**'
+
+            if is_generic:
+                if "*" in type:
+                    actual_type, star = type.split("*")
+                    type = p_templated_type + "*"
+                else:
+                    type = p_templated_type
+
+            if type.startswith("Self"):
+                type = type.replace("Self", f"struct {self.name}", 1)
+
+            if type.startswith("struct "):
+                type = type[len("struct "):]
+
+            struct_member.data_type = type
+
+
+    def resolve_templated_member_fns(self, p_templated_type: str) -> None:
+        for idx,fn in enumerate(self.member_functions):
+            # Patch all the templated types in the function arguments.
+            for argid,argument in enumerate(fn.fn_arguments):
+                if argument.data_type == self.template_defination_variable:
+                    arg = p_templated_type
+                    if is_data_type_struct_object(arg):
+                        arg = f"struct {arg}"
+                    self.member_functions[idx].fn_arguments[argid].data_type = arg
+            
+            # Patch return type of the function it is templated.
+            if fn.return_type == self.template_defination_variable:
+                return_type = p_templated_type
+                if is_data_type_struct_object(return_type):
+                    return_type = f"struct {return_type}"
+                self.member_functions[idx].return_type = return_type
+            elif f"<{self.template_defination_variable}>" in fn.return_type:
+                # OrderedDictObject<T>, T = Symbol -> OrderedDictObject_Symbol
+                return_type = fn.return_type.replace(f"<{self.template_defination_variable}>", "_" + p_templated_type)
+                self.member_functions[idx].return_type = return_type
+
+            # Patch function body containing tags.
+            def patch_fn_body(tag, replace_with, idx = idx):
+                # Pass idx to idx to capture the current value of idx while using loop iteration.
+                self.member_functions[idx].fn_body = self.member_functions[idx].fn_body.replace(tag, replace_with)
+
+            # TODO : Optimize all this if checks.
+            # Ideas: Use find("@") to collect all tags in the function body.
+            # Save their indices and perform comparision between two @'s.
+
+            # if we want to use template type in fn body, we use following syntax.
+            # @TEMPLATED_DATA_TYPE@
+            if "@TEMPLATED_DATA_TYPE@" in fn.fn_body:
+                m_templated_data_type = p_templated_type
+                if is_data_type_struct_object(p_templated_type):
+                    m_templated_data_type = "struct " + m_templated_data_type
+                patch_fn_body("@TEMPLATED_DATA_TYPE@", m_templated_data_type)
+
+            if "@PATCH_TEMPLATED_DATA_TYPE@" in fn.fn_body:
+                m_templated_data_type = p_templated_type
+                patch_fn_body("@PATCH_TEMPLATED_DATA_TYPE@", m_templated_data_type)
+
+            if "@SELF@" in fn.fn_body:
+                patch_fn_body("@SELF@", f"struct {self.name}")
+
+            if "@TYPEOF(" in fn.fn_body:
+                templated_fn_code = fn.fn_body
+                # Replaces @TYPEOF(var_name) with type of the struct member(var_name) without any pointers.
+                
+                # @TYPEOF(var_name)
+                #         ^^^^^^^^   type_name
+                # ^^^^^^^^^^^^^^^^   tag_text
+                
+                start_pos = templated_fn_code.find("@TYPEOF(")
+                end_pos = templated_fn_code.find(")", start_pos)
+                
+                type_name = templated_fn_code[start_pos + len("@TYPEOF(") : end_pos]
+                tag_text = templated_fn_code[start_pos: end_pos + 1]
+
+                member_type = self.get_type_of_member(type_name)
+                if member_type == None:
+                    RAISE_ERROR(f"Struct doesnt have member named {type_name} to replace inside function body.")
+                else:
+                    # Strip away pointers.
+                    # (We could add another @tag@ to get full data type with pointers)
+                    ptr_less_data_type = member_type.replace("*", "")
+                    if is_data_type_struct_object(ptr_less_data_type):
+                        ptr_less_data_type = "struct " + ptr_less_data_type
+                    patch_fn_body(tag_text, ptr_less_data_type)
+
+
 
 
 class StructInstance:
@@ -1370,14 +1535,6 @@ while index < len(Lines):
         REGISTER_VARIABLE(array_name, f"[{type_name}]")
 
     def instantiate_template(struct_type, templated_data_type):
-        # Immediately instantiate templated member functions.
-
-        StructInfo = get_struct_defination_of_type(struct_type)
-        if StructInfo == None:
-            return
-
-        global GlobalStructInitCode
-
         # Recreate Generic Structs on instantiation.
         m_struct_name = f"{struct_type}_{templated_data_type}"
         m_struct_info = get_struct_defination_of_type(m_struct_name)
@@ -1386,86 +1543,17 @@ while index < len(Lines):
             # So, we don't need to instantiate again.
             return
 
-        struct_code = f"struct {m_struct_name}  {{\n"
+        StructInfo = get_struct_defination_of_type(struct_type)
+        if StructInfo == None:
+            RAISE_ERROR(f'While instantiating "{struct_type}<{templated_data_type}>", Struct type "{struct_type}" was undefined.')
 
-        struct_members_list = StructInfo.members
-        struct_members_list_with_template_types_resolved = []
-        
-        for struct_member in struct_members_list:
-            type = struct_member.data_type
-            mem = struct_member.member
-            is_generic = struct_member.is_generic
+        instantiated_struct_info = copy.deepcopy(StructInfo)
+        instantiated_struct_info.name = m_struct_name
 
-            # Replace the unresolved template types with actual instantiation type.
-            if "<" in type:
-                # type : 'struct DictObject<T>**'
-                #                           ^ template_type
-                #                ^^^^^^^^^^   base_type
+        instantiated_struct_info.substitute_template_for_member_types(templated_data_type)
+        struct_code = instantiated_struct_info.get_struct_initialization_code()
 
-                # Works for 1 level of templating like A<T>.
-
-                ST_index = type.find("<")
-                GT_index = type.find(">", ST_index)
-
-                template_type = type[ST_index+ 1 : GT_index]
-                type = type.replace(template_type, templated_data_type)
-
-                # get everything left to <
-                base_type = type[:ST_index]
-                # 'struct DictObject'
-
-                if base_type.startswith("struct "):
-                    #strip "struct " from base_type
-                    base_type = base_type[len("struct "):]
-                    # 'DictObject'
-
-                instantiate_template(base_type, templated_data_type)
-
-                #struct Vector<T>
-                #get everything left to <
-                mangled_resolved_type_ptrless = type[:type.find("<")]
-                mangled_resolved_type_ptrless += f"_{templated_data_type}"
-
-                # Add all the required number of pointers.
-                mangled_resolved_type_ptrless += "*" * type.count("*")
-
-                type = mangled_resolved_type_ptrless
-                # now type is 'struct DictObject_int**'
-
-            if is_generic:
-                if "*" in type:
-                    actual_type, star = type.split("*")
-                    type = templated_data_type + "*"
-                else:
-                    type = templated_data_type
-
-                if is_data_type_struct_object(templated_data_type):
-                    type = f"struct {type}"
-
-            if type.startswith("Self"):
-                type = type.replace("Self", f"struct {m_struct_name}", 1)
-
-
-            type_without_pointers = type.replace("*", "")
-            if is_data_type_struct_object(type_without_pointers):
-                struct_code += f"struct {type} {mem};\n"
-            else:
-                struct_code += f"{type} {mem};\n"
-
-            if type.startswith("struct "):
-                type = type[len("struct "):]
-            struct_members_list_with_template_types_resolved.append(
-                MemberDataType(type, mem, is_generic)
-            )
-
-        struct_code += f"}};\n\n"
-
-        # Register this templated struct in order to insantiate the same generic type in the future.
-        struct_data = Struct(m_struct_name, struct_members_list_with_template_types_resolved)
-        # struct_data.is_class_templated = True
-        # if is_data_type_struct_object(templated_data_type):
-        #     struct_data.templated_data_type = f"struct {templated_data_type}"
-
+        global GlobalStructInitCode
         global GlobalStructInitCodeInterceptionPoint
 
         if GlobalStructInitCodeInterceptionPoint != -1:
@@ -1479,152 +1567,43 @@ while index < len(Lines):
 
         templated_fn_code = f"//template {struct_type}<{templated_data_type}> {{\n"
 
-        if StructInfo != None:
-            defined_struct = StructInfo
-            for fn in defined_struct.member_functions:
-                parameters = fn.fn_arguments
-                fn_name = fn.fn_name
-                return_type = fn.return_type
+        instantiated_struct_info.remove_unwanted_template_fn_overloads(templated_data_type)
+        instantiated_struct_info.resolve_templated_member_fns(templated_data_type)
 
-                # This is just a raw unmodified copy, we need this to recreate the function defination, otherwise these parameters are modified below.
-                parameters_copy = parameters
+        for fn in instantiated_struct_info.member_functions:
+            parameters = fn.fn_arguments
+            fn_name = fn.fn_name
+            return_type = fn.return_type
 
-                if fn.is_overloaded_function:
-                    # print("======================================")
-                    # print(f"For struct {defined_struct.name}")
-                    # print(
-                    # f"fn {fn_name} is overloaded for class {fn.overload_for_template_type}"
-                    # )
+            fn_name = get_mangled_fn_name(m_struct_name, fn_name)
 
-                    use_this_overload = False
-                    if fn.overload_for_template_type == templated_data_type:
-                        # This current fn is the suitable overload.
-                        use_this_overload = True
-                    else:
-                        has_suitable_overload = False
-                        for m_fn in defined_struct.member_functions:
-                            if m_fn.fn_name != fn_name:
-                                continue
-
-                            if m_fn.overload_for_template_type == templated_data_type:
-                                has_suitable_overload = True
-
-                        if has_suitable_overload:
-                            use_this_overload = False
-                        else:
-                            # TODO: We don't warn if there is no base overload.
-                            if fn.overload_for_template_type == "#BASE#":
-                                # No other suitable overloads found,
-                                # and this fn is the base overload.
-                                # Use this current fn to overload.
-                                use_this_overload = True
-
-                    if not use_this_overload:
-                        continue
-
-                # resolve templated fn params.
-                if defined_struct.is_templated():
-                    # print(f"Template type {templated_data_type}")
-
-                    params_copy = []
-                    for param in parameters:
-                        data_type = param.data_type
-                        param_name = param.member
-                        if data_type == defined_struct.template_defination_variable:
-                            data_type = templated_data_type
-                            if is_data_type_struct_object(data_type):
-                                data_type = "struct " + data_type
-
-                        params_copy.append(data_type + " " + param_name)
-                    parameters = params_copy
-
-                    if return_type == defined_struct.template_defination_variable:
-                        return_type = templated_data_type
-                        if is_data_type_struct_object(return_type):
-                            return_type = "struct " + return_type
-                    elif f"<{defined_struct.template_defination_variable}>" in return_type:
-                        # OrderedDictObject<T>, T = Symbol -> OrderedDictObject_Symbol
-                        return_type = return_type.replace(f"<{defined_struct.template_defination_variable}>", "_" + templated_data_type)
-
-                    # Register this function, but if it is templated, resolved the templated type and write the function.
-                    m_fn = MemberFunction(fn_name, parameters_copy, return_type)
-                    # m_fn.is_overloaded_function = is_overloaded_fn
-                    # m_fn.overload_for_template_type = overload_for_type
-                    struct_data.member_functions.append(m_fn)
-                else:
-                    struct_data.member_functions.append(fn)
-
-                templated_struct_name = defined_struct.name + f"_{templated_data_type}"
-
-                fn_name = get_templated_mangled_fn_name(
-                    defined_struct.name, fn_name, templated_data_type
-                )
-
-                if len(parameters) > 0:
-                    parameters_str = ",".join(parameters)
-                    templated_fn_code += f"{return_type} {fn_name}(struct {templated_struct_name} *this, {parameters_str}) {{\n"
-                else:
-                    templated_fn_code += f"{return_type} {fn_name}(struct {templated_struct_name} *this) {{\n"
-                templated_fn_code += f"{fn.fn_body} }}\n\n"
-            templated_fn_code += (
-                f"//template {struct_type}<{templated_data_type}> }}\n\n"
-            )
-
-            # if we want to use template type in fn body, we use following syntax.
-            # @TEMPLATED_DATA_TYPE@
-            if "@TEMPLATED_DATA_TYPE@" in templated_fn_code:
-                m_templated_data_type = templated_data_type
-                if is_data_type_struct_object(templated_data_type):
-                    m_templated_data_type = "struct " + m_templated_data_type
-
-                templated_fn_code = templated_fn_code.replace(
-                    "@TEMPLATED_DATA_TYPE@", m_templated_data_type
-                )
-            elif "@PATCH_TEMPLATED_DATA_TYPE@" in templated_fn_code:
-                m_templated_data_type = templated_data_type
-                templated_fn_code = templated_fn_code.replace(
-                    "@PATCH_TEMPLATED_DATA_TYPE@", m_templated_data_type
-                )
-            
-            if "@SELF@" in templated_fn_code:
-                templated_fn_code = templated_fn_code.replace(
-                    "@SELF@", f"struct {templated_struct_name}"
-                )
-            
-            if "@TYPEOF(" in templated_fn_code:
-                # Replaces @TYPEOF(var_name) with type of the struct member(var_name) without any pointers.
-                
-                # @TYPEOF(var_name)
-                #         ^^^^^^^^   type_name
-                # ^^^^^^^^^^^^^^^^   tag_text
-                
-                start_pos = templated_fn_code.find("@TYPEOF(")
-                end_pos = templated_fn_code.find(")", start_pos)
-                
-                type_name = templated_fn_code[start_pos + len("@TYPEOF(") : end_pos]
-                tag_text = templated_fn_code[start_pos: end_pos + 1]
-
-                for struct_member in struct_members_list_with_template_types_resolved:
-                    type = struct_member.data_type
-                    mem = struct_member.member
-                    is_generic = struct_member.is_generic
-
-                    if mem == type_name:
-                        # Strip away pointers.
-                        # (We could add another @tag@ to get full data type with pointers)
-                        ptr_less_data_type = type.replace("*", "")
-                        if is_data_type_struct_object(ptr_less_data_type):
-                            ptr_less_data_type = "struct " + ptr_less_data_type
-                        templated_fn_code = templated_fn_code.replace(tag_text, ptr_less_data_type) 
-
-            if GlobalStructInitCodeInterceptionPoint != -1:
-                GlobalStructInitCode = insert_string(GlobalStructInitCode, GlobalStructInitCodeInterceptionPoint, templated_fn_code)
-                GlobalStructInitCodeInterceptionPoint += len(templated_fn_code)
+            if len(parameters) > 0:
+                param = [f"{arg.data_type} {arg.member}" for arg in parameters]
+                parameters_str = ",".join(param)
+                templated_fn_code += f"{return_type} {fn_name}(struct {m_struct_name} *this, {parameters_str}) {{\n"
             else:
-                GlobalStructInitCode += templated_fn_code
+                templated_fn_code += f"{return_type} {fn_name}(struct {m_struct_name} *this) {{\n"
+            templated_fn_code += f"{fn.fn_body} }}\n\n"
+        templated_fn_code += (
+            f"//template {struct_type}<{templated_data_type}> }}\n\n"
+        )
 
-            global struct_definations
-            struct_definations.append(struct_data)
+        if GlobalStructInitCodeInterceptionPoint != -1:
+            GlobalStructInitCode = insert_string(GlobalStructInitCode, GlobalStructInitCodeInterceptionPoint, templated_fn_code)
+            GlobalStructInitCodeInterceptionPoint += len(templated_fn_code)
+        else:
+            GlobalStructInitCode += templated_fn_code
+
+        # Our parent class was templated, but we aren't.
+        # We are independent.
+        # This are same assignments performed by the Struct constructor.
+        instantiated_struct_info.is_class_templated = False
+        instantiated_struct_info.templated_data_type = ""
+        instantiated_struct_info.template_defination_variable = ""
+
+        global struct_definations
+        struct_definations.append(instantiated_struct_info)
+
 
     def parse_create_struct(struct_type, struct_name):
         global LinesCache
