@@ -764,6 +764,78 @@ class Struct:
             struct_member.data_type = type
 
 
+
+    def resolve_tags(self, p_templated_type: str) -> None:
+        # if we want to use template type in fn body, we use following syntax.
+        # @TEMPLATED_DATA_TYPE@
+        # ^^^^^^^^^^^^^^^^^^^^^  These are tags.
+
+        tag_replacements = {
+            "TEMPLATED_DATA_TYPE": "struct " + p_templated_type if is_data_type_struct_object(p_templated_type) else p_templated_type,
+            "PATCH_TEMPLATED_DATA_TYPE": p_templated_type,
+            "SELF": f"struct {self.name}"
+        }
+
+        for idx,fn in enumerate(self.member_functions):
+            fn_body = fn.fn_body
+
+            # Find and replace tags between '@'
+            i = 0
+            modified = False
+            while i < len(fn_body):
+                start_idx = fn_body.find("@", i)
+                if start_idx == -1:
+                    break
+
+                if fn_body.startswith("@TYPEOF(", start_idx):
+                    #@TYPEOF(table) -> struct DictObject_int
+                    #        ^^^^^^   var_name
+                    #^                start_pos
+                    #             ^   end_pos
+                    start_pos = start_idx
+                    end_pos = fn_body.find(")", start_idx)
+
+                    if end_pos == -1:
+                        RAISE_ERROR(f"Couldn't find closing ')' for @TYPEOF( tag in function body.")
+
+                    var_name = fn_body[start_pos + len("@TYPEOF(") : end_pos]
+
+                    member_type = self.get_type_of_member(var_name)
+                    if member_type == None:
+                        RAISE_ERROR(f"Struct doesnt have member named {var_name} to replace inside function body.")
+                    else:
+                        # Strip away pointers.
+                        # (We could add another @tag@ to get full data type with pointers)
+                        ptr_less_data_type = member_type.replace("*", "")
+                        if is_data_type_struct_object(ptr_less_data_type):
+                            ptr_less_data_type = "struct " + ptr_less_data_type
+
+                        # Replace only in the region between start_pos and end_pos
+                        fn_body = fn_body[:start_pos] + ptr_less_data_type + fn_body[end_pos + 1:]
+                        i = start_pos + len(ptr_less_data_type)
+                        modified = True
+                        continue
+
+                end_idx = fn_body.find("@", start_idx + 1)
+                if end_idx == -1:
+                    break
+
+                # Extract the tag between the '@' symbols
+                tag = fn_body[start_idx + 1:end_idx]
+                
+                # Check if the tag is in the dictionary, then replace it
+                if tag in tag_replacements:
+                    replacement_value = tag_replacements[tag]
+                    # Replace only in the region between start_idx and end_idx
+                    fn_body = fn_body[:start_idx] + replacement_value + fn_body[end_idx + 1:]
+                    i = start_idx + len(replacement_value)
+                    modified = True
+                else:
+                    i = end_idx + 1
+            if modified:
+                self.member_functions[idx].fn_body = fn_body
+
+
     def resolve_templated_member_fns(self, p_templated_type: str) -> None:
         for idx,fn in enumerate(self.member_functions):
             # Patch all the templated types in the function arguments.
@@ -784,57 +856,6 @@ class Struct:
                 # OrderedDictObject<T>, T = Symbol -> OrderedDictObject_Symbol
                 return_type = fn.return_type.replace(f"<{self.template_defination_variable}>", "_" + p_templated_type)
                 self.member_functions[idx].return_type = return_type
-
-            # Patch function body containing tags.
-            def patch_fn_body(tag, replace_with, idx = idx):
-                # Pass idx to idx to capture the current value of idx while using loop iteration.
-                self.member_functions[idx].fn_body = self.member_functions[idx].fn_body.replace(tag, replace_with)
-
-            # TODO : Optimize all this if checks.
-            # Ideas: Use find("@") to collect all tags in the function body.
-            # Save their indices and perform comparision between two @'s.
-
-            # if we want to use template type in fn body, we use following syntax.
-            # @TEMPLATED_DATA_TYPE@
-            if "@TEMPLATED_DATA_TYPE@" in fn.fn_body:
-                m_templated_data_type = p_templated_type
-                if is_data_type_struct_object(p_templated_type):
-                    m_templated_data_type = "struct " + m_templated_data_type
-                patch_fn_body("@TEMPLATED_DATA_TYPE@", m_templated_data_type)
-
-            if "@PATCH_TEMPLATED_DATA_TYPE@" in fn.fn_body:
-                m_templated_data_type = p_templated_type
-                patch_fn_body("@PATCH_TEMPLATED_DATA_TYPE@", m_templated_data_type)
-
-            if "@SELF@" in fn.fn_body:
-                patch_fn_body("@SELF@", f"struct {self.name}")
-
-            if "@TYPEOF(" in fn.fn_body:
-                templated_fn_code = fn.fn_body
-                # Replaces @TYPEOF(var_name) with type of the struct member(var_name) without any pointers.
-                
-                # @TYPEOF(var_name)
-                #         ^^^^^^^^   type_name
-                # ^^^^^^^^^^^^^^^^   tag_text
-                
-                start_pos = templated_fn_code.find("@TYPEOF(")
-                end_pos = templated_fn_code.find(")", start_pos)
-                
-                type_name = templated_fn_code[start_pos + len("@TYPEOF(") : end_pos]
-                tag_text = templated_fn_code[start_pos: end_pos + 1]
-
-                member_type = self.get_type_of_member(type_name)
-                if member_type == None:
-                    RAISE_ERROR(f"Struct doesnt have member named {type_name} to replace inside function body.")
-                else:
-                    # Strip away pointers.
-                    # (We could add another @tag@ to get full data type with pointers)
-                    ptr_less_data_type = member_type.replace("*", "")
-                    if is_data_type_struct_object(ptr_less_data_type):
-                        ptr_less_data_type = "struct " + ptr_less_data_type
-                    patch_fn_body(tag_text, ptr_less_data_type)
-
-
 
 
 class StructInstance:
@@ -1569,6 +1590,7 @@ while index < len(Lines):
 
         instantiated_struct_info.remove_unwanted_template_fn_overloads(templated_data_type)
         instantiated_struct_info.resolve_templated_member_fns(templated_data_type)
+        instantiated_struct_info.resolve_tags(templated_data_type)
 
         for fn in instantiated_struct_info.member_functions:
             parameters = fn.fn_arguments
