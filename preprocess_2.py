@@ -435,6 +435,12 @@ def is_data_type_struct_object(p_data_type):
     return struct_info != None
 
 
+def format_struct_data_type(p_data_type):
+    if is_data_type_struct_object(p_data_type):
+        return f"struct {p_data_type}"
+    return p_data_type
+
+
 class NestingLevel(Enum):
     FOR_LOOP = 0
     IF_STATEMENT = 1
@@ -771,7 +777,7 @@ class Struct:
         # ^^^^^^^^^^^^^^^^^^^^^  These are tags.
 
         tag_replacements = {
-            "TEMPLATED_DATA_TYPE": "struct " + p_templated_type if is_data_type_struct_object(p_templated_type) else p_templated_type,
+            "TEMPLATED_DATA_TYPE": format_struct_data_type(p_templated_type),
             "PATCH_TEMPLATED_DATA_TYPE": p_templated_type,
             "SELF": f"struct {self.name}"
         }
@@ -806,9 +812,7 @@ class Struct:
                     else:
                         # Strip away pointers.
                         # (We could add another @tag@ to get full data type with pointers)
-                        ptr_less_data_type = member_type.replace("*", "")
-                        if is_data_type_struct_object(ptr_less_data_type):
-                            ptr_less_data_type = "struct " + ptr_less_data_type
+                        ptr_less_data_type = format_struct_data_type(member_type.replace("*", ""))
 
                         # Replace only in the region between start_pos and end_pos
                         fn_body = fn_body[:start_pos] + ptr_less_data_type + fn_body[end_pos + 1:]
@@ -841,16 +845,12 @@ class Struct:
             # Patch all the templated types in the function arguments.
             for argid,argument in enumerate(fn.fn_arguments):
                 if argument.data_type == self.template_defination_variable:
-                    arg = p_templated_type
-                    if is_data_type_struct_object(arg):
-                        arg = f"struct {arg}"
+                    arg = format_struct_data_type(p_templated_type)
                     self.member_functions[idx].fn_arguments[argid].data_type = arg
             
             # Patch return type of the function it is templated.
             if fn.return_type == self.template_defination_variable:
-                return_type = p_templated_type
-                if is_data_type_struct_object(return_type):
-                    return_type = f"struct {return_type}"
+                return_type = format_struct_data_type(p_templated_type)
                 self.member_functions[idx].return_type = return_type
             elif f"<{self.template_defination_variable}>" in fn.return_type:
                 # OrderedDictObject<T>, T = Symbol -> OrderedDictObject_Symbol
@@ -947,10 +947,9 @@ class StructInstance:
             if return_type == struct_info.template_defination_variable: 
                 return_type = self.templated_data_type
 
-        if is_data_type_struct_object(return_type):
-            # For Vector<String>, the String here is of struct type.
-            # TODO : templated_data_type should probably be 'struct String' instead of just 'String' to avoid all this comparision.
-            return_type = f"struct {return_type}"
+        # For Vector<String>, the String here is of struct type.
+        # TODO : templated_data_type should probably be 'struct String' instead of just 'String' to avoid all this comparision.
+        return_type = format_struct_data_type(return_type)
 
         return return_type            
 
