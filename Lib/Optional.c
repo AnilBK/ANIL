@@ -16,13 +16,9 @@ function get_value() -> T:
   return this._value
 endfunction
 
-c_function _set_value(p_value : T)
-  this->_value = p_value;
-endc_function  
-
 function set_value(p_value : T)
   this._has_value = true
-  this._set_value(p_value)
+  this._value = p_value
 endfunction
 
 endnamespace

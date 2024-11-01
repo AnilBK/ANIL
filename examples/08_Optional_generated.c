@@ -17,27 +17,13 @@ struct Optional_int {
   int _value;
 };
 
-// template Optional<int> {
-void Optional_int__init__(struct Optional_int *this) {
-  this->_has_value = false;
-}
+struct Optional_int Testreturn_val(struct Test *this);
+struct Optional_int Testreturn_none(struct Test *this);
 
-bool Optional_inthas_value(struct Optional_int *this) {
-  return this->_has_value;
-}
-
-int Optional_intget_value(struct Optional_int *this) { return this->_value; }
-
-void Optional_int_set_value(struct Optional_int *this, int p_value) {
-  this->_value = p_value;
-}
-
-void Optional_intset_value(struct Optional_int *this, int p_value) {
-  this->_has_value = true;
-  Optional_int_set_value(this, p_value);
-}
-
-// template Optional<int> }
+void Optional_int__init__(struct Optional_int *this);
+bool Optional_inthas_value(struct Optional_int *this);
+int Optional_intget_value(struct Optional_int *this);
+void Optional_intset_value(struct Optional_int *this, int p_value);
 
 struct Optional_int Testreturn_val(struct Test *this) {
   struct Optional_int opt;
@@ -52,6 +38,21 @@ struct Optional_int Testreturn_none(struct Test *this) {
   return opt;
 }
 
+void Optional_int__init__(struct Optional_int *this) {
+  this->_has_value = false;
+}
+
+bool Optional_inthas_value(struct Optional_int *this) {
+  return this->_has_value;
+}
+
+int Optional_intget_value(struct Optional_int *this) { return this->_value; }
+
+void Optional_intset_value(struct Optional_int *this, int p_value) {
+  this->_has_value = true;
+  this->_value = p_value;
+}
+
 int main() {
 
   ///*///  main()
@@ -64,6 +65,10 @@ int main() {
     int val = Optional_intget_value(&optional_int);
     printf("Value is %d", val);
   }
+
+  struct Optional_int opt;
+  Optional_int__init__(&opt);
+  Optional_intset_value(&opt, 5);
 
   ///*///
 

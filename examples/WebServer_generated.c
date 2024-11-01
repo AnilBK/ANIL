@@ -97,14 +97,28 @@ struct Response {
   HttpResponse res;
 };
 
-void Responsesend(struct Response *this, char *body, int code) {
-  HTTPServerInternal_SendResponse(&this->res, body, code);
-}
-
 struct HTTPServer {
   SocketConnectionInfo server;
   Routes routes;
 };
+
+void Responsesend(struct Response *this, char *body, int code);
+
+void HTTPServer__init__(struct HTTPServer *this);
+void HTTPServerregister_route(struct HTTPServer *this, char *route_key,
+                              RouteHandler handler);
+int HTTPServerstart_server(struct HTTPServer *this, int port);
+void HTTPServerhandle_client(struct HTTPServer *this);
+void HTTPServeraccept_connections(struct HTTPServer *this);
+void HTTPServerlisten(struct HTTPServer *this, int port);
+void HTTPServer__del__(struct HTTPServer *this);
+void Handle404(struct Response res);
+void HandleAbout(struct Response res);
+void HandleHome(struct Response res);
+
+void Responsesend(struct Response *this, char *body, int code) {
+  HTTPServerInternal_SendResponse(&this->res, body, code);
+}
 
 void HTTPServer__init__(struct HTTPServer *this) {
   this->server.client_addr_len = sizeof(this->server.client_addr);

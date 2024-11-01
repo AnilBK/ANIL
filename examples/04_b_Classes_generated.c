@@ -8,6 +8,31 @@ struct Point {
   int y;
 };
 
+struct GenericStruct_float {
+  float a;
+  float b;
+};
+
+struct GenericStruct_int {
+  int a;
+  float b;
+};
+
+struct Vector_int {
+  int *arr;
+  int size;
+  int capacity;
+};
+
+struct Vector_float {
+  float *arr;
+  int size;
+  int capacity;
+};
+
+void Pointsay(struct Point *this);
+void Pointshout(struct Point *this);
+
 void Pointsay(struct Point *this) {
   // We write normal C code inside c_function.
   // Use this-> pointer to access member variables.
@@ -17,40 +42,6 @@ void Pointsay(struct Point *this) {
 void Pointshout(struct Point *this) {
   printf("Shouting Point Values, x = %d.\n", this->x);
 }
-
-struct GenericStruct_float {
-  float a;
-  float b;
-};
-
-// template GenericStruct<float> {
-// template GenericStruct<float> }
-
-struct GenericStruct_int {
-  int a;
-  float b;
-};
-
-// template GenericStruct<int> {
-// template GenericStruct<int> }
-
-struct Vector_int {
-  int *arr;
-  int size;
-  int capacity;
-};
-
-// template Vector<int> {
-// template Vector<int> }
-
-struct Vector_float {
-  float *arr;
-  int size;
-  int capacity;
-};
-
-// template Vector<float> {
-// template Vector<float> }
 
 int main() {
 

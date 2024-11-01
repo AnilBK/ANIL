@@ -18,7 +18,18 @@ struct Vector_int {
   int capacity;
 };
 
-// template Vector<int> {
+size_t Vector_intlen(struct Vector_int *this);
+int Vector_int__getitem__(struct Vector_int *this, int index);
+void Vector_int__init__(struct Vector_int *this, int capacity);
+void Vector_int__del__(struct Vector_int *this);
+void Vector_intpush(struct Vector_int *this, int value);
+void Vector_intallocate_more(struct Vector_int *this, int n);
+void Vector_intpush_unchecked(struct Vector_int *this, int value);
+int Vector_intpop(struct Vector_int *this);
+void Vector_intremove_at(struct Vector_int *this, int index);
+bool Vector_int__contains__(struct Vector_int *this, int value);
+void Vector_intprint(struct Vector_int *this);
+
 size_t Vector_intlen(struct Vector_int *this) { return this->size; }
 
 int Vector_int__getitem__(struct Vector_int *this, int index) {
@@ -120,8 +131,6 @@ void Vector_intprint(struct Vector_int *this) {
   }
   printf("]\n");
 }
-
-// template Vector<int> }
 
 int main() {
 

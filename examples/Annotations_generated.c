@@ -24,6 +24,15 @@ struct FunctionDictionary {
   KeyValuePairs pairs;
 };
 
+void FunctionDictionary__init__(struct FunctionDictionary *this);
+void FunctionDictionaryadd_key_value(struct FunctionDictionary *this,
+                                     char *p_key_str, fn_ptr p_value);
+void FunctionDictionaryHandleRequest(struct FunctionDictionary *this,
+                                     char *p_str);
+
+void Home();
+void About();
+
 void FunctionDictionary__init__(struct FunctionDictionary *this) {
   this->added_values = 0;
 }

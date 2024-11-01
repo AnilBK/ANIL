@@ -98,6 +98,355 @@ struct String {
   int capacity;
 };
 
+struct Vector_String {
+  struct String *arr;
+  int size;
+  int capacity;
+};
+
+struct Set {
+  struct Vector_String arr;
+};
+
+struct CPLObject {
+  CPLObject_Data data;
+  CPLObject_DataType data_type;
+  struct CPLObject *next;
+};
+
+struct List {
+  struct CPLObject *head;
+  struct CPLObject *tail;
+  int size;
+};
+
+struct Random {
+  char dummy;
+};
+
+struct int_str_list {
+  int key;
+  struct Vector_String value;
+};
+
+struct Vector_int_str_list {
+  struct int_str_list *arr;
+  int size;
+  int capacity;
+};
+
+struct Dict_int_string {
+  struct Vector_int_str_list pairs;
+};
+
+struct ErrorHandler {
+  char dummy;
+};
+
+struct StructInstance {
+  struct String struct_type;
+  struct String struct_name;
+  bool is_templated;
+  struct String templated_data_type;
+  int scope;
+  bool should_be_freed;
+  bool is_pointer_type;
+};
+
+struct Symbol {
+  struct String name;
+  struct String data_type;
+};
+
+struct NameSymbolPair {
+  struct String name;
+  struct Symbol symbol;
+};
+
+struct OrderedDictObject_Symbol {
+  char *key_str;
+  struct Symbol value;
+  struct OrderedDictObject_Symbol *next;
+};
+
+struct OrderedDict_Symbol {
+  struct OrderedDictObject_Symbol *nodes;
+};
+
+struct Optional_Symbol {
+  bool _has_value;
+  struct Symbol _value;
+};
+
+struct Scope {
+  int scope_id;
+  struct OrderedDict_Symbol symbols;
+};
+
+struct ScopeScopeIDPair {
+  int scope_id;
+  struct Scope scope;
+};
+
+struct Vector_ScopeScopeIDPair {
+  struct ScopeScopeIDPair *arr;
+  int size;
+  int capacity;
+};
+
+struct Vector_int {
+  int *arr;
+  int size;
+  int capacity;
+};
+
+struct SymbolTable {
+  struct Vector_ScopeScopeIDPair scopes;
+  struct Vector_int scope_stack;
+};
+
+struct Optional_String {
+  bool _has_value;
+  struct String _value;
+};
+
+char *Stringc_str(struct String *this);
+size_t Stringlen(struct String *this);
+char String__getitem__(struct String *this, int index);
+size_t Stringlength_of_charptr(struct String *this, char *p_string);
+void String__init__from_charptr(struct String *this, char *text,
+                                int p_text_length);
+void String__init__OVDstr(struct String *this, char *text);
+void String__init__OVDstructString(struct String *this, struct String text);
+void Stringclear(struct String *this);
+void Stringprint(struct String *this);
+void StringprintLn(struct String *this);
+void String__del__(struct String *this);
+bool Stringstartswith(struct String *this, char *prefix);
+struct String Stringsubstr(struct String *this, int start, int length);
+struct String Stringstrip(struct String *this);
+struct Vector_String Stringsplit(struct String *this, char delimeter);
+bool String__contains__(struct String *this, char *substring);
+bool String__eq__(struct String *this, char *pstring);
+void String__add__(struct String *this, char *pstring);
+void Stringreassign_internal(struct String *this, char *pstring,
+                             int p_text_length);
+void String__reassign__OVDstructString(struct String *this,
+                                       struct String pstring);
+void String__reassign__OVDstr(struct String *this, char *pstring);
+void Stringset_to_file_contents(struct String *this, char *pfilename);
+struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename);
+
+size_t Setlen(struct Set *this);
+struct String Set__getitem__(struct Set *this, int index);
+void Set__init__(struct Set *this, int count);
+void Set__del__(struct Set *this);
+bool Set__contains__(struct Set *this, struct String value);
+void Setadd(struct Set *this, struct String value);
+void Setprint(struct Set *this);
+
+void CPLObject__init__OVDint(struct CPLObject *this, int p_value);
+void CPLObject__init__OVDstr(struct CPLObject *this, char *p_value);
+bool CPLObjectis_int(struct CPLObject *this);
+int CPLObjectget_int(struct CPLObject *this);
+bool CPLObjectis_str(struct CPLObject *this);
+char *CPLObjectget_str(struct CPLObject *this);
+void CPLObject_clear_str(struct CPLObject *this);
+void CPLObject__del__(struct CPLObject *this);
+struct CPLObject CPLObject_duplicate(struct CPLObject *this);
+bool CPLObject__eq__OVDint(struct CPLObject *this, int p_value);
+bool CPLObject__eq__OVDstr(struct CPLObject *this, char *p_value);
+
+int Listlen(struct List *this);
+void List__init__(struct List *this);
+void List__del__(struct List *this);
+struct CPLObject List__getitem__(struct List *this, int index);
+struct CPLObject Listpop(struct List *this, int index);
+bool List__contains__OVDint(struct List *this, int p_value);
+bool List__contains__OVDstr(struct List *this, char *p_value);
+void Listprint(struct List *this);
+void List_insert_end(struct List *this, CPLObjectptr new_node);
+CPLObjectptr Listcreate_int_node(struct List *this, int p_value);
+CPLObjectptr Listcreate_string_node(struct List *this, char *p_value);
+void Listappend_int(struct List *this, int p_value);
+void Listappend_str(struct List *this, char *p_value);
+void ListappendOVDint(struct List *this, int p_value);
+void ListappendOVDstr(struct List *this, char *p_value);
+void ListappendOVDstructCPLObject(struct List *this, struct CPLObject p_value);
+void List__reassign__(struct List *this, struct List p_list);
+
+void Random__init__(struct Random *this);
+int Randomrandrange(struct Random *this, int upper_limit);
+
+void int_str_list__init__(struct int_str_list *this, int p_key);
+void int_str_list__del__(struct int_str_list *this);
+
+void Dict_int_string__init__(struct Dict_int_string *this);
+bool Dict_int_string__contains__(struct Dict_int_string *this, int p_key);
+void Dict_int_stringkey_exists_quit(struct Dict_int_string *this);
+void Dict_int_stringadd_key(struct Dict_int_string *this, int p_key);
+void Dict_int_string__del__(struct Dict_int_string *this);
+
+void ErrorHandlerRAISE_ERROR(struct ErrorHandler *this, char *p_error_msg);
+
+struct String insert_string(struct String original_string, int p_index,
+                            struct String string_to_insert);
+struct String escape_quotes(struct String s);
+struct String get_format_specifier(struct String p_type);
+struct String get_mangled_fn_name(struct String p_struct_type,
+                                  struct String p_fn_name);
+struct String
+get_templated_mangled_fn_name(struct String p_struct_type,
+                              struct String p_fn_name,
+                              struct String p_templated_data_type);
+bool has_constructors(struct String p_struct_type);
+void StructInstance__init__(struct StructInstance *this,
+                            struct String p_struct_type,
+                            struct String p_struct_name, bool p_is_templated,
+                            struct String p_templated_data_type, int p_scope);
+bool StructInstanceis_templated_instance(struct StructInstance *this);
+bool StructInstanceshould_struct_be_freed(struct StructInstance *this);
+void StructInstance__del__(struct StructInstance *this);
+
+void Symbol__init__(struct Symbol *this, struct String p_name,
+                    struct String p_data_type);
+struct String Symbolget_name(struct Symbol *this);
+struct String Symbolget_data_type(struct Symbol *this);
+void Symbol__reassign__(struct Symbol *this, struct Symbol p_symbol);
+void Symbol__del__(struct Symbol *this);
+
+void NameSymbolPair__init__(struct NameSymbolPair *this, struct String p_name,
+                            struct Symbol p_symbol);
+struct String NameSymbolPairuncopied_name(struct NameSymbolPair *this);
+struct String NameSymbolPairget_name(struct NameSymbolPair *this);
+struct Symbol NameSymbolPairget_symbol(struct NameSymbolPair *this);
+
+void Scope__init__(struct Scope *this, int p_scope_id);
+void Scopedeclare_variable(struct Scope *this, struct String name,
+                           struct String p_type);
+struct Optional_Symbol Scopelookup_variable(struct Scope *this,
+                                            struct String name);
+struct String Scopedestructor_for_all_variables(struct Scope *this);
+void Scope__del__(struct Scope *this);
+
+void ScopeScopeIDPair__init__(struct ScopeScopeIDPair *this, int p_scope_id);
+int ScopeScopeIDPairget_scope_id(struct ScopeScopeIDPair *this);
+void ScopeScopeIDPair__del__(struct ScopeScopeIDPair *this);
+
+void SymbolTable__init__(struct SymbolTable *this);
+int SymbolTablecurrent_scope(struct SymbolTable *this);
+struct Scope SymbolTableget_scope_by_id(struct SymbolTable *this, int id);
+int SymbolTablenew_unique_scope_id(struct SymbolTable *this);
+void SymbolTableenter_scope(struct SymbolTable *this);
+void SymbolTableremove_scope_by_id(struct SymbolTable *this, int scope_id);
+struct String SymbolTabledestructor_code_for_all_remaining_variables(
+    struct SymbolTable *this);
+void SymbolTableexit_scope(struct SymbolTable *this);
+void SymbolTableprint_symbol_table(struct SymbolTable *this);
+void SymbolTabledeclare_variable(struct SymbolTable *this, struct String name,
+                                 struct String p_type);
+struct Optional_Symbol SymbolTablelookup_variable(struct SymbolTable *this,
+                                                  struct String name);
+void SymbolTable__del__(struct SymbolTable *this);
+
+int get_current_scope();
+void increment_scope();
+void decrement_scope();
+void REGISTER_VARIABLE(struct String p_var_name, struct String p_var_data_type);
+struct Optional_String get_type_of_variable(struct String p_var_name);
+bool is_variable_of_type(struct String p_var_name, struct String p_type);
+bool is_variable(struct String p_var_name);
+bool is_variable_char_type(struct String p_var_name);
+bool is_variable_const_char_ptr(struct String p_var_name);
+bool is_variable_str_type(struct String p_var_name);
+bool is_variable_boolean_type(struct String p_var_name);
+bool is_variable_int_type(struct String p_var_name);
+bool is_variable_size_t_type(struct String p_var_name);
+size_t Vector_Stringlen(struct Vector_String *this);
+struct String Vector_String__getitem__(struct Vector_String *this, int index);
+void Vector_String__init__(struct Vector_String *this, int capacity);
+void Vector_String__del__(struct Vector_String *this);
+void Vector_Stringpush(struct Vector_String *this, struct String value);
+void Vector_Stringallocate_more(struct Vector_String *this, int n);
+void Vector_Stringpush_unchecked(struct Vector_String *this,
+                                 struct String value);
+struct String Vector_Stringpop(struct Vector_String *this);
+void Vector_Stringremove_at(struct Vector_String *this, int index);
+bool Vector_String__contains__(struct Vector_String *this, struct String value);
+void Vector_Stringprint(struct Vector_String *this);
+size_t Vector_int_str_listlen(struct Vector_int_str_list *this);
+struct int_str_list
+Vector_int_str_list__getitem__(struct Vector_int_str_list *this, int index);
+void Vector_int_str_list__init__(struct Vector_int_str_list *this,
+                                 int capacity);
+void Vector_int_str_list__del__(struct Vector_int_str_list *this);
+void Vector_int_str_listpush(struct Vector_int_str_list *this,
+                             struct int_str_list value);
+void Vector_int_str_listallocate_more(struct Vector_int_str_list *this, int n);
+void Vector_int_str_listpush_unchecked(struct Vector_int_str_list *this,
+                                       struct int_str_list value);
+struct int_str_list Vector_int_str_listpop(struct Vector_int_str_list *this);
+void Vector_int_str_listremove_at(struct Vector_int_str_list *this, int index);
+bool Vector_int_str_list__contains__(struct Vector_int_str_list *this,
+                                     struct int_str_list value);
+void Vector_int_str_listprint(struct Vector_int_str_list *this);
+
+void OrderedDict_Symbol__init__(struct OrderedDict_Symbol *this);
+void OrderedDict_Symbol__del__(struct OrderedDict_Symbol *this);
+struct Symbol OrderedDict_Symbol__getitem__(struct OrderedDict_Symbol *this,
+                                            char *p_key);
+void OrderedDict_Symbol__setitem__(struct OrderedDict_Symbol *this,
+                                   char *p_key_str, int p_value);
+bool OrderedDict_Symbol__contains__(struct OrderedDict_Symbol *this,
+                                    char *p_key);
+struct Optional_Symbol OrderedDict_Symbolget(struct OrderedDict_Symbol *this,
+                                             char *key);
+void OrderedDict_Symbolpush(struct OrderedDict_Symbol *this,
+                            struct Symbol symbol);
+
+void Optional_Symbol__init__(struct Optional_Symbol *this);
+bool Optional_Symbolhas_value(struct Optional_Symbol *this);
+struct Symbol Optional_Symbolget_value(struct Optional_Symbol *this);
+void Optional_Symbolset_value(struct Optional_Symbol *this,
+                              struct Symbol p_value);
+
+size_t Vector_ScopeScopeIDPairlen(struct Vector_ScopeScopeIDPair *this);
+struct ScopeScopeIDPair
+Vector_ScopeScopeIDPair__getitem__(struct Vector_ScopeScopeIDPair *this,
+                                   int index);
+void Vector_ScopeScopeIDPair__init__(struct Vector_ScopeScopeIDPair *this,
+                                     int capacity);
+void Vector_ScopeScopeIDPair__del__(struct Vector_ScopeScopeIDPair *this);
+void Vector_ScopeScopeIDPairpush(struct Vector_ScopeScopeIDPair *this,
+                                 struct ScopeScopeIDPair value);
+void Vector_ScopeScopeIDPairallocate_more(struct Vector_ScopeScopeIDPair *this,
+                                          int n);
+void Vector_ScopeScopeIDPairpush_unchecked(struct Vector_ScopeScopeIDPair *this,
+                                           struct ScopeScopeIDPair value);
+struct ScopeScopeIDPair
+Vector_ScopeScopeIDPairpop(struct Vector_ScopeScopeIDPair *this);
+void Vector_ScopeScopeIDPairremove_at(struct Vector_ScopeScopeIDPair *this,
+                                      int index);
+bool Vector_ScopeScopeIDPair__contains__(struct Vector_ScopeScopeIDPair *this,
+                                         struct ScopeScopeIDPair value);
+void Vector_ScopeScopeIDPairprint(struct Vector_ScopeScopeIDPair *this);
+size_t Vector_intlen(struct Vector_int *this);
+int Vector_int__getitem__(struct Vector_int *this, int index);
+void Vector_int__init__(struct Vector_int *this, int capacity);
+void Vector_int__del__(struct Vector_int *this);
+void Vector_intpush(struct Vector_int *this, int value);
+void Vector_intallocate_more(struct Vector_int *this, int n);
+void Vector_intpush_unchecked(struct Vector_int *this, int value);
+int Vector_intpop(struct Vector_int *this);
+void Vector_intremove_at(struct Vector_int *this, int index);
+bool Vector_int__contains__(struct Vector_int *this, int value);
+void Vector_intprint(struct Vector_int *this);
+void Optional_String__init__(struct Optional_String *this);
+bool Optional_Stringhas_value(struct Optional_String *this);
+struct String Optional_Stringget_value(struct Optional_String *this);
+void Optional_Stringset_value(struct Optional_String *this,
+                              struct String p_value);
+
 char *Stringc_str(struct String *this) { return this->arr; }
 
 size_t Stringlen(struct String *this) { return this->length; }
@@ -182,138 +531,6 @@ struct String Stringstrip(struct String *this) {
   String__init__from_charptr(&text, begin, new_length);
   return text;
 }
-
-struct Vector_String {
-  struct String *arr;
-  int size;
-  int capacity;
-};
-
-// template Vector<String> {
-size_t Vector_Stringlen(struct Vector_String *this) { return this->size; }
-
-struct String Vector_String__getitem__(struct Vector_String *this, int index) {
-  if (index < 0) {
-    index += this->size;
-  }
-  // Vector<String> Specialization:
-  // Returns &T ie &String, which means the return type is reference type.
-  // So, the returned String isn't freed by the destructor.
-  // for x in Vector<String>{}
-  // x calls __getitem__() and is a String. Typically x should be freed at the
-  // end of the loop. Since __getitem__() is a reference return type, it isn't
-  // freed.
-  return *(this->arr + index);
-}
-
-void Vector_String__init__(struct Vector_String *this, int capacity) {
-  // if we want to use instanced template type in fn body, we use following
-  // syntax.
-  // @ TEMPLATED_DATA_TYPE @
-  this->arr = (struct String *)malloc(capacity * sizeof(struct String));
-
-  if (this->arr == NULL) {
-    fprintf(stderr, "Memory allocation failed.\n");
-    exit(EXIT_FAILURE);
-  }
-  this->size = 0;
-  this->capacity = capacity;
-}
-
-void Vector_String__del__(struct Vector_String *this) {
-  for (size_t i = 0; i < this->size; ++i) {
-    String__del__(&this->arr[i]);
-  }
-
-  free(this->arr);
-  this->arr = NULL;
-  this->size = 0;
-  this->capacity = 0;
-}
-
-void Vector_Stringpush(struct Vector_String *this, struct String value) {
-  // Vector<String> Specialization:
-  // Duplicate a string object, to prevent dangling pointers,
-  // as when a string moves out of a scope, it is freed.
-  struct String str;
-  String__init__OVDstructString(&str, value);
-
-  if (this->size == this->capacity) {
-    this->capacity *= 2;
-    this->arr = (struct String *)realloc(this->arr, this->capacity *
-                                                        sizeof(struct String));
-    if (this->arr == NULL) {
-      fprintf(stderr, "Memory reallocation failed.\n");
-      exit(EXIT_FAILURE);
-    }
-  }
-  this->arr[this->size++] = str;
-}
-
-void Vector_Stringallocate_more(struct Vector_String *this, int n) {
-  this->capacity += n;
-  this->arr = (struct String *)realloc(this->arr,
-                                       this->capacity * sizeof(struct String));
-  if (this->arr == NULL) {
-    fprintf(stderr, "Memory reallocation failed.\n");
-    exit(EXIT_FAILURE);
-  }
-}
-
-void Vector_Stringpush_unchecked(struct Vector_String *this,
-                                 struct String value) {
-  this->arr[this->size++] = value;
-}
-
-struct String Vector_Stringpop(struct Vector_String *this) {
-  if (this->size == 0) {
-    fprintf(stderr, "Pop from empty Vector.\n");
-    exit(EXIT_FAILURE);
-  }
-  return this->arr[--this->size];
-}
-
-void Vector_Stringremove_at(struct Vector_String *this, int index) {
-  if (index < 0) {
-    index += this->size;
-  }
-
-  if (index < 0 || index >= this->size) {
-    fprintf(stderr, "Index out of bounds.\n");
-    exit(EXIT_FAILURE);
-  }
-
-  for (int i = index; i < this->size - 1; i++) {
-    this->arr[i] = this->arr[i + 1];
-  }
-  this->size--;
-}
-
-bool Vector_String__contains__(struct Vector_String *this,
-                               struct String value) {
-  for (size_t i = 0; i < this->size; ++i) {
-    if (this->arr[i].length == value.length) {
-      if (strcmp(this->arr[i].arr, value.arr) == 0) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-void Vector_Stringprint(struct Vector_String *this) {
-  printf("Vector<String> (size = %d, capacity = %d) : [", this->size,
-         this->capacity);
-  for (size_t i = 0; i < this->size; ++i) {
-    printf("\"%s\"", this->arr[i].arr);
-    if (i < this->size - 1) {
-      printf(", ");
-    }
-  }
-  printf("]\n");
-}
-
-// template Vector<String> }
 
 struct Vector_String Stringsplit(struct String *this, char delimeter) {
   // TODO: Because of this function, before import String, we require import
@@ -434,10 +651,6 @@ struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename) {
   return result;
 }
 
-struct Set {
-  struct Vector_String arr;
-};
-
 size_t Setlen(struct Set *this) { return Vector_Stringlen(&this->arr); }
 
 struct String Set__getitem__(struct Set *this, int index) {
@@ -471,12 +684,6 @@ void Setprint(struct Set *this) {
   }
   printf("]\n");
 }
-
-struct CPLObject {
-  CPLObject_Data data;
-  CPLObject_DataType data_type;
-  struct CPLObject *next;
-};
 
 void CPLObject__init__OVDint(struct CPLObject *this, int p_value) {
   this->data.int_data = p_value;
@@ -535,12 +742,6 @@ bool CPLObject__eq__OVDstr(struct CPLObject *this, char *p_value) {
     return false;
   }
 }
-
-struct List {
-  struct CPLObject *head;
-  struct CPLObject *tail;
-  int size;
-};
 
 int Listlen(struct List *this) { return this->size; }
 
@@ -774,20 +975,11 @@ void List__reassign__(struct List *this, struct List p_list) {
   }
 }
 
-struct Random {
-  char dummy;
-};
-
 void Random__init__(struct Random *this) { srand(time(0)); }
 
 int Randomrandrange(struct Random *this, int upper_limit) {
   return rand() % upper_limit;
 }
-
-struct int_str_list {
-  int key;
-  struct Vector_String value;
-};
 
 void int_str_list__init__(struct int_str_list *this, int p_key) {
   this->key = p_key;
@@ -797,127 +989,6 @@ void int_str_list__init__(struct int_str_list *this, int p_key) {
 void int_str_list__del__(struct int_str_list *this) {
   Vector_String__del__(&this->value);
 }
-
-struct Vector_int_str_list {
-  struct int_str_list *arr;
-  int size;
-  int capacity;
-};
-
-// template Vector<int_str_list> {
-size_t Vector_int_str_listlen(struct Vector_int_str_list *this) {
-  return this->size;
-}
-
-struct int_str_list
-Vector_int_str_list__getitem__(struct Vector_int_str_list *this, int index) {
-  if (index < 0) {
-    index += this->size;
-  }
-  return *(this->arr + index);
-}
-
-void Vector_int_str_list__init__(struct Vector_int_str_list *this,
-                                 int capacity) {
-  // if we want to use instanced template type in fn body, we use following
-  // syntax.
-  // @ TEMPLATED_DATA_TYPE @
-  this->arr =
-      (struct int_str_list *)malloc(capacity * sizeof(struct int_str_list));
-
-  if (this->arr == NULL) {
-    fprintf(stderr, "Memory allocation failed.\n");
-    exit(EXIT_FAILURE);
-  }
-  this->size = 0;
-  this->capacity = capacity;
-}
-
-void Vector_int_str_list__del__(struct Vector_int_str_list *this) {
-  free(this->arr);
-  this->arr = NULL;
-  this->size = 0;
-  this->capacity = 0;
-}
-
-void Vector_int_str_listpush(struct Vector_int_str_list *this,
-                             struct int_str_list value) {
-  if (this->size == this->capacity) {
-    this->capacity *= 2;
-    this->arr = (struct int_str_list *)realloc(
-        this->arr, this->capacity * sizeof(struct int_str_list));
-    if (this->arr == NULL) {
-      fprintf(stderr, "Memory reallocation failed.\n");
-      exit(EXIT_FAILURE);
-    }
-  }
-  this->arr[this->size++] = value;
-}
-
-void Vector_int_str_listallocate_more(struct Vector_int_str_list *this, int n) {
-  this->capacity += n;
-  this->arr = (struct int_str_list *)realloc(
-      this->arr, this->capacity * sizeof(struct int_str_list));
-  if (this->arr == NULL) {
-    fprintf(stderr, "Memory reallocation failed.\n");
-    exit(EXIT_FAILURE);
-  }
-}
-
-void Vector_int_str_listpush_unchecked(struct Vector_int_str_list *this,
-                                       struct int_str_list value) {
-  this->arr[this->size++] = value;
-}
-
-struct int_str_list Vector_int_str_listpop(struct Vector_int_str_list *this) {
-  if (this->size == 0) {
-    fprintf(stderr, "Pop from empty Vector.\n");
-    exit(EXIT_FAILURE);
-  }
-  return this->arr[--this->size];
-}
-
-void Vector_int_str_listremove_at(struct Vector_int_str_list *this, int index) {
-  if (index < 0) {
-    index += this->size;
-  }
-
-  if (index < 0 || index >= this->size) {
-    fprintf(stderr, "Index out of bounds.\n");
-    exit(EXIT_FAILURE);
-  }
-
-  for (int i = index; i < this->size - 1; i++) {
-    this->arr[i] = this->arr[i + 1];
-  }
-  this->size--;
-}
-
-bool Vector_int_str_list__contains__(struct Vector_int_str_list *this,
-                                     struct int_str_list value) {
-  // This function is an overloaded function.
-  // Here <> in function defination means the base overload.
-  for (size_t i = 0; i < this->size; ++i) {
-    if (this->arr[i] == value) {
-      return true;
-    }
-  }
-  return false;
-}
-
-void Vector_int_str_listprint(struct Vector_int_str_list *this) {
-  // Default overload.
-  printf("Dynamic Array (size = %d, capacity = %d) : [ ]", this->size,
-         this->capacity);
-  // struct int_str_list will be replaced by the actual templated data type.
-  printf("Unknown Format Specifier for type struct int_str_list.\n");
-}
-
-// template Vector<int_str_list> }
-
-struct Dict_int_string {
-  struct Vector_int_str_list pairs;
-};
 
 void Dict_int_string__init__(struct Dict_int_string *this) {
   Vector_int_str_list__init__(&this->pairs, 5);
@@ -960,24 +1031,10 @@ void Dict_int_string__del__(struct Dict_int_string *this) {
   Vector_int_str_list__del__(&this->pairs);
 }
 
-struct ErrorHandler {
-  char dummy;
-};
-
 void ErrorHandlerRAISE_ERROR(struct ErrorHandler *this, char *p_error_msg) {
   fprintf(stderr, p_error_msg);
   exit(EXIT_FAILURE);
 }
-
-struct StructInstance {
-  struct String struct_type;
-  struct String struct_name;
-  bool is_templated;
-  struct String templated_data_type;
-  int scope;
-  bool should_be_freed;
-  bool is_pointer_type;
-};
 
 void StructInstance__init__(struct StructInstance *this,
                             struct String p_struct_type,
@@ -1011,11 +1068,6 @@ void StructInstance__del__(struct StructInstance *this) {
   String__del__(&this->templated_data_type);
 }
 
-struct Symbol {
-  struct String name;
-  struct String data_type;
-};
-
 void Symbol__init__(struct Symbol *this, struct String p_name,
                     struct String p_data_type) {
   String__init__OVDstructString(&this->name, p_name);
@@ -1034,15 +1086,22 @@ struct String Symbolget_data_type(struct Symbol *this) {
   return this->data_type;
 }
 
+void Symbol__reassign__(struct Symbol *this, struct Symbol p_symbol) {
+  struct String tmp_name = Symbolget_name(&p_symbol);
+  struct String tmp_data_type = Symbolget_data_type(&p_symbol);
+  String__reassign__OVDstructString(&this->name, tmp_name);
+  String__reassign__OVDstructString(&this->name, tmp_data_type);
+  // this.data_type = p_symbol.get_data_type()
+  // TODO: __reassign__ BUG. Cant assign expressions directly like above.
+  // We have to create separate temp variables.
+  String__del__(&tmp_data_type);
+  String__del__(&tmp_name);
+}
+
 void Symbol__del__(struct Symbol *this) {
   String__del__(&this->name);
   String__del__(&this->data_type);
 }
-
-struct NameSymbolPair {
-  struct String name;
-  struct Symbol symbol;
-};
 
 void NameSymbolPair__init__(struct NameSymbolPair *this, struct String p_name,
                             struct Symbol p_symbol) {
@@ -1068,93 +1127,6 @@ struct Symbol NameSymbolPairget_symbol(struct NameSymbolPair *this) {
   return this->symbol;
 }
 
-struct OrderedDictObject_Symbol {
-  char *key_str;
-  struct Symbol value;
-  struct OrderedDictObject_Symbol *next;
-};
-
-// template OrderedDictObject<Symbol> {
-// template OrderedDictObject<Symbol> }
-
-struct OrderedDict_Symbol {
-  struct OrderedDictObject_Symbol *nodes;
-};
-
-// template OrderedDict<Symbol> {
-void OrderedDict_Symbol__init__(struct OrderedDict_Symbol *this) {
-  this->nodes = NULL;
-}
-
-void OrderedDict_Symbol__del__(struct OrderedDict_Symbol *this) {
-  struct OrderedDictObject_Symbol *node = this->nodes;
-  while (node != NULL) {
-    struct OrderedDictObject_Symbol *temp = node;
-    node = node->next;
-    free(temp);
-  }
-}
-
-struct Symbol OrderedDict_Symbol__getitem__(struct OrderedDict_Symbol *this,
-                                            char *p_key) {
-  struct OrderedDictObject_Symbol *node = this->nodes;
-  while (node != NULL) {
-    struct OrderedDictObject_Symbol *temp = node;
-    if (strcmp(node->key_str, p_key) == 0) {
-      return node->value;
-    }
-    node = node->next;
-    free(temp);
-  }
-
-  struct Symbol item;
-  return item;
-}
-
-void OrderedDict_Symbol__setitem__(struct OrderedDict_Symbol *this,
-                                   char *p_key_str, int p_value) {
-  // TODO!
-  struct OrderedDictObject_Symbol item;
-  return item;
-}
-
-bool OrderedDict_Symbol__contains__(struct OrderedDict_Symbol *this,
-                                    char *p_key) {
-  struct OrderedDictObject_Symbol *node = this->nodes;
-  while (node != NULL) {
-    if (strcmp(node->key_str, p_key) == 0) {
-      return true;
-    }
-    node = node->next;
-  }
-  return false;
-}
-
-struct Optional_Symbol OrderedDict_Symbolget(struct OrderedDict_Symbol *this,
-                                             char *key) {
-  struct Optional_Symbol res;
-  Optional_Symbol__init__(&res);
-  return res;
-  // let res = Optional<Symbol>{};
-  // if key in this{
-  //   let value = this.__getitem__(key);
-  //   res.set_value(value);
-  // }
-  // return res
-}
-
-void OrderedDict_Symbolpush(struct OrderedDict_Symbol *this,
-                            struct Symbol symbol) {
-  // TODO !
-}
-
-// template OrderedDict<Symbol> }
-
-struct Scope {
-  int scope_id;
-  struct OrderedDict_Symbol symbols;
-};
-
 void Scope__init__(struct Scope *this, int p_scope_id) {
   this->scope_id = p_scope_id;
   OrderedDict_Symbol__init__(&this->symbols);
@@ -1174,37 +1146,6 @@ void Scopedeclare_variable(struct Scope *this, struct String name,
   Symbol__del__(&symbol);
 }
 
-struct Optional_Symbol {
-  bool _has_value;
-  struct Symbol _value;
-};
-
-// template Optional<Symbol> {
-void Optional_Symbol__init__(struct Optional_Symbol *this) {
-  this->_has_value = false;
-}
-
-bool Optional_Symbolhas_value(struct Optional_Symbol *this) {
-  return this->_has_value;
-}
-
-struct Symbol Optional_Symbolget_value(struct Optional_Symbol *this) {
-  return this->_value;
-}
-
-void Optional_Symbol_set_value(struct Optional_Symbol *this,
-                               struct Symbol p_value) {
-  this->_value = p_value;
-}
-
-void Optional_Symbolset_value(struct Optional_Symbol *this,
-                              struct Symbol p_value) {
-  this->_has_value = true;
-  Optional_Symbol_set_value(this, p_value);
-}
-
-// template Optional<Symbol> }
-
 struct Optional_Symbol Scopelookup_variable(struct Scope *this,
                                             struct String name) {
   struct Optional_Symbol res =
@@ -1222,11 +1163,6 @@ void Scope__del__(struct Scope *this) {
   OrderedDict_Symbol__del__(&this->symbols);
 }
 
-struct ScopeScopeIDPair {
-  int scope_id;
-  struct Scope scope;
-};
-
 void ScopeScopeIDPair__init__(struct ScopeScopeIDPair *this, int p_scope_id) {
   this->scope_id = p_scope_id;
   Scope__init__(&this->scope, p_scope_id);
@@ -1239,243 +1175,6 @@ int ScopeScopeIDPairget_scope_id(struct ScopeScopeIDPair *this) {
 void ScopeScopeIDPair__del__(struct ScopeScopeIDPair *this) {
   Scope__del__(&this->scope);
 }
-
-struct Vector_ScopeScopeIDPair {
-  struct ScopeScopeIDPair *arr;
-  int size;
-  int capacity;
-};
-
-// template Vector<ScopeScopeIDPair> {
-size_t Vector_ScopeScopeIDPairlen(struct Vector_ScopeScopeIDPair *this) {
-  return this->size;
-}
-
-struct ScopeScopeIDPair
-Vector_ScopeScopeIDPair__getitem__(struct Vector_ScopeScopeIDPair *this,
-                                   int index) {
-  if (index < 0) {
-    index += this->size;
-  }
-  return *(this->arr + index);
-}
-
-void Vector_ScopeScopeIDPair__init__(struct Vector_ScopeScopeIDPair *this,
-                                     int capacity) {
-  // if we want to use instanced template type in fn body, we use following
-  // syntax.
-  // @ TEMPLATED_DATA_TYPE @
-  this->arr = (struct ScopeScopeIDPair *)malloc(
-      capacity * sizeof(struct ScopeScopeIDPair));
-
-  if (this->arr == NULL) {
-    fprintf(stderr, "Memory allocation failed.\n");
-    exit(EXIT_FAILURE);
-  }
-  this->size = 0;
-  this->capacity = capacity;
-}
-
-void Vector_ScopeScopeIDPair__del__(struct Vector_ScopeScopeIDPair *this) {
-  free(this->arr);
-  this->arr = NULL;
-  this->size = 0;
-  this->capacity = 0;
-}
-
-void Vector_ScopeScopeIDPairpush(struct Vector_ScopeScopeIDPair *this,
-                                 struct ScopeScopeIDPair value) {
-  if (this->size == this->capacity) {
-    this->capacity *= 2;
-    this->arr = (struct ScopeScopeIDPair *)realloc(
-        this->arr, this->capacity * sizeof(struct ScopeScopeIDPair));
-    if (this->arr == NULL) {
-      fprintf(stderr, "Memory reallocation failed.\n");
-      exit(EXIT_FAILURE);
-    }
-  }
-  this->arr[this->size++] = value;
-}
-
-void Vector_ScopeScopeIDPairallocate_more(struct Vector_ScopeScopeIDPair *this,
-                                          int n) {
-  this->capacity += n;
-  this->arr = (struct ScopeScopeIDPair *)realloc(
-      this->arr, this->capacity * sizeof(struct ScopeScopeIDPair));
-  if (this->arr == NULL) {
-    fprintf(stderr, "Memory reallocation failed.\n");
-    exit(EXIT_FAILURE);
-  }
-}
-
-void Vector_ScopeScopeIDPairpush_unchecked(struct Vector_ScopeScopeIDPair *this,
-                                           struct ScopeScopeIDPair value) {
-  this->arr[this->size++] = value;
-}
-
-struct ScopeScopeIDPair
-Vector_ScopeScopeIDPairpop(struct Vector_ScopeScopeIDPair *this) {
-  if (this->size == 0) {
-    fprintf(stderr, "Pop from empty Vector.\n");
-    exit(EXIT_FAILURE);
-  }
-  return this->arr[--this->size];
-}
-
-void Vector_ScopeScopeIDPairremove_at(struct Vector_ScopeScopeIDPair *this,
-                                      int index) {
-  if (index < 0) {
-    index += this->size;
-  }
-
-  if (index < 0 || index >= this->size) {
-    fprintf(stderr, "Index out of bounds.\n");
-    exit(EXIT_FAILURE);
-  }
-
-  for (int i = index; i < this->size - 1; i++) {
-    this->arr[i] = this->arr[i + 1];
-  }
-  this->size--;
-}
-
-bool Vector_ScopeScopeIDPair__contains__(struct Vector_ScopeScopeIDPair *this,
-                                         struct ScopeScopeIDPair value) {
-  // This function is an overloaded function.
-  // Here <> in function defination means the base overload.
-  for (size_t i = 0; i < this->size; ++i) {
-    if (this->arr[i] == value) {
-      return true;
-    }
-  }
-  return false;
-}
-
-void Vector_ScopeScopeIDPairprint(struct Vector_ScopeScopeIDPair *this) {
-  // Default overload.
-  printf("Dynamic Array (size = %d, capacity = %d) : [ ]", this->size,
-         this->capacity);
-  // struct ScopeScopeIDPair will be replaced by the actual templated data type.
-  printf("Unknown Format Specifier for type struct ScopeScopeIDPair.\n");
-}
-
-// template Vector<ScopeScopeIDPair> }
-
-struct Vector_int {
-  int *arr;
-  int size;
-  int capacity;
-};
-
-// template Vector<int> {
-size_t Vector_intlen(struct Vector_int *this) { return this->size; }
-
-int Vector_int__getitem__(struct Vector_int *this, int index) {
-  if (index < 0) {
-    index += this->size;
-  }
-  return *(this->arr + index);
-}
-
-void Vector_int__init__(struct Vector_int *this, int capacity) {
-  // if we want to use instanced template type in fn body, we use following
-  // syntax.
-  // @ TEMPLATED_DATA_TYPE @
-  this->arr = (int *)malloc(capacity * sizeof(int));
-
-  if (this->arr == NULL) {
-    fprintf(stderr, "Memory allocation failed.\n");
-    exit(EXIT_FAILURE);
-  }
-  this->size = 0;
-  this->capacity = capacity;
-}
-
-void Vector_int__del__(struct Vector_int *this) {
-  free(this->arr);
-  this->arr = NULL;
-  this->size = 0;
-  this->capacity = 0;
-}
-
-void Vector_intpush(struct Vector_int *this, int value) {
-  if (this->size == this->capacity) {
-    this->capacity *= 2;
-    this->arr = (int *)realloc(this->arr, this->capacity * sizeof(int));
-    if (this->arr == NULL) {
-      fprintf(stderr, "Memory reallocation failed.\n");
-      exit(EXIT_FAILURE);
-    }
-  }
-  this->arr[this->size++] = value;
-}
-
-void Vector_intallocate_more(struct Vector_int *this, int n) {
-  this->capacity += n;
-  this->arr = (int *)realloc(this->arr, this->capacity * sizeof(int));
-  if (this->arr == NULL) {
-    fprintf(stderr, "Memory reallocation failed.\n");
-    exit(EXIT_FAILURE);
-  }
-}
-
-void Vector_intpush_unchecked(struct Vector_int *this, int value) {
-  this->arr[this->size++] = value;
-}
-
-int Vector_intpop(struct Vector_int *this) {
-  if (this->size == 0) {
-    fprintf(stderr, "Pop from empty Vector.\n");
-    exit(EXIT_FAILURE);
-  }
-  return this->arr[--this->size];
-}
-
-void Vector_intremove_at(struct Vector_int *this, int index) {
-  if (index < 0) {
-    index += this->size;
-  }
-
-  if (index < 0 || index >= this->size) {
-    fprintf(stderr, "Index out of bounds.\n");
-    exit(EXIT_FAILURE);
-  }
-
-  for (int i = index; i < this->size - 1; i++) {
-    this->arr[i] = this->arr[i + 1];
-  }
-  this->size--;
-}
-
-bool Vector_int__contains__(struct Vector_int *this, int value) {
-  // This function is an overloaded function.
-  // Here <> in function defination means the base overload.
-  for (size_t i = 0; i < this->size; ++i) {
-    if (this->arr[i] == value) {
-      return true;
-    }
-  }
-  return false;
-}
-
-void Vector_intprint(struct Vector_int *this) {
-  printf("Vector<int> (size = %d, capacity = %d) : [", this->size,
-         this->capacity);
-  for (size_t i = 0; i < this->size; ++i) {
-    printf("%d", this->arr[i]);
-    if (i < this->size - 1) {
-      printf(", ");
-    }
-  }
-  printf("]\n");
-}
-
-// template Vector<int> }
-
-struct SymbolTable {
-  struct Vector_ScopeScopeIDPair scopes;
-  struct Vector_int scope_stack;
-};
 
 void SymbolTable__init__(struct SymbolTable *this) {
   Vector_ScopeScopeIDPair__init__(&this->scopes, 5);
@@ -1661,12 +1360,535 @@ void SymbolTable__del__(struct SymbolTable *this) {
   Vector_int__del__(&this->scope_stack);
 }
 
-struct Optional_String {
-  bool _has_value;
-  struct String _value;
-};
+size_t Vector_Stringlen(struct Vector_String *this) { return this->size; }
 
-// template Optional<String> {
+struct String Vector_String__getitem__(struct Vector_String *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
+  // Vector<String> Specialization:
+  // Returns &T ie &String, which means the return type is reference type.
+  // So, the returned String isn't freed by the destructor.
+  // for x in Vector<String>{}
+  // x calls __getitem__() and is a String. Typically x should be freed at the
+  // end of the loop. Since __getitem__() is a reference return type, it isn't
+  // freed.
+  return *(this->arr + index);
+}
+
+void Vector_String__init__(struct Vector_String *this, int capacity) {
+  // if we want to use instanced template type in fn body, we use following
+  // syntax.
+  // @ TEMPLATED_DATA_TYPE @
+  this->arr = (struct String *)malloc(capacity * sizeof(struct String));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+  this->size = 0;
+  this->capacity = capacity;
+}
+
+void Vector_String__del__(struct Vector_String *this) {
+  for (size_t i = 0; i < this->size; ++i) {
+    String__del__(&this->arr[i]);
+  }
+
+  free(this->arr);
+  this->arr = NULL;
+  this->size = 0;
+  this->capacity = 0;
+}
+
+void Vector_Stringpush(struct Vector_String *this, struct String value) {
+  // Vector<String> Specialization:
+  // Duplicate a string object, to prevent dangling pointers,
+  // as when a string moves out of a scope, it is freed.
+  struct String str;
+  String__init__OVDstructString(&str, value);
+
+  if (this->size == this->capacity) {
+    this->capacity *= 2;
+    this->arr = (struct String *)realloc(this->arr, this->capacity *
+                                                        sizeof(struct String));
+    if (this->arr == NULL) {
+      fprintf(stderr, "Memory reallocation failed.\n");
+      exit(EXIT_FAILURE);
+    }
+  }
+  this->arr[this->size++] = str;
+}
+
+void Vector_Stringallocate_more(struct Vector_String *this, int n) {
+  this->capacity += n;
+  this->arr = (struct String *)realloc(this->arr,
+                                       this->capacity * sizeof(struct String));
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory reallocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+}
+
+void Vector_Stringpush_unchecked(struct Vector_String *this,
+                                 struct String value) {
+  this->arr[this->size++] = value;
+}
+
+struct String Vector_Stringpop(struct Vector_String *this) {
+  if (this->size == 0) {
+    fprintf(stderr, "Pop from empty Vector.\n");
+    exit(EXIT_FAILURE);
+  }
+  return this->arr[--this->size];
+}
+
+void Vector_Stringremove_at(struct Vector_String *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
+
+  if (index < 0 || index >= this->size) {
+    fprintf(stderr, "Index out of bounds.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for (int i = index; i < this->size - 1; i++) {
+    this->arr[i] = this->arr[i + 1];
+  }
+  this->size--;
+}
+
+bool Vector_String__contains__(struct Vector_String *this,
+                               struct String value) {
+  for (size_t i = 0; i < this->size; ++i) {
+    if (this->arr[i].length == value.length) {
+      if (strcmp(this->arr[i].arr, value.arr) == 0) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+void Vector_Stringprint(struct Vector_String *this) {
+  printf("Vector<String> (size = %d, capacity = %d) : [", this->size,
+         this->capacity);
+  for (size_t i = 0; i < this->size; ++i) {
+    printf("\"%s\"", this->arr[i].arr);
+    if (i < this->size - 1) {
+      printf(", ");
+    }
+  }
+  printf("]\n");
+}
+
+size_t Vector_int_str_listlen(struct Vector_int_str_list *this) {
+  return this->size;
+}
+
+struct int_str_list
+Vector_int_str_list__getitem__(struct Vector_int_str_list *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
+  return *(this->arr + index);
+}
+
+void Vector_int_str_list__init__(struct Vector_int_str_list *this,
+                                 int capacity) {
+  // if we want to use instanced template type in fn body, we use following
+  // syntax.
+  // @ TEMPLATED_DATA_TYPE @
+  this->arr =
+      (struct int_str_list *)malloc(capacity * sizeof(struct int_str_list));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+  this->size = 0;
+  this->capacity = capacity;
+}
+
+void Vector_int_str_list__del__(struct Vector_int_str_list *this) {
+  free(this->arr);
+  this->arr = NULL;
+  this->size = 0;
+  this->capacity = 0;
+}
+
+void Vector_int_str_listpush(struct Vector_int_str_list *this,
+                             struct int_str_list value) {
+  if (this->size == this->capacity) {
+    this->capacity *= 2;
+    this->arr = (struct int_str_list *)realloc(
+        this->arr, this->capacity * sizeof(struct int_str_list));
+    if (this->arr == NULL) {
+      fprintf(stderr, "Memory reallocation failed.\n");
+      exit(EXIT_FAILURE);
+    }
+  }
+  this->arr[this->size++] = value;
+}
+
+void Vector_int_str_listallocate_more(struct Vector_int_str_list *this, int n) {
+  this->capacity += n;
+  this->arr = (struct int_str_list *)realloc(
+      this->arr, this->capacity * sizeof(struct int_str_list));
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory reallocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+}
+
+void Vector_int_str_listpush_unchecked(struct Vector_int_str_list *this,
+                                       struct int_str_list value) {
+  this->arr[this->size++] = value;
+}
+
+struct int_str_list Vector_int_str_listpop(struct Vector_int_str_list *this) {
+  if (this->size == 0) {
+    fprintf(stderr, "Pop from empty Vector.\n");
+    exit(EXIT_FAILURE);
+  }
+  return this->arr[--this->size];
+}
+
+void Vector_int_str_listremove_at(struct Vector_int_str_list *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
+
+  if (index < 0 || index >= this->size) {
+    fprintf(stderr, "Index out of bounds.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for (int i = index; i < this->size - 1; i++) {
+    this->arr[i] = this->arr[i + 1];
+  }
+  this->size--;
+}
+
+bool Vector_int_str_list__contains__(struct Vector_int_str_list *this,
+                                     struct int_str_list value) {
+  // This function is an overloaded function.
+  // Here <> in function defination means the base overload.
+  for (size_t i = 0; i < this->size; ++i) {
+    if (this->arr[i] == value) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void Vector_int_str_listprint(struct Vector_int_str_list *this) {
+  // Default overload.
+  printf("Dynamic Array (size = %d, capacity = %d) : [ ]", this->size,
+         this->capacity);
+  // struct int_str_list will be replaced by the actual templated data type.
+  printf("Unknown Format Specifier for type struct int_str_list.\n");
+}
+
+void OrderedDict_Symbol__init__(struct OrderedDict_Symbol *this) {
+  this->nodes = NULL;
+}
+
+void OrderedDict_Symbol__del__(struct OrderedDict_Symbol *this) {
+  struct OrderedDictObject_Symbol *node = this->nodes;
+  while (node != NULL) {
+    struct OrderedDictObject_Symbol *temp = node;
+    node = node->next;
+    free(temp);
+  }
+}
+
+struct Symbol OrderedDict_Symbol__getitem__(struct OrderedDict_Symbol *this,
+                                            char *p_key) {
+  struct OrderedDictObject_Symbol *node = this->nodes;
+  while (node != NULL) {
+    struct OrderedDictObject_Symbol *temp = node;
+    if (strcmp(node->key_str, p_key) == 0) {
+      return node->value;
+    }
+    node = node->next;
+    free(temp);
+  }
+
+  struct Symbol item;
+  return item;
+}
+
+void OrderedDict_Symbol__setitem__(struct OrderedDict_Symbol *this,
+                                   char *p_key_str, int p_value) {
+  // TODO!
+  struct OrderedDictObject_Symbol item;
+  return item;
+}
+
+bool OrderedDict_Symbol__contains__(struct OrderedDict_Symbol *this,
+                                    char *p_key) {
+  struct OrderedDictObject_Symbol *node = this->nodes;
+  while (node != NULL) {
+    if (strcmp(node->key_str, p_key) == 0) {
+      return true;
+    }
+    node = node->next;
+  }
+  return false;
+}
+
+struct Optional_Symbol OrderedDict_Symbolget(struct OrderedDict_Symbol *this,
+                                             char *key) {
+  struct Optional_Symbol res;
+  Optional_Symbol__init__(&res);
+  return res;
+  // let res = Optional<Symbol>{};
+  // if key in this{
+  //   let value = this.__getitem__(key);
+  //   res.set_value(value);
+  // }
+  // return res
+}
+
+void OrderedDict_Symbolpush(struct OrderedDict_Symbol *this,
+                            struct Symbol symbol) {
+  // TODO !
+}
+
+void Optional_Symbol__init__(struct Optional_Symbol *this) {
+  this->_has_value = false;
+}
+
+bool Optional_Symbolhas_value(struct Optional_Symbol *this) {
+  return this->_has_value;
+}
+
+struct Symbol Optional_Symbolget_value(struct Optional_Symbol *this) {
+  return this->_value;
+}
+
+void Optional_Symbolset_value(struct Optional_Symbol *this,
+                              struct Symbol p_value) {
+  this->_has_value = true;
+  Symbol__reassign__(&this->_value, p_value);
+}
+
+size_t Vector_ScopeScopeIDPairlen(struct Vector_ScopeScopeIDPair *this) {
+  return this->size;
+}
+
+struct ScopeScopeIDPair
+Vector_ScopeScopeIDPair__getitem__(struct Vector_ScopeScopeIDPair *this,
+                                   int index) {
+  if (index < 0) {
+    index += this->size;
+  }
+  return *(this->arr + index);
+}
+
+void Vector_ScopeScopeIDPair__init__(struct Vector_ScopeScopeIDPair *this,
+                                     int capacity) {
+  // if we want to use instanced template type in fn body, we use following
+  // syntax.
+  // @ TEMPLATED_DATA_TYPE @
+  this->arr = (struct ScopeScopeIDPair *)malloc(
+      capacity * sizeof(struct ScopeScopeIDPair));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+  this->size = 0;
+  this->capacity = capacity;
+}
+
+void Vector_ScopeScopeIDPair__del__(struct Vector_ScopeScopeIDPair *this) {
+  free(this->arr);
+  this->arr = NULL;
+  this->size = 0;
+  this->capacity = 0;
+}
+
+void Vector_ScopeScopeIDPairpush(struct Vector_ScopeScopeIDPair *this,
+                                 struct ScopeScopeIDPair value) {
+  if (this->size == this->capacity) {
+    this->capacity *= 2;
+    this->arr = (struct ScopeScopeIDPair *)realloc(
+        this->arr, this->capacity * sizeof(struct ScopeScopeIDPair));
+    if (this->arr == NULL) {
+      fprintf(stderr, "Memory reallocation failed.\n");
+      exit(EXIT_FAILURE);
+    }
+  }
+  this->arr[this->size++] = value;
+}
+
+void Vector_ScopeScopeIDPairallocate_more(struct Vector_ScopeScopeIDPair *this,
+                                          int n) {
+  this->capacity += n;
+  this->arr = (struct ScopeScopeIDPair *)realloc(
+      this->arr, this->capacity * sizeof(struct ScopeScopeIDPair));
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory reallocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+}
+
+void Vector_ScopeScopeIDPairpush_unchecked(struct Vector_ScopeScopeIDPair *this,
+                                           struct ScopeScopeIDPair value) {
+  this->arr[this->size++] = value;
+}
+
+struct ScopeScopeIDPair
+Vector_ScopeScopeIDPairpop(struct Vector_ScopeScopeIDPair *this) {
+  if (this->size == 0) {
+    fprintf(stderr, "Pop from empty Vector.\n");
+    exit(EXIT_FAILURE);
+  }
+  return this->arr[--this->size];
+}
+
+void Vector_ScopeScopeIDPairremove_at(struct Vector_ScopeScopeIDPair *this,
+                                      int index) {
+  if (index < 0) {
+    index += this->size;
+  }
+
+  if (index < 0 || index >= this->size) {
+    fprintf(stderr, "Index out of bounds.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for (int i = index; i < this->size - 1; i++) {
+    this->arr[i] = this->arr[i + 1];
+  }
+  this->size--;
+}
+
+bool Vector_ScopeScopeIDPair__contains__(struct Vector_ScopeScopeIDPair *this,
+                                         struct ScopeScopeIDPair value) {
+  // This function is an overloaded function.
+  // Here <> in function defination means the base overload.
+  for (size_t i = 0; i < this->size; ++i) {
+    if (this->arr[i] == value) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void Vector_ScopeScopeIDPairprint(struct Vector_ScopeScopeIDPair *this) {
+  // Default overload.
+  printf("Dynamic Array (size = %d, capacity = %d) : [ ]", this->size,
+         this->capacity);
+  // struct ScopeScopeIDPair will be replaced by the actual templated data type.
+  printf("Unknown Format Specifier for type struct ScopeScopeIDPair.\n");
+}
+
+size_t Vector_intlen(struct Vector_int *this) { return this->size; }
+
+int Vector_int__getitem__(struct Vector_int *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
+  return *(this->arr + index);
+}
+
+void Vector_int__init__(struct Vector_int *this, int capacity) {
+  // if we want to use instanced template type in fn body, we use following
+  // syntax.
+  // @ TEMPLATED_DATA_TYPE @
+  this->arr = (int *)malloc(capacity * sizeof(int));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+  this->size = 0;
+  this->capacity = capacity;
+}
+
+void Vector_int__del__(struct Vector_int *this) {
+  free(this->arr);
+  this->arr = NULL;
+  this->size = 0;
+  this->capacity = 0;
+}
+
+void Vector_intpush(struct Vector_int *this, int value) {
+  if (this->size == this->capacity) {
+    this->capacity *= 2;
+    this->arr = (int *)realloc(this->arr, this->capacity * sizeof(int));
+    if (this->arr == NULL) {
+      fprintf(stderr, "Memory reallocation failed.\n");
+      exit(EXIT_FAILURE);
+    }
+  }
+  this->arr[this->size++] = value;
+}
+
+void Vector_intallocate_more(struct Vector_int *this, int n) {
+  this->capacity += n;
+  this->arr = (int *)realloc(this->arr, this->capacity * sizeof(int));
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory reallocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+}
+
+void Vector_intpush_unchecked(struct Vector_int *this, int value) {
+  this->arr[this->size++] = value;
+}
+
+int Vector_intpop(struct Vector_int *this) {
+  if (this->size == 0) {
+    fprintf(stderr, "Pop from empty Vector.\n");
+    exit(EXIT_FAILURE);
+  }
+  return this->arr[--this->size];
+}
+
+void Vector_intremove_at(struct Vector_int *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
+
+  if (index < 0 || index >= this->size) {
+    fprintf(stderr, "Index out of bounds.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for (int i = index; i < this->size - 1; i++) {
+    this->arr[i] = this->arr[i + 1];
+  }
+  this->size--;
+}
+
+bool Vector_int__contains__(struct Vector_int *this, int value) {
+  // This function is an overloaded function.
+  // Here <> in function defination means the base overload.
+  for (size_t i = 0; i < this->size; ++i) {
+    if (this->arr[i] == value) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void Vector_intprint(struct Vector_int *this) {
+  printf("Vector<int> (size = %d, capacity = %d) : [", this->size,
+         this->capacity);
+  for (size_t i = 0; i < this->size; ++i) {
+    printf("%d", this->arr[i]);
+    if (i < this->size - 1) {
+      printf(", ");
+    }
+  }
+  printf("]\n");
+}
+
 void Optional_String__init__(struct Optional_String *this) {
   this->_has_value = false;
 }
@@ -1679,18 +1901,11 @@ struct String Optional_Stringget_value(struct Optional_String *this) {
   return this->_value;
 }
 
-void Optional_String_set_value(struct Optional_String *this,
-                               struct String p_value) {
-  this->_value = p_value;
-}
-
 void Optional_Stringset_value(struct Optional_String *this,
                               struct String p_value) {
   this->_has_value = true;
-  Optional_String_set_value(this, p_value);
+  String__reassign__OVDstructString(&this->_value, p_value);
 }
-
-// template Optional<String> }
 
 ///*///
 

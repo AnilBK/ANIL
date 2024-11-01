@@ -12,6 +12,10 @@ struct File {
   FILE *file_ptr;
 };
 
+void File__init__(struct File *this, char *p_file_name);
+void Filewriteline(struct File *this, char *p_content);
+void File__del__(struct File *this);
+
 void File__init__(struct File *this, char *p_file_name) {
   this->file_ptr = fopen(p_file_name, "w");
   if (this->file_ptr == NULL) {

@@ -8,6 +8,9 @@ struct Node {
   int m_data;
 };
 
+void Node__init__(struct Node *this, int p_data);
+void Nodeprint(struct Node *this);
+
 void Node__init__(struct Node *this, int p_data) { this->m_data = p_data; }
 
 void Nodeprint(struct Node *this) {

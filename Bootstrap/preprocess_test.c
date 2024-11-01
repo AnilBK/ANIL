@@ -137,6 +137,16 @@ function get_data_type() -> String:
   return this.data_type
 endfunction
 
+function __reassign__(p_symbol : Symbol)
+  let tmp_name = p_symbol.get_name()
+  let tmp_data_type = p_symbol.get_data_type()
+  this.name = tmp_name
+  this.name = tmp_data_type
+  // this.data_type = p_symbol.get_data_type()
+  // TODO: __reassign__ BUG. Cant assign expressions directly like above.
+  // We have to create separate temp variables.
+endfunction
+
 function __del__()
   this.name.__del__()
   this.data_type.__del__()

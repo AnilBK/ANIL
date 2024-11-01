@@ -29,14 +29,18 @@ struct DictObject_int {
   struct DictObject_int *next;
 };
 
-// template DictObject<int> {
-// template DictObject<int> }
-
 struct Dictionary_int {
   struct DictObject_int **table;
 };
 
-// template Dictionary<int> {
+void Dictionary_int__init__(struct Dictionary_int *this);
+void Dictionary_int__del__(struct Dictionary_int *this);
+int Dictionary_int__getitem__(struct Dictionary_int *this, char *p_key);
+void Dictionary_int__setitem__(struct Dictionary_int *this, char *p_key_str,
+                               int p_value);
+bool Dictionary_int__contains__(struct Dictionary_int *this, char *p_key);
+void Dictionary_intprint(struct Dictionary_int *this);
+
 void Dictionary_int__init__(struct Dictionary_int *this) {
   this->table = (struct DictObject_int **)malloc(
       TABLE_SIZE * sizeof(struct DictObject_int *));
@@ -104,8 +108,6 @@ void Dictionary_intprint(struct Dictionary_int *this) {
   }
   printf("}\n");
 }
-
-// template Dictionary<int> }
 
 int main() {
 

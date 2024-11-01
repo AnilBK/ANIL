@@ -18,14 +18,14 @@ int main() {
   
   namespace Test
   function return_val() -> Optional<int>:
-      let opt = Optional<int>{};
-      opt.set_value(5)
-      return opt
+    let opt = Optional<int>{};
+    opt.set_value(5)
+    return opt
   endfunction
   
   function return_none() -> Optional<int>:
-      let opt = Optional<int>{};
-      return opt
+    let opt = Optional<int>{};
+    return opt
   endfunction
   endnamespace
 
@@ -36,6 +36,10 @@ int main() {
     let val = optional_int.get_value()
     print("Value is {val}")
   }
+
+  let opt = Optional<int>{};
+  opt.set_value(5)
+
 
   // DESTRUCTOR_CODE //
   ///*///

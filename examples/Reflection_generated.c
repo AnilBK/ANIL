@@ -35,6 +35,42 @@ struct CPLObject {
   struct CPLObject *next;
 };
 
+struct List {
+  struct CPLObject *head;
+  struct CPLObject *tail;
+  int size;
+};
+
+void CPLObject__init__OVDint(struct CPLObject *this, int p_value);
+void CPLObject__init__OVDstr(struct CPLObject *this, char *p_value);
+bool CPLObjectis_int(struct CPLObject *this);
+int CPLObjectget_int(struct CPLObject *this);
+bool CPLObjectis_str(struct CPLObject *this);
+char *CPLObjectget_str(struct CPLObject *this);
+void CPLObject_clear_str(struct CPLObject *this);
+void CPLObject__del__(struct CPLObject *this);
+struct CPLObject CPLObject_duplicate(struct CPLObject *this);
+bool CPLObject__eq__OVDint(struct CPLObject *this, int p_value);
+bool CPLObject__eq__OVDstr(struct CPLObject *this, char *p_value);
+
+int Listlen(struct List *this);
+void List__init__(struct List *this);
+void List__del__(struct List *this);
+struct CPLObject List__getitem__(struct List *this, int index);
+struct CPLObject Listpop(struct List *this, int index);
+bool List__contains__OVDint(struct List *this, int p_value);
+bool List__contains__OVDstr(struct List *this, char *p_value);
+void Listprint(struct List *this);
+void List_insert_end(struct List *this, CPLObjectptr new_node);
+CPLObjectptr Listcreate_int_node(struct List *this, int p_value);
+CPLObjectptr Listcreate_string_node(struct List *this, char *p_value);
+void Listappend_int(struct List *this, int p_value);
+void Listappend_str(struct List *this, char *p_value);
+void ListappendOVDint(struct List *this, int p_value);
+void ListappendOVDstr(struct List *this, char *p_value);
+void ListappendOVDstructCPLObject(struct List *this, struct CPLObject p_value);
+void List__reassign__(struct List *this, struct List p_list);
+
 void CPLObject__init__OVDint(struct CPLObject *this, int p_value) {
   this->data.int_data = p_value;
   this->data_type = INT;
@@ -92,12 +128,6 @@ bool CPLObject__eq__OVDstr(struct CPLObject *this, char *p_value) {
     return false;
   }
 }
-
-struct List {
-  struct CPLObject *head;
-  struct CPLObject *tail;
-  int size;
-};
 
 int Listlen(struct List *this) { return this->size; }
 
@@ -345,26 +375,6 @@ int main() {
   Listappend_str(&vector_class_members, "arr");
   Listappend_str(&vector_class_members, "size");
   Listappend_str(&vector_class_members, "capacity");
-
-  Listappend_str(&vector_class_member_functions, "len");
-  Listappend_str(&vector_class_member_functions, "__getitem__");
-  Listappend_str(&vector_class_member_functions, "__getitem__");
-  Listappend_str(&vector_class_member_functions, "__init__");
-  Listappend_str(&vector_class_member_functions, "__del__");
-  Listappend_str(&vector_class_member_functions, "__del__");
-  Listappend_str(&vector_class_member_functions, "push");
-  Listappend_str(&vector_class_member_functions, "push");
-  Listappend_str(&vector_class_member_functions, "allocate_more");
-  Listappend_str(&vector_class_member_functions, "push_unchecked");
-  Listappend_str(&vector_class_member_functions, "pop");
-  Listappend_str(&vector_class_member_functions, "remove_at");
-  Listappend_str(&vector_class_member_functions, "__contains__");
-  Listappend_str(&vector_class_member_functions, "__contains__");
-  Listappend_str(&vector_class_member_functions, "print");
-  Listappend_str(&vector_class_member_functions, "print");
-  Listappend_str(&vector_class_member_functions, "print");
-  Listappend_str(&vector_class_member_functions, "print");
-  Listappend_str(&vector_class_member_functions, "print");
 
   Listappend_str(&list_instances, "vector_class_members");
   Listappend_str(&list_instances, "vector_class_member_functions");

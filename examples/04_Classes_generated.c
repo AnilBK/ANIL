@@ -8,6 +8,11 @@ struct Rectangle {
   int breadth;
 };
 
+void Rectangle__init__(struct Rectangle *this, int l, int b);
+void Rectanglearea(struct Rectangle *this);
+
+void Rectangleprint_param(struct Rectangle *this, int param);
+
 void Rectangle__init__(struct Rectangle *this, int l, int b) {
   this->length = l;
   this->breadth = b;

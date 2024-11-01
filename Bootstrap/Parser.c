@@ -39,7 +39,7 @@ function current_token() -> CPLObject:
     return this.tokens[0]
 endfunction
 
-function next_token():
+function next_token()
     let node = this.tokens.pop(0)
 endfunction
 

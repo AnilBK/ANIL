@@ -19,7 +19,7 @@ filename_parser.add_argument("--filename", help="Name of source file to be compi
 args = filename_parser.parse_args()
 
 # source_file = "examples\\01_variables.c"
-source_file = "examples\\01_variables_GUI_Input.c"
+# source_file = "examples\\01_variables_GUI_Input.c"
 # source_file = "examples\\02_List.c"
 # source_file = "examples\\03_Dictionary.c"
 # source_file = "examples\\04_Classes.c"
@@ -44,8 +44,8 @@ source_file = "examples\\01_variables_GUI_Input.c"
 # source_file = "examples\\WebServer.c"
 
 # source_file = "Bootstrap\\lexer_test.c"
-source_file = "Bootstrap\\Parser.c"
-# source_file = "Bootstrap\\preprocess_test.c"
+# source_file = "Bootstrap\\Parser.c"
+source_file = "Bootstrap\\preprocess_test.c"
 
 if args.filename:
     source_file = args.filename
@@ -102,25 +102,24 @@ GlobalStructInitCode = ""
 # that template function code maybe inserted there(right before the function we are emitting).
 GlobalStructInitCodeInterceptionPoint = -1
 
+# Store all the generated function declarations. They will be written at the start of the file,
+# so that the functions can be called, at any place in the file without any definition error.
+# For e.g: It stores:
+#           void f();
+#           int g(int a);
+#           struct A h(int b, ...);
+GlobalGeneratedFunctionDeclarations = ""
+
+# Same as above, but for struct definations.
+# For e.g: It stores:
+#           struct Vector { ... };
+#           struct String { ... };
+GlobalGeneratedStructDefinations = ""
+
 # Write __init__ code of structs defined in global scope.
 # This code will be written at the start of main function marked by ///*/// main()
 global_variables_initialization_code = []
 main_fn_found = False
-
-# Cached Items.
-# If any structs have __init__ method, then we register them here.
-# This could be stored in StructDefination.
-structs_with_constructors = set()
-
-def has_constructors(p_struct_type: str) -> bool:
-    return p_struct_type in structs_with_constructors
-
-# Map "Vector_String" as {"Vector_String":["Vector", "String"]} i.e
-# store individual structs and the final mangled struct name.
-templated_data_type_mapping = {}
-# This list stores all the individual structs that make up a final templated data type temporarily.
-# This list is then assigned to the appropriate key to the dictionary above.
-templated_data_type_mapping_list = []
 
 is_inside_form = False
 gui_manager = InputVariablesGUI()
@@ -505,6 +504,9 @@ class MemberFunction:
         
         self.is_overloaded = False
 
+    def is_constructor(self):
+        return self.fn_name == "__init__"
+
     def is_destructor(self):
         return self.fn_name == "__del__"
 
@@ -539,8 +541,25 @@ class Struct:
         self.templated_data_type = ""
         self.template_defination_variable = ""
 
+        # For templated structs, we don't immediately parse functions.
+        # Instead we just read the function bodies and store them in 'unparsed_functions'.
+        # Later when we instantiate the template, we resolve the templated types in the function declaration,
+        # emit the code, which is then parsed.
+        self.unparsed_functions = []
+
+        # When we instantiate a template, we copy 'unparsed_functions' from base class to ourself.
+        # We then set this flag to True, to indicate that we have to emit the body of the function,
+        # which is then parsed.
+        # However, the base template struct will have this flag set to False, because we don't want to
+        # generate function body for the base template struct as it doesn't have any templated types.
+        # The base struct becomes like an abstract class.
+        self.unparsed_functions_should_be_parsed = False
+
     def is_templated(self) -> bool:
         return self.is_class_templated
+
+    def has_constructor(self) -> bool:
+        return any(fn.is_constructor() for fn in self.member_functions)
 
     def has_destructor(self) -> bool:
         return any(fn.is_destructor() for fn in self.member_functions)
@@ -712,6 +731,35 @@ class Struct:
         for index in reversed(indices_to_remove):
             del self.member_functions[index]
 
+    def remove_unwanted_template_fn_overloads_and_return(self, p_template_type: str) -> None:
+        #Same fn as above but returns the indices of the functions removed.
+
+        indices_to_remove = []
+
+        for index, fn in enumerate(self.member_functions):
+            if fn.is_overloaded_function:
+                use_this_overload = False
+
+                if fn.overload_for_template_type == p_template_type:
+                    # This current function is the suitable overload.
+                    use_this_overload = True
+                else:
+                    # Check if any other function with the same name is a better overload.
+                    has_suitable_overload = any(m_fn.fn_name == fn.fn_name and m_fn.overload_for_template_type == p_template_type for m_fn in self.member_functions)
+
+                    if not has_suitable_overload:
+                        # If no other suitable overload is found, check for the base overload.
+                        if fn.overload_for_template_type == "#BASE#":
+                            use_this_overload = True
+
+                # If this function is not the suitable overload, mark it for removal.
+                if not use_this_overload:
+                    indices_to_remove.append(index)
+
+        for index in reversed(indices_to_remove):
+            del self.member_functions[index]
+
+        return indices_to_remove
 
     def substitute_template_for_member_types(self, p_templated_type: str) -> None:
         for struct_member in self.members:
@@ -840,6 +888,78 @@ class Struct:
                 self.member_functions[idx].fn_body = fn_body
 
 
+
+    def resolve_tags_in_unparsed_functions(self, p_templated_type: str) -> None:
+        # if we want to use template type in fn body, we use following syntax.
+        # @TEMPLATED_DATA_TYPE@
+        # ^^^^^^^^^^^^^^^^^^^^^  These are tags.
+
+        # TODO: We probably dont want to perform these replacements for normal functions, just c_functions.
+
+        tag_replacements = {
+            "TEMPLATED_DATA_TYPE": format_struct_data_type(p_templated_type),
+            "PATCH_TEMPLATED_DATA_TYPE": p_templated_type,
+            "SELF": f"struct {self.name}"
+        }
+
+        for idx,fn in enumerate(self.unparsed_functions):
+            fn_body = fn
+
+            # Find and replace tags between '@'
+            i = 0
+            modified = False
+            while i < len(fn_body):
+                start_idx = fn_body.find("@", i)
+                if start_idx == -1:
+                    break
+
+                if fn_body.startswith("@TYPEOF(", start_idx):
+                    #@TYPEOF(table) -> struct DictObject_int
+                    #        ^^^^^^   var_name
+                    #^                start_pos
+                    #             ^   end_pos
+                    start_pos = start_idx
+                    end_pos = fn_body.find(")", start_idx)
+
+                    if end_pos == -1:
+                        RAISE_ERROR(f"Couldn't find closing ')' for @TYPEOF( tag in function body.")
+
+                    var_name = fn_body[start_pos + len("@TYPEOF(") : end_pos]
+
+                    member_type = self.get_type_of_member(var_name)
+                    if member_type == None:
+                        RAISE_ERROR(f"Struct doesnt have member named {var_name} to replace inside function body.")
+                    else:
+                        # Strip away pointers.
+                        # (We could add another @tag@ to get full data type with pointers)
+                        ptr_less_data_type = format_struct_data_type(member_type.replace("*", ""))
+
+                        # Replace only in the region between start_pos and end_pos
+                        fn_body = fn_body[:start_pos] + ptr_less_data_type + fn_body[end_pos + 1:]
+                        i = start_pos + len(ptr_less_data_type)
+                        modified = True
+                        continue
+
+                end_idx = fn_body.find("@", start_idx + 1)
+                if end_idx == -1:
+                    break
+
+                # Extract the tag between the '@' symbols
+                tag = fn_body[start_idx + 1:end_idx]
+                
+                # Check if the tag is in the dictionary, then replace it
+                if tag in tag_replacements:
+                    replacement_value = tag_replacements[tag]
+                    # Replace only in the region between start_idx and end_idx
+                    fn_body = fn_body[:start_idx] + replacement_value + fn_body[end_idx + 1:]
+                    i = start_idx + len(replacement_value)
+                    modified = True
+                else:
+                    i = end_idx + 1
+            if modified:
+                self.unparsed_functions[idx] = fn_body
+
+
     def resolve_templated_member_fns(self, p_templated_type: str) -> None:
         for idx,fn in enumerate(self.member_functions):
             # Patch all the templated types in the function arguments.
@@ -893,6 +1013,9 @@ class StructInstance:
         StructInfo = get_struct_defination_of_type(self.struct_type)
         return StructInfo
 
+    def struct_type_has_constructor(self) -> bool:
+        return self.get_struct_defination().has_constructor()
+
     def struct_type_has_destructor(self) -> bool:
         return self.get_struct_defination().has_destructor()
 
@@ -911,14 +1034,6 @@ class StructInstance:
             )
         else:
             StructInfo = self.get_struct_defination()
-
-            if StructInfo.template_defination_variable != "":
-                # For templated functions as we are generating code, we don't have actual type of instantiated template.
-                # So, we leave placeholder for the templated type to be patched later.
-                # Patch @TEMPLATED_DATA_TYPE@ later.
-                return get_templated_mangled_fn_name(
-                    self.struct_type, p_fn_name, "@PATCH_TEMPLATED_DATA_TYPE@"
-                )
 
             if StructInfo.function_is_overloaded(p_fn_name):
                 return get_overloaded_mangled_fn_name(self.struct_type, p_fn_name, parameters if parameters != None else [])
@@ -1249,6 +1364,31 @@ while index < len(Lines):
             for code in gui_code:
                 LinesCache.append(code)
         continue
+    elif Line.startswith("// DESTRUCTOR_CODE //"):
+        # Destroy all variables, then emit the code to be parsed later.
+        # Now the code to be parsed later has fresh symbol table to work with.
+        LinesCache.append(symbol_table.destructor_code_for_all_remaining_variables())
+
+        templated_fn_codes = []
+
+        for defined_struct in struct_definations:
+            if defined_struct.unparsed_functions_should_be_parsed:
+                template_code = [f"namespace {defined_struct.name}\n"]
+                template_code.extend(defined_struct.unparsed_functions)
+                template_code.append("endnamespace\n")
+
+                templated_fn_codes.extend(template_code)
+
+                defined_struct.unparsed_functions.clear()
+                defined_struct.unparsed_functions_should_be_parsed = False
+        
+        if templated_fn_codes:
+            templated_fn_codes.append("// DESTRUCTOR_CODE //")
+            # If we generate templates within this recently added fn body,
+            # this '// DESTRUCTOR_CODE //' will handle it the next pass, after this namespace has completed parsing,
+            # and the parser has again reached '// DESTRUCTOR_CODE //'.
+
+            insert_intermediate_lines(index, templated_fn_codes)
 
     if not is_inside_new_code:
         # Normal C code, so just write that.
@@ -1457,16 +1597,6 @@ while index < len(Lines):
         struct_defination = get_struct_defination_of_type(data_type)
         is_struct_type = struct_defination != None
 
-        is_templated = False
-
-        global templated_data_type_mapping
-        global templated_data_type_mapping_list
-        
-        if not inner:
-            templated_data_type_mapping_list = []
-        
-        templated_data_type_mapping_list.append(data_type_str)
-
         if not inner:
             if is_struct_type:
                 data_type_str = f"struct {data_type_str}"
@@ -1512,14 +1642,6 @@ while index < len(Lines):
             if incomplete_types != None:
                 if data_type in incomplete_types:
                     return data_type
-
-        if is_templated:
-            #Convert "struct Vector_String" to "Vector_String"
-            stripped = data_type_str
-            if data_type_str.startswith("struct "):
-                stripped = data_type_str[len("struct "):]
-            templated_data_type_mapping[stripped] = templated_data_type_mapping_list
-            templated_data_type_mapping_list = []
 
         return data_type_str
 
@@ -1575,56 +1697,150 @@ while index < len(Lines):
 
         global GlobalStructInitCode
         global GlobalStructInitCodeInterceptionPoint
+        global GlobalGeneratedStructDefinations
 
         if GlobalStructInitCodeInterceptionPoint != -1:
             # If we are in the middle of a function, we need to insert this struct code at the interception point.
             # The interception point is set to the point where we started writing function body.
             # Because we can't insert this code at the middle of the function.
-            GlobalStructInitCode = insert_string(GlobalStructInitCode, GlobalStructInitCodeInterceptionPoint, struct_code)
+            # GlobalStructInitCode = insert_string(GlobalStructInitCode, GlobalStructInitCodeInterceptionPoint, struct_code)
             GlobalStructInitCodeInterceptionPoint += len(struct_code)
         else:
-            GlobalStructInitCode += struct_code
+            pass
+            # GlobalStructInitCode += struct_code
 
-        templated_fn_code = f"//template {struct_type}<{templated_data_type}> {{\n"
-
+        GlobalGeneratedStructDefinations += struct_code
+        
         instantiated_struct_info.remove_unwanted_template_fn_overloads(templated_data_type)
         instantiated_struct_info.resolve_templated_member_fns(templated_data_type)
         instantiated_struct_info.resolve_tags(templated_data_type)
 
-        for fn in instantiated_struct_info.member_functions:
-            parameters = fn.fn_arguments
-            fn_name = fn.fn_name
-            return_type = fn.return_type
-
-            fn_name = get_mangled_fn_name(m_struct_name, fn_name)
-
-            if len(parameters) > 0:
-                param = [f"{arg.data_type} {arg.member}" for arg in parameters]
-                parameters_str = ",".join(param)
-                templated_fn_code += f"{return_type} {fn_name}(struct {m_struct_name} *this, {parameters_str}) {{\n"
-            else:
-                templated_fn_code += f"{return_type} {fn_name}(struct {m_struct_name} *this) {{\n"
-            templated_fn_code += f"{fn.fn_body} }}\n\n"
-        templated_fn_code += (
-            f"//template {struct_type}<{templated_data_type}> }}\n\n"
-        )
-
-        if GlobalStructInitCodeInterceptionPoint != -1:
-            GlobalStructInitCode = insert_string(GlobalStructInitCode, GlobalStructInitCodeInterceptionPoint, templated_fn_code)
-            GlobalStructInitCodeInterceptionPoint += len(templated_fn_code)
-        else:
-            GlobalStructInitCode += templated_fn_code
-
         # Our parent class was templated, but we aren't.
         # We are independent.
-        # This are same assignments performed by the Struct constructor.
+        # These are the same assignments performed by the Struct constructor.
         instantiated_struct_info.is_class_templated = False
-        instantiated_struct_info.templated_data_type = ""
-        instantiated_struct_info.template_defination_variable = ""
+        instantiated_struct_info.templated_data_type = templated_data_type
+        instantiated_struct_info.template_defination_variable = StructInfo.template_defination_variable
+
+        instantiated_struct_info.unparsed_functions = copy.deepcopy(StructInfo.unparsed_functions)
+        instantiated_struct_info.unparsed_functions_should_be_parsed = True
+
+        unparsed = instantiated_struct_info.unparsed_functions  # Cache the list for easier access
+        
+        ###################################################################################################
+        # Find all the 'unparsed functions' and store their ranges(tuple of (starting_index, ending_index)).
+        unparsed_function_ranges = []
+
+        i = 0
+        length = len(unparsed)
+        while i < length:
+            line = unparsed[i].strip()
+            
+            if line.startswith(("function", "c_function")):
+                start_index = i
+                
+                # Advance i within the inner loop to search for the corresponding end function
+                while i < length and not unparsed[i].strip().startswith(("endfunction", "endc_function")):
+                    i += 1
+                    
+                # If we found an ending marker, record the range
+                if i < length:
+                    unparsed_function_ranges.append((start_index, i + 1))
+                else:
+                    RAISE_ERROR(f"Expected 'endfunction' or 'endc_function' for function.")
+            
+            i += 1
+
+        ###################################################################################################
+
+        # Store all function declarations only.
+        function_declarations = []
+
+        # Get all the unparsed function declarations and replace the templated data type in the function declaration.
+        for start_index, _ in unparsed_function_ranges:
+            # Replace <T> in unparsed code.
+            # Hack : We cant properly parse templates in return type like Vector<T> as it gets recursive
+            # and we lose the meaning of T.
+            instantiated_struct_info.unparsed_functions[start_index] = instantiated_struct_info.unparsed_functions[start_index].replace(f"<{instantiated_struct_info.template_defination_variable}>",f"<{templated_data_type}>")
+            function_declarations.append(instantiated_struct_info.unparsed_functions[start_index])
 
         global struct_definations
         struct_definations.append(instantiated_struct_info)
 
+        ###################################################################################################
+
+        global parser
+        parser.save_checkpoint()
+
+        namespace_name = m_struct_name
+
+        def resolve_template_data_type(p_type):
+            if p_type == StructInfo.template_defination_variable:
+                if templated_data_type:
+                    return templated_data_type
+            return p_type
+
+        # Create temporary functions of unparsed functions such that struct instances can call them.
+        # These functions don't have any body, but they are placeholders for the actual function,
+        # but just contain return types and parameters.
+        for function_declaration_line in function_declarations:
+            # Load parser with new tokens related to fn declaration.
+            parser_tmp = Parser.Parser(function_declaration_line)
+            parser.tokens = parser_tmp.tokens
+
+            if not parser.has_tokens_remaining():
+                continue
+
+            tk = parser.current_token()
+
+            if tk == lexer.Token.FUNCTION:
+                parser.consume_token(lexer.Token.FUNCTION)
+            elif tk == lexer.Token.CFUNCTION:
+                parser.consume_token(lexer.Token.CFUNCTION)
+            else:
+                RAISE_ERROR("Expected 'function' or 'c_function' keyword.")
+
+            function_declaration = parse_function_declaration()
+
+            function_name = function_declaration["fn_name"]
+            return_type = function_declaration["return_type"]
+            is_return_type_ref_type = function_declaration["is_return_type_ref_type"]
+            parameters = function_declaration["parameters"]
+            parameters_combined_list = function_declaration["parameters_combined_list"]
+            is_overloaded = function_declaration["is_overloaded"]
+            is_overloaded_fn = function_declaration["is_overloaded_fn"]
+            overload_for_type = function_declaration["overload_for_type"]
+
+            target_class_name = namespace_name
+
+            if parser.has_tokens_remaining():
+                # function my_first_CPL_function() for String
+                if parser.check_token(lexer.Token.FOR):
+                    parser.consume_token(lexer.Token.FOR)
+
+                    target_class_name = parser.get_token()
+
+            for i in range(len(parameters)):
+                parameters[i].data_type = resolve_template_data_type(parameters[i].data_type)
+            return_type = resolve_template_data_type(return_type)
+
+            fn = MemberFunction(function_name, parameters, return_type)
+            fn.is_overloaded_function = is_overloaded_fn
+            fn.overload_for_template_type = overload_for_type
+            fn.is_return_type_ref_type = is_return_type_ref_type
+            add_fn_member_to_struct(target_class_name, fn)
+
+        updated_struct_info = get_struct_defination_of_type(m_struct_name)
+        indices = updated_struct_info.remove_unwanted_template_fn_overloads_and_return(templated_data_type)
+
+        # Remove unused overloads.
+        for ind in reversed(indices):
+            start, end = unparsed_function_ranges[ind]
+            del updated_struct_info.unparsed_functions[start:end]
+
+        updated_struct_info.resolve_tags_in_unparsed_functions(templated_data_type)
+
+        parser.rollback_checkpoint()
 
     def parse_create_struct(struct_type, struct_name):
         global LinesCache
@@ -1650,19 +1866,6 @@ while index < len(Lines):
             parser.next_token()
 
             parser.consume_token(lexer.Token.GREATER_THAN)
-
-        instanced_struct_info = StructInstance(
-            struct_type,
-            struct_name,
-            is_templated_struct,
-            templated_data_type,
-            get_current_scope(),
-        )
-
-        global instanced_struct_names
-        instanced_struct_names.append(instanced_struct_info)
-
-        REGISTER_VARIABLE(struct_name, struct_type)
 
         class_already_instantiated = is_class_already_instantiated(
             struct_type, is_templated_struct, templated_data_type
@@ -1709,11 +1912,46 @@ while index < len(Lines):
 
         global GlobalStructInitCode
 
+        instanced_struct_info = None
+
         # Immediately instantiate templated member functions.
         if is_templated_struct and (not class_already_instantiated):
             instantiate_template(struct_type, templated_data_type)
+            m_struct_name = f"{struct_type}_{templated_data_type}"
+            instanced_struct_info = StructInstance(
+                m_struct_name,
+                struct_name,
+                False,
+                "",
+                get_current_scope(),
+            )
 
-        has_constuctor = has_constructors(struct_type)
+        else:
+            m_struct_name = f"{struct_type}_{templated_data_type}"
+            if is_templated_struct:
+                instanced_struct_info = StructInstance(
+                    m_struct_name,
+                    struct_name,
+                    False,
+                    templated_data_type,
+                    get_current_scope(),
+                )
+            else:
+                instanced_struct_info = StructInstance(
+                    struct_type,
+                    struct_name,
+                    False,
+                    templated_data_type,
+                    get_current_scope(),
+                )
+        
+
+        global instanced_struct_names
+        instanced_struct_names.append(instanced_struct_info)
+
+        REGISTER_VARIABLE(struct_name, struct_type)
+
+        has_constuctor = instanced_struct_info.struct_type_has_constructor()
 
         if has_constuctor:
             values_str = ""
@@ -1974,32 +2212,20 @@ while index < len(Lines):
         parsed_fn_call_type = parse_result["function_call_type"]
         member_access_string = parse_result["member_access_string"]
 
-        if "struct" in return_type:
+        if return_type.startswith("struct "):
             #              "struct Vector__String"
             # return type   ^^^^^^^^^^^^^^^^^^^^^
             # raw_return_type      ^^^^^^^^^^^^^^
-            raw_return_type = return_type.split("struct")[1].strip()
-
-            global instanced_struct_names
+            raw_return_type = return_type[len("struct "):]
 
             instance = StructInstance(
                 raw_return_type, var_name, False, "", get_current_scope()
             )
 
-            # Map mangled struct type, which performs same as this commented code.
-            # if raw_return_type == "Vector_String":
-            #     instance = StructInstance(
-            #         "Vector", var_name, True, "String", get_current_scope()
-            #     )
-            if raw_return_type in templated_data_type_mapping:
-                template_types = templated_data_type_mapping[raw_return_type]
-                instance = StructInstance(
-                    template_types[0], var_name, True, template_types[1], get_current_scope()
-                )  
-
             if is_return_type_ref_type:
                 instance.should_be_freed = False
-                
+            
+            global instanced_struct_names
             instanced_struct_names.append(instance)
 
         REGISTER_VARIABLE(var_name, return_type)
@@ -2378,6 +2604,10 @@ while index < len(Lines):
 
                 return_type = parse_data_type(False, incomplete_types)
                 parser.consume_token(lexer.Token.COLON)
+            elif parser.check_token(lexer.Token.COLON):
+                # function next_token() :
+                #                       ^ not needed.
+                RAISE_ERROR(f'Function syntax is "function {fn_name}() -> return_type:" or "function {fn_name}()". No need of colon after "()".')
 
         return {
             "fn_name" : fn_name,
@@ -3928,7 +4158,9 @@ while index < len(Lines):
         else:
             # Dont immediately instantiate structs which are generic.
             struct_code = struct_data.get_struct_initialization_code()
-            GlobalStructInitCode += struct_code
+            GlobalGeneratedStructDefinations += struct_code
+
+            # GlobalStructInitCode += struct_code
 
         struct_definations.append(struct_data)
         # Non generic structs shouldn't be written out early, but since the c_function blocks write out functions despite being templated we leave the base templated struct defined, so that the funtions generated don't have defination error.
@@ -3957,9 +4189,8 @@ while index < len(Lines):
         # print(StructInfo.members)  # [['X', 'a', True], ['float', 'b', False]]
 
         is_struct_templated = StructInfo.is_templated()
-        incomplete_types = [StructInfo.template_defination_variable] if is_struct_templated else None
 
-        function_declaration = parse_function_declaration(incomplete_types = incomplete_types)
+        function_declaration = parse_function_declaration()
 
         fn_name = function_declaration["fn_name"] 
         return_type = function_declaration["return_type"]
@@ -3970,16 +4201,22 @@ while index < len(Lines):
         is_overloaded_fn = function_declaration["is_overloaded_fn"]
         overload_for_type = function_declaration["overload_for_type"]
 
+        def resolve_template_data_type(p_type):
+            if StructInfo != None:
+                if p_type == StructInfo.template_defination_variable:
+                    if StructInfo.templated_data_type:
+                        return StructInfo.templated_data_type
+            return p_type
+
+        for i,param in enumerate(parameters):
+            # This could be done in parameters parsing loop above,
+            # but we are doing this here so that FUNCTION body is same as C_FUNCTION.
+            parameters[i].data_type = resolve_template_data_type(parameters[i].data_type)
+
+        return_type = resolve_template_data_type(return_type)
+
         code = ""
 
-        is_fn_constructor_type = fn_name == "__init__"
-
-        # __init__Vector
-        # Primitive Name Mangling.
-        if is_fn_constructor_type:
-            # fn_name = fn_name + struct_name
-            structs_with_constructors.add(struct_name)
-            
         unmangled_name = fn_name
 
         if is_struct_templated:
@@ -3993,14 +4230,18 @@ while index < len(Lines):
             else:
                 fn_name = get_mangled_fn_name(struct_name, fn_name)
 
-            StructInfo = get_struct_defination_of_type(return_type)
-            if StructInfo is not None:
-                return_type = f"struct {return_type}"
-
+            return_type = format_struct_data_type(return_type)
+            
             if len(parameters) > 0:
-                parameters_str = ",".join(parameters_combined_list)
+                params = [
+                    f"struct {p.data_type} {p.member}" if is_data_type_struct_object(p.data_type) else f"{p.data_type} {p.member}"
+                    for p in parameters
+                ]
+                parameters_str = ",".join(params)
+                GlobalGeneratedFunctionDeclarations += f"{return_type} {fn_name}(struct {struct_name} *this, {parameters_str});\n"
                 code = f"{return_type} {fn_name}(struct {struct_name} *this, {parameters_str}) {{\n"
             else:
+                GlobalGeneratedFunctionDeclarations += f"{return_type} {fn_name}(struct {struct_name} *this);"
                 code = f"{return_type} {fn_name}(struct {struct_name} *this) {{\n"
 
         currently_reading_fn_name = unmangled_name
@@ -4319,33 +4560,67 @@ while index < len(Lines):
         # if this function is a struct member function, it needs to be mangled below.
         func_name = function_name
 
+        defining_fn_for_custom_class = False
+        
+        if is_inside_name_space:
+            defining_fn_for_custom_class = True 
+            class_fn_defination["class_name"] = namespace_name
+            class_fn_defination["function_name"] = function_name
+            class_fn_defination["start_index"] = len(LinesCache)
+        
+        if parser.has_tokens_remaining():
+            # function my_first_CPL_function() for String
+            if parser.check_token(lexer.Token.FOR):
+                parser.consume_token(lexer.Token.FOR)
+
+                target_class = parser.get_token()
+
+                if is_inside_name_space:
+                    RAISE_ERROR(f"Is already inside a namespace \"{namespace_name}\". Doesn't need to define target class(\"{target_class}\") for the provided function using the FOR keyword.")
+
+                defining_fn_for_custom_class = True
+                class_fn_defination["class_name"] = target_class
+                class_fn_defination["function_name"] = function_name
+                class_fn_defination["start_index"] = len(LinesCache)
+            else:
+                RAISE_ERROR('Expected for after function declaration like "function A() for namespace_name".')
+
         increment_scope()
         curr_scope = get_current_scope()
 
-        if is_inside_name_space:
-            #print(f"Registering this for {namespace_name}.")
-            instance = StructInstance(
-                f"{namespace_name}", "this", False, "", curr_scope
-            )
+        struct_def = None
+        if defining_fn_for_custom_class:
+            struct_name = class_fn_defination["class_name"]
+            struct_def = get_struct_defination_of_type(struct_name)
+            
+            instance = StructInstance(f"{struct_name}", "this", False, "", curr_scope)
             instance.is_pointer_type = True
             instance.should_be_freed = False
 
-            #is_overloaded = instance.get_struct_defination().function_is_overloaded(function_name)
-
             instanced_struct_names.append(instance)
-            REGISTER_VARIABLE("this", f"{namespace_name}")
+            REGISTER_VARIABLE("this", f"{struct_name}")
+
+        # TODO: This need not be performed as the template types should be resolved at template instantiation time.
+        # This could be performed by updating 'unparsed_function' during template instantiation.
+        def resolve_template_data_type(p_type):
+            if struct_def != None:
+                if p_type == struct_def.template_defination_variable:
+                    if struct_def.templated_data_type:
+                        return struct_def.templated_data_type
+            return p_type
 
         # Register the parameters so they can be used inside function body.
         # Mark them such that their destructors wont be called.
-        for param in parameters:
+        for i,param in enumerate(parameters):
             # This could be done in parameters parsing loop above,
             # but we are doing this here so that FUNCTION body is same as C_FUNCTION.
-
-            param_type = param.data_type
+            param_type = resolve_template_data_type(param.data_type)
             param_name = param.member
-            if "struct" in param_type:
-                param_type = param_type.split("struct")[1]
-                param_type = param_type.strip()
+
+            parameters[i].data_type = param_type
+
+            if param_type.startswith("struct "):
+                param_type = param_type[len("struct "):] 
 
             if is_data_type_struct_object(param_type):
                 instance = StructInstance(
@@ -4361,43 +4636,18 @@ while index < len(Lines):
             REGISTER_VARIABLE(param_name, param_type)
 
 
-        defining_fn_for_custom_class = False
-        if parser.has_tokens_remaining():
-            # function my_first_CPL_function() for String
-            if parser.check_token(lexer.Token.FOR):
-                parser.consume_token(lexer.Token.FOR)
-
-                target_class = parser.get_token()
-
-                if is_inside_name_space:
-                    RAISE_ERROR(f"Is already inside a namespace \"{namespace_name}\". Doesn't need to define target class(\"{target_class}\") for the provided function using the FOR keyword.")
-
-                defining_fn_for_custom_class = True
-                class_fn_defination["class_name"] = target_class
-                class_fn_defination["function_name"] = function_name
-                class_fn_defination["start_index"] = len(LinesCache)
-
+        if defining_fn_for_custom_class:
+            if is_overloaded:
+                # Get datatype from MemberDataType,
+                # as get_overloaded_mangled_fn_name requires list of strings(data_type).
+                data_types_str_list = [p.data_type for p in parameters]
+                func_name = get_overloaded_mangled_fn_name(class_fn_defination["class_name"], function_name, data_types_str_list)
+            else:
                 func_name = get_mangled_fn_name(class_fn_defination["class_name"], function_name)
-
-        if not defining_fn_for_custom_class:
-            if is_inside_name_space:
-                defining_fn_for_custom_class = True
-                class_fn_defination["class_name"] = namespace_name
-                class_fn_defination["function_name"] = function_name
-                class_fn_defination["start_index"] = len(LinesCache)
-
-                if is_overloaded:
-                    # Get datatype from MemberDataType,
-                    # as get_overloaded_mangled_fn_name requires list of strings(data_type).
-                    data_types_str_list = [p.data_type for p in parameters]
-                    func_name = get_overloaded_mangled_fn_name(class_fn_defination["class_name"], function_name, data_types_str_list)
-                else:
-                    func_name = get_mangled_fn_name(class_fn_defination["class_name"], function_name)
-            
-                if temporary_annotations_list:
-                    RAISE_ERROR("Annotations are not supported for class functions.")
-
-        if not defining_fn_for_custom_class:
+        
+            if temporary_annotations_list:
+                RAISE_ERROR("Annotations are not supported for class functions.")
+        else:
             # Annotations are implemented for global functions only as of now.
             if temporary_annotations_list:
                 # PATCH_ANNOTATION
@@ -4408,29 +4658,30 @@ while index < len(Lines):
                 temporary_annotations_list = []
 
         if defining_fn_for_custom_class:
-            struct_def = get_struct_defination_of_type(class_fn_defination["class_name"])
             if struct_def != None:
                 if struct_def.is_templated():
                     should_write_fn_body = False
 
         code = ""
-        struct_name = class_fn_defination["class_name"]
+
+        return_type = format_struct_data_type(resolve_template_data_type(return_type))
 
         has_parameters = len(parameters) > 0
 
         code = f"{return_type} {func_name}("
         if defining_fn_for_custom_class:
+            struct_name = class_fn_defination["class_name"]
             code += f"struct {struct_name} *this"
             if has_parameters:
                 code += ","
-
-            is_fn_constructor_type = function_name == "__init__"
-            if is_fn_constructor_type:
-                structs_with_constructors.add(struct_name)
                 
         if has_parameters:
-            parameters_str = ",".join(parameters_combined_list)
+            params = [f"{format_struct_data_type(p.data_type)} {p.member}" for p in parameters]
+            parameters_str = ",".join(params)
             code += f"{parameters_str}"
+
+        GlobalGeneratedFunctionDeclarations += code + ");\n"
+        
         code += f") {{\n"
 
         LinesCache.append(code)
@@ -4587,9 +4838,85 @@ while index < len(Lines):
             RAISE_ERROR(f"Is already inside a namespace(\"{namespace_name}\"). Can't declare a new namespace.")
         parser.consume_token(lexer.Token.NAMESPACE)
         namespace_name = parser.get_token()
-        if not is_data_type_struct_object(namespace_name):
+
+        struct_defination = get_struct_defination_of_type(namespace_name)
+        if struct_defination is None:
             RAISE_ERROR(f"\"{namespace_name}\" isn't a valid namespace name. Namespace name is one of the classes'(struct) name. Namespaces are for implementing the member functions for the provided class(struct).")
+
         is_inside_name_space = True
+
+        is_namespace_for_templated_struct = struct_defination.is_templated()
+        if is_namespace_for_templated_struct:
+            # Gather all the functions to compile later.
+            # We can't compile them immediately(at template defination time), 
+            # because we need to know the template type,which is available at 
+            # instantiation time.
+            unparsed_fn = []
+            fn = []
+            j = index
+            endnamespace_found = False
+            while j < len(Lines):
+                x = Lines[j].strip()
+
+                # Gather all the text between function and endfunction.
+                if x.startswith("function"):
+                    # Get all the text till we receive endfunction.
+                    fn_body = []
+                    end_fn_found = False
+                    while j < len(Lines):
+                        inner_text = Lines[j].strip()
+                        fn_body.append(inner_text)
+                        # Replace the current line with empty string.
+                        Lines[j] = ""
+                        if inner_text.startswith("endfunction"):
+                            end_fn_found = True
+                            break
+
+                        j += 1
+                    
+                    if not end_fn_found:
+                        RAISE_ERROR(f"For line {x}, couldn't find endfunction for templated function.")
+
+                    fn.extend(fn_body)
+                elif x.startswith("c_function"):
+                    # Get all the text till we receive endfunction.
+                    c_fn_body = []
+                    end_c_fn_found = False
+                    while j < len(Lines):
+                        inner_text = Lines[j].strip()
+                        c_fn_body.append(inner_text)
+                        # Replace the current line with empty string.
+                        Lines[j] = ""
+                        if inner_text.startswith("endc_function"):
+                            end_c_fn_found = True
+                            break
+
+                        j += 1
+                    
+                    if not end_c_fn_found:
+                        RAISE_ERROR(f"For line {x}, couldn't find endc_function for templated function.")
+
+                    fn.extend(c_fn_body)                    
+
+
+                # if x.startswith("endfunction") or x.startswith("endnamespace"):
+                if x.startswith("endnamespace"):
+                    endnamespace_found = True
+                    break
+
+                j += 1
+
+            if not endnamespace_found:
+                RAISE_ERROR(f"Couldn't find endnamespace for namespace {namespace_name}.")
+
+            # if there is no \n in any line append it.
+            for i in range(len(fn)):
+                if not fn[i].endswith("\n"):
+                    fn[i] += "\n"
+
+            unparsed_fn = fn
+
+            struct_defination.unparsed_functions.extend(unparsed_fn)
     elif check_token(lexer.Token.ENDNAMESPACE):
         parser.consume_token(lexer.Token.ENDNAMESPACE)
         if not is_inside_name_space:
@@ -4597,6 +4924,11 @@ while index < len(Lines):
         
         if is_inside_user_defined_function:
             RAISE_ERROR('Use "endfunction" to close a function and not "endnamespace".')
+
+        if len(GlobalGeneratedFunctionDeclarations) > 0:
+            # Just for decoration.
+            # Add \n after all the function declarations for a class.
+            GlobalGeneratedFunctionDeclarations += "\n"
 
         namespace_name = ""
         is_inside_name_space = False
@@ -4611,9 +4943,9 @@ if len(global_variables_initialization_code) > 0 and not main_fn_found:
 
 for i in range(len(LinesCache)):
     if "// STRUCT_DEFINATIONS //" in LinesCache[i]:
-        LinesCache[i] = GlobalStructInitCode
+        LinesCache[i] = GlobalGeneratedStructDefinations + GlobalGeneratedFunctionDeclarations + "\n\n" + GlobalStructInitCode
     elif "// DESTRUCTOR_CODE //" in LinesCache[i]:
-        LinesCache[i] = symbol_table.destructor_code_for_all_remaining_variables()
+        LinesCache[i] = ""
     elif "// HWND_VARIABLE_DECLARATIONS //" in LinesCache[i]:
         LinesCache[i] = gui_manager.get_hwnd_variable_declaration_code()
     elif "// GUI_NODES_CREATION //" in LinesCache[i]:

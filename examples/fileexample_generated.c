@@ -25,6 +25,53 @@ struct String {
   int capacity;
 };
 
+struct Vector_String {
+  struct String *arr;
+  int size;
+  int capacity;
+};
+
+char *Stringc_str(struct String *this);
+size_t Stringlen(struct String *this);
+char String__getitem__(struct String *this, int index);
+size_t Stringlength_of_charptr(struct String *this, char *p_string);
+void String__init__from_charptr(struct String *this, char *text,
+                                int p_text_length);
+void String__init__OVDstr(struct String *this, char *text);
+void String__init__OVDstructString(struct String *this, struct String text);
+void Stringclear(struct String *this);
+void Stringprint(struct String *this);
+void StringprintLn(struct String *this);
+void String__del__(struct String *this);
+bool Stringstartswith(struct String *this, char *prefix);
+struct String Stringsubstr(struct String *this, int start, int length);
+struct String Stringstrip(struct String *this);
+struct Vector_String Stringsplit(struct String *this, char delimeter);
+bool String__contains__(struct String *this, char *substring);
+bool String__eq__(struct String *this, char *pstring);
+void String__add__(struct String *this, char *pstring);
+void Stringreassign_internal(struct String *this, char *pstring,
+                             int p_text_length);
+void String__reassign__OVDstructString(struct String *this,
+                                       struct String pstring);
+void String__reassign__OVDstr(struct String *this, char *pstring);
+void Stringset_to_file_contents(struct String *this, char *pfilename);
+struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename);
+
+struct Vector_String string_split(struct String str);
+size_t Vector_Stringlen(struct Vector_String *this);
+struct String Vector_String__getitem__(struct Vector_String *this, int index);
+void Vector_String__init__(struct Vector_String *this, int capacity);
+void Vector_String__del__(struct Vector_String *this);
+void Vector_Stringpush(struct Vector_String *this, struct String value);
+void Vector_Stringallocate_more(struct Vector_String *this, int n);
+void Vector_Stringpush_unchecked(struct Vector_String *this,
+                                 struct String value);
+struct String Vector_Stringpop(struct Vector_String *this);
+void Vector_Stringremove_at(struct Vector_String *this, int index);
+bool Vector_String__contains__(struct Vector_String *this, struct String value);
+void Vector_Stringprint(struct Vector_String *this);
+
 char *Stringc_str(struct String *this) { return this->arr; }
 
 size_t Stringlen(struct String *this) { return this->length; }
@@ -110,13 +157,125 @@ struct String Stringstrip(struct String *this) {
   return text;
 }
 
-struct Vector_String {
-  struct String *arr;
-  int size;
-  int capacity;
-};
+struct Vector_String Stringsplit(struct String *this, char delimeter) {
+  // TODO: Because of this function, before import String, we require import
+  // Vector.
+  struct Vector_String result;
+  Vector_String__init__(&result, 2);
 
-// template Vector<String> {
+  int delim_location = -1;
+
+  int len = this->length;
+  for (int i = 0; i < len; i++) {
+    if (this->arr[i] == delimeter) {
+      int length = i - (delim_location + 1);
+
+      struct String text = Stringsubstr(this, delim_location + 1, length);
+      Vector_Stringpush(&result, text);
+      String__del__(&text);
+
+      delim_location = i;
+    }
+  }
+
+  // Add remaining string.
+  if (delim_location + 1 < len) {
+    char *remaining = &this->arr[delim_location + 1];
+
+    struct String text;
+    String__init__OVDstr(&text, remaining);
+    Vector_Stringpush(&result, text);
+    String__del__(&text);
+  }
+
+  return result;
+}
+
+bool String__contains__(struct String *this, char *substring) {
+  return strstr(this->arr, substring) != NULL;
+}
+
+bool String__eq__(struct String *this, char *pstring) {
+  return strcmp(this->arr, pstring) == 0;
+}
+
+void String__add__(struct String *this, char *pstring) {
+  size_t new_length = this->length + strlen(pstring) + 1;
+
+  if (new_length > this->capacity) {
+    size_t new_capacity;
+    if (this->capacity == 0) {
+      new_capacity = new_length * 2;
+    } else {
+      new_capacity = this->capacity;
+      while (new_capacity <= new_length) {
+        new_capacity *= 2;
+      }
+    }
+    this->arr = (char *)realloc(this->arr, new_capacity * sizeof(char));
+    this->capacity = new_capacity;
+  }
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory Re-Allocation Error.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  strcat(this->arr, pstring);
+  this->length = new_length;
+}
+
+void Stringreassign_internal(struct String *this, char *pstring,
+                             int p_text_length) {
+  if (this->arr != NULL) {
+    free(this->arr);
+  }
+
+  String__init__from_charptr(this, pstring, p_text_length);
+}
+
+void String__reassign__OVDstructString(struct String *this,
+                                       struct String pstring) {
+  char *src = Stringc_str(&pstring);
+  size_t p_text_length = Stringlen(&pstring);
+  Stringreassign_internal(this, src, p_text_length);
+}
+
+void String__reassign__OVDstr(struct String *this, char *pstring) {
+  size_t p_text_length = Stringlength_of_charptr(this, pstring);
+  Stringreassign_internal(this, pstring, p_text_length);
+}
+
+void Stringset_to_file_contents(struct String *this, char *pfilename) {
+  // Read from the file & store the contents to this string.
+
+  // TODO: Use CPL to generate this, because the function below is a mangled
+  // function name.
+  Stringclear(this);
+
+  FILE *ptr;
+
+  ptr = fopen(pfilename, "r");
+
+  if (ptr == NULL) {
+    printf("File can't be opened.\n");
+    exit(0);
+  }
+
+  char myString[256];
+  while (fgets(myString, 256, ptr)) {
+    String__add__(this, myString);
+  }
+
+  fclose(ptr);
+}
+
+struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename) {
+  Stringset_to_file_contents(this, pfilename);
+  struct Vector_String result = Stringsplit(this, '\n');
+  return result;
+}
+
 size_t Vector_Stringlen(struct Vector_String *this) { return this->size; }
 
 struct String Vector_String__getitem__(struct Vector_String *this, int index) {
@@ -238,127 +397,6 @@ void Vector_Stringprint(struct Vector_String *this) {
     }
   }
   printf("]\n");
-}
-
-// template Vector<String> }
-
-struct Vector_String Stringsplit(struct String *this, char delimeter) {
-  // TODO: Because of this function, before import String, we require import
-  // Vector.
-  struct Vector_String result;
-  Vector_String__init__(&result, 2);
-
-  int delim_location = -1;
-
-  int len = this->length;
-  for (int i = 0; i < len; i++) {
-    if (this->arr[i] == delimeter) {
-      int length = i - (delim_location + 1);
-
-      struct String text = Stringsubstr(this, delim_location + 1, length);
-      Vector_Stringpush(&result, text);
-      String__del__(&text);
-
-      delim_location = i;
-    }
-  }
-
-  // Add remaining string.
-  if (delim_location + 1 < len) {
-    char *remaining = &this->arr[delim_location + 1];
-
-    struct String text;
-    String__init__OVDstr(&text, remaining);
-    Vector_Stringpush(&result, text);
-    String__del__(&text);
-  }
-
-  return result;
-}
-
-bool String__contains__(struct String *this, char *substring) {
-  return strstr(this->arr, substring) != NULL;
-}
-
-bool String__eq__(struct String *this, char *pstring) {
-  return strcmp(this->arr, pstring) == 0;
-}
-
-void String__add__(struct String *this, char *pstring) {
-  size_t new_length = this->length + strlen(pstring) + 1;
-
-  if (new_length > this->capacity) {
-    size_t new_capacity;
-    if (this->capacity == 0) {
-      new_capacity = new_length * 2;
-    } else {
-      new_capacity = this->capacity;
-      while (new_capacity <= new_length) {
-        new_capacity *= 2;
-      }
-    }
-    this->arr = (char *)realloc(this->arr, new_capacity * sizeof(char));
-    this->capacity = new_capacity;
-  }
-
-  if (this->arr == NULL) {
-    fprintf(stderr, "Memory Re-Allocation Error.\n");
-    exit(EXIT_FAILURE);
-  }
-
-  strcat(this->arr, pstring);
-  this->length = new_length;
-}
-
-void Stringreassign_internal(struct String *this, char *pstring,
-                             int p_text_length) {
-  if (this->arr != NULL) {
-    free(this->arr);
-  }
-
-  String__init__from_charptr(this, pstring, p_text_length);
-}
-
-void String__reassign__OVDstructString(struct String *this,
-                                       struct String pstring) {
-  char *src = Stringc_str(&pstring);
-  size_t p_text_length = Stringlen(&pstring);
-  Stringreassign_internal(this, src, p_text_length);
-}
-
-void String__reassign__OVDstr(struct String *this, char *pstring) {
-  size_t p_text_length = Stringlength_of_charptr(this, pstring);
-  Stringreassign_internal(this, pstring, p_text_length);
-}
-
-void Stringset_to_file_contents(struct String *this, char *pfilename) {
-  // Read from the file & store the contents to this string.
-
-  // TODO: Use CPL to generate this, because the function below is a mangled
-  // function name.
-  Stringclear(this);
-
-  FILE *ptr;
-
-  ptr = fopen(pfilename, "r");
-
-  if (ptr == NULL) {
-    printf("File can't be opened.\n");
-    exit(0);
-  }
-
-  char myString[256];
-  while (fgets(myString, 256, ptr)) {
-    String__add__(this, myString);
-  }
-
-  fclose(ptr);
-}
-
-struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename) {
-  Stringset_to_file_contents(this, pfilename);
-  struct Vector_String result = Stringsplit(this, '\n');
-  return result;
 }
 
 ///*///

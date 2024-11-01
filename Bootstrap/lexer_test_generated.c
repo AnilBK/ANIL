@@ -62,6 +62,118 @@ struct String {
   int capacity;
 };
 
+struct Vector_String {
+  struct String *arr;
+  int size;
+  int capacity;
+};
+
+struct CPLObject {
+  CPLObject_Data data;
+  CPLObject_DataType data_type;
+  struct CPLObject *next;
+};
+
+struct List {
+  struct CPLObject *head;
+  struct CPLObject *tail;
+  int size;
+};
+
+struct Lexer {
+  int dummy;
+};
+
+struct DictObject_int {
+  char *key_str;
+  int value;
+  struct DictObject_int *next;
+};
+
+struct Dictionary_int {
+  struct DictObject_int **table;
+};
+
+char *Stringc_str(struct String *this);
+size_t Stringlen(struct String *this);
+char String__getitem__(struct String *this, int index);
+size_t Stringlength_of_charptr(struct String *this, char *p_string);
+void String__init__from_charptr(struct String *this, char *text,
+                                int p_text_length);
+void String__init__OVDstr(struct String *this, char *text);
+void String__init__OVDstructString(struct String *this, struct String text);
+void Stringclear(struct String *this);
+void Stringprint(struct String *this);
+void StringprintLn(struct String *this);
+void String__del__(struct String *this);
+bool Stringstartswith(struct String *this, char *prefix);
+struct String Stringsubstr(struct String *this, int start, int length);
+struct String Stringstrip(struct String *this);
+struct Vector_String Stringsplit(struct String *this, char delimeter);
+bool String__contains__(struct String *this, char *substring);
+bool String__eq__(struct String *this, char *pstring);
+void String__add__(struct String *this, char *pstring);
+void Stringreassign_internal(struct String *this, char *pstring,
+                             int p_text_length);
+void String__reassign__OVDstructString(struct String *this,
+                                       struct String pstring);
+void String__reassign__OVDstr(struct String *this, char *pstring);
+void Stringset_to_file_contents(struct String *this, char *pfilename);
+struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename);
+
+void CPLObject__init__OVDint(struct CPLObject *this, int p_value);
+void CPLObject__init__OVDstr(struct CPLObject *this, char *p_value);
+bool CPLObjectis_int(struct CPLObject *this);
+int CPLObjectget_int(struct CPLObject *this);
+bool CPLObjectis_str(struct CPLObject *this);
+char *CPLObjectget_str(struct CPLObject *this);
+void CPLObject_clear_str(struct CPLObject *this);
+void CPLObject__del__(struct CPLObject *this);
+struct CPLObject CPLObject_duplicate(struct CPLObject *this);
+bool CPLObject__eq__OVDint(struct CPLObject *this, int p_value);
+bool CPLObject__eq__OVDstr(struct CPLObject *this, char *p_value);
+
+int Listlen(struct List *this);
+void List__init__(struct List *this);
+void List__del__(struct List *this);
+struct CPLObject List__getitem__(struct List *this, int index);
+struct CPLObject Listpop(struct List *this, int index);
+bool List__contains__OVDint(struct List *this, int p_value);
+bool List__contains__OVDstr(struct List *this, char *p_value);
+void Listprint(struct List *this);
+void List_insert_end(struct List *this, CPLObjectptr new_node);
+CPLObjectptr Listcreate_int_node(struct List *this, int p_value);
+CPLObjectptr Listcreate_string_node(struct List *this, char *p_value);
+void Listappend_int(struct List *this, int p_value);
+void Listappend_str(struct List *this, char *p_value);
+void ListappendOVDint(struct List *this, int p_value);
+void ListappendOVDstr(struct List *this, char *p_value);
+void ListappendOVDstructCPLObject(struct List *this, struct CPLObject p_value);
+void List__reassign__(struct List *this, struct List p_list);
+
+struct List Lexerget_tokens(struct Lexer *this);
+
+size_t Vector_Stringlen(struct Vector_String *this);
+struct String Vector_String__getitem__(struct Vector_String *this, int index);
+void Vector_String__init__(struct Vector_String *this, int capacity);
+void Vector_String__del__(struct Vector_String *this);
+void Vector_Stringpush(struct Vector_String *this, struct String value);
+void Vector_Stringallocate_more(struct Vector_String *this, int n);
+void Vector_Stringpush_unchecked(struct Vector_String *this,
+                                 struct String value);
+struct String Vector_Stringpop(struct Vector_String *this);
+void Vector_Stringremove_at(struct Vector_String *this, int index);
+bool Vector_String__contains__(struct Vector_String *this, struct String value);
+void Vector_Stringprint(struct Vector_String *this);
+
+void Dictionary_int__init__(struct Dictionary_int *this);
+void Dictionary_int__del__(struct Dictionary_int *this);
+int Dictionary_int__getitem__(struct Dictionary_int *this, char *p_key);
+void Dictionary_int__setitem__(struct Dictionary_int *this, char *p_key_str,
+                               int p_value);
+bool Dictionary_int__contains__(struct Dictionary_int *this, char *p_key);
+void Dictionary_intprint(struct Dictionary_int *this);
+
 char *Stringc_str(struct String *this) { return this->arr; }
 
 size_t Stringlen(struct String *this) { return this->length; }
@@ -146,138 +258,6 @@ struct String Stringstrip(struct String *this) {
   String__init__from_charptr(&text, begin, new_length);
   return text;
 }
-
-struct Vector_String {
-  struct String *arr;
-  int size;
-  int capacity;
-};
-
-// template Vector<String> {
-size_t Vector_Stringlen(struct Vector_String *this) { return this->size; }
-
-struct String Vector_String__getitem__(struct Vector_String *this, int index) {
-  if (index < 0) {
-    index += this->size;
-  }
-  // Vector<String> Specialization:
-  // Returns &T ie &String, which means the return type is reference type.
-  // So, the returned String isn't freed by the destructor.
-  // for x in Vector<String>{}
-  // x calls __getitem__() and is a String. Typically x should be freed at the
-  // end of the loop. Since __getitem__() is a reference return type, it isn't
-  // freed.
-  return *(this->arr + index);
-}
-
-void Vector_String__init__(struct Vector_String *this, int capacity) {
-  // if we want to use instanced template type in fn body, we use following
-  // syntax.
-  // @ TEMPLATED_DATA_TYPE @
-  this->arr = (struct String *)malloc(capacity * sizeof(struct String));
-
-  if (this->arr == NULL) {
-    fprintf(stderr, "Memory allocation failed.\n");
-    exit(EXIT_FAILURE);
-  }
-  this->size = 0;
-  this->capacity = capacity;
-}
-
-void Vector_String__del__(struct Vector_String *this) {
-  for (size_t i = 0; i < this->size; ++i) {
-    String__del__(&this->arr[i]);
-  }
-
-  free(this->arr);
-  this->arr = NULL;
-  this->size = 0;
-  this->capacity = 0;
-}
-
-void Vector_Stringpush(struct Vector_String *this, struct String value) {
-  // Vector<String> Specialization:
-  // Duplicate a string object, to prevent dangling pointers,
-  // as when a string moves out of a scope, it is freed.
-  struct String str;
-  String__init__OVDstructString(&str, value);
-
-  if (this->size == this->capacity) {
-    this->capacity *= 2;
-    this->arr = (struct String *)realloc(this->arr, this->capacity *
-                                                        sizeof(struct String));
-    if (this->arr == NULL) {
-      fprintf(stderr, "Memory reallocation failed.\n");
-      exit(EXIT_FAILURE);
-    }
-  }
-  this->arr[this->size++] = str;
-}
-
-void Vector_Stringallocate_more(struct Vector_String *this, int n) {
-  this->capacity += n;
-  this->arr = (struct String *)realloc(this->arr,
-                                       this->capacity * sizeof(struct String));
-  if (this->arr == NULL) {
-    fprintf(stderr, "Memory reallocation failed.\n");
-    exit(EXIT_FAILURE);
-  }
-}
-
-void Vector_Stringpush_unchecked(struct Vector_String *this,
-                                 struct String value) {
-  this->arr[this->size++] = value;
-}
-
-struct String Vector_Stringpop(struct Vector_String *this) {
-  if (this->size == 0) {
-    fprintf(stderr, "Pop from empty Vector.\n");
-    exit(EXIT_FAILURE);
-  }
-  return this->arr[--this->size];
-}
-
-void Vector_Stringremove_at(struct Vector_String *this, int index) {
-  if (index < 0) {
-    index += this->size;
-  }
-
-  if (index < 0 || index >= this->size) {
-    fprintf(stderr, "Index out of bounds.\n");
-    exit(EXIT_FAILURE);
-  }
-
-  for (int i = index; i < this->size - 1; i++) {
-    this->arr[i] = this->arr[i + 1];
-  }
-  this->size--;
-}
-
-bool Vector_String__contains__(struct Vector_String *this,
-                               struct String value) {
-  for (size_t i = 0; i < this->size; ++i) {
-    if (this->arr[i].length == value.length) {
-      if (strcmp(this->arr[i].arr, value.arr) == 0) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-void Vector_Stringprint(struct Vector_String *this) {
-  printf("Vector<String> (size = %d, capacity = %d) : [", this->size,
-         this->capacity);
-  for (size_t i = 0; i < this->size; ++i) {
-    printf("\"%s\"", this->arr[i].arr);
-    if (i < this->size - 1) {
-      printf(", ");
-    }
-  }
-  printf("]\n");
-}
-
-// template Vector<String> }
 
 struct Vector_String Stringsplit(struct String *this, char delimeter) {
   // TODO: Because of this function, before import String, we require import
@@ -398,12 +378,6 @@ struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename) {
   return result;
 }
 
-struct CPLObject {
-  CPLObject_Data data;
-  CPLObject_DataType data_type;
-  struct CPLObject *next;
-};
-
 void CPLObject__init__OVDint(struct CPLObject *this, int p_value) {
   this->data.int_data = p_value;
   this->data_type = INT;
@@ -461,12 +435,6 @@ bool CPLObject__eq__OVDstr(struct CPLObject *this, char *p_value) {
     return false;
   }
 }
-
-struct List {
-  struct CPLObject *head;
-  struct CPLObject *tail;
-  int size;
-};
 
 int Listlen(struct List *this) { return this->size; }
 
@@ -700,94 +668,6 @@ void List__reassign__(struct List *this, struct List p_list) {
   }
 }
 
-struct Lexer {
-  int dummy;
-};
-
-struct DictObject_int {
-  char *key_str;
-  int value;
-  struct DictObject_int *next;
-};
-
-// template DictObject<int> {
-// template DictObject<int> }
-
-struct Dictionary_int {
-  struct DictObject_int **table;
-};
-
-// template Dictionary<int> {
-void Dictionary_int__init__(struct Dictionary_int *this) {
-  this->table = (struct DictObject_int **)malloc(
-      TABLE_SIZE * sizeof(struct DictObject_int *));
-  for (int i = 0; i < TABLE_SIZE; i++) {
-    this->table[i] = NULL;
-  }
-}
-
-void Dictionary_int__del__(struct Dictionary_int *this) {
-  for (int i = 0; i < TABLE_SIZE; i++) {
-    struct DictObject_int *pair = this->table[i];
-    while (pair != NULL) {
-      struct DictObject_int *next = pair->next;
-      // Do not free key_str since it's not dynamically allocated
-      free(pair);
-      pair = next;
-    }
-  }
-  free(this->table); // Free the table itself
-}
-
-int Dictionary_int__getitem__(struct Dictionary_int *this, char *p_key) {
-  unsigned int index = hash(p_key);
-  struct DictObject_int *pair = this->table[index];
-  while (pair != NULL) {
-    if (strcmp(pair->key_str, p_key) == 0) {
-      return pair->value;
-    }
-    pair = pair->next;
-  }
-  return 0;
-}
-
-void Dictionary_int__setitem__(struct Dictionary_int *this, char *p_key_str,
-                               int p_value) {
-  unsigned int index = hash(p_key_str);
-  struct DictObject_int *new_pair =
-      (struct DictObject_int *)malloc(sizeof(struct DictObject_int));
-  new_pair->key_str = p_key_str;
-  new_pair->value = p_value;
-  new_pair->next = this->table[index];
-  this->table[index] = new_pair;
-}
-
-bool Dictionary_int__contains__(struct Dictionary_int *this, char *p_key) {
-  unsigned int index = hash(p_key);
-  struct DictObject_int *pair = this->table[index];
-  while (pair != NULL) {
-    if (strcmp(pair->key_str, p_key) == 0) {
-      return true;
-    }
-    pair = pair->next;
-  }
-  return false;
-}
-
-void Dictionary_intprint(struct Dictionary_int *this) {
-  printf("{\n");
-  for (int i = 0; i < TABLE_SIZE; i++) {
-    struct DictObject_int *pair = this->table[i];
-    while (pair != NULL) {
-      printf("\"%s\" : %d,\n", pair->key_str, pair->value);
-      pair = pair->next;
-    }
-  }
-  printf("}\n");
-}
-
-// template Dictionary<int> }
-
 struct List Lexerget_tokens(struct Lexer *this) {
 
   struct Dictionary_int CHARACTER_TOKENS;
@@ -977,6 +857,197 @@ struct List Lexerget_tokens(struct Lexer *this) {
   Dictionary_int__del__(&KEYWORD_TOKENS);
   Dictionary_int__del__(&CHARACTER_TOKENS);
   return tokens;
+}
+
+size_t Vector_Stringlen(struct Vector_String *this) { return this->size; }
+
+struct String Vector_String__getitem__(struct Vector_String *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
+  // Vector<String> Specialization:
+  // Returns &T ie &String, which means the return type is reference type.
+  // So, the returned String isn't freed by the destructor.
+  // for x in Vector<String>{}
+  // x calls __getitem__() and is a String. Typically x should be freed at the
+  // end of the loop. Since __getitem__() is a reference return type, it isn't
+  // freed.
+  return *(this->arr + index);
+}
+
+void Vector_String__init__(struct Vector_String *this, int capacity) {
+  // if we want to use instanced template type in fn body, we use following
+  // syntax.
+  // @ TEMPLATED_DATA_TYPE @
+  this->arr = (struct String *)malloc(capacity * sizeof(struct String));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+  this->size = 0;
+  this->capacity = capacity;
+}
+
+void Vector_String__del__(struct Vector_String *this) {
+  for (size_t i = 0; i < this->size; ++i) {
+    String__del__(&this->arr[i]);
+  }
+
+  free(this->arr);
+  this->arr = NULL;
+  this->size = 0;
+  this->capacity = 0;
+}
+
+void Vector_Stringpush(struct Vector_String *this, struct String value) {
+  // Vector<String> Specialization:
+  // Duplicate a string object, to prevent dangling pointers,
+  // as when a string moves out of a scope, it is freed.
+  struct String str;
+  String__init__OVDstructString(&str, value);
+
+  if (this->size == this->capacity) {
+    this->capacity *= 2;
+    this->arr = (struct String *)realloc(this->arr, this->capacity *
+                                                        sizeof(struct String));
+    if (this->arr == NULL) {
+      fprintf(stderr, "Memory reallocation failed.\n");
+      exit(EXIT_FAILURE);
+    }
+  }
+  this->arr[this->size++] = str;
+}
+
+void Vector_Stringallocate_more(struct Vector_String *this, int n) {
+  this->capacity += n;
+  this->arr = (struct String *)realloc(this->arr,
+                                       this->capacity * sizeof(struct String));
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory reallocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+}
+
+void Vector_Stringpush_unchecked(struct Vector_String *this,
+                                 struct String value) {
+  this->arr[this->size++] = value;
+}
+
+struct String Vector_Stringpop(struct Vector_String *this) {
+  if (this->size == 0) {
+    fprintf(stderr, "Pop from empty Vector.\n");
+    exit(EXIT_FAILURE);
+  }
+  return this->arr[--this->size];
+}
+
+void Vector_Stringremove_at(struct Vector_String *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
+
+  if (index < 0 || index >= this->size) {
+    fprintf(stderr, "Index out of bounds.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for (int i = index; i < this->size - 1; i++) {
+    this->arr[i] = this->arr[i + 1];
+  }
+  this->size--;
+}
+
+bool Vector_String__contains__(struct Vector_String *this,
+                               struct String value) {
+  for (size_t i = 0; i < this->size; ++i) {
+    if (this->arr[i].length == value.length) {
+      if (strcmp(this->arr[i].arr, value.arr) == 0) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+void Vector_Stringprint(struct Vector_String *this) {
+  printf("Vector<String> (size = %d, capacity = %d) : [", this->size,
+         this->capacity);
+  for (size_t i = 0; i < this->size; ++i) {
+    printf("\"%s\"", this->arr[i].arr);
+    if (i < this->size - 1) {
+      printf(", ");
+    }
+  }
+  printf("]\n");
+}
+
+void Dictionary_int__init__(struct Dictionary_int *this) {
+  this->table = (struct DictObject_int **)malloc(
+      TABLE_SIZE * sizeof(struct DictObject_int *));
+  for (int i = 0; i < TABLE_SIZE; i++) {
+    this->table[i] = NULL;
+  }
+}
+
+void Dictionary_int__del__(struct Dictionary_int *this) {
+  for (int i = 0; i < TABLE_SIZE; i++) {
+    struct DictObject_int *pair = this->table[i];
+    while (pair != NULL) {
+      struct DictObject_int *next = pair->next;
+      // Do not free key_str since it's not dynamically allocated
+      free(pair);
+      pair = next;
+    }
+  }
+  free(this->table); // Free the table itself
+}
+
+int Dictionary_int__getitem__(struct Dictionary_int *this, char *p_key) {
+  unsigned int index = hash(p_key);
+  struct DictObject_int *pair = this->table[index];
+  while (pair != NULL) {
+    if (strcmp(pair->key_str, p_key) == 0) {
+      return pair->value;
+    }
+    pair = pair->next;
+  }
+  return 0;
+}
+
+void Dictionary_int__setitem__(struct Dictionary_int *this, char *p_key_str,
+                               int p_value) {
+  unsigned int index = hash(p_key_str);
+  struct DictObject_int *new_pair =
+      (struct DictObject_int *)malloc(sizeof(struct DictObject_int));
+  new_pair->key_str = p_key_str;
+  new_pair->value = p_value;
+  new_pair->next = this->table[index];
+  this->table[index] = new_pair;
+}
+
+bool Dictionary_int__contains__(struct Dictionary_int *this, char *p_key) {
+  unsigned int index = hash(p_key);
+  struct DictObject_int *pair = this->table[index];
+  while (pair != NULL) {
+    if (strcmp(pair->key_str, p_key) == 0) {
+      return true;
+    }
+    pair = pair->next;
+  }
+  return false;
+}
+
+void Dictionary_intprint(struct Dictionary_int *this) {
+  printf("{\n");
+  for (int i = 0; i < TABLE_SIZE; i++) {
+    struct DictObject_int *pair = this->table[i];
+    while (pair != NULL) {
+      printf("\"%s\" : %d,\n", pair->key_str, pair->value);
+      pair = pair->next;
+    }
+  }
+  printf("}\n");
 }
 
 void CustomPrint(int data) {
