@@ -171,6 +171,11 @@ def get_format_specifier(p_type: str) -> str:
         return "d"
 
 
+def get_mangled_templated_class_type(p_base_class_type: str, p_templated_type: str) -> str:
+    '''Mangle an instance of A<T> as A_T.'''
+    return p_base_class_type + "_" + p_templated_type
+
+
 def get_mangled_fn_name(p_struct_type: str, p_fn_name: str) -> str:
     return p_struct_type + p_fn_name
 
@@ -984,14 +989,10 @@ class StructInstance:
         self,
         p_struct_type,
         p_struct_name,
-        p_is_templated: bool,
-        p_templated_data_type: str,
         p_scope,
     ) -> None:
         self.struct_type = p_struct_type
         self.struct_name = p_struct_name
-        self.is_templated = p_is_templated
-        self.templated_data_type = p_templated_data_type
 
         # 'scope' denotes where this struct was created.
         self.scope = p_scope
@@ -1006,9 +1007,6 @@ class StructInstance:
         # whereas non pointer variables are called as fn(&variable_name,...).
         self.is_pointer_type = False
 
-    def is_templated_instance(self) -> bool:
-        return self.is_templated
-
     def get_struct_defination(self) -> Optional[Struct]:
         StructInfo = get_struct_defination_of_type(self.struct_type)
         return StructInfo
@@ -1019,33 +1017,20 @@ class StructInstance:
     def struct_type_has_destructor(self) -> bool:
         return self.get_struct_defination().has_destructor()
 
-    def _validate_template_type(self):
-        if self.templated_data_type == "":
-            # Shouldn't happen, as this validation is called if is_templated_instance() is true.
-            RAISE_ERROR(
-                "[Fatal Error] Struct is templated but it's type isn't Registered."
-            )
-
     def get_mangled_function_name(self, p_fn_name: str, parameters = None) -> str:
-        if self.is_templated_instance():
-            self._validate_template_type()
-            return get_templated_mangled_fn_name(
-                self.struct_type, p_fn_name, self.templated_data_type
-            )
-        else:
-            StructInfo = self.get_struct_defination()
+        StructInfo = self.get_struct_defination()
 
-            if StructInfo.function_is_overloaded(p_fn_name):
-                return get_overloaded_mangled_fn_name(self.struct_type, p_fn_name, parameters if parameters != None else [])
-            else:
-                return get_mangled_fn_name(self.struct_type, p_fn_name)
+        if StructInfo.function_is_overloaded(p_fn_name):
+            return get_overloaded_mangled_fn_name(self.struct_type, p_fn_name, parameters if parameters != None else [])
+        else:
+            return get_mangled_fn_name(self.struct_type, p_fn_name)
 
     def is_return_type_ref_type(self, p_fn_name, parameters = None):
         struct_info = self.get_struct_defination()
         if struct_info.function_is_overloaded(p_fn_name):
             return struct_info.is_return_type_of_overloaded_fn_ref_type(p_fn_name, parameters if parameters != None else [])
         else:
-            return struct_info.is_return_type_of_fn_ref_type(p_fn_name, self.templated_data_type if self.is_templated_instance() else "")
+            return struct_info.is_return_type_of_fn_ref_type(p_fn_name, "")
 
     def get_return_type_of_fn(self, p_fn_name, parameters = None):
         return_type = None
@@ -1056,12 +1041,6 @@ class StructInstance:
         else:
             return_type = struct_info.get_return_type_of_fn(p_fn_name)
         
-        if self.is_templated_instance():
-            # struct<T>{..}
-            # return T
-            if return_type == struct_info.template_defination_variable: 
-                return_type = self.templated_data_type
-
         # For Vector<String>, the String here is of struct type.
         # TODO : templated_data_type should probably be 'struct String' instead of just 'String' to avoid all this comparision.
         return_type = format_struct_data_type(return_type)
@@ -1160,42 +1139,6 @@ def get_destructor_for_struct(p_name):
 def remove_struct_instance(p_instance_name):
     global instanced_struct_names
     instanced_struct_names = [instance for instance in instanced_struct_names if instance.struct_name != p_instance_name]
-
-
-class ObjectInstance:
-    def __init__(
-        self, p_struct_name, p_is_templated, p_templated_data_type=None
-    ) -> None:
-        self.struct_name = p_struct_name
-        self.is_templated = p_is_templated
-        self.templated_data_type = p_templated_data_type
-
-
-# This stores which structs are instanced, so to fix redefination error while generating C code.
-ObjectInstances = []
-
-
-def is_class_already_instantiated(p_struct_name, p_is_templated, p_templated_data_type):
-    for ObjInstance in ObjectInstances:
-        struct_name = ObjInstance.struct_name
-        is_templated = ObjInstance.is_templated
-        templated_data_type = ObjInstance.templated_data_type
-
-        struct_name_matches = struct_name == p_struct_name
-        template_matches = False
-
-        # Both the template and the templated type matches.
-        if is_templated and p_is_templated:
-            if templated_data_type == p_templated_data_type:
-                template_matches = True
-
-        # Normal, untemplated classes.
-        if (not is_templated) and (not p_is_templated):
-            template_matches = True
-
-        if struct_name_matches and template_matches:
-            return True
-    return False
 
 
 class MacroDefination:
@@ -1636,7 +1579,7 @@ while index < len(Lines):
                 data_type_str += f"<{inner_data_type}>"
                 return data_type_str
             else:
-                data_type_str += f"_{inner_data_type}"
+                data_type_str = get_mangled_templated_class_type(data_type_str, inner_data_type)
                 instantiate_template(data_type, inner_data_type)
         else:
             if incomplete_types != None:
@@ -1678,7 +1621,7 @@ while index < len(Lines):
 
     def instantiate_template(struct_type, templated_data_type):
         # Recreate Generic Structs on instantiation.
-        m_struct_name = f"{struct_type}_{templated_data_type}"
+        m_struct_name = get_mangled_templated_class_type(struct_type, templated_data_type)
         m_struct_info = get_struct_defination_of_type(m_struct_name)
         if m_struct_info != None:
             # This struct has already been defined.
@@ -1843,40 +1786,26 @@ while index < len(Lines):
         parser.rollback_checkpoint()
 
     def parse_create_struct(struct_type, struct_name):
-        global LinesCache
-
-        is_templated_struct = False
-        templated_data_type = ""
-
         StructInfo = get_struct_defination_of_type(struct_type)
         if StructInfo is None:
             RAISE_ERROR(f'Struct type "{struct_type}" undefined.')
 
+        m_struct_type = struct_type
+
+        templated_data_type = ""
+
         if parser.check_token(lexer.Token.SMALLER_THAN):
             parser.next_token()
-            templated_data_type = parser.current_token()
-            # print(f"Templated struct of data type : {templated_data_type}")
-            struct_members_list = StructInfo.members
-            # print(StructInfo.members)  # [['X', 'a', True], ['float', 'b', False]]
-
-            # GlobalStructInitCode += struct_code
-
-            is_templated_struct = True
-
-            parser.next_token()
-
+            templated_data_type = parser.get_token()
             parser.consume_token(lexer.Token.GREATER_THAN)
+            m_struct_type = get_mangled_templated_class_type(struct_type, templated_data_type)
 
-        class_already_instantiated = is_class_already_instantiated(
-            struct_type, is_templated_struct, templated_data_type
-        )
+        if templated_data_type != "":
+            class_already_instantiated = is_data_type_struct_object(m_struct_type)
 
-        if not class_already_instantiated:
-            # GlobalStructInitCode += struct_code
-            global ObjectInstances
-            ObjectInstances.append(
-                ObjectInstance(struct_type, is_templated_struct, templated_data_type)
-            )
+            # Immediately instantiate templated class.
+            if not class_already_instantiated:
+                instantiate_template(struct_type, templated_data_type)
 
         parser.consume_token(lexer.Token.LEFT_CURLY)
 
@@ -1903,56 +1832,18 @@ while index < len(Lines):
         parser.next_token()
         parser.match_token(lexer.Token.SEMICOLON)
 
-        code = ""
-
-        if is_templated_struct:
-            code += f"struct {struct_type}_{templated_data_type} {struct_name};\n"
-        else:
-            code += f"struct {struct_type} {struct_name};\n"
-
-        global GlobalStructInitCode
-
-        instanced_struct_info = None
-
-        # Immediately instantiate templated member functions.
-        if is_templated_struct and (not class_already_instantiated):
-            instantiate_template(struct_type, templated_data_type)
-            m_struct_name = f"{struct_type}_{templated_data_type}"
-            instanced_struct_info = StructInstance(
-                m_struct_name,
-                struct_name,
-                False,
-                "",
-                get_current_scope(),
-            )
-
-        else:
-            m_struct_name = f"{struct_type}_{templated_data_type}"
-            if is_templated_struct:
-                instanced_struct_info = StructInstance(
-                    m_struct_name,
-                    struct_name,
-                    False,
-                    templated_data_type,
-                    get_current_scope(),
-                )
-            else:
-                instanced_struct_info = StructInstance(
-                    struct_type,
-                    struct_name,
-                    False,
-                    templated_data_type,
-                    get_current_scope(),
-                )
-        
+        instanced_struct_info = StructInstance(m_struct_type, struct_name, get_current_scope())
 
         global instanced_struct_names
         instanced_struct_names.append(instanced_struct_info)
 
-        REGISTER_VARIABLE(struct_name, struct_type)
+        REGISTER_VARIABLE(struct_name, m_struct_type)
+
+        code = f"struct {m_struct_type} {struct_name};\n"
+
+        global LinesCache
 
         has_constuctor = instanced_struct_info.struct_type_has_constructor()
-
         if has_constuctor:
             values_str = ""
             if len(values_list) > 0:
@@ -2179,13 +2070,7 @@ while index < len(Lines):
 
             val = random.randrange(100000)
 
-            struct_instance = StructInstance(
-                type_of_tk,
-                f"tmp_struct_name_{str(val)}",
-                False,
-                "",
-                get_current_scope(),
-            )
+            struct_instance = StructInstance(type_of_tk, f"tmp_struct_name_{str(val)}", get_current_scope())
 
             child_struct_info = struct_instance.get_struct_defination()
 
@@ -2218,9 +2103,7 @@ while index < len(Lines):
             # raw_return_type      ^^^^^^^^^^^^^^
             raw_return_type = return_type[len("struct "):]
 
-            instance = StructInstance(
-                raw_return_type, var_name, False, "", get_current_scope()
-            )
+            instance = StructInstance(raw_return_type, var_name, get_current_scope())
 
             if is_return_type_ref_type:
                 instance.should_be_freed = False
@@ -2997,8 +2880,6 @@ while index < len(Lines):
                 struct_instance = StructInstance(
                     type_of_tk,
                     f"tmp_struct_name_{str(val)}",
-                    False,
-                    "",
                     get_current_scope(),
                 )
             
@@ -3557,9 +3438,7 @@ while index < len(Lines):
                             # In this case we directly generate the appropriate C expression.
                             temp_string_var_name = f"tmp_string_{temp_string_object_variable_count}"
                             temp_string_object_variable_count += 1
-                            instance = StructInstance(
-                                "String", f"{temp_string_var_name}", False, "", get_current_scope()
-                            )
+                            instance = StructInstance("String", f"{temp_string_var_name}", get_current_scope())
                             # instance.is_pointer_type = True
                             # instance.should_be_freed = False
                             instanced_struct_names.append(instance)
@@ -4593,7 +4472,7 @@ while index < len(Lines):
             struct_name = class_fn_defination["class_name"]
             struct_def = get_struct_defination_of_type(struct_name)
             
-            instance = StructInstance(f"{struct_name}", "this", False, "", curr_scope)
+            instance = StructInstance(f"{struct_name}", "this", curr_scope)
             instance.is_pointer_type = True
             instance.should_be_freed = False
 
@@ -4623,9 +4502,7 @@ while index < len(Lines):
                 param_type = param_type[len("struct "):] 
 
             if is_data_type_struct_object(param_type):
-                instance = StructInstance(
-                    param_type, param_name, False, "", curr_scope
-                )
+                instance = StructInstance(param_type, param_name, curr_scope)
 
                 # Function parameters shouldn't be freed at the end of the scope.
                 # So, add a tag.
