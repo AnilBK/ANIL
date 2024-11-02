@@ -95,12 +95,6 @@ struct_definations = []
 instanced_struct_names = []
 
 GlobalStructInitCode = ""
-# While we are emitting functions in global scope, we emit it to GlobalStructInitCode.
-# If we instantiate templates as we are writing these global functions, it is also emitted to GlobalStructInitCode.
-# That means our entire templated struct code and its member functions are also emitted in the middle of global function code.
-# So before emitting a function, we mark the position where we are emitting the global function code, so
-# that template function code maybe inserted there(right before the function we are emitting).
-GlobalStructInitCodeInterceptionPoint = -1
 
 # Store all the generated function declarations. They will be written at the start of the file,
 # so that the functions can be called, at any place in the file without any definition error.
@@ -1638,20 +1632,7 @@ while index < len(Lines):
         instantiated_struct_info.substitute_template_for_member_types(templated_data_type)
         struct_code = instantiated_struct_info.get_struct_initialization_code()
 
-        global GlobalStructInitCode
-        global GlobalStructInitCodeInterceptionPoint
         global GlobalGeneratedStructDefinations
-
-        if GlobalStructInitCodeInterceptionPoint != -1:
-            # If we are in the middle of a function, we need to insert this struct code at the interception point.
-            # The interception point is set to the point where we started writing function body.
-            # Because we can't insert this code at the middle of the function.
-            # GlobalStructInitCode = insert_string(GlobalStructInitCode, GlobalStructInitCodeInterceptionPoint, struct_code)
-            GlobalStructInitCodeInterceptionPoint += len(struct_code)
-        else:
-            pass
-            # GlobalStructInitCode += struct_code
-
         GlobalGeneratedStructDefinations += struct_code
         
         instantiated_struct_info.remove_unwanted_template_fn_overloads(templated_data_type)
@@ -4570,7 +4551,6 @@ while index < len(Lines):
         
         if defining_fn_for_custom_class:
             if should_write_fn_body:
-                GlobalStructInitCodeInterceptionPoint = len(GlobalStructInitCode)
                 GlobalStructInitCode += code
             add_fn_member_to_struct(class_fn_defination["class_name"], fn)
             class_fn_defination["function_destination"] = "class"
@@ -4649,8 +4629,6 @@ while index < len(Lines):
 
         return_encountered_in_fn = False
         scopes_with_return_stmnt = []
-
-        GlobalStructInitCodeInterceptionPoint = -1
 
         should_write_fn_body = True
         is_inside_user_defined_function = False
