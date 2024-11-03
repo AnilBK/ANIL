@@ -1,9 +1,7 @@
 // clang-format off
 ///*///
 
-// Currently Implemented for Symbol Struct(preprocess_test.c).
-
-struct OrderedDictObject<T>{char *key_str,T value,Self *next};
+struct OrderedDictObject<T>{char *key_str, T value, Self *next};
 
 struct OrderedDict<T>{OrderedDictObject<T> *nodes};
 
@@ -67,7 +65,7 @@ c_function get(key : str) -> Optional<T>:
 endc_function
 
 c_function push(symbol : T)
-    // TODO !
+  // TODO !
 endc_function
 
 endnamespace

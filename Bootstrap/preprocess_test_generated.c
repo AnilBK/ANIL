@@ -83,8 +83,6 @@ typedef CPLObject *CPLObjectptr;
 
 ///*///
 
-// Currently Implemented for Symbol Struct(preprocess_test.c).
-
 ///*///
 
 #include <stdbool.h>
