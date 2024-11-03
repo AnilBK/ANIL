@@ -1168,9 +1168,13 @@ void Vector_Stringremove_at(struct Vector_String *this, int index) {
 
 bool Vector_String__contains__(struct Vector_String *this,
                                struct String value) {
-  for (size_t i = 0; i < this->size; ++i) {
-    if (this->arr[i].length == value.length) {
-      if (strcmp(this->arr[i].arr, value.arr) == 0) {
+  size_t tmp_len_3 = Vector_Stringlen(this);
+  for (size_t i = 0; i < tmp_len_3; i++) {
+    struct String string = Vector_String__getitem__(this, i);
+
+    if (Stringlen(&string) == Stringlen(&value)) {
+
+      if (String__eq__(&string, Stringc_str(&value))) {
         return true;
       }
     }

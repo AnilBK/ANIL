@@ -136,16 +136,16 @@ c_function<> __contains__(value : T) -> bool:
   return false;  
 endc_function
 
-c_function<String> __contains__(value : T) -> bool:
-  for (size_t i = 0; i < this->size; ++i) {
-    if(this->arr[i].length == value.length){
-      if(strcmp(this->arr[i].arr,value.arr) == 0){
-        return true;
+function<String> __contains__(value : T) -> bool:
+  for string in this{
+    if string.len() == value.len(){
+      if string == value{
+        return true
       }
     }
-  }    
-  return false;  
-endc_function
+  }
+  return false
+endfunction
 
 
 def pushn(X...) for Vector:
