@@ -21,7 +21,7 @@ c_function __getitem__(index: int) -> char:
 endc_function
 
 c_function length_of_charptr(p_string:str) -> size_t:
-// This should be some kind of static method.
+  // This should be some kind of static method.
   return strlen(p_string);
 endc_function
 
