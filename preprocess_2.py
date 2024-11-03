@@ -1316,6 +1316,10 @@ while index < len(Lines):
 
                 templated_fn_codes.extend(template_code)
 
+                # The temporary functions we added in instantiate_template() should be cleared,
+                # so we can begin writing the actual required functions.
+                # See: ADD_TEMPORARY_FUNCTIONS_FOR_TEMPLATE_INSTANTIATION.
+                defined_struct.member_functions.clear()
                 defined_struct.unparsed_functions.clear()
                 defined_struct.unparsed_functions_should_be_parsed = False
         
@@ -1704,6 +1708,7 @@ while index < len(Lines):
                     return templated_data_type
             return p_type
 
+        # ADD_TEMPORARY_FUNCTIONS_FOR_TEMPLATE_INSTANTIATION : 
         # Create temporary functions of unparsed functions such that struct instances can call them.
         # These functions don't have any body, but they are placeholders for the actual function,
         # but just contain return types and parameters.
