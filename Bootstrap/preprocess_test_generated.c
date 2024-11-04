@@ -1645,13 +1645,13 @@ struct Optional_Symbol OrderedDict_Symbolget(struct OrderedDict_Symbol *this,
                                              char *key) {
   struct Optional_Symbol res;
   Optional_Symbol__init__(&res);
+
+  if (OrderedDict_Symbol__contains__(this, key)) {
+    struct Symbol value = OrderedDict_Symbol__getitem__(this, key);
+    Optional_Symbolset_value(&res, value);
+    Symbol__del__(&value);
+  }
   return res;
-  // let res = Optional<Symbol>{};
-  // if key in this{
-  //   let value = this.__getitem__(key);
-  //   res.set_value(value);
-  // }
-  // return res
 }
 
 void OrderedDict_Symbolpush(struct OrderedDict_Symbol *this,

@@ -52,17 +52,14 @@ c_function __contains__(p_key : str) -> bool:
   return false;
 endc_function
 
-c_function get(key : str) -> Optional<T>:
-  struct Optional_Symbol res;
-  Optional_Symbol__init__(&res);
-  return res;
-  //let res = Optional<Symbol>{};
-  //if key in this{
-  //  let value = this.__getitem__(key);
-  //  res.set_value(value);
-  //}
-  //return res
-endc_function
+function get(key : str) -> Optional<T>:
+  let res = Optional<T>{};
+  if key in this{
+    let value = this.__getitem__(key);
+    res.set_value(value);
+  }
+  return res
+endfunction
 
 c_function push(symbol : T)
   // TODO !
