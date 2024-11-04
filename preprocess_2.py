@@ -4862,4 +4862,4 @@ try:
     subprocess.run(["clang-format", "-i", output_file_name], check=True)
     print(f"Successfully compiled {output_file_name} & formatted using clang-format.")
 except subprocess.CalledProcessError as e:
-    print(f"Error running clang-format: {e}")
+    print(f"Successfully compiled {output_file_name} but error running clang-format: {e}")

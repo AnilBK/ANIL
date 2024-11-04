@@ -10,6 +10,7 @@ You can find example CPL code in the [examples/](examples/) directory.
 ## Requirements:
 - C compiler.
 - Python.
+- clang-format(Recommended).
 
 ## Usage
 1. Open [preprocess_2.py](preprocess_2.py). 
