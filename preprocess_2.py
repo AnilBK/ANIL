@@ -19,7 +19,6 @@ filename_parser.add_argument("--filename", help="Name of source file to be compi
 args = filename_parser.parse_args()
 
 # source_file = "examples\\01_variables.c"
-# source_file = "examples\\01_variables_GUI_Input.c"
 # source_file = "examples\\02_List.c"
 # source_file = "examples\\03_Dictionary.c"
 # source_file = "examples\\04_Classes.c"
@@ -42,6 +41,7 @@ args = filename_parser.parse_args()
 # source_file = "examples\\Files.c"
 # source_file = "examples\\function_example.c"
 # source_file = "examples\\WebServer.c"
+# source_file = "examples\\Variables_GUI_Input_Win.c"
 
 # source_file = "Bootstrap\\lexer_test.c"
 # source_file = "Bootstrap\\Parser.c"

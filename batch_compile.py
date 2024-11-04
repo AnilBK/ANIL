@@ -1,6 +1,5 @@
 file_names = [
     "examples\\01_variables.c",
-    "examples\\01_variables_GUI_Input.c",
     "examples\\02_List.c",
     "examples\\03_Dictionary.c",
     "examples\\04_Classes.c",
@@ -21,6 +20,7 @@ file_names = [
     "examples\\function_example.c",
     "examples\\expression_parse_test.c",
     "examples\\WebServer.c",
+    "examples\\Variables_GUI_Input_Win.c",
     "Bootstrap\\lexer_test.c",
     "Bootstrap\\Parser.c",
     "Bootstrap\\preprocess_test.c",
