@@ -43,8 +43,6 @@ The examples in [examples/](examples/) folder shows all different features of CP
 
 - **[examples](examples/)**: Demonstrations of various language features and usage of the standard library.
 
-- **[Experiments](Experiments/)**(*Unimportant*): Ideas are explored here before their actual implementations.
-
 - **[Lib](Lib/)**: Standard Library.
 
 ## Individual Files
