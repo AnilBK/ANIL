@@ -125,6 +125,18 @@ tracked_scopes_for_current_fn = []
 # All the function parameters are registerd here, such that they may be freed when the function ends.
 registered_function_parameters = []
 
+# Store T and what T is instantiated with.
+# For e.g: For Object of A<T> instantiated as A<int>, we store {"T": "int"}
+# This is used to resolve templated types in function bodies and within the entire namespace.
+templated_type_mappings = {}
+
+def resolve_templated_type(p_templated_type: str) -> str:
+    if p_templated_type in templated_type_mappings:
+        return templated_type_mappings[p_templated_type]
+    else:
+        return p_templated_type
+
+
 # UTILS BEGIN
 
 
@@ -1794,7 +1806,7 @@ while index < len(Lines):
 
         if parser.check_token(lexer.Token.SMALLER_THAN):
             parser.next_token()
-            templated_data_type = parser.get_token()
+            templated_data_type = resolve_templated_type(parser.get_token())
             parser.consume_token(lexer.Token.GREATER_THAN)
             m_struct_type = get_mangled_templated_class_type(struct_type, templated_data_type)
 
@@ -4716,13 +4728,20 @@ while index < len(Lines):
             RAISE_ERROR(f"\"{namespace_name}\" isn't a valid namespace name. Namespace name is one of the classes'(struct) name. Namespaces are for implementing the member functions for the provided class(struct).")
 
         is_inside_name_space = True
+
+        templated_type_mappings = {}
+        # Suppose for Vector_int, template_defination_variable = T, templated_data_type = int,
+        # we store {"T" : "int"}.
+        # So, when we encounter T in function parameters or within this namespace, we replace it with int.
+        if struct_defination.template_defination_variable and struct_defination.templated_data_type: 
+            templated_type_mappings[struct_defination.template_defination_variable] = struct_defination.templated_data_type
+
         if struct_defination.unparsed_functions_emitted:
             # The temporary functions we added in instantiate_template() is cleared now.
             # Only after it has been emitted, because we may need function declarations that we created in
             # instantiate_template() in other namespaces before us.
             struct_defination.member_functions.clear()
             struct_defination.unparsed_functions_emitted = False
-
 
         is_namespace_for_templated_struct = struct_defination.is_templated()
         if is_namespace_for_templated_struct:
@@ -4810,6 +4829,7 @@ while index < len(Lines):
             GlobalGeneratedFunctionDeclarations += "\n"
 
         namespace_name = ""
+        templated_type_mappings = {}
         is_inside_name_space = False
     else:
         LinesCache.append(Line)
