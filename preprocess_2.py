@@ -554,6 +554,8 @@ class Struct:
         # The base struct becomes like an abstract class.
         self.unparsed_functions_should_be_parsed = False
 
+        self.unparsed_functions_emitted = False
+
     def is_templated(self) -> bool:
         return self.is_class_templated
 
@@ -1316,12 +1318,21 @@ while index < len(Lines):
 
                 templated_fn_codes.extend(template_code)
 
-                # The temporary functions we added in instantiate_template() should be cleared,
-                # so we can begin writing the actual required functions.
                 # See: ADD_TEMPORARY_FUNCTIONS_FOR_TEMPLATE_INSTANTIATION.
-                defined_struct.member_functions.clear()
+                # The temporary functions we added in instantiate_template() should be cleared,
+                # defined_struct.member_functions.clear()
+                # But we can't clear it here because
+                # Suppose, we emit A<T>, B<Y> in this loop.
+                # A<T> may use B<Y> inside it's function body.
+                # If we cleared B<Y>.member_functions() here, A<T> will have unresolved function calls,
+                # because later down when we are parsing namespace A<T>, we don't have B<Y> member functions(
+                # as it would be cleared).
+                # So, we clear the member functions when we open the corresponding namespace.
+                # Inside namespace we clear the temporary member functions of the struct,
+                # and start creating the actual member functions.
                 defined_struct.unparsed_functions.clear()
                 defined_struct.unparsed_functions_should_be_parsed = False
+                defined_struct.unparsed_functions_emitted = True
         
         if templated_fn_codes:
             templated_fn_codes.append("// DESTRUCTOR_CODE //")
@@ -1652,6 +1663,7 @@ while index < len(Lines):
 
         instantiated_struct_info.unparsed_functions = copy.deepcopy(StructInfo.unparsed_functions)
         instantiated_struct_info.unparsed_functions_should_be_parsed = True
+        instantiated_struct_info.unparsed_functions_emitted = False
 
         unparsed = instantiated_struct_info.unparsed_functions  # Cache the list for easier access
         
@@ -4704,6 +4716,13 @@ while index < len(Lines):
             RAISE_ERROR(f"\"{namespace_name}\" isn't a valid namespace name. Namespace name is one of the classes'(struct) name. Namespaces are for implementing the member functions for the provided class(struct).")
 
         is_inside_name_space = True
+        if struct_defination.unparsed_functions_emitted:
+            # The temporary functions we added in instantiate_template() is cleared now.
+            # Only after it has been emitted, because we may need function declarations that we created in
+            # instantiate_template() in other namespaces before us.
+            struct_defination.member_functions.clear()
+            struct_defination.unparsed_functions_emitted = False
+
 
         is_namespace_for_templated_struct = struct_defination.is_templated()
         if is_namespace_for_templated_struct:
