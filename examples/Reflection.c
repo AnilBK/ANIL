@@ -24,7 +24,7 @@ int main() {
     forall x in instances_of_class(List): list_instances.append_str(x)
   enddef  
   reflection
-
+  // ^^^^^^^ just writing the macro name calls the macro.
   print("We print the different instances of class List using Reflection as follows: \n")
 
   // 'instances_of_class' returns name of the instances in "string" form,
@@ -37,6 +37,5 @@ int main() {
   // DESTRUCTOR_CODE //
   ///*///
                     
-
   return 0;
 }

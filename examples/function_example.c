@@ -45,10 +45,9 @@ function get_templated_mangled_fn_name(p_struct_type1: String, p_fn_name1: Strin
 endfunction
 
 ///*///
-    // clang-format on
+// clang-format on
 
-    int
-    main() {
+int main() {
   // clang-format off
 
   ///*/// main()
@@ -57,16 +56,17 @@ endfunction
 
   let s5 = String{string};
 
-  my_first_CPL_function();
+  my_first_CPL_function()
 
   let class_name = "String"
   let fn_name = "__del__"
 
-  let mangled_name = get_mangled_fn_name(class_name, fn_name);
+  let mangled_name = get_mangled_fn_name(class_name, fn_name)
   mangled_name.print()
 
   // DESTRUCTOR_CODE //
   ///*///
+  
   // clang-format on
 
   return 0;

@@ -9,21 +9,21 @@
 import HTTPServer
 
 function Handle404(res : Response)
-    const html = "<html><body><h1>404 Page Not Found</h1></body></html>\r\n"
-    res.send(html, 404)
+  const html = "<html><body><h1>404 Page Not Found</h1></body></html>\r\n"
+  res.send(html, 404)
 endfunction
 
 @route("GET /about")
 function HandleAbout(res : Response)
-    const html = "<html><body><h1>About Us Page</h1></body></html>\r\n"
-    res.send(html, 200)
+  const html = "<html><body><h1>About Us Page</h1></body></html>\r\n"
+  res.send(html, 200)
 endfunction
 
 @route("GET /home")
 @route("GET / ")
 function HandleHome(res : Response)
-    const html = "<html><body><h1>Welcome to Home Page!</h1></body></html>\r\n"
-    res.send(html, 200)
+  const html = "<html><body><h1>Welcome to Home Page!</h1></body></html>\r\n"
+  res.send(html, 200)
 endfunction
 ///*///
 
@@ -49,6 +49,7 @@ int main() {
 
   // DESTRUCTOR_CODE //
   ///*///
+  
   // clang-format on
 
   return 0;

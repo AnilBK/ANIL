@@ -13,7 +13,7 @@ int main() {
   ///*///  main()
   import List
 
-  let test_list = [];
+  let test_list = []
   // The following line is also valid, as the above syntax is shorthand for the statement below. 
   // let test_list = List{};
 
@@ -52,7 +52,8 @@ int main() {
 
   // DESTRUCTOR_CODE //
   ///*///
-      // clang-format on
 
-      return 0;
+  // clang-format on
+
+  return 0;
 }

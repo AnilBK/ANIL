@@ -38,11 +38,12 @@ int main() {
   ///*/// main()
   
   let rect = Rectangle{10, 20};
-  rect.area();
-  rect.print_param(10);
+  rect.area()
+  rect.print_param(10)
 
   // DESTRUCTOR_CODE //
   ///*///
+  
   // clang-format on
 
   return 0;

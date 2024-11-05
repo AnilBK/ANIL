@@ -380,6 +380,7 @@ int main() {
   Listappend_str(&list_instances, "vector_class_member_functions");
   Listappend_str(&list_instances, "list_instances");
 
+  // ^^^^^^^ just writing the macro name calls the macro.
   printf("We print the different instances of class List using Reflection as "
          "follows: \n");
 

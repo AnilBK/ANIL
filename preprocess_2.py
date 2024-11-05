@@ -29,7 +29,6 @@ args = filename_parser.parse_args()
 # source_file = "examples\\07_Set.c"
 # source_file = "examples\\08_Optional.c"
 
-# source_file = "examples\\unique_ptr_source.c"
 # source_file = "examples\\initializer_list.c"
 # source_file = "examples\\Reflection.c"
 # source_file = "examples\\Annotations.c"
@@ -41,6 +40,7 @@ args = filename_parser.parse_args()
 # source_file = "examples\\fileexample.c"
 # source_file = "examples\\Files.c"
 # source_file = "examples\\function_example.c"
+# source_file = "examples\\unique_ptr_example.c"
 # source_file = "examples\\WebServer.c"
 # source_file = "examples\\Variables_GUI_Input_Win.c"
 

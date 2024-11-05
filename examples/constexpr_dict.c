@@ -28,7 +28,8 @@ int main() {
 
   // DESTRUCTOR_CODE //
   ///*///
-      // clang-format on
 
-      return 0;
+  // clang-format on
+
+  return 0;
 }

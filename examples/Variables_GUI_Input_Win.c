@@ -11,19 +11,19 @@
 
 // Function to redirect console I/O to a console window
 void RedirectIOToConsole() {
-    // Allocate a console for the current process
-    AllocConsole();
+  // Allocate a console for the current process
+  AllocConsole();
 
-    // Redirect the STDOUT to the console
-    FILE* fp;
-    freopen_s(&fp, "CONOUT$", "w", stdout);
-    freopen_s(&fp, "CONOUT$", "w", stderr);
+  // Redirect the STDOUT to the console
+  FILE* fp;
+  freopen_s(&fp, "CONOUT$", "w", stdout);
+  freopen_s(&fp, "CONOUT$", "w", stderr);
 
-    // Redirect STDIN to the console
-    freopen_s(&fp, "CONIN$", "r", stdin);
+  // Redirect STDIN to the console
+  freopen_s(&fp, "CONIN$", "r", stdin);
 
-    // Optional: You can set the console title if you like
-    SetConsoleTitle(TEXT("Console Window"));
+  // Optional: You can set the console title if you like
+  SetConsoleTitle(TEXT("Console Window"));
 }
 
 LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam){
@@ -67,9 +67,9 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdsho
   let is_electric : bool = true
   </form>
 
-  print("Car age is {car_age} years.\n");
-  print("Car mileage is {car_mileage} miles.\n");
-  print("Is the car electric? {is_electric}.\n");
+  print("Car age is {car_age} years.\n")
+  print("Car mileage is {car_mileage} miles.\n")
+  print("Is the car electric? {is_electric}.\n")
 
   // DESTRUCTOR_CODE //
   ///*///

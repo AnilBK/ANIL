@@ -74,10 +74,11 @@ int main() {
   let split_str2 = "Splitting with Spaces."
   split_str2.printLn()
   let space_split = split_str2.split(" ")
-  space_split.print();
+  space_split.print()
 
   // DESTRUCTOR_CODE //
 
   ///*///
+  
   return 0;
 }
