@@ -11,11 +11,6 @@
 
 *Fig: The generated C code from the second \_\_contains\_\_ method in the first screenshot.*
 
-## Documentation:
-You can find example CPL code in the [examples/](examples/) directory.
-The examples can be viewed serially to learn various features of the language.
-
-
 ## Requirements:
 - C compiler.
 - Python.
@@ -43,7 +38,7 @@ python preprocess_2.py --filename examples\FILE_NAME*.c
 - Annotations: [Example 1](examples/Annotations.c) [WebSever Example](examples/WebServer.c)
 - Mixing C with CPL: See [Lib/](Lib/)
 
-The examples in [examples/](examples/) folder shows all different features of CPL.
+### The examples in [examples/](examples/) folder shows all different features of CPL. Right now, these examples serve as documentation for the language.
 
 ## Project Structure
 ## Directories
