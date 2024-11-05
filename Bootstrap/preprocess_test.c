@@ -232,7 +232,18 @@ endfunction
 function __del__()
   this.scope.__del__()
 endfunction
+endnamespace
 
+namespace Vector
+function<ScopeScopeIDPair> __contains__(value : T) -> bool:
+  for pair in this{
+    if pair.get_scope_id() == value.get_scope_id(){
+      // FIXME: Incomplete implementation.
+      return true
+    }
+  }
+  return false
+endfunction
 endnamespace
 
 struct SymbolTable{Vector<ScopeScopeIDPair> scopes, Vector<int> scope_stack};
@@ -248,14 +259,17 @@ function current_scope() -> int:
 endfunction
 
 function get_scope_by_id(id : int) -> Scope:
-  for s in this.scopes{
-    if s.scope_id == id{
-      return s.scope
-    }
-  }
+  let scope = Scope{10000};
+  return scope
+  // for s in this.scopes{
+  //   if s.scope_id == id{
+  //     // FIXME: This returns &s.scope.
+  //     // return s.scope
+  //   }
+  // }
 
-  let e = ErrorHandler{};
-  e.RAISE_ERROR("Didnt find scope of provided id.")
+  // let e = ErrorHandler{};
+  // e.RAISE_ERROR("Didnt find scope of provided id.")
 endfunction
 
 function new_unique_scope_id() -> int:

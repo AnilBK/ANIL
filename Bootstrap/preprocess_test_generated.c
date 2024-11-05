@@ -385,9 +385,9 @@ void Vector_int_str_listpush_unchecked(struct Vector_int_str_list *this,
                                        struct int_str_list value);
 struct int_str_list Vector_int_str_listpop(struct Vector_int_str_list *this);
 void Vector_int_str_listremove_at(struct Vector_int_str_list *this, int index);
+void Vector_int_str_listprint(struct Vector_int_str_list *this);
 bool Vector_int_str_list__contains__(struct Vector_int_str_list *this,
                                      struct int_str_list value);
-void Vector_int_str_listprint(struct Vector_int_str_list *this);
 
 void OrderedDict_Symbol__init__(struct OrderedDict_Symbol *this);
 void OrderedDict_Symbol__del__(struct OrderedDict_Symbol *this);
@@ -425,9 +425,10 @@ struct ScopeScopeIDPair
 Vector_ScopeScopeIDPairpop(struct Vector_ScopeScopeIDPair *this);
 void Vector_ScopeScopeIDPairremove_at(struct Vector_ScopeScopeIDPair *this,
                                       int index);
+void Vector_ScopeScopeIDPairprint(struct Vector_ScopeScopeIDPair *this);
 bool Vector_ScopeScopeIDPair__contains__(struct Vector_ScopeScopeIDPair *this,
                                          struct ScopeScopeIDPair value);
-void Vector_ScopeScopeIDPairprint(struct Vector_ScopeScopeIDPair *this);
+
 size_t Vector_intlen(struct Vector_int *this);
 int Vector_int__getitem__(struct Vector_int *this, int index);
 void Vector_int__init__(struct Vector_int *this, int capacity);
@@ -1184,20 +1185,18 @@ int SymbolTablecurrent_scope(struct SymbolTable *this) {
 }
 
 struct Scope SymbolTableget_scope_by_id(struct SymbolTable *this, int id) {
-  size_t tmp_len_3 = Vector_ScopeScopeIDPairlen(&this->scopes);
-  for (size_t i = 0; i < tmp_len_3; i++) {
-    struct ScopeScopeIDPair s =
-        Vector_ScopeScopeIDPair__getitem__(&this->scopes, i);
+  struct Scope scope;
+  Scope__init__(&scope, 10000);
+  return scope;
+  // for s in this.scopes{
+  //   if s.scope_id == id{
+  //     // FIXME: This returns &s.scope.
+  //     // return s.scope
+  //   }
+  // }
 
-    if (&s.scope_id == id) {
-      ScopeScopeIDPair__del__(&s);
-      return &s.scope;
-    }
-    ScopeScopeIDPair__del__(&s);
-  }
-
-  struct ErrorHandler e;
-  ErrorHandlerRAISE_ERROR(&e, "Didnt find scope of provided id.");
+  // let e = ErrorHandler{};
+  // e.RAISE_ERROR("Didnt find scope of provided id.")
 }
 
 int SymbolTablenew_unique_scope_id(struct SymbolTable *this) {
@@ -1230,8 +1229,8 @@ void SymbolTableremove_scope_by_id(struct SymbolTable *this, int scope_id) {
   struct Vector_int id_to_remove;
   Vector_int__init__(&id_to_remove, 1);
   int index = 0;
-  size_t tmp_len_4 = Vector_ScopeScopeIDPairlen(&this->scopes);
-  for (size_t i = 0; i < tmp_len_4; i++) {
+  size_t tmp_len_3 = Vector_ScopeScopeIDPairlen(&this->scopes);
+  for (size_t i = 0; i < tmp_len_3; i++) {
     struct ScopeScopeIDPair scope =
         Vector_ScopeScopeIDPair__getitem__(&this->scopes, i);
     int id = ScopeScopeIDPairget_scope_id(&scope);
@@ -1243,9 +1242,9 @@ void SymbolTableremove_scope_by_id(struct SymbolTable *this, int scope_id) {
     ScopeScopeIDPair__del__(&scope);
   }
 
-  size_t tmp_len_5 = Vector_intlen(&id_to_remove);
-  tmp_len_5 -= 1;
-  for (size_t i = tmp_len_5; i != (size_t)-1; i += -1) {
+  size_t tmp_len_4 = Vector_intlen(&id_to_remove);
+  tmp_len_4 -= 1;
+  for (size_t i = tmp_len_4; i != (size_t)-1; i += -1) {
     int idx = Vector_int__getitem__(&id_to_remove, i);
     Vector_ScopeScopeIDPairremove_at(&this->scopes, idx);
   }
@@ -1315,8 +1314,8 @@ void SymbolTabledeclare_variable(struct SymbolTable *this, struct String name,
     ErrorHandlerRAISE_ERROR(&e, "Variable already declared.");
   }
 
-  size_t tmp_len_6 = Vector_intlen(&this->scope_stack);
-  for (size_t i = 0; i < tmp_len_6; i++) {
+  size_t tmp_len_5 = Vector_intlen(&this->scope_stack);
+  for (size_t i = 0; i < tmp_len_5; i++) {
     int scope_id = Vector_int__getitem__(&this->scope_stack, i);
     struct Scope scope = SymbolTableget_scope_by_id(this, scope_id);
 
@@ -1459,8 +1458,8 @@ void Vector_Stringremove_at(struct Vector_String *this, int index) {
 
 bool Vector_String__contains__(struct Vector_String *this,
                                struct String value) {
-  size_t tmp_len_10 = Vector_Stringlen(this);
-  for (size_t h = 0; h < tmp_len_10; h++) {
+  size_t tmp_len_9 = Vector_Stringlen(this);
+  for (size_t h = 0; h < tmp_len_9; h++) {
     struct String string = Vector_String__getitem__(this, h);
 
     if (Stringlen(&string) == Stringlen(&value)) {
@@ -1573,24 +1572,28 @@ void Vector_int_str_listremove_at(struct Vector_int_str_list *this, int index) {
   this->size--;
 }
 
-bool Vector_int_str_list__contains__(struct Vector_int_str_list *this,
-                                     struct int_str_list value) {
-  // This function is an overloaded function.
-  // Here <> in function defination means the base overload.
-  for (size_t i = 0; i < this->size; ++i) {
-    if (this->arr[i] == value) {
-      return true;
-    }
-  }
-  return false;
-}
-
 void Vector_int_str_listprint(struct Vector_int_str_list *this) {
   // Default overload.
   printf("Dynamic Array (size = %d, capacity = %d) : [ ]", this->size,
          this->capacity);
   // struct int_str_list will be replaced by the actual templated data type.
   printf("Unknown Format Specifier for type struct int_str_list.\n");
+}
+
+bool Vector_int_str_list__contains__(struct Vector_int_str_list *this,
+                                     struct int_str_list value) {
+  size_t tmp_len_10 = Vector_int_str_listlen(this);
+  for (size_t h = 0; h < tmp_len_10; h++) {
+    struct int_str_list pair = Vector_int_str_list__getitem__(this, h);
+
+    if (&pair.key == &value.key) {
+      // FIXME: Incomplete implementation.
+      int_str_list__del__(&pair);
+      return true;
+    }
+    int_str_list__del__(&pair);
+  }
+  return false;
 }
 
 void OrderedDict_Symbol__init__(struct OrderedDict_Symbol *this) {
@@ -1769,24 +1772,29 @@ void Vector_ScopeScopeIDPairremove_at(struct Vector_ScopeScopeIDPair *this,
   this->size--;
 }
 
-bool Vector_ScopeScopeIDPair__contains__(struct Vector_ScopeScopeIDPair *this,
-                                         struct ScopeScopeIDPair value) {
-  // This function is an overloaded function.
-  // Here <> in function defination means the base overload.
-  for (size_t i = 0; i < this->size; ++i) {
-    if (this->arr[i] == value) {
-      return true;
-    }
-  }
-  return false;
-}
-
 void Vector_ScopeScopeIDPairprint(struct Vector_ScopeScopeIDPair *this) {
   // Default overload.
   printf("Dynamic Array (size = %d, capacity = %d) : [ ]", this->size,
          this->capacity);
   // struct ScopeScopeIDPair will be replaced by the actual templated data type.
   printf("Unknown Format Specifier for type struct ScopeScopeIDPair.\n");
+}
+
+bool Vector_ScopeScopeIDPair__contains__(struct Vector_ScopeScopeIDPair *this,
+                                         struct ScopeScopeIDPair value) {
+  size_t tmp_len_11 = Vector_ScopeScopeIDPairlen(this);
+  for (size_t h = 0; h < tmp_len_11; h++) {
+    struct ScopeScopeIDPair pair = Vector_ScopeScopeIDPair__getitem__(this, h);
+
+    if (ScopeScopeIDPairget_scope_id(&pair) ==
+        ScopeScopeIDPairget_scope_id(&value)) {
+      // FIXME: Incomplete implementation.
+      ScopeScopeIDPair__del__(&pair);
+      return true;
+    }
+    ScopeScopeIDPair__del__(&pair);
+  }
+  return false;
 }
 
 size_t Vector_intlen(struct Vector_int *this) { return this->size; }
@@ -2130,8 +2138,8 @@ int main() {
   struct Vector_String imported_modules;
   Vector_String__init__(&imported_modules, 5);
 
-  size_t tmp_len_7 = Vector_Stringlen(&Lines);
-  for (size_t i = 0; i < tmp_len_7; i++) {
+  size_t tmp_len_6 = Vector_Stringlen(&Lines);
+  for (size_t i = 0; i < tmp_len_6; i++) {
     struct String line = Vector_String__getitem__(&Lines, i);
     struct String Line = Stringstrip(&line);
 
@@ -2153,8 +2161,8 @@ int main() {
     struct Vector_String ImportedCodeLines;
     Vector_String__init__(&ImportedCodeLines, 50);
 
-    size_t tmp_len_8 = Vector_Stringlen(&imported_modules);
-    for (size_t i = 0; i < tmp_len_8; i++) {
+    size_t tmp_len_7 = Vector_Stringlen(&imported_modules);
+    for (size_t i = 0; i < tmp_len_7; i++) {
       struct String module_name =
           Vector_String__getitem__(&imported_modules, i);
       struct String relative_path;
@@ -2171,8 +2179,8 @@ int main() {
       // lines.print()
 
       // ImportedCodeLines += lines
-      size_t tmp_len_9 = Vector_Stringlen(&lines);
-      for (size_t j = 0; j < tmp_len_9; j++) {
+      size_t tmp_len_8 = Vector_Stringlen(&lines);
+      for (size_t j = 0; j < tmp_len_8; j++) {
         struct String line = Vector_String__getitem__(&lines, j);
         Vector_Stringpush(&ImportedCodeLines, line);
       }

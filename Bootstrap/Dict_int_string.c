@@ -14,6 +14,18 @@ function __del__()
 endfunction
 endnamespace
 
+namespace Vector
+function<int_str_list> __contains__(value : T) -> bool:
+  for pair in this{
+    if pair.key == value.key{
+      // FIXME: Incomplete implementation.
+      return true
+    }
+  }
+  return false
+endfunction
+endnamespace
+
 // Ordered Dictionary of key(int) and value(list of string).
 struct Dict_int_string{Vector<int_str_list> pairs};
 namespace Dict_int_string
