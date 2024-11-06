@@ -532,37 +532,39 @@ struct String Stringstrip(struct String *this) {
 }
 
 struct Vector_String Stringsplit(struct String *this, char delimeter) {
-  // TODO: Because of this function, before import String, we require import
+  // NOTE : Because of this function, before import String, we require import
   // Vector.
-  struct Vector_String result;
-  Vector_String__init__(&result, 2);
+  struct Vector_String split_result;
+  Vector_String__init__(&split_result, 2);
 
-  int delim_location = -1;
+  int index = 0;
+  int segment_start = 0;
 
-  int len = this->length;
-  for (int i = 0; i < len; i++) {
-    if (this->arr[i] == delimeter) {
-      int length = i - (delim_location + 1);
+  size_t tmp_len_0 = Stringlen(this);
+  for (size_t i = 0; i < tmp_len_0; i++) {
+    char character = String__getitem__(this, i);
 
-      struct String text = Stringsubstr(this, delim_location + 1, length);
-      Vector_Stringpush(&result, text);
-      String__del__(&text);
+    if (character == delimeter) {
 
-      delim_location = i;
+      if (segment_start < index) {
+        struct String segment =
+            Stringsubstr(this, segment_start, index - segment_start);
+        Vector_Stringpush(&split_result, segment);
+        String__del__(&segment);
+      }
+      segment_start = index + 1;
     }
+    index = index + 1;
   }
 
-  // Add remaining string.
-  if (delim_location + 1 < len) {
-    char *remaining = &this->arr[delim_location + 1];
-
-    struct String text;
-    String__init__OVDstr(&text, remaining);
-    Vector_Stringpush(&result, text);
-    String__del__(&text);
+  if (segment_start < Stringlen(this)) {
+    struct String remaining_segment =
+        Stringsubstr(this, segment_start, Stringlen(this) - segment_start);
+    Vector_Stringpush(&split_result, remaining_segment);
+    String__del__(&remaining_segment);
   }
 
-  return result;
+  return split_result;
 }
 
 bool String__contains__(struct String *this, char *substring) {
@@ -675,8 +677,8 @@ void Setadd(struct Set *this, struct String value) {
 
 void Setprint(struct Set *this) {
   printf("[");
-  size_t tmp_len_0 = Setlen(this);
-  for (size_t i = 0; i < tmp_len_0; i++) {
+  size_t tmp_len_1 = Setlen(this);
+  for (size_t i = 0; i < tmp_len_1; i++) {
     struct String str = Set__getitem__(this, i);
     Stringprint(&str);
     printf(",");
@@ -966,8 +968,8 @@ void ListappendOVDstructCPLObject(struct List *this, struct CPLObject p_value) {
 }
 
 void List__reassign__(struct List *this, struct List p_list) {
-  int tmp_len_1 = Listlen(&p_list);
-  for (size_t i = 0; i < tmp_len_1; i++) {
+  int tmp_len_2 = Listlen(&p_list);
+  for (size_t i = 0; i < tmp_len_2; i++) {
     struct CPLObject item = List__getitem__(&p_list, i);
     ListappendOVDstructCPLObject(this, item);
     CPLObject__del__(&item);
@@ -995,8 +997,8 @@ void Dict_int_string__init__(struct Dict_int_string *this) {
 
 bool Dict_int_string__contains__(struct Dict_int_string *this, int p_key) {
   bool found = false;
-  size_t tmp_len_2 = Vector_int_str_listlen(&this->pairs);
-  for (size_t i = 0; i < tmp_len_2; i++) {
+  size_t tmp_len_3 = Vector_int_str_listlen(&this->pairs);
+  for (size_t i = 0; i < tmp_len_3; i++) {
     struct int_str_list pair = Vector_int_str_list__getitem__(&this->pairs, i);
 
     if (&pair.key == p_key) {
@@ -1229,8 +1231,8 @@ void SymbolTableremove_scope_by_id(struct SymbolTable *this, int scope_id) {
   struct Vector_int id_to_remove;
   Vector_int__init__(&id_to_remove, 1);
   int index = 0;
-  size_t tmp_len_3 = Vector_ScopeScopeIDPairlen(&this->scopes);
-  for (size_t i = 0; i < tmp_len_3; i++) {
+  size_t tmp_len_4 = Vector_ScopeScopeIDPairlen(&this->scopes);
+  for (size_t i = 0; i < tmp_len_4; i++) {
     struct ScopeScopeIDPair scope =
         Vector_ScopeScopeIDPair__getitem__(&this->scopes, i);
     int id = ScopeScopeIDPairget_scope_id(&scope);
@@ -1242,9 +1244,9 @@ void SymbolTableremove_scope_by_id(struct SymbolTable *this, int scope_id) {
     ScopeScopeIDPair__del__(&scope);
   }
 
-  size_t tmp_len_4 = Vector_intlen(&id_to_remove);
-  tmp_len_4 -= 1;
-  for (size_t i = tmp_len_4; i != (size_t)-1; i += -1) {
+  size_t tmp_len_5 = Vector_intlen(&id_to_remove);
+  tmp_len_5 -= 1;
+  for (size_t i = tmp_len_5; i != (size_t)-1; i += -1) {
     int idx = Vector_int__getitem__(&id_to_remove, i);
     Vector_ScopeScopeIDPairremove_at(&this->scopes, idx);
   }
@@ -1314,8 +1316,8 @@ void SymbolTabledeclare_variable(struct SymbolTable *this, struct String name,
     ErrorHandlerRAISE_ERROR(&e, "Variable already declared.");
   }
 
-  size_t tmp_len_5 = Vector_intlen(&this->scope_stack);
-  for (size_t i = 0; i < tmp_len_5; i++) {
+  size_t tmp_len_6 = Vector_intlen(&this->scope_stack);
+  for (size_t i = 0; i < tmp_len_6; i++) {
     int scope_id = Vector_int__getitem__(&this->scope_stack, i);
     struct Scope scope = SymbolTableget_scope_by_id(this, scope_id);
 
@@ -1458,8 +1460,8 @@ void Vector_Stringremove_at(struct Vector_String *this, int index) {
 
 bool Vector_String__contains__(struct Vector_String *this,
                                struct String value) {
-  size_t tmp_len_9 = Vector_Stringlen(this);
-  for (size_t h = 0; h < tmp_len_9; h++) {
+  size_t tmp_len_10 = Vector_Stringlen(this);
+  for (size_t h = 0; h < tmp_len_10; h++) {
     struct String string = Vector_String__getitem__(this, h);
 
     if (Stringlen(&string) == Stringlen(&value)) {
@@ -1582,8 +1584,8 @@ void Vector_int_str_listprint(struct Vector_int_str_list *this) {
 
 bool Vector_int_str_list__contains__(struct Vector_int_str_list *this,
                                      struct int_str_list value) {
-  size_t tmp_len_10 = Vector_int_str_listlen(this);
-  for (size_t h = 0; h < tmp_len_10; h++) {
+  size_t tmp_len_11 = Vector_int_str_listlen(this);
+  for (size_t h = 0; h < tmp_len_11; h++) {
     struct int_str_list pair = Vector_int_str_list__getitem__(this, h);
 
     if (&pair.key == &value.key) {
@@ -1782,8 +1784,8 @@ void Vector_ScopeScopeIDPairprint(struct Vector_ScopeScopeIDPair *this) {
 
 bool Vector_ScopeScopeIDPair__contains__(struct Vector_ScopeScopeIDPair *this,
                                          struct ScopeScopeIDPair value) {
-  size_t tmp_len_11 = Vector_ScopeScopeIDPairlen(this);
-  for (size_t h = 0; h < tmp_len_11; h++) {
+  size_t tmp_len_12 = Vector_ScopeScopeIDPairlen(this);
+  for (size_t h = 0; h < tmp_len_12; h++) {
     struct ScopeScopeIDPair pair = Vector_ScopeScopeIDPair__getitem__(this, h);
 
     if (ScopeScopeIDPairget_scope_id(&pair) ==
@@ -2138,8 +2140,8 @@ int main() {
   struct Vector_String imported_modules;
   Vector_String__init__(&imported_modules, 5);
 
-  size_t tmp_len_6 = Vector_Stringlen(&Lines);
-  for (size_t i = 0; i < tmp_len_6; i++) {
+  size_t tmp_len_7 = Vector_Stringlen(&Lines);
+  for (size_t i = 0; i < tmp_len_7; i++) {
     struct String line = Vector_String__getitem__(&Lines, i);
     struct String Line = Stringstrip(&line);
 
@@ -2161,8 +2163,8 @@ int main() {
     struct Vector_String ImportedCodeLines;
     Vector_String__init__(&ImportedCodeLines, 50);
 
-    size_t tmp_len_7 = Vector_Stringlen(&imported_modules);
-    for (size_t i = 0; i < tmp_len_7; i++) {
+    size_t tmp_len_8 = Vector_Stringlen(&imported_modules);
+    for (size_t i = 0; i < tmp_len_8; i++) {
       struct String module_name =
           Vector_String__getitem__(&imported_modules, i);
       struct String relative_path;
@@ -2179,8 +2181,8 @@ int main() {
       // lines.print()
 
       // ImportedCodeLines += lines
-      size_t tmp_len_8 = Vector_Stringlen(&lines);
-      for (size_t j = 0; j < tmp_len_8; j++) {
+      size_t tmp_len_9 = Vector_Stringlen(&lines);
+      for (size_t j = 0; j < tmp_len_9; j++) {
         struct String line = Vector_String__getitem__(&lines, j);
         Vector_Stringpush(&ImportedCodeLines, line);
       }

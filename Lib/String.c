@@ -102,38 +102,31 @@ c_function strip() -> String:
   return text;
 endc_function
 
-c_function split(delimeter: char) -> Vector<String>:
-  // TODO: Because of this function, before import String, we require import Vector.
-  struct Vector_String result;
-  Vector_String__init__(&result, 2);
+function split(delimeter: char) -> Vector<String>:
+  // NOTE : Because of this function, before import String, we require import Vector.
+  let split_result = Vector<String>{2};
 
-  int delim_location = -1;
+  let index : int = 0
+  let segment_start : int = 0
 
-  int len = this->length;
-  for (int i = 0; i < len; i++) {
-    if (this->arr[i] == delimeter) {
-      int length = i - (delim_location + 1);
-
-      struct String text = Stringsubstr(this, delim_location + 1, length);
-      Vector_Stringpush(&result, text);
-      String__del__(&text);
-
-      delim_location = i;
+  for character in this{
+    if character == delimeter {
+      if segment_start < index {
+        let segment = this.substr(segment_start, index - segment_start)
+        split_result.push(segment)
+      }
+      segment_start = index + 1
     }
+    index = index + 1
   }
 
-  // Add remaining string.
-  if (delim_location + 1 < len) {
-    char *remaining = &this->arr[delim_location + 1];
-
-    struct String text;
-    String__init__OVDstr(&text, remaining);
-    Vector_Stringpush(&result, text);
-    String__del__(&text);
+  if segment_start < this.len() {
+    let remaining_segment = this.substr(segment_start, this.len() - segment_start)
+    split_result.push(remaining_segment)
   }
 
-  return result;
-endc_function
+  return split_result
+endfunction
 
 c_function __contains__(substring: str) -> bool:
   return strstr(this->arr, substring) != NULL;

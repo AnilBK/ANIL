@@ -166,37 +166,39 @@ struct String Stringstrip(struct String *this) {
 }
 
 struct Vector_String Stringsplit(struct String *this, char delimeter) {
-  // TODO: Because of this function, before import String, we require import
+  // NOTE : Because of this function, before import String, we require import
   // Vector.
-  struct Vector_String result;
-  Vector_String__init__(&result, 2);
+  struct Vector_String split_result;
+  Vector_String__init__(&split_result, 2);
 
-  int delim_location = -1;
+  int index = 0;
+  int segment_start = 0;
 
-  int len = this->length;
-  for (int i = 0; i < len; i++) {
-    if (this->arr[i] == delimeter) {
-      int length = i - (delim_location + 1);
+  size_t tmp_len_0 = Stringlen(this);
+  for (size_t i = 0; i < tmp_len_0; i++) {
+    char character = String__getitem__(this, i);
 
-      struct String text = Stringsubstr(this, delim_location + 1, length);
-      Vector_Stringpush(&result, text);
-      String__del__(&text);
+    if (character == delimeter) {
 
-      delim_location = i;
+      if (segment_start < index) {
+        struct String segment =
+            Stringsubstr(this, segment_start, index - segment_start);
+        Vector_Stringpush(&split_result, segment);
+        String__del__(&segment);
+      }
+      segment_start = index + 1;
     }
+    index = index + 1;
   }
 
-  // Add remaining string.
-  if (delim_location + 1 < len) {
-    char *remaining = &this->arr[delim_location + 1];
-
-    struct String text;
-    String__init__OVDstr(&text, remaining);
-    Vector_Stringpush(&result, text);
-    String__del__(&text);
+  if (segment_start < Stringlen(this)) {
+    struct String remaining_segment =
+        Stringsubstr(this, segment_start, Stringlen(this) - segment_start);
+    Vector_Stringpush(&split_result, remaining_segment);
+    String__del__(&remaining_segment);
   }
 
-  return result;
+  return split_result;
 }
 
 bool String__contains__(struct String *this, char *substring) {
@@ -385,8 +387,8 @@ void Vector_Stringremove_at(struct Vector_String *this, int index) {
 
 bool Vector_String__contains__(struct Vector_String *this,
                                struct String value) {
-  size_t tmp_len_0 = Vector_Stringlen(this);
-  for (size_t i = 0; i < tmp_len_0; i++) {
+  size_t tmp_len_1 = Vector_Stringlen(this);
+  for (size_t i = 0; i < tmp_len_1; i++) {
     struct String string = Vector_String__getitem__(this, i);
 
     if (Stringlen(&string) == Stringlen(&value)) {
