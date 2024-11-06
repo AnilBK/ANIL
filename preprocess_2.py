@@ -18,7 +18,7 @@ filename_parser = argparse.ArgumentParser()
 filename_parser.add_argument("--filename", help="Name of source file to be compiled.")
 args = filename_parser.parse_args()
 
-# source_file = "examples\\00_Hello_World.c"
+source_file = "examples\\00_Hello_World.c"
 # source_file = "examples\\01_variables.c"
 # source_file = "examples\\02_List.c"
 # source_file = "examples\\03_Dictionary.c"
@@ -46,7 +46,7 @@ args = filename_parser.parse_args()
 
 # source_file = "Bootstrap\\lexer_test.c"
 # source_file = "Bootstrap\\Parser.c"
-source_file = "Bootstrap\\preprocess_test.c"
+# source_file = "Bootstrap\\preprocess_test.c"
 
 if args.filename:
     source_file = args.filename
