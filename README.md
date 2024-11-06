@@ -1,11 +1,15 @@
 # C Preprocessor Language(CPL)
-CPL is a statically typed programming language, inspired by Python, that can be embedded within C source files.
+## CPL is a statically typed programming language, inspired by Python, that can be embedded within C source files.
 
-CPL generates appropriate C code, which is then compiled using a C compiler.
+![ss1](https://github.com/user-attachments/assets/7ed43e7e-39fd-4ff0-a8e4-a60f43983355)
 
-## Examples:
-You can find example CPL code in the [examples/](examples/) directory.
+*Fig: CPL functions written in C and CPL respectively.*
 
+## CPL generates appropriate C code, which is then compiled using a C compiler.
+
+![ss2](https://github.com/user-attachments/assets/38fb545a-cad5-44d6-8892-7e4d07afab95)
+
+*Fig: The generated C code from the second \_\_contains\_\_ method in the first screenshot.*
 
 ## Requirements:
 - C compiler.
@@ -34,7 +38,7 @@ python preprocess_2.py --filename examples\FILE_NAME*.c
 - Annotations: [Example 1](examples/Annotations.c) [WebSever Example](examples/WebServer.c)
 - Mixing C with CPL: See [Lib/](Lib/)
 
-The examples in [examples/](examples/) folder shows all different features of CPL.
+### The examples in [examples/](examples/) folder shows all different features of CPL. Right now, these examples serve as documentation for the language.
 
 ## Project Structure
 ## Directories
