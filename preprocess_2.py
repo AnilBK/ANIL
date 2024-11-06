@@ -3189,6 +3189,12 @@ while index < len(Lines):
             return handle_struct_equality(var_to_check_against, var_to_check, r_type, left_struct_info, negation)
 
         if l_type == ParameterType.CHAR_TYPE:
+            if r_type == ParameterType.CHAR_TYPE:
+                # char a, char b
+                comparision_code = f'{var_to_check_against} == {var_to_check}'
+                return f"!({comparision_code})" if negation else comparision_code
+
+            # char a , 'B'
             return handle_char_equality(var_to_check_against, var_to_check, l_type, negation)
 
         # if Char == "\""
