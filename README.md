@@ -1,11 +1,11 @@
-# C Preprocessor Language(CPL)
-## CPL is a statically typed programming language, inspired by Python and C++, that can be embedded within C source files.
+# A Nice Intermediate Language(ANIL)
+## ANIL is a statically typed programming language, inspired by Python and C++, that can be embedded within C source files.
 
 ![ss1](https://github.com/user-attachments/assets/7ed43e7e-39fd-4ff0-a8e4-a60f43983355)
 
-*Fig: CPL functions written in C and CPL respectively. The first function written in C is the general implementation for the `__contains__` method whereas the second function written in CPL is template specialization for `String` class.*
+*Fig: ANIL functions written in C and ANIL respectively. The first function written in C is the general implementation for the `__contains__` method whereas the second function written in ANIL is template specialization for `String` class.*
 
-## CPL generates appropriate C code, which is then compiled using a C compiler.
+## ANIL generates appropriate C code, which is then compiled using a C compiler.
 
 ![ss2](https://github.com/user-attachments/assets/38fb545a-cad5-44d6-8892-7e4d07afab95)
 
@@ -36,7 +36,7 @@ python preprocess_2.py --filename examples\FILE_NAME*.c
 - Macros: [Example](examples/initializer_list.c)
 - Compile-Time Reflection: [Example 1](examples/Reflection.c) 
 - Annotations: [Example 1](examples/Annotations.c) [WebSever Example](examples/WebServer.c)
-- Standard Library: See [Lib/](Lib/). Shows mixing of C code and CPL.
+- Standard Library: See [Lib/](Lib/). Shows mixing of C code and ANIL.
 - Dunder methods:
     - `__init__` : To implement constructors.
     - `__del__` : To implement destructors.
@@ -48,12 +48,12 @@ python preprocess_2.py --filename examples\FILE_NAME*.c
     - `len` : To get total number of items. It is used along with `__getitem__` to implement iterators.
     
 
-### The examples in [examples/](examples/) and [Lib/](lib/) folder shows all different features of CPL. Right now, these examples serve as documentation for the language.
+### The examples in [examples/](examples/) and [Lib/](lib/) folder shows all different features of ANIL. Right now, these examples serve as documentation for the language.
 
 ## Project Structure
 ## Directories
 
-- **[Bootstrap](Bootstrap/)**: Implementation of the compiler in CPL itself. Files in this directory uses all (advanced) features available in the language.
+- **[Bootstrap](Bootstrap/)**: Implementation of the compiler in ANIL itself. Files in this directory uses all (advanced) features available in the language.
 
 - **[examples](examples/)**: Demonstrations of various language features and usage of the standard library.
 
@@ -63,7 +63,7 @@ python preprocess_2.py --filename examples\FILE_NAME*.c
 
 - **[preprocess_2.py](preprocess_2.py)**: The actual compiler and code generator.
 
-- **[batch_compile.py](batch_compile.py)**: Compiles all the CPL files one by one. Used to verify if the changes made to the compiler doesn't break existing functionality.
+- **[batch_compile.py](batch_compile.py)**: Compiles all the ANIL files one by one. Used to verify if the changes made to the compiler doesn't break existing functionality.
 
 ---
 
