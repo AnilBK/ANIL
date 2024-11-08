@@ -55,8 +55,8 @@ endc_function
 function get(key : str) -> Optional<T>:
   let res = Optional<T>{};
   if key in this{
-    let value = this.__getitem__(key);
-    res.set_value(value);
+    let value = this[key]
+    res.set_value(value)
   }
   return res
 endfunction
