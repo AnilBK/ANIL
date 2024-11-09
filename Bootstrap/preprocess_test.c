@@ -452,9 +452,11 @@ function is_variable_str_type(p_var_name : String) -> bool:
   let type2 = "char*"
 
   if is_variable_of_type(p_var_name, type1){
-    if is_variable_of_type(p_var_name, type2){
-      return true
-    }
+    return true
+  }
+
+  if is_variable_of_type(p_var_name, type2){
+    return true
   }
 
   return false

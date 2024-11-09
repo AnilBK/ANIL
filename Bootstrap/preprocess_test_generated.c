@@ -2075,12 +2075,15 @@ bool is_variable_str_type(struct String p_var_name) {
   String__init__OVDstr(&type2, "char*");
 
   if (is_variable_of_type(p_var_name, type1)) {
+    String__del__(&type2);
+    String__del__(&type1);
+    return true;
+  }
 
-    if (is_variable_of_type(p_var_name, type2)) {
-      String__del__(&type2);
-      String__del__(&type1);
-      return true;
-    }
+  if (is_variable_of_type(p_var_name, type2)) {
+    String__del__(&type2);
+    String__del__(&type1);
+    return true;
   }
 
   String__del__(&type2);
