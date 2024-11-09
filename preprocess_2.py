@@ -1938,12 +1938,12 @@ while index < len(Lines):
                     is_arithmatic_operation = True
 
             if not is_arithmatic_operation:
-                if "struct_instance" in parse_result:
-                    parameter = Parameter(parameter, parameter_type)
-                    parameter.struct_instance = parse_result["struct_instance"]
-                    return parameter
+                parameter = Parameter(parameter, parameter_type)
 
-                return Parameter(parameter, parameter_type)
+                if "struct_instance" in parse_result:
+                    parameter.struct_instance = parse_result["struct_instance"]
+
+                return parameter
         
         parser.save_checkpoint()
         # string_expression = speculative_parse_string_expression()
