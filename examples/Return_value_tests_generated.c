@@ -16,13 +16,10 @@
 
 ///*///
 
-///////////////////////////////////////////
-
 ///*///
 
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
 
 // IMPORTS //
 
@@ -36,10 +33,6 @@ struct Vector_String {
   struct String *arr;
   int size;
   int capacity;
-};
-
-struct Set {
-  struct Vector_String arr;
 };
 
 char *Stringc_str(struct String *this);
@@ -69,14 +62,14 @@ void String__reassign__OVDstr(struct String *this, char *pstring);
 void Stringset_to_file_contents(struct String *this, char *pfilename);
 struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename);
 
-size_t Setlen(struct Set *this);
-struct String Set__getitem__(struct Set *this, int index);
-void Set__init__(struct Set *this, int count);
-void Set__del__(struct Set *this);
-bool Set__contains__(struct Set *this, struct String value);
-void Setadd(struct Set *this, struct String value);
-void Setprint(struct Set *this);
-
+bool return_test_bool(struct String p_str);
+bool return_test_struct_in_struct(struct String p_str);
+bool return_test_equals(struct String p_str, struct String p_str2);
+bool return_test_equals2(struct String p_str);
+bool return_test_equals3();
+struct String return_normal_value();
+bool return_test_array();
+bool return_test_array2();
 size_t Vector_Stringlen(struct Vector_String *this);
 struct String Vector_String__getitem__(struct Vector_String *this, int index);
 void Vector_String__init__(struct Vector_String *this, int capacity);
@@ -296,45 +289,6 @@ struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename) {
   return result;
 }
 
-size_t Setlen(struct Set *this) {
-  size_t return_value = Vector_Stringlen(&this->arr);
-  return return_value;
-}
-
-struct String Set__getitem__(struct Set *this, int index) {
-  struct String return_value = Vector_String__getitem__(&this->arr, index);
-  return return_value;
-}
-
-void Set__init__(struct Set *this, int count) {
-  Vector_String__init__(&this->arr, count);
-}
-
-void Set__del__(struct Set *this) { Vector_String__del__(&this->arr); }
-
-bool Set__contains__(struct Set *this, struct String value) {
-  bool return_value = Vector_String__contains__(&this->arr, value);
-  return return_value;
-}
-
-void Setadd(struct Set *this, struct String value) {
-
-  if (!Set__contains__(this, value)) {
-    Vector_Stringpush(&this->arr, value);
-  }
-}
-
-void Setprint(struct Set *this) {
-  printf("[");
-  size_t tmp_len_1 = Setlen(this);
-  for (size_t i = 0; i < tmp_len_1; i++) {
-    struct String str = Set__getitem__(this, i);
-    Stringprint(&str);
-    printf(",");
-  }
-  printf("]\n");
-}
-
 size_t Vector_Stringlen(struct Vector_String *this) { return this->size; }
 
 struct String Vector_String__getitem__(struct Vector_String *this, int index) {
@@ -436,8 +390,8 @@ void Vector_Stringremove_at(struct Vector_String *this, int index) {
 
 bool Vector_String__contains__(struct Vector_String *this,
                                struct String value) {
-  size_t tmp_len_3 = Vector_Stringlen(this);
-  for (size_t i = 0; i < tmp_len_3; i++) {
+  size_t tmp_len_1 = Vector_Stringlen(this);
+  for (size_t i = 0; i < tmp_len_1; i++) {
     struct String string = Vector_String__getitem__(this, i);
 
     if (Stringlen(&string) == Stringlen(&value)) {
@@ -462,36 +416,97 @@ void Vector_Stringprint(struct Vector_String *this) {
   printf("]\n");
 }
 
+///*///
+
+bool return_test_bool(struct String p_str) {
+  struct String a;
+  String__init__OVDstr(&a, "Test String");
+  bool return_value = String__contains__(&a, Stringc_str(&p_str));
+  String__del__(&a);
+  return return_value;
+}
+
+bool return_test_struct_in_struct(struct String p_str) {
+  struct Vector_String z;
+  Vector_String__init__(&z, 5);
+  bool return_value = Vector_String__contains__(&z, p_str);
+  Vector_String__del__(&z);
+  return return_value;
+}
+
+bool return_test_equals(struct String p_str, struct String p_str2) {
+  bool return_value = String__eq__(&p_str, Stringc_str(&p_str2));
+  return return_value;
+}
+
+bool return_test_equals2(struct String p_str) {
+  struct String a;
+  String__init__OVDstr(&a, "Test String");
+  bool return_value = String__eq__(&p_str, Stringc_str(&a));
+  String__del__(&a);
+  return return_value;
+}
+
+bool return_test_equals3() {
+  struct String a;
+  String__init__OVDstr(&a, "Test String");
+  struct String b;
+  String__init__OVDstr(&b, "Test String");
+  bool return_value = String__eq__(&a, Stringc_str(&b));
+  String__del__(&b);
+  String__del__(&a);
+  return return_value;
+}
+
+struct String return_normal_value() {
+  struct String a;
+  String__init__OVDstr(&a, "Test String");
+  return a;
+}
+
+bool return_test_array() {
+  int arr[] = {1, 2, 3, 4, 5, 10};
+  unsigned int arr_array_size = 6;
+
+  bool arr__contains__10_0 = false;
+  for (unsigned int i = 0; i < arr_array_size; i++) {
+    if (arr[i] == 10) {
+      arr__contains__10_0 = true;
+      break;
+    }
+  }
+
+  if (arr__contains__10_0) {
+    return true;
+  }
+
+  return false;
+}
+
+bool return_test_array2() {
+  int value = 10;
+  int arr[] = {1, 2, 3, 4, 5, 10};
+  unsigned int arr_array_size = 6;
+
+  bool arr__contains__value_1 = false;
+  for (unsigned int i = 0; i < arr_array_size; i++) {
+    if (arr[i] == value) {
+      arr__contains__value_1 = true;
+      break;
+    }
+  }
+  return arr__contains__value_1;
+}
+
+///*///
+
 int main() {
 
   ///*/// main()
 
-  struct String s1;
-  String__init__OVDstr(&s1, "apple");
-  struct String s2;
-  String__init__OVDstr(&s2, "banana");
-  struct String s3;
-  String__init__OVDstr(&s3, "cherry");
+  printf("Code Generation Tests for return expressions, Just check if the code "
+         "generated is valid.");
 
-  struct Set s;
-  Set__init__(&s, 10);
-  Setadd(&s, s1);
-  Setadd(&s, s1);
-  Setadd(&s, s2);
-  Setadd(&s, s2);
-  Setadd(&s, s3);
-  Setprint(&s);
-
-  size_t tmp_len_2 = Setlen(&s);
-  for (size_t i = 0; i < tmp_len_2; i++) {
-    struct String str = Set__getitem__(&s, i);
-    StringprintLn(&str);
-  }
-
-  Set__del__(&s);
-  String__del__(&s3);
-  String__del__(&s2);
-  String__del__(&s1);
   ///*///
 
   return 0;

@@ -106,7 +106,8 @@ struct CPLObject CPLObject_duplicate(struct CPLObject *this) {
 bool CPLObject__eq__OVDint(struct CPLObject *this, int p_value) {
 
   if (CPLObjectis_int(this)) {
-    return CPLObjectget_int(this) == p_value;
+    bool return_value = CPLObjectget_int(this) == p_value;
+    return return_value;
   } else {
     return false;
   }
@@ -115,7 +116,8 @@ bool CPLObject__eq__OVDint(struct CPLObject *this, int p_value) {
 bool CPLObject__eq__OVDstr(struct CPLObject *this, char *p_value) {
 
   if (CPLObjectis_str(this)) {
-    return strcmp(p_value, CPLObjectget_str(this)) == 0;
+    bool return_value = strcmp(p_value, CPLObjectget_str(this)) == 0;
+    return return_value;
   } else {
     return false;
   }

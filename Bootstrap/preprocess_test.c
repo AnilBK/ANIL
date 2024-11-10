@@ -426,7 +426,6 @@ function is_variable_of_type(p_var_name : String, p_type : String) -> bool:
   let var_type = get_type_of_variable(p_var_name)
   if var_type.has_value(){
     let value = var_type.get_value()
-    // TODO : value is freed before the boolean comparision.
     return value == p_type
   }
   return false

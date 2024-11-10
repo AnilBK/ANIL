@@ -523,7 +523,8 @@ struct CPLObject CPLObject_duplicate(struct CPLObject *this) {
 bool CPLObject__eq__OVDint(struct CPLObject *this, int p_value) {
 
   if (CPLObjectis_int(this)) {
-    return CPLObjectget_int(this) == p_value;
+    bool return_value = CPLObjectget_int(this) == p_value;
+    return return_value;
   } else {
     return false;
   }
@@ -532,7 +533,8 @@ bool CPLObject__eq__OVDint(struct CPLObject *this, int p_value) {
 bool CPLObject__eq__OVDstr(struct CPLObject *this, char *p_value) {
 
   if (CPLObjectis_str(this)) {
-    return strcmp(p_value, CPLObjectget_str(this)) == 0;
+    bool return_value = strcmp(p_value, CPLObjectget_str(this)) == 0;
+    return return_value;
   } else {
     return false;
   }
@@ -991,11 +993,13 @@ void Parser__del__(struct Parser *this) {
 }
 
 bool Parserhas_tokens_remaining(struct Parser *this) {
-  return Listlen(&this->tokens) > 0;
+  bool return_value = Listlen(&this->tokens) > 0;
+  return return_value;
 }
 
 struct CPLObject Parsercurrent_token(struct Parser *this) {
-  return List__getitem__(&this->tokens, 0);
+  struct CPLObject return_value = List__getitem__(&this->tokens, 0);
+  return return_value;
 }
 
 void Parsernext_token(struct Parser *this) {
@@ -1004,21 +1008,22 @@ void Parsernext_token(struct Parser *this) {
 }
 
 struct CPLObject Parserget_token(struct Parser *this) {
-  return Listpop(&this->tokens, 0);
+  struct CPLObject return_value = Listpop(&this->tokens, 0);
+  return return_value;
 }
 
 bool Parsercheck_tokenOVDint(struct Parser *this, int token) {
   struct CPLObject node = Parsercurrent_token(this);
-  bool return_name = CPLObject__eq__OVDint(&node, token);
+  bool return_value = CPLObject__eq__OVDint(&node, token);
   CPLObject__del__(&node);
-  return return_name;
+  return return_value;
 }
 
 bool Parsercheck_tokenOVDstr(struct Parser *this, char *token) {
   struct CPLObject node = Parsercurrent_token(this);
-  bool return_name = CPLObject__eq__OVDstr(&node, token);
+  bool return_value = CPLObject__eq__OVDstr(&node, token);
   CPLObject__del__(&node);
-  return return_name;
+  return return_value;
 }
 
 bool Parsermatch_token(struct Parser *this, int token) {

@@ -652,10 +652,14 @@ struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename) {
   return result;
 }
 
-size_t Setlen(struct Set *this) { return Vector_Stringlen(&this->arr); }
+size_t Setlen(struct Set *this) {
+  size_t return_value = Vector_Stringlen(&this->arr);
+  return return_value;
+}
 
 struct String Set__getitem__(struct Set *this, int index) {
-  return Vector_String__getitem__(&this->arr, index);
+  struct String return_value = Vector_String__getitem__(&this->arr, index);
+  return return_value;
 }
 
 void Set__init__(struct Set *this, int count) {
@@ -665,7 +669,8 @@ void Set__init__(struct Set *this, int count) {
 void Set__del__(struct Set *this) { Vector_String__del__(&this->arr); }
 
 bool Set__contains__(struct Set *this, struct String value) {
-  return Vector_String__contains__(&this->arr, value);
+  bool return_value = Vector_String__contains__(&this->arr, value);
+  return return_value;
 }
 
 void Setadd(struct Set *this, struct String value) {
@@ -729,7 +734,8 @@ struct CPLObject CPLObject_duplicate(struct CPLObject *this) {
 bool CPLObject__eq__OVDint(struct CPLObject *this, int p_value) {
 
   if (CPLObjectis_int(this)) {
-    return CPLObjectget_int(this) == p_value;
+    bool return_value = CPLObjectget_int(this) == p_value;
+    return return_value;
   } else {
     return false;
   }
@@ -738,7 +744,8 @@ bool CPLObject__eq__OVDint(struct CPLObject *this, int p_value) {
 bool CPLObject__eq__OVDstr(struct CPLObject *this, char *p_value) {
 
   if (CPLObjectis_str(this)) {
-    return strcmp(p_value, CPLObjectget_str(this)) == 0;
+    bool return_value = strcmp(p_value, CPLObjectget_str(this)) == 0;
+    return return_value;
   } else {
     return false;
   }
@@ -1183,7 +1190,8 @@ void SymbolTable__init__(struct SymbolTable *this) {
 }
 
 int SymbolTablecurrent_scope(struct SymbolTable *this) {
-  return Vector_int__getitem__(&this->scope_stack, -1);
+  int return_value = Vector_int__getitem__(&this->scope_stack, -1);
+  return return_value;
 }
 
 struct Scope SymbolTableget_scope_by_id(struct SymbolTable *this, int id) {
@@ -2003,14 +2011,19 @@ get_templated_mangled_fn_name(struct String p_struct_type,
 struct Set structs_with_constructors;
 
 bool has_constructors(struct String p_struct_type) {
-  return Set__contains__(&structs_with_constructors, p_struct_type);
+  bool return_value =
+      Set__contains__(&structs_with_constructors, p_struct_type);
+  return return_value;
 }
 
 struct Random random;
 
 struct SymbolTable symbol_table;
 
-int get_current_scope() { return SymbolTablecurrent_scope(&symbol_table); }
+int get_current_scope() {
+  int return_value = SymbolTablecurrent_scope(&symbol_table);
+  return return_value;
+}
 
 void increment_scope() { SymbolTableenter_scope(&symbol_table); }
 
@@ -2042,30 +2055,33 @@ bool is_variable_of_type(struct String p_var_name, struct String p_type) {
 
   if (Optional_Stringhas_value(&var_type)) {
     struct String value = Optional_Stringget_value(&var_type);
-    // TODO : value is freed before the boolean comparision.
+    bool return_value = String__eq__(&value, Stringc_str(&p_type));
     String__del__(&value);
-    return String__eq__(&value, Stringc_str(&p_type));
+    return return_value;
   }
   return false;
 }
 
 bool is_variable(struct String p_var_name) {
   struct Optional_String var_type = get_type_of_variable(p_var_name);
-  return Optional_Stringhas_value(&var_type);
+  bool return_value = Optional_Stringhas_value(&var_type);
+  return return_value;
 }
 
 bool is_variable_char_type(struct String p_var_name) {
   struct String type;
   String__init__OVDstr(&type, "char");
+  bool return_value = is_variable_of_type(p_var_name, type);
   String__del__(&type);
-  return is_variable_of_type(p_var_name, type);
+  return return_value;
 }
 
 bool is_variable_const_char_ptr(struct String p_var_name) {
   struct String type;
   String__init__OVDstr(&type, "c_str");
+  bool return_value = is_variable_of_type(p_var_name, type);
   String__del__(&type);
-  return is_variable_of_type(p_var_name, type);
+  return return_value;
 }
 
 bool is_variable_str_type(struct String p_var_name) {
@@ -2094,22 +2110,25 @@ bool is_variable_str_type(struct String p_var_name) {
 bool is_variable_boolean_type(struct String p_var_name) {
   struct String type;
   String__init__OVDstr(&type, "bool");
+  bool return_value = is_variable_of_type(p_var_name, type);
   String__del__(&type);
-  return is_variable_of_type(p_var_name, type);
+  return return_value;
 }
 
 bool is_variable_int_type(struct String p_var_name) {
   struct String type;
   String__init__OVDstr(&type, "int");
+  bool return_value = is_variable_of_type(p_var_name, type);
   String__del__(&type);
-  return is_variable_of_type(p_var_name, type);
+  return return_value;
 }
 
 bool is_variable_size_t_type(struct String p_var_name) {
   struct String type;
   String__init__OVDstr(&type, "size_t");
+  bool return_value = is_variable_of_type(p_var_name, type);
   String__del__(&type);
-  return is_variable_of_type(p_var_name, type);
+  return return_value;
 }
 
 ///*///

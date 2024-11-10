@@ -43,6 +43,7 @@ source_file = "examples\\00_Hello_World.c"
 # source_file = "examples\\unique_ptr_example.c"
 # source_file = "examples\\WebServer.c"
 # source_file = "examples\\Variables_GUI_Input_Win.c"
+source_file = "examples\\Return_value_tests.c"
 
 # source_file = "Bootstrap\\lexer_test.c"
 # source_file = "Bootstrap\\Parser.c"
@@ -3341,6 +3342,131 @@ while index < len(Lines):
 
         return lhs["value"]
 
+    class BooleanExpressionType:
+        def __init__(self):
+            self.return_type = ""
+            self.return_value = ""
+
+            # For 'return a == b'
+            # The structs involved are 'a' and 'b'
+            self.structs_involved = []
+
+            self.returns_single_value = False
+            #    ^^^^^^^^^^^^^^^^^^^^ if we properly fetched all 'structs_involved' then this can be removed.
+
+    def boolean_expression_for_return_statements() -> BooleanExpressionType:
+        expr = BooleanExpressionType()
+
+        lhs = parse_term()
+
+        comparision_operation = get_comparision_operator()
+        if comparision_operation["has_comparision_operator"]:
+            operators_as_str = comparision_operation["operators_as_str"]
+
+            rhs = parse_term()
+
+            var_to_check_against = lhs["value"]
+            l_type = lhs["type"]
+
+            var_to_check = rhs["value"]
+            r_type = rhs["type"]
+
+            left_struct_info = get_instanced_struct(var_to_check_against)
+            if left_struct_info == None and lhs["struct_instance"] != None:
+                left_struct_info = lhs["struct_instance"]
+            is_lhs_struct = left_struct_info != None
+
+            right_struct_info = get_instanced_struct(var_to_check)
+            if right_struct_info == None and rhs["struct_instance"] != None:
+                # Sometimes var_to_check is a->b, the functionality of get_instanced_struct()
+                # can be acheived by rhs["struct_instance"].
+                right_struct_info = rhs["struct_instance"]
+            is_rhs_struct = right_struct_info != None
+
+            if is_lhs_struct:
+                expr.structs_involved.append(var_to_check_against)
+            if is_rhs_struct:
+                expr.structs_involved.append(var_to_check)
+
+            negation = operators_as_str == "!="
+            
+            if operators_as_str in {"==", "!="}:
+                return_code = handle_equality(
+                    var_to_check_against, var_to_check, l_type, r_type,
+                    left_struct_info, is_lhs_struct, negation
+                )
+
+                # handle_struct_equality() may return a dict.
+                if isinstance(return_code, Dict):
+                    #return {"code": code, "return_type": return_type}
+                    expr.return_value = return_code["code"]
+                    expr.return_type = return_code["return_type"]
+                else:
+                    expr.return_value = return_code
+                    expr.return_type = "bool"
+            elif operators_as_str in {"in", "not in"}:
+                # if var_to_check in var_to_check_against {
+                # if random_index not in this.scope_stack{
+                var_to_check = lhs["value"]
+                var_to_check_against = rhs["value"]
+
+                if operators_as_str == "not in":
+                    negation = True
+
+                expr.return_type = "bool"
+
+                if is_rhs_struct:
+                    # Create a function expression and merge the tokens to the current parser.
+                    # Parse the function expression using the recently merged tokens.
+                    CPL_code = f"{var_to_check_against}.__contains__({var_to_check})"
+                    if lhs['type'] == ParameterType.RAW_STRING:
+                        CPL_code = f"{var_to_check_against}.__contains__(\"{var_to_check}\")"
+                    CPL_code = CPL_code.replace("->",".")
+                    if CPL_code[0] == "&":
+                        CPL_code = CPL_code[1:]
+
+                    fn_parser = Parser.Parser(CPL_code)
+                    parser.tokens = fn_parser.tokens + parser.tokens
+                    fn_call_parse_info = function_call_expression()
+                    if fn_call_parse_info == None:
+                        RAISE_ERROR(f"For \"{CPL_code}\", Boolean expression fn call parsing failed.")
+                    else:
+                        return_code = fn_call_parse_info.get_fn_str()
+                        if negation:
+                            return_code = f"!{return_code}" 
+
+                        expr.return_value = return_code
+                elif is_variable_array_type(var_to_check_against):
+                    return_code = handle_array_in_operator(var_to_check, var_to_check_against)
+                    if negation:
+                        return_code = f"!{return_code}" 
+                    expr.return_value = return_code
+                    # The arrays we have created till now aren't arrays of structs,
+                    # just array of <ints>, hope this code below for that too.
+                else:
+                    RAISE_ERROR(f"Target variable {var_to_check_against} is undefined. It is neither an array nor a struct.")
+            else:
+                return_code = f"{lhs['value']} {operators_as_str} {rhs['value']}"
+                expr.return_value = return_code
+                expr.return_type = "bool"
+                # TODO : Check if return_type is bool.
+        else:
+            return_code = lhs["value"]
+
+            var_to_check_against = lhs["value"]
+
+            left_struct_info = get_instanced_struct(var_to_check_against)
+            if left_struct_info == None and lhs["struct_instance"] != None:
+                left_struct_info = lhs["struct_instance"]
+            is_lhs_struct = left_struct_info != None
+            if is_lhs_struct:
+                expr.structs_involved.append(var_to_check_against)
+
+            expr.return_value = return_code
+            expr.returns_single_value = True
+            expr.return_type = lhs["type"]
+        return expr
+
     if len(parser.tokens) > 0:
         parsed_member = parser.current_token()
 
@@ -4671,7 +4797,7 @@ while index < len(Lines):
     elif parser.current_token() == lexer.Token.RETURN:
         parser.consume_token(lexer.Token.RETURN)
 
-        result = boolean_expression()
+        result = boolean_expression_for_return_statements()
 
         # Boolean expressions for Structs function call need to save the result
         # of the comparision temporarily somewhere.
@@ -4682,31 +4808,81 @@ while index < len(Lines):
         # CPLObject__del__(&node);
         # return CPLObject__eq__OVDint(&node, token);
         # ^^^^^^ So, we convert the above expression to following.
-        # bool return_name = CPLObject__eq__OVDint(&node, token);
+        # bool return_value = CPLObject__eq__OVDint(&node, token);
         # CPLObject__del__(&node);
-        # return return_name;
-
-        create_temporary = False
-        
-        if isinstance(result, Dict):
-            # isinstance(result,dict) -> doesn't work, so we use Dict.
-            # Since Dict is an alias for dict.
-            fn_return_type = result["return_type"]
-            fn_return_code = result["code"]
-            create_temporary = True
-            LinesCache.append(f"{fn_return_type} return_name = {fn_return_code};\n")
+        # return return_value;
 
         current_scope = get_current_scope()
 
         # return s
         #        ^  s shouldn't be freed, because it is returned.
         # Should be the job of the caller to free it.
-        i = 0
-        for struct in instanced_struct_names:
-            if struct.struct_name == result and struct.scope == current_scope:
-                instanced_struct_names[i].should_be_freed = False
+        # TODO: For 'return s.f()'. This should be also handled too.
+        # As of now, s.f() is a function call and function call generates temporary return variable automatically.
+        if result.returns_single_value:
+            for struct_involved in result.structs_involved:
+                struct = get_instanced_struct(struct_involved)
+                if struct == None:
+                    continue
+
+                if struct.scope != current_scope:
+                    continue
+
+                struct.should_be_freed = False
+                # This loop should run for one iteration anyway(result.returns_single_value), 
+                # so the loop could be unrolled.
                 break
-            i += 1
+
+        structs_to_be_freed = []
+        structs_with_destructors = 0
+
+        if result.structs_involved:
+            for scope in tracked_scopes_for_current_fn[::-1]:
+                if scope not in symbol_table.scopes:
+                    continue
+
+                symbols = symbol_table.get_scope_by_id(scope).symbols
+                for symbol in symbols:
+                    struct_info = get_instanced_struct(symbol)
+                    if struct_info != None:
+                        if struct_info.struct_name in result.structs_involved:
+                            if struct_info.should_be_freed:
+                                structs_to_be_freed.append(struct_info.struct_name)
+                            if struct_info.struct_type_has_destructor():
+                                structs_with_destructors += 1
+
+
+        create_temporary_for_return = False
+
+        structs_returned_set = set(result.structs_involved)
+        structs_freed_set = set(structs_to_be_freed)
+
+        # If any of the structs involved in the return statement need their destructors called,
+        # then we need to create a temporary variable to store the return value. 
+        # By doing this, we can call the destructors and then return the value using the temporary variable.
+        has_items_that_call_destructors = len(structs_returned_set.intersection(structs_freed_set)) > 0
+
+        # return value == p_type
+        # Given : p_type is not freed and value is freed.
+        # Since value is freed, the length of intersection should be greater than 0.
+        # That means we need to create a temporary return variable.
+        if has_items_that_call_destructors:
+            if structs_with_destructors > 0:
+                create_temporary_for_return = True
+        else:
+            if "(" in result.return_value:
+                # HACK: If it is a fn expression then some structs may be involved here.
+                # Assuming that, for fn expressions, we create a temp variable to store the result.
+                # in case the variables involved in fn expressions need their destructors called.
+                # TODO: Properly parse structs involed in function call to figure out if their destructors need to be called.
+                create_temporary_for_return = True
+
+        if create_temporary_for_return:
+            return_type = result.return_type
+            if result.returns_single_value:
+                if return_type == ParameterType.VARIABLE:
+                    return_type = get_type_of_variable(result.structs_involved[0])
+            LinesCache.append(f"{return_type} return_value = {result.return_value};\n")
 
         # Write destructors.
         for scope in tracked_scopes_for_current_fn[::-1]:
@@ -4720,10 +4896,10 @@ while index < len(Lines):
 
         # Write return itself.
         # We assume we have single return statement.
-        if create_temporary:
-            LinesCache.append(f"return return_name;\n")
+        if create_temporary_for_return:
+            LinesCache.append(f"return return_value;\n")
         else:
-           LinesCache.append(f"return {result};\n")
+            LinesCache.append(f"return {result.return_value};\n")
     elif check_token(lexer.Token.NAMESPACE):
         if is_inside_name_space:
             RAISE_ERROR(f"Is already inside a namespace(\"{namespace_name}\"). Can't declare a new namespace.")
