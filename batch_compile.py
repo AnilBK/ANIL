@@ -22,7 +22,7 @@ file_names = [
     "examples\\unique_ptr_example.c",
     "examples\\WebServer.c",
     "examples\\Variables_GUI_Input_Win.c",
-    "examples\\Return_value_tests.c"
+    "examples\\Return_value_tests.c",
     "Bootstrap\\lexer_test.c",
     "Bootstrap\\Parser.c",
     "Bootstrap\\preprocess_test.c",

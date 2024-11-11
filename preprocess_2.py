@@ -43,7 +43,7 @@ source_file = "examples\\00_Hello_World.c"
 # source_file = "examples\\unique_ptr_example.c"
 # source_file = "examples\\WebServer.c"
 # source_file = "examples\\Variables_GUI_Input_Win.c"
-source_file = "examples\\Return_value_tests.c"
+# source_file = "examples\\Return_value_tests.c"
 
 # source_file = "Bootstrap\\lexer_test.c"
 # source_file = "Bootstrap\\Parser.c"
@@ -4139,6 +4139,14 @@ while index < len(Lines):
         while parser.current_token() != lexer.Token.RIGHT_CURLY:
             struct_member_type = parse_data_type(inner=False, incomplete_types=incomplete_types)
 
+            data_type_is_self = False
+            if not is_struct_templated:
+                # struct DictObject<T>{Self *next};
+                # For templated class this is performed later in 'substitute_template_for_member_types()'.
+                if struct_member_type == "Self":
+                    struct_member_type = f"struct {struct_name}"
+                    data_type_is_self = True
+
             # parse_data_type returns "struct Vector" with struct keyword.
             # We dont write "struct" for MemberDataTypes, so we need to strip it.
             if struct_member_type.startswith("struct "):
@@ -4147,11 +4155,19 @@ while index < len(Lines):
             pointerless_struct_member_type = struct_member_type
 
             # Pointer, Pointer to pointer, pointer to ...
+            is_data_type_pointer_type = False
             while parser.check_token(lexer.Token.ASTERISK):
                 struct_member_type += "*"
+                is_data_type_pointer_type = True
                 parser.next_token()
 
             struct_member = parser.current_token()
+
+            # struct Node{Self next};
+            #             ^^^^ creates self referential structure, so don't allow it, but allow,
+            # struct Node{Self* next};
+            if data_type_is_self and not is_data_type_pointer_type:
+                RAISE_ERROR(f"For structure \"{struct_name}\", member \"{struct_member}\" is self referential. It should be Self* and not Self.")
 
             is_generic = False
             if pointerless_struct_member_type in generic_data_types:

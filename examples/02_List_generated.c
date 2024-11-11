@@ -8,8 +8,7 @@ typedef union {
 
 typedef enum { INT, STRING } CPLObject_DataType;
 
-typedef struct CPLObject CPLObject;
-typedef CPLObject *CPLObjectptr;
+typedef struct CPLObject *CPLObjectptr;
 
 ///*///
 
@@ -96,7 +95,7 @@ void CPLObject__del__(struct CPLObject *this) {
 
 struct CPLObject CPLObject_duplicate(struct CPLObject *this) {
   // Perform a deep copy.
-  CPLObject copy = *this;
+  struct CPLObject copy = *this;
   if (this->data_type == STRING) {
     copy.data.str_data = strdup(this->data.str_data);
   }
@@ -132,9 +131,9 @@ void List__init__(struct List *this) {
 }
 
 void List__del__(struct List *this) {
-  CPLObject *current = this->head;
+  struct CPLObject *current = this->head;
   while (current != NULL) {
-    CPLObject *temp = current;
+    struct CPLObject *temp = current;
     current = current->next;
 
     CPLObject__del__(temp);
@@ -155,7 +154,7 @@ struct CPLObject List__getitem__(struct List *this, int index) {
     exit(EXIT_FAILURE);
   }
 
-  CPLObject *current = this->head;
+  struct CPLObject *current = this->head;
   for (int i = 0; i < index; i++) {
     current = current->next;
   }
@@ -177,8 +176,8 @@ struct CPLObject Listpop(struct List *this, int index) {
     exit(EXIT_FAILURE);
   }
 
-  CPLObject *current = this->head;
-  CPLObject *previous = NULL;
+  struct CPLObject *current = this->head;
+  struct CPLObject *previous = NULL;
 
   for (int i = 0; i < index; i++) {
     previous = current;
@@ -202,7 +201,7 @@ struct CPLObject Listpop(struct List *this, int index) {
 
   this->size--;
 
-  CPLObject popped_node = *current;
+  struct CPLObject popped_node = *current;
   // Don't free current->data.str_data even though current data_type is String.
   // After copying the *pointer above, popped_node now owns
   // current->data.str_data. This avoids duplicating current->data.str_data into
@@ -212,7 +211,7 @@ struct CPLObject Listpop(struct List *this, int index) {
 }
 
 bool List__contains__OVDint(struct List *this, int p_value) {
-  CPLObject *current = this->head;
+  struct CPLObject *current = this->head;
   while (current != NULL) {
     if (current->data_type == INT) {
       int data = current->data.int_data;
@@ -227,7 +226,7 @@ bool List__contains__OVDint(struct List *this, int p_value) {
 }
 
 bool List__contains__OVDstr(struct List *this, char *p_value) {
-  CPLObject *current = this->head;
+  struct CPLObject *current = this->head;
   while (current != NULL) {
     if (current->data_type == STRING) {
       char *data = current->data.str_data;
@@ -242,7 +241,7 @@ bool List__contains__OVDstr(struct List *this, char *p_value) {
 }
 
 void Listprint(struct List *this) {
-  CPLObject *current = this->head;
+  struct CPLObject *current = this->head;
   printf("[");
   while (current != NULL) {
     if (current->data_type == STRING) {
@@ -266,7 +265,7 @@ void Listprint(struct List *this) {
 typedef void (*custom_integer_printer)(int);
 void Listprint_hooked_custom_integer_printer(
     struct List *this, custom_integer_printer p_custom_integer_printer) {
-  CPLObject *current = this->head;
+  struct CPLObject *current = this->head;
   printf("[");
   while (current != NULL) {
     if (current->data_type == STRING) {
@@ -299,7 +298,8 @@ void List_insert_end(struct List *this, CPLObjectptr new_node) {
 }
 
 CPLObjectptr Listcreate_int_node(struct List *this, int p_value) {
-  CPLObject *new_node = (CPLObject *)malloc(sizeof(CPLObject));
+  struct CPLObject *new_node =
+      (struct CPLObject *)malloc(sizeof(struct CPLObject));
   if (new_node == NULL) {
     printf("List : Failed to allocate a new node of type int for value %d.",
            p_value);
@@ -310,7 +310,8 @@ CPLObjectptr Listcreate_int_node(struct List *this, int p_value) {
 }
 
 CPLObjectptr Listcreate_string_node(struct List *this, char *p_value) {
-  CPLObject *new_node = (CPLObject *)malloc(sizeof(CPLObject));
+  struct CPLObject *new_node =
+      (struct CPLObject *)malloc(sizeof(struct CPLObject));
   if (new_node == NULL) {
     printf("List : Failed to allocate a new node of type char*.");
     exit(EXIT_FAILURE);

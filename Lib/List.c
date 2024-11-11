@@ -9,11 +9,10 @@ typedef union {
 
 typedef enum { INT, STRING } CPLObject_DataType;
 
-typedef struct CPLObject CPLObject;
-typedef CPLObject *CPLObjectptr;
+typedef struct CPLObject *CPLObjectptr;
 
 ///*///
-struct CPLObject{CPLObject_Data data, CPLObject_DataType data_type, CPLObject* next};
+struct CPLObject{CPLObject_Data data, CPLObject_DataType data_type, Self* next};
 
 namespace CPLObject
 
@@ -57,7 +56,7 @@ endfunction
 
 c_function _duplicate() -> CPLObject:
   // Perform a deep copy.
-  CPLObject copy = *this;
+  struct CPLObject copy = *this;
   if (this->data_type == STRING) {
     copy.data.str_data = strdup(this->data.str_data);
   }
@@ -96,9 +95,9 @@ c_function __init__()
 endc_function
 
 c_function __del__()
-  CPLObject *current = this->head;
+  struct CPLObject *current = this->head;
   while (current != NULL) {
-    CPLObject *temp = current;
+    struct CPLObject *temp = current;
     current = current->next;
 
     CPLObject__del__(temp);
@@ -119,7 +118,7 @@ c_function __getitem__(index : int) -> CPLObject:
     exit(EXIT_FAILURE);
   }
     
-  CPLObject *current = this->head;
+  struct CPLObject *current = this->head;
   for (int i = 0; i < index; i++) {
     current = current->next;
   }
@@ -141,8 +140,8 @@ c_function pop(index : int) -> CPLObject:
     exit(EXIT_FAILURE);
   }
 
-  CPLObject *current = this->head;
-  CPLObject *previous = NULL;
+  struct CPLObject *current = this->head;
+  struct CPLObject *previous = NULL;
 
   for (int i = 0; i < index; i++) {
     previous = current;
@@ -166,7 +165,7 @@ c_function pop(index : int) -> CPLObject:
 
   this->size--;
 
-  CPLObject popped_node = *current;
+  struct CPLObject popped_node = *current;
   // Don't free current->data.str_data even though current data_type is String.
   // After copying the *pointer above, popped_node now owns current->data.str_data.
   // This avoids duplicating current->data.str_data into popped_node.
@@ -175,7 +174,7 @@ c_function pop(index : int) -> CPLObject:
 endc_function
 
 c_function __contains__<>(p_value : int) -> bool:
-  CPLObject *current = this->head;
+  struct CPLObject *current = this->head;
   while (current != NULL) {
     if (current->data_type == INT) {
       int data = current->data.int_data;
@@ -191,7 +190,7 @@ c_function __contains__<>(p_value : int) -> bool:
 endc_function
 
 c_function __contains__<>(p_value : str) -> bool:
-  CPLObject *current = this->head;
+  struct CPLObject *current = this->head;
   while (current != NULL) {
     if (current->data_type == STRING) {
       char* data = current->data.str_data;
@@ -207,7 +206,7 @@ c_function __contains__<>(p_value : str) -> bool:
 endc_function
 
 c_function print()
-  CPLObject *current = this->head;
+  struct CPLObject *current = this->head;
   printf("[");
   while (current != NULL) {
     if (current->data_type == STRING) {
@@ -242,7 +241,7 @@ c_function _insert_end(new_node : CPLObjectptr) {
 endc_function
 
 c_function create_int_node(p_value : int) -> CPLObjectptr:
-  CPLObject *new_node = (CPLObject *)malloc(sizeof(CPLObject));
+  struct CPLObject *new_node = (struct CPLObject *)malloc(sizeof(struct CPLObject));
   if(new_node == NULL){
     printf("List : Failed to allocate a new node of type int for value %d.", p_value);
     exit(EXIT_FAILURE);
@@ -252,7 +251,7 @@ c_function create_int_node(p_value : int) -> CPLObjectptr:
 endc_function
 
 c_function create_string_node(p_value : str) -> CPLObjectptr:
-  CPLObject *new_node = (CPLObject *)malloc(sizeof(CPLObject));
+  struct CPLObject *new_node = (struct CPLObject *)malloc(sizeof(struct CPLObject));
   if(new_node == NULL){
     printf("List : Failed to allocate a new node of type char*.");
     exit(EXIT_FAILURE);
