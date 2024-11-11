@@ -453,6 +453,13 @@ def format_struct_data_type(p_data_type):
     return p_data_type
 
 
+def data_type_with_struct_stripped(p_data_type):
+    '''"struct Vector" -> "Vector"'''
+    if p_data_type.startswith("struct "):
+        return p_data_type[len("struct "):]
+    return p_data_type
+
+
 class NestingLevel(Enum):
     FOR_LOOP = 0
     IF_STATEMENT = 1
@@ -799,10 +806,9 @@ class Struct:
                 base_type = type[:ST_index]
                 # 'struct DictObject'
 
-                if base_type.startswith("struct "):
-                    #strip "struct " from base_type
-                    base_type = base_type[len("struct "):]
-                    # 'DictObject'
+                #strip "struct " from base_type
+                base_type = data_type_with_struct_stripped(base_type)
+                # 'DictObject'
 
                 instantiate_template(base_type, p_templated_type)
 
@@ -827,8 +833,7 @@ class Struct:
             if type.startswith("Self"):
                 type = type.replace("Self", f"struct {self.name}", 1)
 
-            if type.startswith("struct "):
-                type = type[len("struct "):]
+            type = data_type_with_struct_stripped(type)
 
             struct_member.data_type = type
 
@@ -4149,8 +4154,7 @@ while index < len(Lines):
 
             # parse_data_type returns "struct Vector" with struct keyword.
             # We dont write "struct" for MemberDataTypes, so we need to strip it.
-            if struct_member_type.startswith("struct "):
-                struct_member_type = struct_member_type[len("struct "):]
+            struct_member_type = data_type_with_struct_stripped(struct_member_type)
 
             pointerless_struct_member_type = struct_member_type
 
@@ -4657,9 +4661,8 @@ while index < len(Lines):
 
             parameters[i].data_type = param_type
 
-            if param_type.startswith("struct "):
-                param_type = param_type[len("struct "):] 
-
+            param_type = data_type_with_struct_stripped(param_type)
+                
             if is_data_type_struct_object(param_type):
                 instance = StructInstance(param_type, param_name, curr_scope)
 
