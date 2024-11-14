@@ -3269,84 +3269,6 @@ while index < len(Lines):
         REGISTER_VARIABLE(search_variable, f"bool")
         return search_variable
 
-    def boolean_expression():
-        lhs = parse_term()
-
-        comparision_operation = get_comparision_operator()
-        if comparision_operation["has_comparision_operator"]:
-            operators_as_str = comparision_operation["operators_as_str"]
-
-            rhs = parse_term()
-
-            var_to_check_against = lhs["value"]
-            l_type = lhs["type"]
-
-            var_to_check = rhs["value"]
-            r_type = rhs["type"]
-
-            left_struct_info = get_instanced_struct(var_to_check_against)
-            if left_struct_info == None and lhs["struct_instance"] != None:
-                left_struct_info = lhs["struct_instance"]
-            is_lhs_struct = left_struct_info != None
-
-            right_struct_info = get_instanced_struct(var_to_check)
-            if right_struct_info == None and rhs["struct_instance"] != None:
-                # Sometimes var_to_check is a->b, the functionality of get_instanced_struct()
-                # can be acheived by rhs["struct_instance"].
-                right_struct_info = rhs["struct_instance"]
-            is_rhs_struct = right_struct_info != None
-
-            negation = operators_as_str == "!="
-            
-            if operators_as_str in {"==", "!="}:
-                return handle_equality(
-                    var_to_check_against, var_to_check, l_type, r_type,
-                    left_struct_info, is_lhs_struct, negation
-                )
-            elif operators_as_str == "in" or operators_as_str == "not in":
-                # if var_to_check in var_to_check_against {
-                # if random_index not in this.scope_stack{
-                var_to_check = lhs["value"]
-                var_to_check_against = rhs["value"]
-
-                if operators_as_str == "not in":
-                    negation = True
-
-                if is_rhs_struct:
-                    # Create a function expression and merge the tokens to the current parser.
-                    # Parse the function expression using the recently merged tokens.
-                    CPL_code = f"{var_to_check_against}.__contains__({var_to_check})"
-                    if lhs['type'] == ParameterType.RAW_STRING:
-                        CPL_code = f"{var_to_check_against}.__contains__(\"{var_to_check}\")"
-                    CPL_code = CPL_code.replace("->",".")
-                    if CPL_code[0] == "&":
-                        CPL_code = CPL_code[1:]
-
-                    fn_parser = Parser.Parser(CPL_code)
-                    parser.tokens = fn_parser.tokens + parser.tokens
-                    fn_call_parse_info = function_call_expression()
-                    if fn_call_parse_info == None:
-                        RAISE_ERROR(f"For \"{CPL_code}\", Boolean expression fn call parsing failed.")
-                    else:
-                        code = fn_call_parse_info.get_fn_str()
-                        if negation:
-                            return f"!{code}" 
-                        else:
-                            return code
-                else:
-                    if is_variable_array_type(var_to_check_against):
-                        code = handle_array_in_operator(var_to_check, var_to_check_against)
-                        if negation:
-                            return f"!{code}" 
-                        else:
-                            return code
-                    RAISE_ERROR(f"Target variable {var_to_check_against} is undefined. It is neither an array nor a struct.")
-
-            return f"{lhs['value']} {operators_as_str} {rhs['value']}"
-
-
-        return lhs["value"]
-
     class BooleanExpressionType:
         def __init__(self):
             self.return_type = ""
@@ -3359,7 +3281,7 @@ while index < len(Lines):
             self.returns_single_value = False
             #    ^^^^^^^^^^^^^^^^^^^^ if we properly fetched all 'structs_involved' then this can be removed.
 
-    def boolean_expression_for_return_statements() -> BooleanExpressionType:
+    def boolean_expression() -> BooleanExpressionType:
         expr = BooleanExpressionType()
 
         lhs = parse_term()
@@ -3911,10 +3833,12 @@ while index < len(Lines):
                     continue
                 elif POD_type == "bool":
                     boolean_expr = boolean_expression()
-                    LinesCache.append(f"{POD_type} {array_name} = {boolean_expr};\n")
+                    boolean_expr_code = boolean_expr.return_value
+
+                    LinesCache.append(f"{POD_type} {array_name} = {boolean_expr_code};\n")
 
                     if is_inside_form:
-                        if boolean_expr == "true":
+                        if boolean_expr_code == "true":
                             gui_manager.register_default_value("true")
                     
                     REGISTER_VARIABLE(array_name, f"{POD_type}")
@@ -4018,7 +3942,7 @@ while index < len(Lines):
         code = boolean_expression()
         parser.consume_token(lexer.Token.LEFT_CURLY)
 
-        LinesCache.append(f"\nif({code}){{\n")
+        LinesCache.append(f"\nif({code.return_value}){{\n")
     elif check_token(lexer.Token.FOR):
         # Normal, Un-Enumerated loops.
         # for current_array_value_variable in array_name{
@@ -4104,7 +4028,7 @@ while index < len(Lines):
         code = boolean_expression()
         parser.consume_token(lexer.Token.LEFT_CURLY)
 
-        LinesCache.append(f"\nwhile({code}){{\n")
+        LinesCache.append(f"\nwhile({code.return_value}){{\n")
     elif check_token(lexer.Token.STRUCT):
         #  struct Point {T x, T y };
         parser.consume_token(lexer.Token.STRUCT)
@@ -4816,7 +4740,7 @@ while index < len(Lines):
     elif parser.current_token() == lexer.Token.RETURN:
         parser.consume_token(lexer.Token.RETURN)
 
-        result = boolean_expression_for_return_statements()
+        result = boolean_expression()
 
         # Boolean expressions for Structs function call need to save the result
         # of the comparision temporarily somewhere.
