@@ -4748,11 +4748,11 @@ while index < len(Lines):
         # Since, the destructors are called earlier, we dont have the struct to return
         # with a return statement.
         # For e.g:
-        # CPLObject__del__(&node);
-        # return CPLObject__eq__OVDint(&node, token);
+        # ListObject__del__(&node);
+        # return ListObject__eq__OVDint(&node, token);
         # ^^^^^^ So, we convert the above expression to following.
-        # bool return_value = CPLObject__eq__OVDint(&node, token);
-        # CPLObject__del__(&node);
+        # bool return_value = ListObject__eq__OVDint(&node, token);
+        # ListObject__del__(&node);
         # return return_value;
 
         current_scope = get_current_scope()

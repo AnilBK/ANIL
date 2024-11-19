@@ -42,14 +42,17 @@ unsigned int hash(char *str) {
 #include <stdlib.h>
 #include <string.h>
 
-typedef union {
-  int int_data;
-  char *str_data;
-} CPLObject_Data;
+typedef struct Variant {
+  enum { INT, STRING } data_type;
 
-typedef enum { INT, STRING } CPLObject_DataType;
+  union {
+    int int_data;
+    char *str_data;
+  } data;
+} Variant;
 
-typedef struct CPLObject *CPLObjectptr;
+typedef struct Variant Variant;
+typedef struct ListObject *ListObjectptr;
 
 ///*///
 
@@ -105,15 +108,14 @@ struct Set {
   struct Vector_String arr;
 };
 
-struct CPLObject {
-  CPLObject_Data data;
-  CPLObject_DataType data_type;
-  struct CPLObject *next;
+struct ListObject {
+  Variant data;
+  struct ListObject *next;
 };
 
 struct List {
-  struct CPLObject *head;
-  struct CPLObject *tail;
+  struct ListObject *head;
+  struct ListObject *tail;
   int size;
 };
 
@@ -242,34 +244,35 @@ bool Set__contains__(struct Set *this, struct String value);
 void Setadd(struct Set *this, struct String value);
 void Setprint(struct Set *this);
 
-void CPLObject__init__OVDint(struct CPLObject *this, int p_value);
-void CPLObject__init__OVDstr(struct CPLObject *this, char *p_value);
-bool CPLObjectis_int(struct CPLObject *this);
-int CPLObjectget_int(struct CPLObject *this);
-bool CPLObjectis_str(struct CPLObject *this);
-char *CPLObjectget_str(struct CPLObject *this);
-void CPLObject_clear_str(struct CPLObject *this);
-void CPLObject__del__(struct CPLObject *this);
-struct CPLObject CPLObject_duplicate(struct CPLObject *this);
-bool CPLObject__eq__OVDint(struct CPLObject *this, int p_value);
-bool CPLObject__eq__OVDstr(struct CPLObject *this, char *p_value);
+void ListObject__init__OVDint(struct ListObject *this, int p_value);
+void ListObject__init__OVDstr(struct ListObject *this, char *p_value);
+bool ListObjectis_int(struct ListObject *this);
+int ListObjectget_int(struct ListObject *this);
+bool ListObjectis_str(struct ListObject *this);
+char *ListObjectget_str(struct ListObject *this);
+void ListObject_clear_str(struct ListObject *this);
+void ListObject__del__(struct ListObject *this);
+struct ListObject ListObject_duplicate(struct ListObject *this);
+bool ListObject__eq__OVDint(struct ListObject *this, int p_value);
+bool ListObject__eq__OVDstr(struct ListObject *this, char *p_value);
 
 int Listlen(struct List *this);
 void List__init__(struct List *this);
 void List__del__(struct List *this);
-struct CPLObject List__getitem__(struct List *this, int index);
-struct CPLObject Listpop(struct List *this, int index);
+struct ListObject List__getitem__(struct List *this, int index);
+struct ListObject Listpop(struct List *this, int index);
 bool List__contains__OVDint(struct List *this, int p_value);
 bool List__contains__OVDstr(struct List *this, char *p_value);
 void Listprint(struct List *this);
-void List_insert_end(struct List *this, CPLObjectptr new_node);
-CPLObjectptr Listcreate_int_node(struct List *this, int p_value);
-CPLObjectptr Listcreate_string_node(struct List *this, char *p_value);
+void List_insert_end(struct List *this, ListObjectptr new_node);
+ListObjectptr Listcreate_int_node(struct List *this, int p_value);
+ListObjectptr Listcreate_string_node(struct List *this, char *p_value);
 void Listappend_int(struct List *this, int p_value);
 void Listappend_str(struct List *this, char *p_value);
 void ListappendOVDint(struct List *this, int p_value);
 void ListappendOVDstr(struct List *this, char *p_value);
-void ListappendOVDstructCPLObject(struct List *this, struct CPLObject p_value);
+void ListappendOVDstructListObject(struct List *this,
+                                   struct ListObject p_value);
 void List__reassign__(struct List *this, struct List p_list);
 
 void Random__init__(struct Random *this);
@@ -690,60 +693,68 @@ void Setprint(struct Set *this) {
   printf("]\n");
 }
 
-void CPLObject__init__OVDint(struct CPLObject *this, int p_value) {
-  this->data.int_data = p_value;
-  this->data_type = INT;
+void ListObject__init__OVDint(struct ListObject *this, int p_value) {
+  this->data.data.int_data = p_value;
+  this->data.data_type = INT;
   this->next = NULL;
 }
 
-void CPLObject__init__OVDstr(struct CPLObject *this, char *p_value) {
-  this->data.str_data = strdup(p_value);
-  this->data_type = STRING;
+void ListObject__init__OVDstr(struct ListObject *this, char *p_value) {
+  this->data.data.str_data = strdup(p_value);
+  this->data.data_type = STRING;
   this->next = NULL;
 }
 
-bool CPLObjectis_int(struct CPLObject *this) { return this->data_type == INT; }
-
-int CPLObjectget_int(struct CPLObject *this) { return this->data.int_data; }
-
-bool CPLObjectis_str(struct CPLObject *this) {
-  return this->data_type == STRING;
+bool ListObjectis_int(struct ListObject *this) {
+  return this->data.data_type == INT;
 }
 
-char *CPLObjectget_str(struct CPLObject *this) { return this->data.str_data; }
+int ListObjectget_int(struct ListObject *this) {
+  return this->data.data.int_data;
+}
 
-void CPLObject_clear_str(struct CPLObject *this) { free(this->data.str_data); }
+bool ListObjectis_str(struct ListObject *this) {
+  return this->data.data_type == STRING;
+}
 
-void CPLObject__del__(struct CPLObject *this) {
+char *ListObjectget_str(struct ListObject *this) {
+  return this->data.data.str_data;
+}
 
-  if (CPLObjectis_str(this)) {
-    CPLObject_clear_str(this);
+void ListObject_clear_str(struct ListObject *this) {
+  free(this->data.data.str_data);
+}
+
+void ListObject__del__(struct ListObject *this) {
+
+  if (ListObjectis_str(this)) {
+    ListObject_clear_str(this);
   }
 }
 
-struct CPLObject CPLObject_duplicate(struct CPLObject *this) {
+struct ListObject ListObject_duplicate(struct ListObject *this) {
   // Perform a deep copy.
-  struct CPLObject copy = *this;
-  if (this->data_type == STRING) {
-    copy.data.str_data = strdup(this->data.str_data);
+  struct ListObject copy = *this;
+  if (this->data.data_type == STRING) {
+    copy.data.data.str_data = strdup(this->data.data.str_data);
   }
   return copy;
 }
 
-bool CPLObject__eq__OVDint(struct CPLObject *this, int p_value) {
+bool ListObject__eq__OVDint(struct ListObject *this, int p_value) {
 
-  if (CPLObjectis_int(this)) {
-    bool return_value = CPLObjectget_int(this) == p_value;
+  if (ListObjectis_int(this)) {
+    bool return_value = ListObjectget_int(this) == p_value;
     return return_value;
   } else {
     return false;
   }
 }
 
-bool CPLObject__eq__OVDstr(struct CPLObject *this, char *p_value) {
+bool ListObject__eq__OVDstr(struct ListObject *this, char *p_value) {
 
-  if (CPLObjectis_str(this)) {
-    bool return_value = strcmp(p_value, CPLObjectget_str(this)) == 0;
+  if (ListObjectis_str(this)) {
+    bool return_value = strcmp(p_value, ListObjectget_str(this)) == 0;
     return return_value;
   } else {
     return false;
@@ -759,12 +770,12 @@ void List__init__(struct List *this) {
 }
 
 void List__del__(struct List *this) {
-  struct CPLObject *current = this->head;
+  struct ListObject *current = this->head;
   while (current != NULL) {
-    struct CPLObject *temp = current;
+    struct ListObject *temp = current;
     current = current->next;
 
-    CPLObject__del__(temp);
+    ListObject__del__(temp);
     free(temp);
   }
   this->head = NULL;
@@ -772,7 +783,7 @@ void List__del__(struct List *this) {
   this->size = 0;
 }
 
-struct CPLObject List__getitem__(struct List *this, int index) {
+struct ListObject List__getitem__(struct List *this, int index) {
   if (index < 0) {
     index += this->size;
   }
@@ -782,7 +793,7 @@ struct CPLObject List__getitem__(struct List *this, int index) {
     exit(EXIT_FAILURE);
   }
 
-  struct CPLObject *current = this->head;
+  struct ListObject *current = this->head;
   for (int i = 0; i < index; i++) {
     current = current->next;
   }
@@ -790,10 +801,10 @@ struct CPLObject List__getitem__(struct List *this, int index) {
   // Duplicate contents of node and return it.
   // If we return a reference, then the calling function will call destructor,
   // which will free the str_data causing free() errors later.
-  return CPLObject_duplicate(current);
+  return ListObject_duplicate(current);
 }
 
-struct CPLObject Listpop(struct List *this, int index) {
+struct ListObject Listpop(struct List *this, int index) {
   if (this->size == 0) {
     printf("List is empty. Can't pop element.\n");
     exit(EXIT_FAILURE);
@@ -804,8 +815,8 @@ struct CPLObject Listpop(struct List *this, int index) {
     exit(EXIT_FAILURE);
   }
 
-  struct CPLObject *current = this->head;
-  struct CPLObject *previous = NULL;
+  struct ListObject *current = this->head;
+  struct ListObject *previous = NULL;
 
   for (int i = 0; i < index; i++) {
     previous = current;
@@ -829,7 +840,7 @@ struct CPLObject Listpop(struct List *this, int index) {
 
   this->size--;
 
-  struct CPLObject popped_node = *current;
+  struct ListObject popped_node = *current;
   // Don't free current->data.str_data even though current data_type is String.
   // After copying the *pointer above, popped_node now owns
   // current->data.str_data. This avoids duplicating current->data.str_data into
@@ -839,10 +850,10 @@ struct CPLObject Listpop(struct List *this, int index) {
 }
 
 bool List__contains__OVDint(struct List *this, int p_value) {
-  struct CPLObject *current = this->head;
+  struct ListObject *current = this->head;
   while (current != NULL) {
-    if (current->data_type == INT) {
-      int data = current->data.int_data;
+    if (current->data.data_type == INT) {
+      int data = current->data.data.int_data;
 
       if (data == p_value) {
         return true;
@@ -854,10 +865,10 @@ bool List__contains__OVDint(struct List *this, int p_value) {
 }
 
 bool List__contains__OVDstr(struct List *this, char *p_value) {
-  struct CPLObject *current = this->head;
+  struct ListObject *current = this->head;
   while (current != NULL) {
-    if (current->data_type == STRING) {
-      char *data = current->data.str_data;
+    if (current->data.data_type == STRING) {
+      char *data = current->data.data.str_data;
 
       if (strcmp(data, p_value) == 0) {
         return true;
@@ -869,13 +880,13 @@ bool List__contains__OVDstr(struct List *this, char *p_value) {
 }
 
 void Listprint(struct List *this) {
-  struct CPLObject *current = this->head;
+  struct ListObject *current = this->head;
   printf("[");
   while (current != NULL) {
-    if (current->data_type == STRING) {
-      printf("\"%s\"", current->data.str_data);
+    if (current->data.data_type == STRING) {
+      printf("\"%s\"", current->data.data.str_data);
     } else {
-      int data = current->data.int_data;
+      int data = current->data.data.int_data;
 
       //@hook_begin("custom_integer_printer" "int" data)
       printf("%d", data);
@@ -893,13 +904,13 @@ void Listprint(struct List *this) {
 typedef void (*custom_integer_printer)(int);
 void Listprint_hooked_custom_integer_printer(
     struct List *this, custom_integer_printer p_custom_integer_printer) {
-  struct CPLObject *current = this->head;
+  struct ListObject *current = this->head;
   printf("[");
   while (current != NULL) {
-    if (current->data_type == STRING) {
-      printf("\"%s\"", current->data.str_data);
+    if (current->data.data_type == STRING) {
+      printf("\"%s\"", current->data.data.str_data);
     } else {
-      int data = current->data.int_data;
+      int data = current->data.data.int_data;
 
       //
       p_custom_integer_printer(data);
@@ -913,7 +924,7 @@ void Listprint_hooked_custom_integer_printer(
   printf("]\n");
 }
 
-void List_insert_end(struct List *this, CPLObjectptr new_node) {
+void List_insert_end(struct List *this, ListObjectptr new_node) {
   this->size++;
   if (this->head == NULL) {
     this->head = new_node;
@@ -925,36 +936,36 @@ void List_insert_end(struct List *this, CPLObjectptr new_node) {
   this->tail = new_node;
 }
 
-CPLObjectptr Listcreate_int_node(struct List *this, int p_value) {
-  struct CPLObject *new_node =
-      (struct CPLObject *)malloc(sizeof(struct CPLObject));
+ListObjectptr Listcreate_int_node(struct List *this, int p_value) {
+  struct ListObject *new_node =
+      (struct ListObject *)malloc(sizeof(struct ListObject));
   if (new_node == NULL) {
     printf("List : Failed to allocate a new node of type int for value %d.",
            p_value);
     exit(EXIT_FAILURE);
   }
-  CPLObject__init__OVDint(new_node, p_value);
+  ListObject__init__OVDint(new_node, p_value);
   return new_node;
 }
 
-CPLObjectptr Listcreate_string_node(struct List *this, char *p_value) {
-  struct CPLObject *new_node =
-      (struct CPLObject *)malloc(sizeof(struct CPLObject));
+ListObjectptr Listcreate_string_node(struct List *this, char *p_value) {
+  struct ListObject *new_node =
+      (struct ListObject *)malloc(sizeof(struct ListObject));
   if (new_node == NULL) {
     printf("List : Failed to allocate a new node of type char*.");
     exit(EXIT_FAILURE);
   }
-  CPLObject__init__OVDstr(new_node, p_value);
+  ListObject__init__OVDstr(new_node, p_value);
   return new_node;
 }
 
 void Listappend_int(struct List *this, int p_value) {
-  CPLObjectptr int_node = Listcreate_int_node(this, p_value);
+  ListObjectptr int_node = Listcreate_int_node(this, p_value);
   List_insert_end(this, int_node);
 }
 
 void Listappend_str(struct List *this, char *p_value) {
-  CPLObjectptr str_node = Listcreate_string_node(this, p_value);
+  ListObjectptr str_node = Listcreate_string_node(this, p_value);
   List_insert_end(this, str_node);
 }
 
@@ -966,21 +977,22 @@ void ListappendOVDstr(struct List *this, char *p_value) {
   Listappend_str(this, p_value);
 }
 
-void ListappendOVDstructCPLObject(struct List *this, struct CPLObject p_value) {
+void ListappendOVDstructListObject(struct List *this,
+                                   struct ListObject p_value) {
 
-  if (CPLObjectis_int(&p_value)) {
-    Listappend_int(this, CPLObjectget_int(&p_value));
-  } else if (CPLObjectis_str(&p_value)) {
-    Listappend_str(this, CPLObjectget_str(&p_value));
+  if (ListObjectis_int(&p_value)) {
+    Listappend_int(this, ListObjectget_int(&p_value));
+  } else if (ListObjectis_str(&p_value)) {
+    Listappend_str(this, ListObjectget_str(&p_value));
   }
 }
 
 void List__reassign__(struct List *this, struct List p_list) {
   int tmp_len_2 = Listlen(&p_list);
   for (size_t i = 0; i < tmp_len_2; i++) {
-    struct CPLObject item = List__getitem__(&p_list, i);
-    ListappendOVDstructCPLObject(this, item);
-    CPLObject__del__(&item);
+    struct ListObject item = List__getitem__(&p_list, i);
+    ListappendOVDstructListObject(this, item);
+    ListObject__del__(&item);
   }
 }
 

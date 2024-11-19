@@ -45,7 +45,7 @@ int main() {
     print("5 is not in the list.\n")
   }
 
-  print("Duplicating List:")
+  print("Duplicating List: ")
   let test_list2 = []
   test_list2 = test_list
   test_list2.print()

@@ -35,7 +35,7 @@ function has_tokens_remaining() -> bool:
     return this.tokens.len() > 0
 endfunction
 
-function current_token() -> CPLObject:
+function current_token() -> ListObject:
     return this.tokens[0]
 endfunction
 
@@ -43,7 +43,7 @@ function next_token()
     let node = this.tokens.pop(0)
 endfunction
 
-function get_token() -> CPLObject:
+function get_token() -> ListObject:
     return this.tokens.pop(0)
 endfunction
 
