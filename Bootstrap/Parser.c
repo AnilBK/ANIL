@@ -87,11 +87,7 @@ function extract_string_literal() -> String:
 
     let string = "";
     if string_tk.is_str(){
-        let str = string_tk.get_str()
-        // TODO: Reassign bug(reassign expressions not implemented). 
-        // So do above workaround.
-        // What we want is string = string_tk.get_str()
-        string = str
+        string = string_tk.get_str()
     }else{
         print("Expected a string literal.")
         exit(EXIT_FAILURE);

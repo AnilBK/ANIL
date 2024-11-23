@@ -1108,15 +1108,9 @@ struct String Symbolget_data_type(struct Symbol *this) {
 }
 
 void Symbol__reassign__(struct Symbol *this, struct Symbol p_symbol) {
-  struct String tmp_name = Symbolget_name(&p_symbol);
-  struct String tmp_data_type = Symbolget_data_type(&p_symbol);
-  String__reassign__OVDstructString(&this->name, tmp_name);
-  String__reassign__OVDstructString(&this->name, tmp_data_type);
-  // this.data_type = p_symbol.get_data_type()
-  // TODO: __reassign__ BUG. Cant assign expressions directly like above.
-  // We have to create separate temp variables.
-  String__del__(&tmp_data_type);
-  String__del__(&tmp_name);
+  String__reassign__OVDstructString(&this->name, Symbolget_name(&p_symbol));
+  String__reassign__OVDstructString(&this->data_type,
+                                    Symbolget_data_type(&p_symbol));
 }
 
 void Symbol__del__(struct Symbol *this) {

@@ -3545,18 +3545,23 @@ while index < len(Lines):
                     value = parser.get_token()
                     LinesCache.append(f"{member_access_string} = {value};\n")
                 else:
+                    # Expression Reassignment.
                     reassign_CPL_code = f"{parsed_member}.__reassign__("
-                    if parser.check_token(lexer.Token.QUOTE):
-                        # str = "Reassign"
-                        value = parser.extract_string_literal()
-                        reassign_CPL_code += f"\"{value}\""
+                    #                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ convert to tokens.
+                    tmp_code_parser = Parser.Parser(reassign_CPL_code)
+                    reassign_expr_tokens = tmp_code_parser.tokens
+
+                    # Insert the 'reassign_CPL_code' line as tokens to current token stream.
+                    # This converts a = b expression to a.__reassign__(b).
+                    parser.tokens = reassign_expr_tokens + parser.tokens + [lexer.Token.RIGHT_ROUND_BRACKET]
+                    
+                    # Parse the newly formed expression.
+                    fn_call_parse_info = function_call_expression()
+                    if fn_call_parse_info == None:
+                        RAISE_ERROR(f"For \"{reassign_CPL_code}\", expression fn call parsing failed.")
                     else:
-                        # token = Char #TODO : Not implemented properly.
-                        value = parser.current_token()
-                        reassign_CPL_code += f"{value}"
-                    reassign_CPL_code += ")\n"
-                    index_to_insert_at = index  
-                    Lines.insert(index_to_insert_at, reassign_CPL_code)
+                        return_code = fn_call_parse_info.get_fn_str()
+                        LinesCache.append(f"{return_code};\n")
                 continue
             elif expression_type == ExpressionType.INDEXED_MEMBER_ACCESS:
                 # This should parse

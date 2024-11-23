@@ -1073,11 +1073,7 @@ struct String Parserextract_string_literal(struct Parser *this) {
   String__init__OVDstr(&string, "");
 
   if (ListObjectis_str(&string_tk)) {
-    char *str = ListObjectget_str(&string_tk);
-    // TODO: Reassign bug(reassign expressions not implemented).
-    // So do above workaround.
-    // What we want is string = string_tk.get_str()
-    String__reassign__OVDstr(&string, str);
+    String__reassign__OVDstr(&string, ListObjectget_str(&string_tk));
   } else {
     printf("Expected a string literal.");
     exit(EXIT_FAILURE);
