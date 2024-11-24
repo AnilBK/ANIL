@@ -14,8 +14,13 @@
 
 ///*///
 
+///*///
+
+///*///
+
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 // IMPORTS //
 
@@ -29,6 +34,10 @@ struct Vector_String {
   struct String *arr;
   int size;
   int capacity;
+};
+
+struct File {
+  FILE *file_ptr;
 };
 
 char *Stringc_str(struct String *this);
@@ -58,7 +67,9 @@ void String__reassign__OVDstr(struct String *this, char *pstring);
 void Stringset_to_file_contents(struct String *this, char *pfilename);
 struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename);
 
-struct Vector_String string_split(struct String str);
+void File__init__(struct File *this, char *p_file_name);
+void Filewriteline(struct File *this, char *p_content);
+void File__del__(struct File *this);
 size_t Vector_Stringlen(struct Vector_String *this);
 struct String Vector_String__getitem__(struct Vector_String *this, int index);
 void Vector_String__init__(struct Vector_String *this, int capacity);
@@ -278,6 +289,21 @@ struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename) {
   return result;
 }
 
+void File__init__(struct File *this, char *p_file_name) {
+  this->file_ptr = fopen(p_file_name, "w");
+  if (this->file_ptr == NULL) {
+    printf("Failed to open file %s.\n", p_file_name);
+    exit(0);
+  }
+}
+
+void Filewriteline(struct File *this, char *p_content) {
+  // Write a line to the file with terminating newline.
+  fprintf(this->file_ptr, "%s\n", p_content);
+}
+
+void File__del__(struct File *this) { fclose(this->file_ptr); }
+
 size_t Vector_Stringlen(struct Vector_String *this) { return this->size; }
 
 struct String Vector_String__getitem__(struct Vector_String *this, int index) {
@@ -379,8 +405,8 @@ void Vector_Stringremove_at(struct Vector_String *this, int index) {
 
 bool Vector_String__contains__(struct Vector_String *this,
                                struct String value) {
-  size_t tmp_len_3 = Vector_Stringlen(this);
-  for (size_t i = 0; i < tmp_len_3; i++) {
+  size_t tmp_len_1 = Vector_Stringlen(this);
+  for (size_t i = 0; i < tmp_len_1; i++) {
     struct String string = Vector_String__getitem__(this, i);
 
     if (Stringlen(&string) == Stringlen(&value)) {
@@ -405,63 +431,23 @@ void Vector_Stringprint(struct Vector_String *this) {
   printf("]\n");
 }
 
-///*///
-
-// Our own split by newlines algorithm.
-struct Vector_String string_split(struct String str) {
-  struct Vector_String lines;
-  Vector_String__init__(&lines, 5);
-
-  struct String line;
-  String__init__OVDstr(&line, "");
-
-  size_t tmp_len_1 = Stringlen(&str);
-  for (size_t i = 0; i < tmp_len_1; i++) {
-    char c = String__getitem__(&str, i);
-
-    if (c == '\n') {
-      Vector_Stringpush(&lines, line);
-      String__reassign__OVDstr(&line, "");
-      continue;
-    }
-
-    char c_promoted_0[2] = {c, '\0'};
-    String__add__(&line, c_promoted_0);
-  }
-
-  // Add the remaining strings which don't end with \n.
-
-  if (!(String__eq__(&line, ""))) {
-    Vector_Stringpush(&lines, line);
-    String__reassign__OVDstr(&line, "");
-  }
-
-  String__del__(&line);
-  return lines;
-}
-
-///*///
-
 int main() {
 
   ///*/// main()
-  struct String str;
-  String__init__OVDstr(&str, "Hello");
-  StringprintLn(&str);
 
-  Stringset_to_file_contents(&str, "fileexample.c");
+  printf("Writing to file hello.txt:\n");
+  struct File outputFile;
+  File__init__(&outputFile, "hello.txt");
+  Filewriteline(&outputFile, "Hello World :)");
 
-  StringprintLn(&str);
+  printf("Reading from a file(FileIO.c) to a string:\n");
+  struct String input_str;
+  String__init__OVDstr(&input_str, "");
+  Stringset_to_file_contents(&input_str, "FileIO.c");
+  StringprintLn(&input_str);
 
-  struct Vector_String splitted_lines = string_split(str);
-  size_t tmp_len_2 = Vector_Stringlen(&splitted_lines);
-  for (size_t i = 0; i < tmp_len_2; i++) {
-    struct String split_line = Vector_String__getitem__(&splitted_lines, i);
-    StringprintLn(&split_line);
-  }
-
-  Vector_String__del__(&splitted_lines);
-  String__del__(&str);
+  String__del__(&input_str);
+  File__del__(&outputFile);
   ///*///
 
   return 0;
