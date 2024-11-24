@@ -18,6 +18,7 @@ filename_parser = argparse.ArgumentParser()
 filename_parser.add_argument("--filename", help="Name of source file to be compiled.")
 args = filename_parser.parse_args()
 
+# Basics.
 source_file = "examples\\00_Hello_World.c"
 # source_file = "examples\\01_variables.c"
 # source_file = "examples\\02_List.c"
@@ -28,22 +29,28 @@ source_file = "examples\\00_Hello_World.c"
 # source_file = "examples\\06_Vector.c"
 # source_file = "examples\\07_Set.c"
 # source_file = "examples\\08_Optional.c"
+# source_file = "examples\\09_Functions.c"
+# source_file = "examples\\10_FileIO.c"
 
-# source_file = "examples\\initializer_list.c"
-# source_file = "examples\\Reflection.c"
+# Compile Time related.
 # source_file = "examples\\Annotations.c"
+# source_file = "examples\\Compile_Time_Constants.c"
+# source_file = "examples\\Macro_With_Variadic_Arguments.c"
+# source_file = "examples\\Reflection.c"
 
-# source_file = "examples\\constexpr_dict.c"
+# Misc.
+# source_file = "examples\\Enumerate.c"
 # source_file = "examples\\decorators_inside_fn_body.c"
-# source_file = "examples\\enumerate_source.c"
 
-# source_file = "examples\\FileIO.c"
-# source_file = "examples\\function_example.c"
-# source_file = "examples\\unique_ptr_example.c"
-# source_file = "examples\\WebServer.c"
+# Windows Specific.
 # source_file = "examples\\Variables_GUI_Input_Win.c"
-# source_file = "examples\\Return_value_tests.c"
+# source_file = "examples\\WebServer.c"
 
+# Compiler Stress Tests.
+# source_file = "examples\\TestSuites\\Expression_parse_tests.c"
+# source_file = "examples\\TestSuites\\Return_value_tests.c"
+
+# Compiler Bootstrap.
 # source_file = "Bootstrap\\lexer_test.c"
 # source_file = "Bootstrap\\Parser.c"
 # source_file = "Bootstrap\\preprocess_test.c"

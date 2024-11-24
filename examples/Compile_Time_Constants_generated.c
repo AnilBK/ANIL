@@ -13,6 +13,10 @@ int main() {
 
   ///*/// main()
 
+  // Compile time dictionaries.
+  // These acts as contants, and the individual values of these constants
+  // will be placed in code at compile time.
+
   int color = 255;
   int color2 = 200;
 

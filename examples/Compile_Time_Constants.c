@@ -17,6 +17,10 @@ int main() {
   
   ///*/// main()
 
+  // Compile time dictionaries.
+  // These acts as contants, and the individual values of these constants
+  // will be placed in code at compile time.
+
   constexpr Color = {"Red":255, "Green":200}
   constexpr Age = {"Anil":22, "Universe":10000}
 
