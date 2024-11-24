@@ -311,7 +311,7 @@ void Stringset_to_file_contents(struct String *this, char *pfilename) {
   ptr = fopen(pfilename, "r");
 
   if (ptr == NULL) {
-    printf("File can't be opened.\n");
+    printf("File \"%s\" couldn't be opened.\n", pfilename);
     exit(0);
   }
 
