@@ -20,9 +20,9 @@ int main() {
   outputFile.writeline("Hello World :)")
 
 
-  print("Reading from a file(FileIO.c) to a string:\n")
+  print("Reading from a file(10_FileIO.c) to a string:\n")
   let input_str = ""
-  input_str.set_to_file_contents("FileIO.c")
+  input_str.set_to_file_contents("10_FileIO.c")
   input_str.printLn()
 
   // DESTRUCTOR_CODE //

@@ -440,10 +440,10 @@ int main() {
   File__init__(&outputFile, "hello.txt");
   Filewriteline(&outputFile, "Hello World :)");
 
-  printf("Reading from a file(FileIO.c) to a string:\n");
+  printf("Reading from a file(10_FileIO.c) to a string:\n");
   struct String input_str;
   String__init__OVDstr(&input_str, "");
-  Stringset_to_file_contents(&input_str, "FileIO.c");
+  Stringset_to_file_contents(&input_str, "10_FileIO.c");
   StringprintLn(&input_str);
 
   String__del__(&input_str);
