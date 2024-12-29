@@ -395,14 +395,14 @@ void OrderedDict_Symbol__init__(struct OrderedDict_Symbol *this);
 void OrderedDict_Symbol__del__(struct OrderedDict_Symbol *this);
 struct Symbol OrderedDict_Symbol__getitem__(struct OrderedDict_Symbol *this,
                                             char *p_key);
-void OrderedDict_Symbol__setitem__(struct OrderedDict_Symbol *this,
-                                   char *p_key_str, int p_value);
+void OrderedDict_Symbol__setitem__(struct OrderedDict_Symbol *this, char *p_key,
+                                   struct Symbol p_value);
 bool OrderedDict_Symbol__contains__(struct OrderedDict_Symbol *this,
                                     char *p_key);
 struct Optional_Symbol OrderedDict_Symbolget(struct OrderedDict_Symbol *this,
                                              char *key);
-void OrderedDict_Symbolpush(struct OrderedDict_Symbol *this,
-                            struct Symbol symbol);
+void OrderedDict_Symbolpush(struct OrderedDict_Symbol *this, char *p_key,
+                            struct Symbol p_value);
 
 void Optional_Symbol__init__(struct Optional_Symbol *this);
 bool Optional_Symbolhas_value(struct Optional_Symbol *this);
@@ -1157,7 +1157,7 @@ void Scopedeclare_variable(struct Scope *this, struct String name,
 
   struct Symbol symbol;
   Symbol__init__(&symbol, name, p_type);
-  OrderedDict_Symbolpush(&this->symbols, symbol);
+  OrderedDict_Symbolpush(&this->symbols, Stringc_str(&name), symbol);
   Symbol__del__(&symbol);
 }
 
@@ -1642,11 +1642,50 @@ struct Symbol OrderedDict_Symbol__getitem__(struct OrderedDict_Symbol *this,
   return item;
 }
 
-void OrderedDict_Symbol__setitem__(struct OrderedDict_Symbol *this,
-                                   char *p_key_str, int p_value) {
-  // TODO!
-  struct OrderedDictObject_Symbol item;
-  return item;
+void OrderedDict_Symbol__setitem__(struct OrderedDict_Symbol *this, char *p_key,
+                                   struct Symbol p_value) {
+  if (!p_key || p_key[0] == '\0') {
+    printf("OrderedDict: Key cannot be NULL or empty.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  struct OrderedDictObject_Symbol *node = this->nodes;
+  if (node == NULL) {
+    // No items in the dict yet, add the new item as the first node.
+    struct OrderedDictObject_Symbol *new_node =
+        (struct OrderedDictObject_Symbol *)malloc(
+            sizeof(struct OrderedDictObject_Symbol));
+    new_node->key_str = strdup(p_key);
+    new_node->value = p_value;
+    new_node->next = NULL;
+    this->nodes = new_node;
+  } else {
+    struct OrderedDictObject_Symbol *prev = NULL;
+    while (node != NULL) {
+      if (strcmp(node->key_str, p_key) == 0) {
+        free(node->key_str); // Free the old key string
+        node->key_str = strdup(p_key);
+        if (!node->key_str) {
+          printf("OrderedDict: Memory allocation for key failed.\n");
+          exit(EXIT_FAILURE);
+          return;
+        }
+        node->value = p_value;
+        return;
+      }
+      prev = node;
+      node = node->next;
+    }
+
+    // Add a new node since the key was not found.
+    struct OrderedDictObject_Symbol *new_node =
+        (struct OrderedDictObject_Symbol *)malloc(
+            sizeof(struct OrderedDictObject_Symbol));
+    new_node->key_str = strdup(p_key);
+    new_node->value = p_value;
+    new_node->next = NULL;
+    prev->next = new_node;
+  }
 }
 
 bool OrderedDict_Symbol__contains__(struct OrderedDict_Symbol *this,
@@ -1674,9 +1713,9 @@ struct Optional_Symbol OrderedDict_Symbolget(struct OrderedDict_Symbol *this,
   return res;
 }
 
-void OrderedDict_Symbolpush(struct OrderedDict_Symbol *this,
-                            struct Symbol symbol) {
-  // TODO !
+void OrderedDict_Symbolpush(struct OrderedDict_Symbol *this, char *p_key,
+                            struct Symbol p_value) {
+  OrderedDict_Symbol__setitem__(this, p_key, p_value);
 }
 
 void Optional_Symbol__init__(struct Optional_Symbol *this) {

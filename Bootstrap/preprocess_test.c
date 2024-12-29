@@ -191,7 +191,7 @@ function declare_variable(name : String, p_type : String)
   }
 
   let symbol = Symbol{name, p_type};
-  this.symbols.push(symbol)
+  this.symbols.push(name, symbol)
 endfunction
 
 function lookup_variable(name : String) -> Optional<Symbol>:

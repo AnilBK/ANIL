@@ -35,10 +35,45 @@ c_function __getitem__(p_key : str) -> T:
   return item;
 endc_function
 
-c_function __setitem__(p_key_str : str, p_value : int)
-  // TODO!
-  @TYPEOF(nodes) item;
-  return item;
+c_function __setitem__(p_key : str, p_value : T)
+  if (!p_key || p_key[0] == '\0') {
+    printf("OrderedDict: Key cannot be NULL or empty.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  @TYPEOF(nodes) *node = this->nodes;
+  if (node == NULL) {
+    // No items in the dict yet, add the new item as the first node.
+    @TYPEOF(nodes) *new_node = (@TYPEOF(nodes)*)malloc(sizeof(@TYPEOF(nodes)));
+    new_node->key_str = strdup(p_key);
+    new_node->value = p_value;
+    new_node->next = NULL;
+    this->nodes = new_node;
+  } else {
+    @TYPEOF(nodes) *prev = NULL;
+    while (node != NULL) {
+      if (strcmp(node->key_str, p_key) == 0) {
+        free(node->key_str);  // Free the old key string
+        node->key_str = strdup(p_key);
+        if (!node->key_str) {
+          printf("OrderedDict: Memory allocation for key failed.\n");
+          exit(EXIT_FAILURE);
+          return;
+        }
+        node->value = p_value;
+        return;
+      }
+      prev = node;
+      node = node->next;
+    }
+
+    // Add a new node since the key was not found.
+    @TYPEOF(nodes) *new_node = (@TYPEOF(nodes)*)malloc(sizeof(@TYPEOF(nodes)));
+    new_node->key_str = strdup(p_key);
+    new_node->value = p_value;
+    new_node->next = NULL;
+    prev->next = new_node;
+  }
 endc_function
 
 c_function __contains__(p_key : str) -> bool:
@@ -61,9 +96,9 @@ function get(key : str) -> Optional<T>:
   return res
 endfunction
 
-c_function push(symbol : T)
-  // TODO !
-endc_function
+function push(p_key : str, p_value : T)
+  this[p_key] = p_value
+endfunction
 
 endnamespace
 ///*///
