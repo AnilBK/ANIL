@@ -2043,6 +2043,8 @@ while index < len(Lines):
                 strs.append("struct String")
             elif param.param_type == ParameterType.FUNCTION_POINTER:
                 strs.append("fn_ptr")
+            elif is_data_type_struct_object(param.param_type):
+               strs.append(param.param_type)
             else:
                 RAISE_ERROR(f"Unimplemented for {param.param_type}.")
         return strs
