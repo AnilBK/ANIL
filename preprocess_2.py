@@ -2886,6 +2886,12 @@ while index < len(Lines):
                 # Turns out this isn't required for MEMBER_ACCESS_CALL's.
                 # TODO : Investigate :P
                 # member_access_string = "&" + member_access_string
+
+            # For member access, we dont need &.
+            # For example: 'fruit.position' should be as it is and not '&fruit.position'.
+            # However, 'this' is not member access and becomes '&this' as it should be.
+            if member_access_string[0] == "&":
+                member_access_string = member_access_string[1:]
             
             parsing_fn_call_type = ParsedFunctionCallType.MEMBER_ACCESS_CALL
 

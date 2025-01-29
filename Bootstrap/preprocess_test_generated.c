@@ -1021,7 +1021,7 @@ bool Dict_int_string__contains__(struct Dict_int_string *this, int p_key) {
   for (size_t i = 0; i < tmp_len_3; i++) {
     struct int_str_list pair = Vector_int_str_list__getitem__(&this->pairs, i);
 
-    if (&pair.key == p_key) {
+    if (pair.key == p_key) {
       found = true;
       // no break because the pair should be destructed at the end of the scope.
       // break doesn't do that as of now.
@@ -1603,7 +1603,7 @@ bool Vector_int_str_list__contains__(struct Vector_int_str_list *this,
   for (size_t h = 0; h < tmp_len_11; h++) {
     struct int_str_list pair = Vector_int_str_list__getitem__(this, h);
 
-    if (&pair.key == &value.key) {
+    if (pair.key == value.key) {
       // FIXME: Incomplete implementation.
       int_str_list__del__(&pair);
       return true;
