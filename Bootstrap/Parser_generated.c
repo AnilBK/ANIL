@@ -265,6 +265,7 @@ void Vector_Stringpush_unchecked(struct Vector_String *this,
                                  struct String value);
 struct String Vector_Stringpop(struct Vector_String *this);
 void Vector_Stringremove_at(struct Vector_String *this, int index);
+void Vector_Stringclear(struct Vector_String *this);
 bool Vector_String__contains__(struct Vector_String *this, struct String value);
 void Vector_Stringprint(struct Vector_String *this);
 
@@ -1180,6 +1181,24 @@ void Vector_Stringremove_at(struct Vector_String *this, int index) {
     this->arr[i] = this->arr[i + 1];
   }
   this->size--;
+}
+
+void Vector_Stringclear(struct Vector_String *this) {
+  for (size_t i = 0; i < this->size; ++i) {
+    String__del__(&this->arr[i]);
+  }
+
+  free(this->arr);
+
+  this->capacity = 1;
+  this->arr = (struct String *)malloc(this->capacity * sizeof(struct String));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "clear(): Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  this->size = 0;
 }
 
 bool Vector_String__contains__(struct Vector_String *this,

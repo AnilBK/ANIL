@@ -87,6 +87,7 @@ void Vector_Stringpush_unchecked(struct Vector_String *this,
                                  struct String value);
 struct String Vector_Stringpop(struct Vector_String *this);
 void Vector_Stringremove_at(struct Vector_String *this, int index);
+void Vector_Stringclear(struct Vector_String *this);
 bool Vector_String__contains__(struct Vector_String *this, struct String value);
 void Vector_Stringprint(struct Vector_String *this);
 size_t Vector_intlen(struct Vector_int *this);
@@ -98,6 +99,7 @@ void Vector_intallocate_more(struct Vector_int *this, int n);
 void Vector_intpush_unchecked(struct Vector_int *this, int value);
 int Vector_intpop(struct Vector_int *this);
 void Vector_intremove_at(struct Vector_int *this, int index);
+void Vector_intclear(struct Vector_int *this);
 bool Vector_int__contains__(struct Vector_int *this, int value);
 void Vector_intprint(struct Vector_int *this);
 size_t Vector_floatlen(struct Vector_float *this);
@@ -109,6 +111,7 @@ void Vector_floatallocate_more(struct Vector_float *this, int n);
 void Vector_floatpush_unchecked(struct Vector_float *this, float value);
 float Vector_floatpop(struct Vector_float *this);
 void Vector_floatremove_at(struct Vector_float *this, int index);
+void Vector_floatclear(struct Vector_float *this);
 bool Vector_float__contains__(struct Vector_float *this, float value);
 void Vector_floatprint(struct Vector_float *this);
 size_t Vector_charlen(struct Vector_char *this);
@@ -120,6 +123,7 @@ void Vector_charallocate_more(struct Vector_char *this, int n);
 void Vector_charpush_unchecked(struct Vector_char *this, char value);
 char Vector_charpop(struct Vector_char *this);
 void Vector_charremove_at(struct Vector_char *this, int index);
+void Vector_charclear(struct Vector_char *this);
 bool Vector_char__contains__(struct Vector_char *this, char value);
 void Vector_charprint(struct Vector_char *this);
 
@@ -428,6 +432,24 @@ void Vector_Stringremove_at(struct Vector_String *this, int index) {
   this->size--;
 }
 
+void Vector_Stringclear(struct Vector_String *this) {
+  for (size_t i = 0; i < this->size; ++i) {
+    String__del__(&this->arr[i]);
+  }
+
+  free(this->arr);
+
+  this->capacity = 1;
+  this->arr = (struct String *)malloc(this->capacity * sizeof(struct String));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "clear(): Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  this->size = 0;
+}
+
 bool Vector_String__contains__(struct Vector_String *this,
                                struct String value) {
   size_t tmp_len_2 = Vector_Stringlen(this);
@@ -535,6 +557,20 @@ void Vector_intremove_at(struct Vector_int *this, int index) {
   this->size--;
 }
 
+void Vector_intclear(struct Vector_int *this) {
+  free(this->arr);
+
+  this->capacity = 1;
+  this->arr = (int *)malloc(this->capacity * sizeof(int));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "clear(): Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  this->size = 0;
+}
+
 bool Vector_int__contains__(struct Vector_int *this, int value) {
   // This function is an overloaded function.
   // Here <> in function defination means the base overload.
@@ -635,6 +671,20 @@ void Vector_floatremove_at(struct Vector_float *this, int index) {
     this->arr[i] = this->arr[i + 1];
   }
   this->size--;
+}
+
+void Vector_floatclear(struct Vector_float *this) {
+  free(this->arr);
+
+  this->capacity = 1;
+  this->arr = (float *)malloc(this->capacity * sizeof(float));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "clear(): Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  this->size = 0;
 }
 
 bool Vector_float__contains__(struct Vector_float *this, float value) {
@@ -739,6 +789,20 @@ void Vector_charremove_at(struct Vector_char *this, int index) {
   this->size--;
 }
 
+void Vector_charclear(struct Vector_char *this) {
+  free(this->arr);
+
+  this->capacity = 1;
+  this->arr = (char *)malloc(this->capacity * sizeof(char));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "clear(): Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  this->size = 0;
+}
+
 bool Vector_char__contains__(struct Vector_char *this, char value) {
   // This function is an overloaded function.
   // Here <> in function defination means the base overload.
@@ -824,6 +888,15 @@ int main() {
     struct String tst = Vector_String__getitem__(&test, i);
     Stringprint(&tst);
   }
+
+  printf("\nClearing Vector<String>:\n");
+  Vector_Stringclear(&test);
+  Vector_Stringprint(&test);
+
+  printf("\nPushing String to Vector<String>:\n");
+  Vector_Stringpush(&test, str);
+  Vector_Stringpush(&test, str2);
+  Vector_Stringprint(&test);
 
   Vector_String__del__(&test);
   String__del__(&str4);

@@ -125,6 +125,38 @@ c_function remove_at(index : int)
   this->size--;
 endc_function
 
+c_function<> clear()
+  free(this->arr);
+
+  this->capacity = 1; 
+  this->arr = (@TEMPLATED_DATA_TYPE@  *)malloc(this->capacity * sizeof(@TEMPLATED_DATA_TYPE@ ));
+  
+  if (this->arr == NULL) {
+    fprintf(stderr, "clear(): Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  this->size = 0;
+endc_function
+
+c_function<String> clear()
+  for (size_t i = 0; i < this->size; ++i) {
+    String__del__(&this->arr[i]);
+  }    
+
+  free(this->arr);
+
+  this->capacity = 1; 
+  this->arr = (@TEMPLATED_DATA_TYPE@  *)malloc(this->capacity * sizeof(@TEMPLATED_DATA_TYPE@ ));
+  
+  if (this->arr == NULL) {
+    fprintf(stderr, "clear(): Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  this->size = 0;
+endc_function
+
 c_function<> __contains__(value : T) -> bool:
   // This function is an overloaded function.
   // Here <> in function defination means the base overload.

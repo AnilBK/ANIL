@@ -62,6 +62,15 @@ int main() {
     tst.print()
   }
 
+  print("\nClearing Vector<String>:\n")
+  test.clear()
+  test.print()
+
+  print("\nPushing String to Vector<String>:\n")
+  test.push(str)
+  test.push(str2)
+  test.print()
+
   // DESTRUCTOR_CODE //
   ///*///
 

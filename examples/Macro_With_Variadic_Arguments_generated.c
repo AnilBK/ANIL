@@ -27,6 +27,7 @@ void Vector_intallocate_more(struct Vector_int *this, int n);
 void Vector_intpush_unchecked(struct Vector_int *this, int value);
 int Vector_intpop(struct Vector_int *this);
 void Vector_intremove_at(struct Vector_int *this, int index);
+void Vector_intclear(struct Vector_int *this);
 bool Vector_int__contains__(struct Vector_int *this, int value);
 void Vector_intprint(struct Vector_int *this);
 
@@ -107,6 +108,20 @@ void Vector_intremove_at(struct Vector_int *this, int index) {
     this->arr[i] = this->arr[i + 1];
   }
   this->size--;
+}
+
+void Vector_intclear(struct Vector_int *this) {
+  free(this->arr);
+
+  this->capacity = 1;
+  this->arr = (int *)malloc(this->capacity * sizeof(int));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "clear(): Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  this->size = 0;
 }
 
 bool Vector_int__contains__(struct Vector_int *this, int value) {

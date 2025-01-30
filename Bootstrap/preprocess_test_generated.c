@@ -372,6 +372,7 @@ void Vector_Stringpush_unchecked(struct Vector_String *this,
                                  struct String value);
 struct String Vector_Stringpop(struct Vector_String *this);
 void Vector_Stringremove_at(struct Vector_String *this, int index);
+void Vector_Stringclear(struct Vector_String *this);
 bool Vector_String__contains__(struct Vector_String *this, struct String value);
 void Vector_Stringprint(struct Vector_String *this);
 size_t Vector_int_str_listlen(struct Vector_int_str_list *this);
@@ -387,6 +388,7 @@ void Vector_int_str_listpush_unchecked(struct Vector_int_str_list *this,
                                        struct int_str_list value);
 struct int_str_list Vector_int_str_listpop(struct Vector_int_str_list *this);
 void Vector_int_str_listremove_at(struct Vector_int_str_list *this, int index);
+void Vector_int_str_listclear(struct Vector_int_str_list *this);
 void Vector_int_str_listprint(struct Vector_int_str_list *this);
 bool Vector_int_str_list__contains__(struct Vector_int_str_list *this,
                                      struct int_str_list value);
@@ -427,6 +429,7 @@ struct ScopeScopeIDPair
 Vector_ScopeScopeIDPairpop(struct Vector_ScopeScopeIDPair *this);
 void Vector_ScopeScopeIDPairremove_at(struct Vector_ScopeScopeIDPair *this,
                                       int index);
+void Vector_ScopeScopeIDPairclear(struct Vector_ScopeScopeIDPair *this);
 void Vector_ScopeScopeIDPairprint(struct Vector_ScopeScopeIDPair *this);
 bool Vector_ScopeScopeIDPair__contains__(struct Vector_ScopeScopeIDPair *this,
                                          struct ScopeScopeIDPair value);
@@ -440,6 +443,7 @@ void Vector_intallocate_more(struct Vector_int *this, int n);
 void Vector_intpush_unchecked(struct Vector_int *this, int value);
 int Vector_intpop(struct Vector_int *this);
 void Vector_intremove_at(struct Vector_int *this, int index);
+void Vector_intclear(struct Vector_int *this);
 bool Vector_int__contains__(struct Vector_int *this, int value);
 void Vector_intprint(struct Vector_int *this);
 void Optional_String__init__(struct Optional_String *this);
@@ -1473,6 +1477,24 @@ void Vector_Stringremove_at(struct Vector_String *this, int index) {
   this->size--;
 }
 
+void Vector_Stringclear(struct Vector_String *this) {
+  for (size_t i = 0; i < this->size; ++i) {
+    String__del__(&this->arr[i]);
+  }
+
+  free(this->arr);
+
+  this->capacity = 1;
+  this->arr = (struct String *)malloc(this->capacity * sizeof(struct String));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "clear(): Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  this->size = 0;
+}
+
 bool Vector_String__contains__(struct Vector_String *this,
                                struct String value) {
   size_t tmp_len_10 = Vector_Stringlen(this);
@@ -1587,6 +1609,21 @@ void Vector_int_str_listremove_at(struct Vector_int_str_list *this, int index) {
     this->arr[i] = this->arr[i + 1];
   }
   this->size--;
+}
+
+void Vector_int_str_listclear(struct Vector_int_str_list *this) {
+  free(this->arr);
+
+  this->capacity = 1;
+  this->arr = (struct int_str_list *)malloc(this->capacity *
+                                            sizeof(struct int_str_list));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "clear(): Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  this->size = 0;
 }
 
 void Vector_int_str_listprint(struct Vector_int_str_list *this) {
@@ -1828,6 +1865,21 @@ void Vector_ScopeScopeIDPairremove_at(struct Vector_ScopeScopeIDPair *this,
   this->size--;
 }
 
+void Vector_ScopeScopeIDPairclear(struct Vector_ScopeScopeIDPair *this) {
+  free(this->arr);
+
+  this->capacity = 1;
+  this->arr = (struct ScopeScopeIDPair *)malloc(
+      this->capacity * sizeof(struct ScopeScopeIDPair));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "clear(): Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  this->size = 0;
+}
+
 void Vector_ScopeScopeIDPairprint(struct Vector_ScopeScopeIDPair *this) {
   // Default overload.
   printf("Dynamic Array (size = %d, capacity = %d) : [ ]", this->size,
@@ -1930,6 +1982,20 @@ void Vector_intremove_at(struct Vector_int *this, int index) {
     this->arr[i] = this->arr[i + 1];
   }
   this->size--;
+}
+
+void Vector_intclear(struct Vector_int *this) {
+  free(this->arr);
+
+  this->capacity = 1;
+  this->arr = (int *)malloc(this->capacity * sizeof(int));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "clear(): Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  this->size = 0;
 }
 
 bool Vector_int__contains__(struct Vector_int *this, int value) {

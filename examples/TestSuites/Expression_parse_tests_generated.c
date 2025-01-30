@@ -75,6 +75,7 @@ void Vector_Stringpush_unchecked(struct Vector_String *this,
                                  struct String value);
 struct String Vector_Stringpop(struct Vector_String *this);
 void Vector_Stringremove_at(struct Vector_String *this, int index);
+void Vector_Stringclear(struct Vector_String *this);
 bool Vector_String__contains__(struct Vector_String *this, struct String value);
 void Vector_Stringprint(struct Vector_String *this);
 size_t Vector_intlen(struct Vector_int *this);
@@ -86,6 +87,7 @@ void Vector_intallocate_more(struct Vector_int *this, int n);
 void Vector_intpush_unchecked(struct Vector_int *this, int value);
 int Vector_intpop(struct Vector_int *this);
 void Vector_intremove_at(struct Vector_int *this, int index);
+void Vector_intclear(struct Vector_int *this);
 bool Vector_int__contains__(struct Vector_int *this, int value);
 void Vector_intprint(struct Vector_int *this);
 
@@ -394,6 +396,24 @@ void Vector_Stringremove_at(struct Vector_String *this, int index) {
   this->size--;
 }
 
+void Vector_Stringclear(struct Vector_String *this) {
+  for (size_t i = 0; i < this->size; ++i) {
+    String__del__(&this->arr[i]);
+  }
+
+  free(this->arr);
+
+  this->capacity = 1;
+  this->arr = (struct String *)malloc(this->capacity * sizeof(struct String));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "clear(): Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  this->size = 0;
+}
+
 bool Vector_String__contains__(struct Vector_String *this,
                                struct String value) {
   size_t tmp_len_1 = Vector_Stringlen(this);
@@ -499,6 +519,20 @@ void Vector_intremove_at(struct Vector_int *this, int index) {
     this->arr[i] = this->arr[i + 1];
   }
   this->size--;
+}
+
+void Vector_intclear(struct Vector_int *this) {
+  free(this->arr);
+
+  this->capacity = 1;
+  this->arr = (int *)malloc(this->capacity * sizeof(int));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "clear(): Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  this->size = 0;
 }
 
 bool Vector_int__contains__(struct Vector_int *this, int value) {
