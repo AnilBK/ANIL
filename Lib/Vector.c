@@ -197,6 +197,14 @@ function<String> __contains__(value : T) -> bool:
   return false
 endfunction
 
+function<rlVector2> __contains__(value : T) -> bool:
+  for vec in this{
+    if vec == value{
+      return true
+    }
+  }
+  return false
+endfunction
 
 def pushn(X...) for Vector:
   self.allocate_more(X.size)
