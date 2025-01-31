@@ -67,7 +67,6 @@ endnamespace
 
 struct raylib{char dummy};
 namespace raylib
-// Window-related functions
 c_function InitWindow(screenWidth : int, screenHeight : int, title : str)
   InitWindow(screenWidth, screenHeight, title);
 endc_function
@@ -80,7 +79,6 @@ c_function CloseWindow()
   CloseWindow();
 endc_function
 
-// Drawing-related functions
 c_function ClearBackground(color : rlColor)
   ClearBackground(color.color);
 endc_function
@@ -93,17 +91,14 @@ c_function EndDrawing()
   EndDrawing();
 endc_function
 
-// Timing-related functions
 c_function SetTargetFPS(fps : int)
   SetTargetFPS(fps);
 endc_function
 
-// Input-related functions: keyboard
 c_function IsKeyPressed(key : int) -> bool:
   return IsKeyPressed(key);
 endc_function
 
-// Basic shapes drawing functions
 c_function DrawLine(startPosX : int, startPosY : int, endPosX : int, endPosY : int, color : rlColor)
   DrawLine(startPosX, startPosY, endPosX, endPosY, color.color);
 endc_function
@@ -164,7 +159,6 @@ c_function DrawPolyLinesEx(center : rlVector2, sides : int, radius : float, rota
   DrawPolyLinesEx(center.vector2, sides, radius, rotation, lineThick, color.color);
 endc_function
 
-// Text drawing functions
 c_function DrawText(text : str, x : int, y : int, font_size : int, color : rlColor)
   DrawText(text, x, y, font_size, color.color);
 endc_function

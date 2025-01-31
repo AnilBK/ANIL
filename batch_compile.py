@@ -21,6 +21,8 @@ file_names = [
     "examples\\WebServer.c",
     "examples\\TestSuites\\Expression_parse_tests.c",
     "examples\\TestSuites\\Return_value_tests.c",
+    "examples\\raylib\\raylib_example.c",
+    "examples\\raylib\\snake.c",
     "Bootstrap\\lexer_test.c",
     "Bootstrap\\Parser.c",
     "Bootstrap\\preprocess_test.c",

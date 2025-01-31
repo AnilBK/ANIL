@@ -50,6 +50,10 @@ source_file = "examples\\00_Hello_World.c"
 # source_file = "examples\\TestSuites\\Expression_parse_tests.c"
 # source_file = "examples\\TestSuites\\Return_value_tests.c"
 
+# Graphics using raylib.
+# source_file = "examples\\raylib\\raylib_example.c"
+# source_file = "examples\\raylib\\snake.c"
+
 # Compiler Bootstrap.
 # source_file = "Bootstrap\\lexer_test.c"
 # source_file = "Bootstrap\\Parser.c"
