@@ -71,6 +71,10 @@ int main() {
   test.push(str2)
   test.print()
 
+  print("\nReplacing with the above vector[1] with str which is Hello:\n")
+  test[1] = str
+  test.print()
+
   // DESTRUCTOR_CODE //
   ///*///
 

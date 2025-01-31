@@ -364,6 +364,8 @@ bool is_variable_int_type(struct String p_var_name);
 bool is_variable_size_t_type(struct String p_var_name);
 size_t Vector_Stringlen(struct Vector_String *this);
 struct String Vector_String__getitem__(struct Vector_String *this, int index);
+void Vector_String__setitem__(struct Vector_String *this, int index,
+                              struct String value);
 void Vector_String__init__(struct Vector_String *this, int capacity);
 void Vector_String__del__(struct Vector_String *this);
 void Vector_Stringpush(struct Vector_String *this, struct String value);
@@ -378,6 +380,8 @@ void Vector_Stringprint(struct Vector_String *this);
 size_t Vector_int_str_listlen(struct Vector_int_str_list *this);
 struct int_str_list
 Vector_int_str_list__getitem__(struct Vector_int_str_list *this, int index);
+void Vector_int_str_list__setitem__(struct Vector_int_str_list *this, int index,
+                                    struct int_str_list value);
 void Vector_int_str_list__init__(struct Vector_int_str_list *this,
                                  int capacity);
 void Vector_int_str_list__del__(struct Vector_int_str_list *this);
@@ -416,6 +420,9 @@ size_t Vector_ScopeScopeIDPairlen(struct Vector_ScopeScopeIDPair *this);
 struct ScopeScopeIDPair
 Vector_ScopeScopeIDPair__getitem__(struct Vector_ScopeScopeIDPair *this,
                                    int index);
+void Vector_ScopeScopeIDPair__setitem__(struct Vector_ScopeScopeIDPair *this,
+                                        int index,
+                                        struct ScopeScopeIDPair value);
 void Vector_ScopeScopeIDPair__init__(struct Vector_ScopeScopeIDPair *this,
                                      int capacity);
 void Vector_ScopeScopeIDPair__del__(struct Vector_ScopeScopeIDPair *this);
@@ -436,6 +443,7 @@ bool Vector_ScopeScopeIDPair__contains__(struct Vector_ScopeScopeIDPair *this,
 
 size_t Vector_intlen(struct Vector_int *this);
 int Vector_int__getitem__(struct Vector_int *this, int index);
+void Vector_int__setitem__(struct Vector_int *this, int index, int value);
 void Vector_int__init__(struct Vector_int *this, int capacity);
 void Vector_int__del__(struct Vector_int *this);
 void Vector_intpush(struct Vector_int *this, int value);
@@ -1394,6 +1402,20 @@ struct String Vector_String__getitem__(struct Vector_String *this, int index) {
   return *(this->arr + index);
 }
 
+void Vector_String__setitem__(struct Vector_String *this, int index,
+                              struct String value) {
+  if (index < 0) {
+    index += this->size;
+  }
+
+  String__del__(&this->arr[index]);
+
+  struct String str;
+  String__init__OVDstructString(&str, value);
+
+  this->arr[index] = str;
+}
+
 void Vector_String__init__(struct Vector_String *this, int capacity) {
   // if we want to use instanced template type in fn body, we use following
   // syntax.
@@ -1533,6 +1555,17 @@ Vector_int_str_list__getitem__(struct Vector_int_str_list *this, int index) {
     index += this->size;
   }
   return *(this->arr + index);
+}
+
+void Vector_int_str_list__setitem__(struct Vector_int_str_list *this, int index,
+                                    struct int_str_list value) {
+  if (index < 0) {
+    index += this->size;
+  }
+  // FIXME: If previous value is a struct with destructor, then that destructor
+  // should be called. This is fixed in the next overloaded function for String
+  // class.
+  this->arr[index] = value;
 }
 
 void Vector_int_str_list__init__(struct Vector_int_str_list *this,
@@ -1786,6 +1819,18 @@ Vector_ScopeScopeIDPair__getitem__(struct Vector_ScopeScopeIDPair *this,
   return *(this->arr + index);
 }
 
+void Vector_ScopeScopeIDPair__setitem__(struct Vector_ScopeScopeIDPair *this,
+                                        int index,
+                                        struct ScopeScopeIDPair value) {
+  if (index < 0) {
+    index += this->size;
+  }
+  // FIXME: If previous value is a struct with destructor, then that destructor
+  // should be called. This is fixed in the next overloaded function for String
+  // class.
+  this->arr[index] = value;
+}
+
 void Vector_ScopeScopeIDPair__init__(struct Vector_ScopeScopeIDPair *this,
                                      int capacity) {
   // if we want to use instanced template type in fn body, we use following
@@ -1912,6 +1957,16 @@ int Vector_int__getitem__(struct Vector_int *this, int index) {
     index += this->size;
   }
   return *(this->arr + index);
+}
+
+void Vector_int__setitem__(struct Vector_int *this, int index, int value) {
+  if (index < 0) {
+    index += this->size;
+  }
+  // FIXME: If previous value is a struct with destructor, then that destructor
+  // should be called. This is fixed in the next overloaded function for String
+  // class.
+  this->arr[index] = value;
 }
 
 void Vector_int__init__(struct Vector_int *this, int capacity) {

@@ -72,6 +72,8 @@ bool return_test_array();
 bool return_test_array2();
 size_t Vector_Stringlen(struct Vector_String *this);
 struct String Vector_String__getitem__(struct Vector_String *this, int index);
+void Vector_String__setitem__(struct Vector_String *this, int index,
+                              struct String value);
 void Vector_String__init__(struct Vector_String *this, int capacity);
 void Vector_String__del__(struct Vector_String *this);
 void Vector_Stringpush(struct Vector_String *this, struct String value);
@@ -304,6 +306,20 @@ struct String Vector_String__getitem__(struct Vector_String *this, int index) {
   // end of the loop. Since __getitem__() is a reference return type, it isn't
   // freed.
   return *(this->arr + index);
+}
+
+void Vector_String__setitem__(struct Vector_String *this, int index,
+                              struct String value) {
+  if (index < 0) {
+    index += this->size;
+  }
+
+  String__del__(&this->arr[index]);
+
+  struct String str;
+  String__init__OVDstructString(&str, value);
+
+  this->arr[index] = str;
 }
 
 void Vector_String__init__(struct Vector_String *this, int capacity) {

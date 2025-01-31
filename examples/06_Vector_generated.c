@@ -79,6 +79,8 @@ struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename);
 
 size_t Vector_Stringlen(struct Vector_String *this);
 struct String Vector_String__getitem__(struct Vector_String *this, int index);
+void Vector_String__setitem__(struct Vector_String *this, int index,
+                              struct String value);
 void Vector_String__init__(struct Vector_String *this, int capacity);
 void Vector_String__del__(struct Vector_String *this);
 void Vector_Stringpush(struct Vector_String *this, struct String value);
@@ -92,6 +94,7 @@ bool Vector_String__contains__(struct Vector_String *this, struct String value);
 void Vector_Stringprint(struct Vector_String *this);
 size_t Vector_intlen(struct Vector_int *this);
 int Vector_int__getitem__(struct Vector_int *this, int index);
+void Vector_int__setitem__(struct Vector_int *this, int index, int value);
 void Vector_int__init__(struct Vector_int *this, int capacity);
 void Vector_int__del__(struct Vector_int *this);
 void Vector_intpush(struct Vector_int *this, int value);
@@ -104,6 +107,7 @@ bool Vector_int__contains__(struct Vector_int *this, int value);
 void Vector_intprint(struct Vector_int *this);
 size_t Vector_floatlen(struct Vector_float *this);
 float Vector_float__getitem__(struct Vector_float *this, int index);
+void Vector_float__setitem__(struct Vector_float *this, int index, float value);
 void Vector_float__init__(struct Vector_float *this, int capacity);
 void Vector_float__del__(struct Vector_float *this);
 void Vector_floatpush(struct Vector_float *this, float value);
@@ -116,6 +120,7 @@ bool Vector_float__contains__(struct Vector_float *this, float value);
 void Vector_floatprint(struct Vector_float *this);
 size_t Vector_charlen(struct Vector_char *this);
 char Vector_char__getitem__(struct Vector_char *this, int index);
+void Vector_char__setitem__(struct Vector_char *this, int index, char value);
 void Vector_char__init__(struct Vector_char *this, int capacity);
 void Vector_char__del__(struct Vector_char *this);
 void Vector_charpush(struct Vector_char *this, char value);
@@ -349,6 +354,20 @@ struct String Vector_String__getitem__(struct Vector_String *this, int index) {
   return *(this->arr + index);
 }
 
+void Vector_String__setitem__(struct Vector_String *this, int index,
+                              struct String value) {
+  if (index < 0) {
+    index += this->size;
+  }
+
+  String__del__(&this->arr[index]);
+
+  struct String str;
+  String__init__OVDstructString(&str, value);
+
+  this->arr[index] = str;
+}
+
 void Vector_String__init__(struct Vector_String *this, int capacity) {
   // if we want to use instanced template type in fn body, we use following
   // syntax.
@@ -487,6 +506,16 @@ int Vector_int__getitem__(struct Vector_int *this, int index) {
   return *(this->arr + index);
 }
 
+void Vector_int__setitem__(struct Vector_int *this, int index, int value) {
+  if (index < 0) {
+    index += this->size;
+  }
+  // FIXME: If previous value is a struct with destructor, then that destructor
+  // should be called. This is fixed in the next overloaded function for String
+  // class.
+  this->arr[index] = value;
+}
+
 void Vector_int__init__(struct Vector_int *this, int capacity) {
   // if we want to use instanced template type in fn body, we use following
   // syntax.
@@ -603,6 +632,17 @@ float Vector_float__getitem__(struct Vector_float *this, int index) {
   return *(this->arr + index);
 }
 
+void Vector_float__setitem__(struct Vector_float *this, int index,
+                             float value) {
+  if (index < 0) {
+    index += this->size;
+  }
+  // FIXME: If previous value is a struct with destructor, then that destructor
+  // should be called. This is fixed in the next overloaded function for String
+  // class.
+  this->arr[index] = value;
+}
+
 void Vector_float__init__(struct Vector_float *this, int capacity) {
   // if we want to use instanced template type in fn body, we use following
   // syntax.
@@ -717,6 +757,16 @@ char Vector_char__getitem__(struct Vector_char *this, int index) {
     index += this->size;
   }
   return *(this->arr + index);
+}
+
+void Vector_char__setitem__(struct Vector_char *this, int index, char value) {
+  if (index < 0) {
+    index += this->size;
+  }
+  // FIXME: If previous value is a struct with destructor, then that destructor
+  // should be called. This is fixed in the next overloaded function for String
+  // class.
+  this->arr[index] = value;
 }
 
 void Vector_char__init__(struct Vector_char *this, int capacity) {
@@ -896,6 +946,10 @@ int main() {
   printf("\nPushing String to Vector<String>:\n");
   Vector_Stringpush(&test, str);
   Vector_Stringpush(&test, str2);
+  Vector_Stringprint(&test);
+
+  printf("\nReplacing with the above vector[1] with str which is Hello:\n");
+  Vector_String__setitem__(&test, 1, str);
   Vector_Stringprint(&test);
 
   Vector_String__del__(&test);

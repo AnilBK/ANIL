@@ -27,6 +27,24 @@ c_function<String> __getitem__(index : int) -> &T:
   return *(this->arr + index);
 endc_function
 
+c_function<> __setitem__(index : int, value : T)
+  if (index < 0){index += this->size;}
+  // FIXME: If previous value is a struct with destructor, then that destructor should be called.
+  // This is fixed in the next overloaded function for String class.
+  this->arr[index] = value;
+endc_function
+
+c_function<String> __setitem__(index : int, value : T)
+  if (index < 0){index += this->size;}
+
+  String__del__(&this->arr[index]);
+
+  struct String str;
+  String__init__OVDstructString(&str, value);
+
+  this->arr[index] = str;
+endc_function
+
 c_function __init__(capacity : int)
   // if we want to use instanced template type in fn body, we use following syntax.
   // @ TEMPLATED_DATA_TYPE @

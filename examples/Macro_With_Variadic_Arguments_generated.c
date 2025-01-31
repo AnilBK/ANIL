@@ -20,6 +20,7 @@ struct Vector_int {
 
 size_t Vector_intlen(struct Vector_int *this);
 int Vector_int__getitem__(struct Vector_int *this, int index);
+void Vector_int__setitem__(struct Vector_int *this, int index, int value);
 void Vector_int__init__(struct Vector_int *this, int capacity);
 void Vector_int__del__(struct Vector_int *this);
 void Vector_intpush(struct Vector_int *this, int value);
@@ -38,6 +39,16 @@ int Vector_int__getitem__(struct Vector_int *this, int index) {
     index += this->size;
   }
   return *(this->arr + index);
+}
+
+void Vector_int__setitem__(struct Vector_int *this, int index, int value) {
+  if (index < 0) {
+    index += this->size;
+  }
+  // FIXME: If previous value is a struct with destructor, then that destructor
+  // should be called. This is fixed in the next overloaded function for String
+  // class.
+  this->arr[index] = value;
 }
 
 void Vector_int__init__(struct Vector_int *this, int capacity) {
