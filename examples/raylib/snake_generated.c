@@ -948,9 +948,7 @@ struct rlVector2 new_food_spawn(struct Snake snake, int grid_width,
     struct rlVector2 new_pos;
     rlVector2__init__OVDintint(&new_pos, new_x, new_y);
 
-    if (Vector_rlVector2__contains__(&snake.body, new_pos)) {
-
-    } else {
+    if (!Vector_rlVector2__contains__(&snake.body, new_pos)) {
       return new_pos;
     }
   }

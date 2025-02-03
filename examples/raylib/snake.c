@@ -77,9 +77,7 @@ function new_food_spawn(snake : Snake, grid_width : int, grid_height : int) -> r
         let new_y = rng.randrange(grid_height)
         let new_pos = rlVector2{new_x, new_y};
 
-        if new_pos in snake.body{
-        
-        }else{
+        if new_pos not in snake.body{
             return new_pos
         }
     }
