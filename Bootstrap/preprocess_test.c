@@ -254,17 +254,14 @@ function current_scope() -> int:
 endfunction
 
 function get_scope_by_id(id : int) -> Scope:
-  let scope = Scope{10000};
-  return scope
-  // for s in this.scopes{
-  //   if s.scope_id == id{
-  //     // FIXME: This returns &s.scope.
-  //     // return s.scope
-  //   }
-  // }
+  for scope in this.scopes{
+    if scope.scope_id == id{
+      return scope.scope
+    }
+  }
 
-  // let e = ErrorHandler{};
-  // e.RAISE_ERROR("Didnt find scope of provided id.")
+  let e = ErrorHandler{};
+  e.RAISE_ERROR("Didnt find scope of provided id.")
 endfunction
 
 function new_unique_scope_id() -> int:

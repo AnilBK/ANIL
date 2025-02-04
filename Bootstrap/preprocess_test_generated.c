@@ -1214,18 +1214,20 @@ int SymbolTablecurrent_scope(struct SymbolTable *this) {
 }
 
 struct Scope SymbolTableget_scope_by_id(struct SymbolTable *this, int id) {
-  struct Scope scope;
-  Scope__init__(&scope, 10000);
-  return scope;
-  // for s in this.scopes{
-  //   if s.scope_id == id{
-  //     // FIXME: This returns &s.scope.
-  //     // return s.scope
-  //   }
-  // }
+  size_t tmp_len_4 = Vector_ScopeScopeIDPairlen(&this->scopes);
+  for (size_t i = 0; i < tmp_len_4; i++) {
+    struct ScopeScopeIDPair scope =
+        Vector_ScopeScopeIDPair__getitem__(&this->scopes, i);
 
-  // let e = ErrorHandler{};
-  // e.RAISE_ERROR("Didnt find scope of provided id.")
+    if (scope.scope_id == id) {
+      ScopeScopeIDPair__del__(&scope);
+      return scope.scope;
+    }
+    ScopeScopeIDPair__del__(&scope);
+  }
+
+  struct ErrorHandler e;
+  ErrorHandlerRAISE_ERROR(&e, "Didnt find scope of provided id.");
 }
 
 int SymbolTablenew_unique_scope_id(struct SymbolTable *this) {
@@ -1258,8 +1260,8 @@ void SymbolTableremove_scope_by_id(struct SymbolTable *this, int scope_id) {
   struct Vector_int id_to_remove;
   Vector_int__init__(&id_to_remove, 1);
   int index = 0;
-  size_t tmp_len_4 = Vector_ScopeScopeIDPairlen(&this->scopes);
-  for (size_t i = 0; i < tmp_len_4; i++) {
+  size_t tmp_len_5 = Vector_ScopeScopeIDPairlen(&this->scopes);
+  for (size_t i = 0; i < tmp_len_5; i++) {
     struct ScopeScopeIDPair scope =
         Vector_ScopeScopeIDPair__getitem__(&this->scopes, i);
     int id = ScopeScopeIDPairget_scope_id(&scope);
@@ -1271,9 +1273,9 @@ void SymbolTableremove_scope_by_id(struct SymbolTable *this, int scope_id) {
     ScopeScopeIDPair__del__(&scope);
   }
 
-  size_t tmp_len_5 = Vector_intlen(&id_to_remove);
-  tmp_len_5 -= 1;
-  for (size_t i = tmp_len_5; i != (size_t)-1; i += -1) {
+  size_t tmp_len_6 = Vector_intlen(&id_to_remove);
+  tmp_len_6 -= 1;
+  for (size_t i = tmp_len_6; i != (size_t)-1; i += -1) {
     int idx = Vector_int__getitem__(&id_to_remove, i);
     Vector_ScopeScopeIDPairremove_at(&this->scopes, idx);
   }
@@ -1343,8 +1345,8 @@ void SymbolTabledeclare_variable(struct SymbolTable *this, struct String name,
     ErrorHandlerRAISE_ERROR(&e, "Variable already declared.");
   }
 
-  size_t tmp_len_6 = Vector_intlen(&this->scope_stack);
-  for (size_t i = 0; i < tmp_len_6; i++) {
+  size_t tmp_len_7 = Vector_intlen(&this->scope_stack);
+  for (size_t i = 0; i < tmp_len_7; i++) {
     int scope_id = Vector_int__getitem__(&this->scope_stack, i);
     struct Scope scope = SymbolTableget_scope_by_id(this, scope_id);
 
@@ -1519,8 +1521,8 @@ void Vector_Stringclear(struct Vector_String *this) {
 
 bool Vector_String__contains__(struct Vector_String *this,
                                struct String value) {
-  size_t tmp_len_10 = Vector_Stringlen(this);
-  for (size_t h = 0; h < tmp_len_10; h++) {
+  size_t tmp_len_11 = Vector_Stringlen(this);
+  for (size_t h = 0; h < tmp_len_11; h++) {
     struct String string = Vector_String__getitem__(this, h);
 
     if (Stringlen(&string) == Stringlen(&value)) {
@@ -1669,8 +1671,8 @@ void Vector_int_str_listprint(struct Vector_int_str_list *this) {
 
 bool Vector_int_str_list__contains__(struct Vector_int_str_list *this,
                                      struct int_str_list value) {
-  size_t tmp_len_11 = Vector_int_str_listlen(this);
-  for (size_t h = 0; h < tmp_len_11; h++) {
+  size_t tmp_len_12 = Vector_int_str_listlen(this);
+  for (size_t h = 0; h < tmp_len_12; h++) {
     struct int_str_list pair = Vector_int_str_list__getitem__(this, h);
 
     if (pair.key == value.key) {
@@ -1935,8 +1937,8 @@ void Vector_ScopeScopeIDPairprint(struct Vector_ScopeScopeIDPair *this) {
 
 bool Vector_ScopeScopeIDPair__contains__(struct Vector_ScopeScopeIDPair *this,
                                          struct ScopeScopeIDPair value) {
-  size_t tmp_len_12 = Vector_ScopeScopeIDPairlen(this);
-  for (size_t h = 0; h < tmp_len_12; h++) {
+  size_t tmp_len_13 = Vector_ScopeScopeIDPairlen(this);
+  for (size_t h = 0; h < tmp_len_13; h++) {
     struct ScopeScopeIDPair pair = Vector_ScopeScopeIDPair__getitem__(this, h);
 
     if (ScopeScopeIDPairget_scope_id(&pair) ==
@@ -2329,8 +2331,8 @@ int main() {
   struct Vector_String imported_modules;
   Vector_String__init__(&imported_modules, 5);
 
-  size_t tmp_len_7 = Vector_Stringlen(&Lines);
-  for (size_t i = 0; i < tmp_len_7; i++) {
+  size_t tmp_len_8 = Vector_Stringlen(&Lines);
+  for (size_t i = 0; i < tmp_len_8; i++) {
     struct String line = Vector_String__getitem__(&Lines, i);
     struct String Line = Stringstrip(&line);
 
@@ -2352,8 +2354,8 @@ int main() {
     struct Vector_String ImportedCodeLines;
     Vector_String__init__(&ImportedCodeLines, 50);
 
-    size_t tmp_len_8 = Vector_Stringlen(&imported_modules);
-    for (size_t i = 0; i < tmp_len_8; i++) {
+    size_t tmp_len_9 = Vector_Stringlen(&imported_modules);
+    for (size_t i = 0; i < tmp_len_9; i++) {
       struct String module_name =
           Vector_String__getitem__(&imported_modules, i);
       struct String relative_path;
@@ -2370,8 +2372,8 @@ int main() {
       // lines.print()
 
       // ImportedCodeLines += lines
-      size_t tmp_len_9 = Vector_Stringlen(&lines);
-      for (size_t j = 0; j < tmp_len_9; j++) {
+      size_t tmp_len_10 = Vector_Stringlen(&lines);
+      for (size_t j = 0; j < tmp_len_10; j++) {
         struct String line = Vector_String__getitem__(&lines, j);
         Vector_Stringpush(&ImportedCodeLines, line);
       }
