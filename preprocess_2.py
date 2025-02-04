@@ -2153,7 +2153,7 @@ while index < len(Lines):
 
             instance = StructInstance(raw_return_type, var_name, get_current_scope())
 
-            if is_return_type_ref_type:
+            if is_return_type_ref_type or parsed_fn_call_type == ParsedFunctionCallType.MEMBER_ACCESS_CALL:
                 instance.should_be_freed = False
             
             global instanced_struct_names
@@ -2161,17 +2161,21 @@ while index < len(Lines):
 
         REGISTER_VARIABLE(var_name, return_type)
 
-        assignment_code = f"{return_type} {var_name} = {fn_name}("
+        assignment_code = ""
+        if parsed_fn_call_type == ParsedFunctionCallType.MEMBER_ACCESS_CALL:
+            assignment_code = f"{format_struct_data_type(return_type)} {var_name} = {member_access_string};"
+        else:
+            assignment_code = f"{return_type} {var_name} = {fn_name}("
 
-        if parsed_fn_call_type == ParsedFunctionCallType.STRUCT_FUNCTION_CALL:
-            assignment_code += f"{member_access_string}"
+            if parsed_fn_call_type == ParsedFunctionCallType.STRUCT_FUNCTION_CALL:
+                assignment_code += f"{member_access_string}"
+                if has_parameters:
+                    assignment_code += ","
+
             if has_parameters:
-                assignment_code += ","
-
-        if has_parameters:
-            parameters_str = parse_result["parameters_str"]
-            assignment_code += f"{parameters_str}"
-        assignment_code += ");"
+                parameters_str = parse_result["parameters_str"]
+                assignment_code += f"{parameters_str}"
+            assignment_code += ");"
 
         global LinesCache
         LinesCache.append(f"{assignment_code}\n")
