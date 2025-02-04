@@ -2143,11 +2143,13 @@ while index < len(Lines):
         parsed_fn_call_type = parse_result["function_call_type"]
         member_access_string = parse_result["member_access_string"]
 
-        if return_type.startswith("struct "):
-            #              "struct Vector__String"
-            # return type   ^^^^^^^^^^^^^^^^^^^^^
-            # raw_return_type      ^^^^^^^^^^^^^^
-            raw_return_type = return_type[len("struct "):]
+        if return_type.startswith("struct ") or is_data_type_struct_object(return_type):
+            raw_return_type = return_type
+            if return_type.startswith("struct "):
+                #              "struct Vector__String"
+                # return type   ^^^^^^^^^^^^^^^^^^^^^
+                # raw_return_type      ^^^^^^^^^^^^^^
+                raw_return_type = return_type[len("struct "):]
 
             instance = StructInstance(raw_return_type, var_name, get_current_scope())
 
