@@ -35,8 +35,9 @@ function __del__()
 endfunction
 
 function is_touching_itself() -> bool:
-    for i in range(1..this.body.len()){
-        let body_pos = this.body[i]
+    let body_ref = this.body
+
+    for body_pos in body_ref[1::]{
         if this.position == body_pos{
             return true
         }

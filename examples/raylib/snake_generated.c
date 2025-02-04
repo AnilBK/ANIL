@@ -608,8 +608,11 @@ void Snake__init__(struct Snake *this, struct rlVector2 p_position,
 void Snake__del__(struct Snake *this) { Vector_rlVector2__del__(&this->body); }
 
 bool Snakeis_touching_itself(struct Snake *this) {
-  for (size_t i = 1; i < Vector_rlVector2len(&this->body); i++) {
-    struct rlVector2 body_pos = Vector_rlVector2__getitem__(&this->body, i);
+  struct Vector_rlVector2 body_ref = this->body;
+
+  size_t tmp_len_1 = Vector_rlVector2len(&body_ref);
+  for (size_t i = 1; i < tmp_len_1; i++) {
+    struct rlVector2 body_pos = Vector_rlVector2__getitem__(&body_ref, i);
 
     if (rlVector2__eq__(&this->position, body_pos)) {
       return true;
@@ -778,8 +781,8 @@ void Vector_Stringclear(struct Vector_String *this) {
 
 bool Vector_String__contains__(struct Vector_String *this,
                                struct String value) {
-  size_t tmp_len_2 = Vector_Stringlen(this);
-  for (size_t h = 0; h < tmp_len_2; h++) {
+  size_t tmp_len_3 = Vector_Stringlen(this);
+  for (size_t h = 0; h < tmp_len_3; h++) {
     struct String string = Vector_String__getitem__(this, h);
 
     if (Stringlen(&string) == Stringlen(&value)) {
@@ -916,8 +919,8 @@ void Vector_rlVector2clear(struct Vector_rlVector2 *this) {
 
 bool Vector_rlVector2__contains__(struct Vector_rlVector2 *this,
                                   struct rlVector2 value) {
-  size_t tmp_len_3 = Vector_rlVector2len(this);
-  for (size_t h = 0; h < tmp_len_3; h++) {
+  size_t tmp_len_4 = Vector_rlVector2len(this);
+  for (size_t h = 0; h < tmp_len_4; h++) {
     struct rlVector2 vec = Vector_rlVector2__getitem__(this, h);
 
     if (rlVector2__eq__(&vec, value)) {
@@ -1111,8 +1114,8 @@ int main() {
       raylibDrawRectangle(&rl, fx, fy, CELL_SIZE, CELL_SIZE, rlRED);
 
       // Draw snake
-      size_t tmp_len_1 = Vector_rlVector2len(&snake.body);
-      for (size_t i = 0; i < tmp_len_1; i++) {
+      size_t tmp_len_2 = Vector_rlVector2len(&snake.body);
+      for (size_t i = 0; i < tmp_len_2; i++) {
         struct rlVector2 body = Vector_rlVector2__getitem__(&snake.body, i);
         int x = rlVector2get_x_int(&body);
         x = x * CELL_SIZE;
