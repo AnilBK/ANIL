@@ -49,6 +49,7 @@ source_file = "examples\\00_Hello_World.c"
 # Compiler Stress Tests.
 # source_file = "examples\\TestSuites\\Expression_parse_tests.c"
 # source_file = "examples\\TestSuites\\Return_value_tests.c"
+# source_file = "examples\\TestSuites\\slicing.c"
 
 # Graphics using raylib.
 # source_file = "examples\\raylib\\raylib_example.c"
@@ -1430,40 +1431,52 @@ while index < len(Lines):
 
         REGISTER_VARIABLE(current_array_value_variable, array_type)
 
+
+    def parse_slice(parser):
+        start_index, step_size, end_index = None, None, None
+        
+        if parser.has_tokens_remaining() and parser.current_token() == lexer.Token.LEFT_SQUARE_BRACKET:
+            parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)
+
+            if not parser.check_token(lexer.Token.COLON):
+                # [start:] case
+                #  ^^^^^   not COLON.
+                start_index = get_integer_expression("Expected integer expression for start_index.")
+            
+            # [:end] and [start:end] cases
+            if parser.check_token(lexer.Token.COLON):
+                # [:...] case or [start:..] case
+                #  ^                   ^ 
+                parser.consume_token(lexer.Token.COLON)
+                if not parser.check_token(lexer.Token.COLON) and not parser.check_token(lexer.Token.RIGHT_SQUARE_BRACKET):
+                    # [:end] case or [start:end] case
+                    #   ^^^^                ^^^^
+                    end_index = get_integer_expression("Expected integer expression for end_index.")
+            
+            if parser.check_token(lexer.Token.COLON):
+                # [..:..:..]
+                #       ^   case
+                parser.consume_token(lexer.Token.COLON)
+                if not parser.check_token(lexer.Token.RIGHT_SQUARE_BRACKET):
+                    # [::step] case or [start:end:step] case
+                    #    ^^^^                     ^^^^
+                    step_size = get_integer_expression("Expected integer expression for step_size.")
+            
+            parser.consume_token(lexer.Token.RIGHT_SQUARE_BRACKET)
+        
+        return start_index, end_index, step_size
+
+
     def create_array_iterator_from_struct(array_name, current_array_value_variable):
         global temp_arr_length_variable_count
         global for_loop_depth
 
-        start_index = "0"
-        step_size = "1"
-
         #for x in list[::-1]
         #             ^^^^^^
-        if parser.has_tokens_remaining():
-            if parser.current_token() == lexer.Token.LEFT_SQUARE_BRACKET:
-                parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)
+        start_index, end_index, step_size = parse_slice(parser)
 
-                if parser.check_token(lexer.Token.COLON):
-                    parser.consume_token(lexer.Token.COLON)
-                    #for x in list[::-1]
-                    #              ^
-                else:
-                    #for x in list[1::-1]
-                    #              ^
-                    start_index = get_integer_expression("Expected integer expression for start_index.")
-                    parser.consume_token(lexer.Token.COLON)
-
-                parser.consume_token(lexer.Token.COLON)
-
-                if parser.check_token(lexer.Token.RIGHT_SQUARE_BRACKET):
-                    #for x in list[::]
-                    #                ^
-                    parser.consume_token(lexer.Token.RIGHT_SQUARE_BRACKET)
-                else:
-                    #for x in list[::-1]
-                    #                ^^
-                    step_size = get_integer_expression("Expected integer expression for step_size.")
-                    parser.consume_token(lexer.Token.RIGHT_SQUARE_BRACKET)
+        if start_index == None:
+            start_index = "0"
 
         loop_indices = "ijklmnopqrstuvwxyzabcdefgh"
         loop_counter_index = loop_indices[for_loop_depth % 26]
@@ -1475,16 +1488,30 @@ while index < len(Lines):
         
         code = []
         
-        if step_size[0] == "-":
+        if step_size and step_size[0] == "-":
             # Starts with Negative index.
-            l1 = f"let {temporary_len_var_name} = {array_name}.len() - 1\n"
-            l2 = f"{temporary_len_var_name} -= 1;\n"
-            l3 = f"for {loop_counter_index} in range({temporary_len_var_name}..={start_index},{step_size}){{\n"
-            l4 = f"let {current_array_value_variable} = {array_name}[{loop_counter_index}]\n"
-            code = [l1, l2, l3, l4]
+            l1 = ""
+            l1a = ""
+            if end_index:
+                l1 = f"let {temporary_len_var_name} : int = {end_index}\n"
+            else:
+                l1 = f"let {temporary_len_var_name} = {array_name}.len()\n"
+                l1a = f"{temporary_len_var_name} -= 1;\n"
+
+            l2 = f"for {loop_counter_index} in range({temporary_len_var_name}..={start_index},{step_size}){{\n"
+            l3 = f"let {current_array_value_variable} = {array_name}[{loop_counter_index}]\n"
+            code = [l1, l1a, l2, l3]
         else:
-            l1 = f"let {temporary_len_var_name} = {array_name}.len()\n"
-            l2 = f"for {loop_counter_index} in range({start_index}..{temporary_len_var_name}){{\n"
+            l1 = ""
+            if end_index:
+                l1 = f"let {temporary_len_var_name} : int = {end_index}\n"
+            else:
+                l1 = f"let {temporary_len_var_name} = {array_name}.len()\n"
+            l2 = ""
+            if step_size:
+                l2 = f"for {loop_counter_index} in range({start_index}..{temporary_len_var_name}, {step_size}){{\n"
+            else:
+                l2 = f"for {loop_counter_index} in range({start_index}..{temporary_len_var_name}){{\n"
             l3 = f"let {current_array_value_variable} = {array_name}[{loop_counter_index}]\n"
             code = [l1, l2, l3]
 
