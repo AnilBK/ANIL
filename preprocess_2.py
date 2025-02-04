@@ -1434,19 +1434,36 @@ while index < len(Lines):
         global temp_arr_length_variable_count
         global for_loop_depth
 
+        start_index = "0"
         step_size = "1"
+
         #for x in list[::-1]
         #             ^^^^^^
         if parser.has_tokens_remaining():
             if parser.current_token() == lexer.Token.LEFT_SQUARE_BRACKET:
                 parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)
-                
-                parser.consume_token(lexer.Token.COLON)
+
+                if parser.check_token(lexer.Token.COLON):
+                    parser.consume_token(lexer.Token.COLON)
+                    #for x in list[::-1]
+                    #              ^
+                else:
+                    #for x in list[1::-1]
+                    #              ^
+                    start_index = get_integer_expression("Expected integer expression for start_index.")
+                    parser.consume_token(lexer.Token.COLON)
+
                 parser.consume_token(lexer.Token.COLON)
 
-                step_size = get_integer_expression("Expected integer expression for step_size.")
-                
-                parser.consume_token(lexer.Token.RIGHT_SQUARE_BRACKET)
+                if parser.check_token(lexer.Token.RIGHT_SQUARE_BRACKET):
+                    #for x in list[::]
+                    #                ^
+                    parser.consume_token(lexer.Token.RIGHT_SQUARE_BRACKET)
+                else:
+                    #for x in list[::-1]
+                    #                ^^
+                    step_size = get_integer_expression("Expected integer expression for step_size.")
+                    parser.consume_token(lexer.Token.RIGHT_SQUARE_BRACKET)
 
         loop_indices = "ijklmnopqrstuvwxyzabcdefgh"
         loop_counter_index = loop_indices[for_loop_depth % 26]
@@ -1462,12 +1479,12 @@ while index < len(Lines):
             # Starts with Negative index.
             l1 = f"let {temporary_len_var_name} = {array_name}.len() - 1\n"
             l2 = f"{temporary_len_var_name} -= 1;\n"
-            l3 = f"for {loop_counter_index} in range({temporary_len_var_name}..=0,{step_size}){{\n"
+            l3 = f"for {loop_counter_index} in range({temporary_len_var_name}..={start_index},{step_size}){{\n"
             l4 = f"let {current_array_value_variable} = {array_name}[{loop_counter_index}]\n"
             code = [l1, l2, l3, l4]
         else:
             l1 = f"let {temporary_len_var_name} = {array_name}.len()\n"
-            l2 = f"for {loop_counter_index} in range(0..{temporary_len_var_name}){{\n"
+            l2 = f"for {loop_counter_index} in range({start_index}..{temporary_len_var_name}){{\n"
             l3 = f"let {current_array_value_variable} = {array_name}[{loop_counter_index}]\n"
             code = [l1, l2, l3]
 
