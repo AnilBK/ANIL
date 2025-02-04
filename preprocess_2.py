@@ -2634,11 +2634,16 @@ while index < len(Lines):
             exact_type = "size_t"
             token_type = SpeculativeTokenType.NUMERIC_VARIABLE
             parser.next_token()
-        elif current_token.isdigit():
-            return_value = current_token
-            exact_type = "int"
-            token_type = SpeculativeTokenType.NUMERIC_CONSTANT
-            parser.next_token()
+        else:
+            try:
+                if current_token.isdigit():
+                    return_value = current_token
+                    exact_type = "int"
+                    token_type = SpeculativeTokenType.NUMERIC_CONSTANT
+                    parser.next_token()
+            except AttributeError:
+                # When the current_token is not string, current_token.isdigit() will raise AttributeError.
+                pass
 
         if return_value == None:
             # Nothing is number as of now.
