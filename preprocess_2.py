@@ -2387,6 +2387,9 @@ while index < len(Lines):
                         return [stringify(member.member) for member in struct_def.members]
 
                     def _get_member_functions():
+                        # FIXME: Now templated classes dont store functions definations in member_functions.
+                        # Instead they are stored in 'unparsed_functions' as raw text.
+                        # For templated classes extract function names using that.
                         return [stringify(fn.fn_name) for fn in struct_def.member_functions]
 
                     def _get_instances():
