@@ -213,19 +213,15 @@ int main() {
         }
 
         // Draw food.
-        let fx = food.position.get_x_int()
-        fx = fx * CELL_SIZE
-        let fy = food.position.get_y_int()
-        fy = fy * CELL_SIZE
+        let fx : int = food.position.get_x_int() * CELL_SIZE
+        let fy : int = food.position.get_y_int() * CELL_SIZE
 
         rl.DrawRectangle(fx, fy, CELL_SIZE, CELL_SIZE, rlRED)
         
         // Draw snake
         for body in snake.body{
-            let x = body.get_x_int()
-            x = x * CELL_SIZE
-            let y = body.get_y_int()
-            y = y * CELL_SIZE
+            let x : int = body.get_x_int() * CELL_SIZE
+            let y : int = body.get_y_int() * CELL_SIZE
 
             rl.DrawRectangle(x, y, CELL_SIZE, CELL_SIZE, rlGREEN)
         }

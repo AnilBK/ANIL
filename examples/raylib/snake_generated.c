@@ -1106,10 +1106,8 @@ int main() {
       }
 
       // Draw food.
-      int fx = rlVector2get_x_int(&food.position);
-      fx = fx * CELL_SIZE;
-      int fy = rlVector2get_y_int(&food.position);
-      fy = fy * CELL_SIZE;
+      int fx = rlVector2get_x_int(&food.position) * CELL_SIZE;
+      int fy = rlVector2get_y_int(&food.position) * CELL_SIZE;
 
       raylibDrawRectangle(&rl, fx, fy, CELL_SIZE, CELL_SIZE, rlRED);
 
@@ -1117,10 +1115,8 @@ int main() {
       size_t tmp_len_2 = Vector_rlVector2len(&snake.body);
       for (size_t i = 0; i < tmp_len_2; i++) {
         struct rlVector2 body = Vector_rlVector2__getitem__(&snake.body, i);
-        int x = rlVector2get_x_int(&body);
-        x = x * CELL_SIZE;
-        int y = rlVector2get_y_int(&body);
-        y = y * CELL_SIZE;
+        int x = rlVector2get_x_int(&body) * CELL_SIZE;
+        int y = rlVector2get_y_int(&body) * CELL_SIZE;
 
         raylibDrawRectangle(&rl, x, y, CELL_SIZE, CELL_SIZE, rlGREEN);
       }
