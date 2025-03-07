@@ -3578,29 +3578,35 @@ while index < len(Lines):
                 while parser.has_tokens_remaining():
                     gen_code = ""
 
-                    parse_info = speculative_parse_string()
-                    if parse_info == None:
-                        RAISE_ERROR("Expected string literal or String object for + operator.")
-                    else:
-                        string_tk = parse_info.speculative_token_value
-                        if parse_info.speculative_token_type == SpeculativeTokenType.STRING_EXPRESSION:
-                            #left_part += string_to_insert + s1.substr(p_index, s1.len() - p_index)
-                            #                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ This will return C expression.
-                            # i.e string_tk = Stringsubstr(&s1, p_index, Stringlen(&s1) - p_index).
-                            # This can't be passed to {parsed_member}.{add_fn}({string_tk}), as
-                            # string_tk is C Expression.
-                            # In this case we directly generate the appropriate C expression.
-                            temp_string_var_name = f"tmp_string_{temp_string_object_variable_count}"
-                            temp_string_object_variable_count += 1
-                            instance = StructInstance("String", f"{temp_string_var_name}", get_current_scope())
-                            # instance.is_pointer_type = True
-                            # instance.should_be_freed = False
-                            instanced_struct_names.append(instance)
+                    term = parse_term()
 
-                            LinesCache.append(f"struct String {temp_string_var_name} = {string_tk};\n")
-                            REGISTER_VARIABLE(f"{temp_string_var_name}", f"String")
-                            string_tk = f"{temp_string_var_name}"
+                    if term["type"] in {ParameterType.VARIABLE, ParameterType.STRING_CLASS, ParameterType.CHAR_TYPE} or term["struct_instance"] is not None:
+                        tk = term["value"]
+                        gen_code = f"{parsed_member}.{add_fn}({tk})\n"
+                    elif term["type"] == ParameterType.RAW_STRING:
+                        string_tk = term["value"]
+                        gen_code = f"{parsed_member}.{add_fn}(\"{string_tk}\")\n"
+                    elif term["type"] == "struct String":
+                        string_tk = term["value"]
+                        #left_part += string_to_insert + s1.substr(p_index, s1.len() - p_index)
+                        #                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ This will return C expression.
+                        # i.e string_tk = Stringsubstr(&s1, p_index, Stringlen(&s1) - p_index).
+                        # This can't be passed to {parsed_member}.{add_fn}({string_tk}), as
+                        # string_tk is C Expression.
+                        # In this case we directly generate the appropriate C expression.
+                        temp_string_var_name = f"tmp_string_{temp_string_object_variable_count}"
+                        temp_string_object_variable_count += 1
+                        instance = StructInstance("String", f"{temp_string_var_name}", get_current_scope())
+                        # instance.is_pointer_type = True
+                        # instance.should_be_freed = False
+                        instanced_struct_names.append(instance)
+
+                        LinesCache.append(f"struct String {temp_string_var_name} = {string_tk};\n")
+                        REGISTER_VARIABLE(f"{temp_string_var_name}", f"String")
+                        string_tk = f"{temp_string_var_name}"
                         gen_code = f"{parsed_member}.{add_fn}({string_tk})\n"
+                    else:
+                        RAISE_ERROR(f"Unimplemented + operator for parsed object {term}.")
                         
                     # Emit CPL code to perform addition.
                     # This line will be parsed by the compiler in next line.

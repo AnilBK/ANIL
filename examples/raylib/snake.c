@@ -201,7 +201,7 @@ int main() {
 
         if snake.ate_food(food){
             let last_pos = snake.body[-1]
-            last_pos.__add__(snake.speed)
+            last_pos += snake.speed
 
             snake.body.push(last_pos)
 
