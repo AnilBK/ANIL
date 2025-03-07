@@ -2705,6 +2705,9 @@ while index < len(Lines):
         return None
 
     def speculative_parse_string():
+        # Search for "FIXME: Lost Parser Tokens for speculative_parse_string()".
+        # If parsing for string fails, the entire parser tokens are lost after function_call_expression() below.
+
         return_value = None
         token_type = SpeculativeTokenType.NONE
         exact_type = ""
@@ -2988,6 +2991,11 @@ while index < len(Lines):
             }
 
             parser.clear_checkpoint()
+            # FIXME: Lost Parser Tokens for speculative_parse_string().
+            # Due to parser.clear_checkpoint() above,
+            # the entire parser contents is removed, and we don't restore previous parser tokens.
+            # Because of which in speculative_parse_string() if parsing string fails, the entire parser tokens are lost.
+
             expression_info = SpeculativeExpressionInfo()
             expression_info.speculative_expression_type = SpeculativeExpressionType.FUNCTION_CALL_EXPRESSION
             expression_info.speculative_expression_value = ""
