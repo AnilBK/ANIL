@@ -12,7 +12,7 @@ import Vector
 import String
 
 # Global functions.
-function my_first_CPL_function()
+function my_first_ANIL_function()
     print("Hello World from function. \n")
 endfunction
 
@@ -56,7 +56,7 @@ int main() {
 
   let s5 = String{string};
 
-  my_first_CPL_function()
+  my_first_ANIL_function()
 
   let class_name = "String"
   let fn_name = "__del__"

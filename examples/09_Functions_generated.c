@@ -59,7 +59,7 @@ void String__reassign__OVDstr(struct String *this, char *pstring);
 void Stringset_to_file_contents(struct String *this, char *pfilename);
 struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename);
 
-void my_first_CPL_function();
+void my_first_ANIL_function();
 struct String get_format_specifier(struct String p_type);
 struct String get_mangled_fn_name(struct String p_struct_type,
                                   struct String p_fn_name);
@@ -262,8 +262,8 @@ void String__reassign__OVDstr(struct String *this, char *pstring) {
 void Stringset_to_file_contents(struct String *this, char *pfilename) {
   // Read from the file & store the contents to this string.
 
-  // TODO: Use CPL to generate this, because the function below is a mangled
-  // function name.
+  // TODO: Implement this function in ANIL itself, because the function below is
+  // a mangled function name.
   Stringclear(this);
 
   FILE *ptr;
@@ -451,7 +451,7 @@ void Vector_Stringprint(struct Vector_String *this) {
 ///*///
 
 // Global functions.
-void my_first_CPL_function() { printf("Hello World from function. \n"); }
+void my_first_ANIL_function() { printf("Hello World from function. \n"); }
 
 struct String get_format_specifier(struct String p_type) {
   struct String return_type_str;
@@ -502,7 +502,7 @@ int main() {
   struct String s5;
   String__init__OVDstructString(&s5, string);
 
-  my_first_CPL_function();
+  my_first_ANIL_function();
 
   struct String class_name;
   String__init__OVDstr(&class_name, "String");

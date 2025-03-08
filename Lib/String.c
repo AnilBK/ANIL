@@ -184,7 +184,7 @@ endfunction
 c_function set_to_file_contents(pfilename: str)
   // Read from the file & store the contents to this string.
 
-  // TODO: Use CPL to generate this, because the function below is a mangled
+  // TODO: Implement this function in ANIL itself, because the function below is a mangled
   // function name.
   Stringclear(this);
 

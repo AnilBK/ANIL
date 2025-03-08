@@ -291,7 +291,7 @@ class SymbolTable:
         if tracking_scopes_for_current_fn:
             if new_scope_id not in tracked_scopes_for_current_fn:
                 tracked_scopes_for_current_fn.append(new_scope_id)
-            # For for loops, we increment scope and the for loop generates CPL code which increments scope.
+            # For for loops, we increment scope and the for loop generates ANIL code which increments scope.
             # Apparently new_scope_id is added again,
             # such that the destructor code is generated twice. So we make this check(Shouldn't be needed optimally).
 
@@ -1483,7 +1483,7 @@ while index < len(Lines):
 
         temporary_len_var_name = f"tmp_len_{temp_arr_length_variable_count}"
 
-        # Emit CPL code to perform looping.
+        # Emit ANIL code to perform looping.
         # This line will be parsed by the compiler in next line.
         
         code = []
@@ -1828,7 +1828,7 @@ while index < len(Lines):
             target_class_name = namespace_name
 
             if parser.has_tokens_remaining():
-                # function my_first_CPL_function() for String
+                # function my_first_ANIL_function() for String
                 if parser.check_token(lexer.Token.FOR):
                     parser.consume_token(lexer.Token.FOR)
 
@@ -1921,10 +1921,10 @@ while index < len(Lines):
                 values_str = ",".join(values_list)
 
             LinesCache.append(code)
-            constructor_CPL_code = f"{struct_name}.__init__({values_str})\n"
+            constructor_ANIL_code = f"{struct_name}.__init__({values_str})\n"
 
             index_to_insert_at = index
-            Lines.insert(index_to_insert_at, constructor_CPL_code)
+            Lines.insert(index_to_insert_at, constructor_ANIL_code)
             return
         else:
             struct_var_values_pairs = list(zip(StructInfo.members, values_list))
@@ -3313,12 +3313,12 @@ while index < len(Lines):
 
         # Create a function expression and merge the tokens to the current parser.
         # Parse the function expression using the recently merged tokens.
-        CPL_code = f"{var_to_check_against}.__eq__({var_to_check})".replace("->",".").replace("&","")
-        fn_parser = Parser.Parser(CPL_code)
+        ANIL_code = f"{var_to_check_against}.__eq__({var_to_check})".replace("->",".").replace("&","")
+        fn_parser = Parser.Parser(ANIL_code)
         parser.tokens = fn_parser.tokens + parser.tokens
         fn_call_parse_info = function_call_expression()
         if fn_call_parse_info == None:
-            RAISE_ERROR(f"For \"{CPL_code}\", Struct equality fn call parsing failed.")
+            RAISE_ERROR(f"For \"{ANIL_code}\", Struct equality fn call parsing failed.")
         else:
             code = fn_call_parse_info.get_fn_str()
 
@@ -3429,18 +3429,18 @@ while index < len(Lines):
                 if is_rhs_struct:
                     # Create a function expression and merge the tokens to the current parser.
                     # Parse the function expression using the recently merged tokens.
-                    CPL_code = f"{var_to_check_against}.__contains__({var_to_check})"
+                    ANIL_code = f"{var_to_check_against}.__contains__({var_to_check})"
                     if lhs['type'] == ParameterType.RAW_STRING:
-                        CPL_code = f"{var_to_check_against}.__contains__(\"{var_to_check}\")"
-                    CPL_code = CPL_code.replace("->",".")
-                    if CPL_code[0] == "&":
-                        CPL_code = CPL_code[1:]
+                        ANIL_code = f"{var_to_check_against}.__contains__(\"{var_to_check}\")"
+                    ANIL_code = ANIL_code.replace("->",".")
+                    if ANIL_code[0] == "&":
+                        ANIL_code = ANIL_code[1:]
 
-                    fn_parser = Parser.Parser(CPL_code)
+                    fn_parser = Parser.Parser(ANIL_code)
                     parser.tokens = fn_parser.tokens + parser.tokens
                     fn_call_parse_info = function_call_expression()
                     if fn_call_parse_info == None:
-                        RAISE_ERROR(f"For \"{CPL_code}\", Boolean expression fn call parsing failed.")
+                        RAISE_ERROR(f"For \"{ANIL_code}\", Boolean expression fn call parsing failed.")
                     else:
                         return_code = fn_call_parse_info.get_fn_str()
                         if negation:
@@ -3560,8 +3560,8 @@ while index < len(Lines):
                 continue
             
             parsed_member = member_access_string
-            # We are generating CPL code, so all these C specific value accessors(a->b etc) are removed.
-            # This will be generated again(as required) when parsing the CPL code in next line.
+            # We are generating ANIL code, so all these C specific value accessors(a->b etc) are removed.
+            # This will be generated again(as required) when parsing the ANIL code in next line.
             # _parse_struct_member_access() above added these symbols, we remove them now.
             parsed_member = parsed_member.replace("->",".")
             if parsed_member[0] == "&":
@@ -3608,7 +3608,7 @@ while index < len(Lines):
                     else:
                         RAISE_ERROR(f"Unimplemented + operator for parsed object {term}.")
                         
-                    # Emit CPL code to perform addition.
+                    # Emit ANIL code to perform addition.
                     # This line will be parsed by the compiler in next line.
                     # The conversion of String class to char*, char to char*,
                     # all these are handled by the compiler during function call parse.
@@ -3636,19 +3636,19 @@ while index < len(Lines):
                     LinesCache.append(f"{member_access_string} = {value};\n")
                 else:
                     # Expression Reassignment.
-                    reassign_CPL_code = f"{parsed_member}.__reassign__("
+                    reassign_ANIL_code = f"{parsed_member}.__reassign__("
                     #                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ convert to tokens.
-                    tmp_code_parser = Parser.Parser(reassign_CPL_code)
+                    tmp_code_parser = Parser.Parser(reassign_ANIL_code)
                     reassign_expr_tokens = tmp_code_parser.tokens
 
-                    # Insert the 'reassign_CPL_code' line as tokens to current token stream.
+                    # Insert the 'reassign_ANIL_code' line as tokens to current token stream.
                     # This converts a = b expression to a.__reassign__(b).
                     parser.tokens = reassign_expr_tokens + parser.tokens + [lexer.Token.RIGHT_ROUND_BRACKET]
                     
                     # Parse the newly formed expression.
                     fn_call_parse_info = function_call_expression()
                     if fn_call_parse_info == None:
-                        RAISE_ERROR(f"For \"{reassign_CPL_code}\", expression fn call parsing failed.")
+                        RAISE_ERROR(f"For \"{reassign_ANIL_code}\", expression fn call parsing failed.")
                     else:
                         return_code = fn_call_parse_info.get_fn_str()
                         LinesCache.append(f"{return_code};\n")
@@ -3949,12 +3949,12 @@ while index < len(Lines):
                 # ^^^^^^^^^^^^^^^^^^^^^^^ this line will generate the required C Code.
                 # let str = String{"Hello World"};
 
-                # Emit CPL code to create a struct 'String' object.
+                # Emit ANIL code to create a struct 'String' object.
                 # This line will be parsed by the compiler in next line.
-                CPL_code = f"let {array_name} = String{{\"{string}\"}};\n"
+                ANIL_code = f"let {array_name} = String{{\"{string}\"}};\n"
 
                 index_to_insert_at = index
-                Lines.insert(index_to_insert_at, CPL_code)
+                Lines.insert(index_to_insert_at, ANIL_code)
                 continue
             elif parser.check_token(lexer.Token.TRUE) or parser.check_token(
                 lexer.Token.FALSE
@@ -3975,12 +3975,12 @@ while index < len(Lines):
                 #     let test_list = List{};
                 #And, ^^^^^^^^^^^^^^^^^^^^^^ this line will generate the required C Code.
 
-                # Emit CPL code to create a struct 'List' object.
+                # Emit ANIL code to create a struct 'List' object.
                 # This line will be parsed by the compiler in next line.
-                CPL_code = f"let {array_name} = List{{ }};\n"
+                ANIL_code = f"let {array_name} = List{{ }};\n"
 
                 index_to_insert_at = index
-                Lines.insert(index_to_insert_at, CPL_code)
+                Lines.insert(index_to_insert_at, ANIL_code)
                 continue
             elif parser.check_token(lexer.Token.LEFT_CURLY):
                 #Parse Dictionary Type.
@@ -3992,12 +3992,12 @@ while index < len(Lines):
                 #     let dict = Dictionary{};
                 #And, ^^^^^^^^^^^^^^^^^^^^^^ this line will generate the required C Code.
 
-                # Emit CPL code to create a struct 'Dictionary' object of Lib/Dictionary.
+                # Emit ANIL code to create a struct 'Dictionary' object of Lib/Dictionary.
                 # This line will be parsed by the compiler in next line.
-                CPL_code = f"let {array_name} = Dictionary<int>{{ }};\n"
+                ANIL_code = f"let {array_name} = Dictionary<int>{{ }};\n"
 
                 index_to_insert_at = index
-                Lines.insert(index_to_insert_at, CPL_code)
+                Lines.insert(index_to_insert_at, ANIL_code)
                 continue
             else:
                 # let obj = Point{10, 20};
@@ -4100,7 +4100,7 @@ while index < len(Lines):
             if is_variable_const_char_ptr(array_name):
                 create_const_charptr_iterator(array_name, current_array_value_variable)
             elif is_struct:
-                # This generates new CPL code which creates a for loop(which makes a new scope).
+                # This generates new ANIL code which creates a for loop(which makes a new scope).
                 # We already have created a scope above by increment scope.
                 # We call decrement_scope() to compensate that.
                 for_loop_depth -= 1
@@ -4630,7 +4630,7 @@ while index < len(Lines):
             class_fn_defination["start_index"] = len(LinesCache)
         
         if parser.has_tokens_remaining():
-            # function my_first_CPL_function() for String
+            # function my_first_ANIL_function() for String
             if parser.check_token(lexer.Token.FOR):
                 parser.consume_token(lexer.Token.FOR)
 
@@ -4789,7 +4789,7 @@ while index < len(Lines):
                 fn_body += line
 
             del LinesCache[class_fn_defination["start_index"] : class_fn_defination["end_index"]]
-            # When using FUNCTION, C code is generated from CPL code.
+            # When using FUNCTION, C code is generated from ANIL code.
             # The c code is part of the function body and not needed in LinesCache.
             # So, remove it from LinesCache after adding the function body to the struct.
             if should_write_fn_body:

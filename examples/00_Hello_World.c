@@ -5,11 +5,11 @@
 // STRUCT_DEFINATIONS //
 
 ///*///
-// ^^^ The above line denotes the start of CPL code.
-function print_hello_world_in_CPL()
-  print("Hello World from CPL function.\n")
+// ^^^ The above line denotes the start of ANIL code.
+function print_hello_world_in_ANIL()
+  print("Hello World from ANIL function.\n")
 endfunction
-// VVV The below line denotes the end of CPL code.
+// VVV The below line denotes the end of ANIL code.
 ///*///
 
 int main() {
@@ -17,10 +17,10 @@ int main() {
   // clang-format off
 
   ///*///  main()
-  // ^^^ Every CPL program should start with the line above.
+  // ^^^ Every ANIL program should start with the line above.
 
   print("Hello World.\n")
-  print_hello_world_in_CPL()
+  print_hello_world_in_ANIL()
 
   // DESTRUCTOR_CODE //
   ///*///

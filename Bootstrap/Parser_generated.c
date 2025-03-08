@@ -458,8 +458,8 @@ void String__reassign__OVDstr(struct String *this, char *pstring) {
 void Stringset_to_file_contents(struct String *this, char *pfilename) {
   // Read from the file & store the contents to this string.
 
-  // TODO: Use CPL to generate this, because the function below is a mangled
-  // function name.
+  // TODO: Implement this function in ANIL itself, because the function below is
+  // a mangled function name.
   Stringclear(this);
 
   FILE *ptr;
