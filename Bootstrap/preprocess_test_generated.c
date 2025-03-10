@@ -2257,65 +2257,55 @@ bool is_variable(struct String p_var_name) {
 }
 
 bool is_variable_char_type(struct String p_var_name) {
-  struct String type;
-  String__init__OVDstr(&type, "char");
-  bool return_value = is_variable_of_type(p_var_name, type);
-  String__del__(&type);
+  struct String tmp_string_1;
+  Stringinit__STATIC__(&tmp_string_1, "char", 4);
+  bool return_value = is_variable_of_type(p_var_name, tmp_string_1);
   return return_value;
 }
 
 bool is_variable_const_char_ptr(struct String p_var_name) {
-  struct String type;
-  String__init__OVDstr(&type, "c_str");
-  bool return_value = is_variable_of_type(p_var_name, type);
-  String__del__(&type);
+  struct String tmp_string_2;
+  Stringinit__STATIC__(&tmp_string_2, "c_str", 5);
+  bool return_value = is_variable_of_type(p_var_name, tmp_string_2);
   return return_value;
 }
 
 bool is_variable_str_type(struct String p_var_name) {
-  struct String type1;
-  String__init__OVDstr(&type1, "str");
-  struct String type2;
-  String__init__OVDstr(&type2, "char*");
+  struct String tmp_string_3;
+  Stringinit__STATIC__(&tmp_string_3, "str", 3);
 
-  if (is_variable_of_type(p_var_name, type1)) {
-    String__del__(&type2);
-    String__del__(&type1);
+  if (is_variable_of_type(p_var_name, tmp_string_3)) {
     return true;
   }
 
-  if (is_variable_of_type(p_var_name, type2)) {
-    String__del__(&type2);
-    String__del__(&type1);
+  struct String tmp_string_4;
+  Stringinit__STATIC__(&tmp_string_4, "char*", 5);
+
+  if (is_variable_of_type(p_var_name, tmp_string_4)) {
     return true;
   }
 
-  String__del__(&type2);
-  String__del__(&type1);
   return false;
 }
 
 bool is_variable_boolean_type(struct String p_var_name) {
-  struct String type;
-  String__init__OVDstr(&type, "bool");
-  bool return_value = is_variable_of_type(p_var_name, type);
-  String__del__(&type);
+  struct String tmp_string_5;
+  Stringinit__STATIC__(&tmp_string_5, "bool", 4);
+  bool return_value = is_variable_of_type(p_var_name, tmp_string_5);
   return return_value;
 }
 
 bool is_variable_int_type(struct String p_var_name) {
-  struct String type;
-  String__init__OVDstr(&type, "int");
-  bool return_value = is_variable_of_type(p_var_name, type);
-  String__del__(&type);
+  struct String tmp_string_6;
+  Stringinit__STATIC__(&tmp_string_6, "int", 3);
+  bool return_value = is_variable_of_type(p_var_name, tmp_string_6);
   return return_value;
 }
 
 bool is_variable_size_t_type(struct String p_var_name) {
-  struct String type;
-  String__init__OVDstr(&type, "size_t");
-  bool return_value = is_variable_of_type(p_var_name, type);
-  String__del__(&type);
+  struct String tmp_string_7;
+  Stringinit__STATIC__(&tmp_string_7, "size_t", 6);
+  bool return_value = is_variable_of_type(p_var_name, tmp_string_7);
   return return_value;
 }
 

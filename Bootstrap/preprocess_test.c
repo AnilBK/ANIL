@@ -429,24 +429,19 @@ function is_variable(p_var_name : String) -> bool:
 endfunction
 
 function is_variable_char_type(p_var_name : String) -> bool:
-  let type = "char"
-  return is_variable_of_type(p_var_name, type)
+  return is_variable_of_type(p_var_name, "char")
 endfunction
 
 function is_variable_const_char_ptr(p_var_name : String) -> bool:
-  let type = "c_str"
-  return is_variable_of_type(p_var_name, type)
+  return is_variable_of_type(p_var_name, "c_str")
 endfunction
 
 function is_variable_str_type(p_var_name : String) -> bool:
-  let type1 = "str"
-  let type2 = "char*"
-
-  if is_variable_of_type(p_var_name, type1){
+  if is_variable_of_type(p_var_name, "str"){
     return true
   }
 
-  if is_variable_of_type(p_var_name, type2){
+  if is_variable_of_type(p_var_name, "char*"){
     return true
   }
 
@@ -454,18 +449,15 @@ function is_variable_str_type(p_var_name : String) -> bool:
 endfunction
 
 function is_variable_boolean_type(p_var_name : String) -> bool:
-  let type = "bool"
-  return is_variable_of_type(p_var_name, type)
+  return is_variable_of_type(p_var_name, "bool")
 endfunction
 
 function is_variable_int_type(p_var_name : String) -> bool:
-  let type = "int"
-  return is_variable_of_type(p_var_name, type)
+  return is_variable_of_type(p_var_name, "int")
 endfunction
 
 function is_variable_size_t_type(p_var_name : String) -> bool:
-  let type = "size_t"
-  return is_variable_of_type(p_var_name, type)
+  return is_variable_of_type(p_var_name, "size_t")
 endfunction
 
 ///*///

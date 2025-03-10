@@ -2901,7 +2901,7 @@ while index < len(Lines):
             param_type = parameter.param_type
 
             if param_type == ParameterType.RAW_STRING:
-                if (arg == "char*") or (arg == "str"):
+                if (arg == "char*") or (arg == "str") or (arg == "struct String") or (arg == "String"):
                     param = f'"{param}"'
                 else:
                     param = f"'{param}'"
@@ -3144,6 +3144,8 @@ while index < len(Lines):
         parameters_quoted = _quote_string_params(fn_args, parameters)
         parameters = parameters_quoted
 
+        global LinesCache
+
         # Promotion of char to char* when char is provided to a function that expects a char*.
         char_to_string_promotion_code = ""
         for i, (arg, parameter) in enumerate(zip(fn_args, parameters)):
@@ -3164,8 +3166,31 @@ while index < len(Lines):
                     # ^^^ String Object.
                     parameters[i].param = f"{c_str_fn_name}(&{parameters[i].param})"
 
+            # Automatic String literal to String Object conversion for function parameters which expect String object.
+            if arg == "struct String" and param_type == ParameterType.RAW_STRING:
+                # For f(a:String){..} we provided f("constant string literal");
+                #         ^^^^^^ arg                 ^^^^^^^^^^^^^^^^^^^^^^^ param_type
+                #
+                global temp_string_object_variable_count    
+                temp_string_var_name = f"tmp_string_{temp_string_object_variable_count}"
+                temp_string_object_variable_count += 1
+                instance = StructInstance("String", f"{temp_string_var_name}", get_current_scope())
+                # instance.is_pointer_type = True
+                instance.should_be_freed = False
+                instanced_struct_names.append(instance)
+
+                LinesCache.append(f"struct String {temp_string_var_name};\n")
+                string_len_without_quotes = len(param) - 2
+                #                                                                  v the param already has quotes.
+                LinesCache.append(f"Stringinit__STATIC__(&{temp_string_var_name}, {param}, {string_len_without_quotes});\n")
+                # TODO: By using String Object above, we could get the mangled function name instead of hardcoding
+                # the mangled function.
+                REGISTER_VARIABLE(f"{temp_string_var_name}", f"String")
+
+                parameter.param = temp_string_var_name
+                parameter.param_type = ParameterType.STRING_CLASS
+
         if char_to_string_promotion_code != "":
-            global LinesCache
             LinesCache.append(f"{char_to_string_promotion_code}\n")
 
         parameters_str = ""
