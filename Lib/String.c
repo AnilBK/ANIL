@@ -4,8 +4,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <stdbool.h>
 
-struct String{char* arr, int length, int capacity};
+struct String{char* arr, int length, int capacity, bool is_constexpr};
 
 namespace String
 function c_str() -> str:
@@ -39,6 +40,17 @@ c_function __init__from_charptr(text: str, p_text_length: int)
 
   this->length = p_text_length;
   this->capacity = p_text_length + 1;
+  this->is_constexpr = false;
+endc_function
+
+c_function init__STATIC__(text: str, p_text_length: int)
+  // WARNING: Only the compiler should write a call to this function.
+  // The compiler uses this initialization function to create a temporary String object
+  // when a string literal is passed to a function that expects a String object.
+  this->arr = text;
+  this->length = p_text_length;
+  this->capacity = p_text_length + 1;
+  this->is_constexpr = true;
 endc_function
 
 function __init__<>(text: str)
@@ -67,7 +79,9 @@ c_function printLn()
 endc_function
 
 c_function __del__()
-  free(this->arr);
+  if (!this->is_constexpr){
+    free(this->arr);
+  }
 endc_function
 
 c_function startswith(prefix: str) -> bool:

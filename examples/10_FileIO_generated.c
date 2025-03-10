@@ -9,6 +9,7 @@
 ///*///
 
 #include <ctype.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -28,6 +29,7 @@ struct String {
   char *arr;
   int length;
   int capacity;
+  bool is_constexpr;
 };
 
 struct Vector_String {
@@ -46,6 +48,7 @@ char String__getitem__(struct String *this, int index);
 size_t Stringlength_of_charptr(struct String *this, char *p_string);
 void String__init__from_charptr(struct String *this, char *text,
                                 int p_text_length);
+void Stringinit__STATIC__(struct String *this, char *text, int p_text_length);
 void String__init__OVDstr(struct String *this, char *text);
 void String__init__OVDstructString(struct String *this, struct String text);
 void Stringclear(struct String *this);
@@ -114,6 +117,18 @@ void String__init__from_charptr(struct String *this, char *text,
 
   this->length = p_text_length;
   this->capacity = p_text_length + 1;
+  this->is_constexpr = false;
+}
+
+void Stringinit__STATIC__(struct String *this, char *text, int p_text_length) {
+  // WARNING: Only the compiler should write a call to this function.
+  // The compiler uses this initialization function to create a temporary String
+  // object when a string literal is passed to a function that expects a String
+  // object.
+  this->arr = text;
+  this->length = p_text_length;
+  this->capacity = p_text_length + 1;
+  this->is_constexpr = true;
 }
 
 void String__init__OVDstr(struct String *this, char *text) {
@@ -137,7 +152,11 @@ void Stringprint(struct String *this) { printf("%s", this->arr); }
 
 void StringprintLn(struct String *this) { printf("%s\n", this->arr); }
 
-void String__del__(struct String *this) { free(this->arr); }
+void String__del__(struct String *this) {
+  if (!this->is_constexpr) {
+    free(this->arr);
+  }
+}
 
 bool Stringstartswith(struct String *this, char *prefix) {
   return strncmp(this->arr, prefix, strlen(prefix)) == 0;
