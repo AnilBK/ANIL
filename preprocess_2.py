@@ -4805,6 +4805,27 @@ while index < len(Lines):
         if is_inside_struct_c_function:
             RAISE_ERROR("Use \"endc_function\" to close a c function and not \"end_function\".")
 
+        if class_fn_defination["function_destination"] == "class" and class_fn_defination["function_name"] == "__del__":
+            # Write destructors for member variables of this class in reverse order.
+            # TODO: This may be implemented as a macro written in ANIL itself.
+
+            current_class = class_fn_defination["class_name"]
+
+            struct_defination = get_struct_defination_of_type(current_class)
+            if struct_defination is None:
+                # Shouldn't happen.
+                RAISE_ERROR(f"Internal Error: The current function we are writing is a destructor of {current_class} but {current_class} isn't a valid class.")
+            else:
+                # Write destructors in reverse order.
+                for member in struct_defination.members[::-1]:
+                    member_type = member.data_type
+
+                    member_struct_def = get_struct_defination_of_type(member_type)
+                    if member_struct_def is not None:
+                        if member_struct_def.has_destructor():
+                            destructor_mangled_fn_name = get_mangled_fn_name(member_type, "__del__")
+                            LinesCache.append(f"{destructor_mangled_fn_name}(&this->{member.member});\n")
+
         class_fn_defination["end_index"] = len(LinesCache)
 
         if class_fn_defination["function_destination"] == "class":

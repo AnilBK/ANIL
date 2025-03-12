@@ -1115,9 +1115,9 @@ bool StructInstanceshould_struct_be_freed(struct StructInstance *this) {
 }
 
 void StructInstance__del__(struct StructInstance *this) {
-  String__del__(&this->struct_type);
-  String__del__(&this->struct_name);
   String__del__(&this->templated_data_type);
+  String__del__(&this->struct_name);
+  String__del__(&this->struct_type);
 }
 
 void Symbol__init__(struct Symbol *this, struct String p_name,
@@ -1145,8 +1145,8 @@ void Symbol__reassign__(struct Symbol *this, struct Symbol p_symbol) {
 }
 
 void Symbol__del__(struct Symbol *this) {
-  String__del__(&this->name);
   String__del__(&this->data_type);
+  String__del__(&this->name);
 }
 
 void NameSymbolPair__init__(struct NameSymbolPair *this, struct String p_name,
@@ -1403,8 +1403,8 @@ struct Optional_Symbol SymbolTablelookup_variable(struct SymbolTable *this,
 }
 
 void SymbolTable__del__(struct SymbolTable *this) {
-  Vector_ScopeScopeIDPair__del__(&this->scopes);
   Vector_int__del__(&this->scope_stack);
+  Vector_ScopeScopeIDPair__del__(&this->scopes);
 }
 
 size_t Vector_Stringlen(struct Vector_String *this) { return this->size; }

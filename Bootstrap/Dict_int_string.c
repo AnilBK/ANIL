@@ -10,7 +10,6 @@ function __init__(p_key : int)
 endfunction
     
 function __del__()
-  this.value.__del__()
 endfunction
 endnamespace
 
@@ -60,7 +59,6 @@ function add_key(p_key : int)
 endfunction
 
 function __del__()
-  this.pairs.__del__()
 endfunction
 endnamespace
 ///*///

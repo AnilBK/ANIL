@@ -31,7 +31,6 @@ function __init__(p_position : rlVector2, p_speed : rlVector2)
 endfunction
 
 function __del__()
-   this.body.__del__()
 endfunction
 
 function is_touching_itself() -> bool:

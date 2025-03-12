@@ -1022,10 +1022,7 @@ void Parser__init__(struct Parser *this, struct String line) {
   List__del__(&tokens);
 }
 
-void Parser__del__(struct Parser *this) {
-  // TODO : This should be performed automatically.
-  List__del__(&this->tokens);
-}
+void Parser__del__(struct Parser *this) { List__del__(&this->tokens); }
 
 bool Parserhas_tokens_remaining(struct Parser *this) {
   bool return_value = Listlen(&this->tokens) > 0;

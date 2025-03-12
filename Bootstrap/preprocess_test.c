@@ -111,9 +111,6 @@ function should_struct_be_freed() -> bool:
 endfunction
 
 function __del__()
-  this.struct_type.__del__()
-  this.struct_name.__del__()
-  this.templated_data_type.__del__()
 endfunction
 endnamespace
 
@@ -143,8 +140,6 @@ function __reassign__(p_symbol : Symbol)
 endfunction
 
 function __del__()
-  this.name.__del__()
-  this.data_type.__del__()
 endfunction
 endnamespace
 
@@ -205,7 +200,6 @@ function destructor_for_all_variables() -> String:
 endfunction
 
 function __del__()
-  this.symbols.__del__()
 endfunction
 
 endnamespace
@@ -225,7 +219,6 @@ function get_scope_id() -> int:
 endfunction
 
 function __del__()
-  this.scope.__del__()
 endfunction
 endnamespace
 
@@ -379,8 +372,6 @@ function lookup_variable(name : String) -> Optional<Symbol>:
 endfunction
     
 function __del__()
-  this.scopes.__del__()
-  this.scope_stack.__del__()
 endfunction
 endnamespace
 

@@ -27,8 +27,6 @@ function __init__(line : String)
 endfunction
 
 function __del__()
-    // TODO : This should be performed automatically.
-    this.tokens.__del__()
 endfunction
 
 function has_tokens_remaining() -> bool:
