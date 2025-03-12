@@ -8,9 +8,6 @@ function __init__(p_key : int)
   this.key = p_key
   this.value.__init__(5)
 endfunction
-    
-function __del__()
-endfunction
 endnamespace
 
 namespace Vector
@@ -56,9 +53,6 @@ function add_key(p_key : int)
     let s = int_str_list{p_key};
     this.pairs.push(s)
   }
-endfunction
-
-function __del__()
 endfunction
 endnamespace
 ///*///

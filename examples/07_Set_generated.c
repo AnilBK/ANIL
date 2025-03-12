@@ -75,7 +75,6 @@ struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename);
 size_t Setlen(struct Set *this);
 struct String Set__getitem__(struct Set *this, int index);
 void Set__init__(struct Set *this, int count);
-void Set__del__(struct Set *this);
 bool Set__contains__(struct Set *this, struct String value);
 void Setadd(struct Set *this, struct String value);
 void Setprint(struct Set *this);
@@ -95,6 +94,8 @@ void Vector_Stringremove_at(struct Vector_String *this, int index);
 void Vector_Stringclear(struct Vector_String *this);
 bool Vector_String__contains__(struct Vector_String *this, struct String value);
 void Vector_Stringprint(struct Vector_String *this);
+
+void Set__del__(struct Set *this) { Vector_String__del__(&this->arr); }
 
 char *Stringc_str(struct String *this) { return this->arr; }
 
@@ -331,8 +332,6 @@ struct String Set__getitem__(struct Set *this, int index) {
 void Set__init__(struct Set *this, int count) {
   Vector_String__init__(&this->arr, count);
 }
-
-void Set__del__(struct Set *this) { Vector_String__del__(&this->arr); }
 
 bool Set__contains__(struct Set *this, struct String value) {
   bool return_value = Vector_String__contains__(&this->arr, value);

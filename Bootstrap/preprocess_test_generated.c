@@ -242,7 +242,6 @@ struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename);
 size_t Setlen(struct Set *this);
 struct String Set__getitem__(struct Set *this, int index);
 void Set__init__(struct Set *this, int count);
-void Set__del__(struct Set *this);
 bool Set__contains__(struct Set *this, struct String value);
 void Setadd(struct Set *this, struct String value);
 void Setprint(struct Set *this);
@@ -282,13 +281,11 @@ void Random__init__(struct Random *this);
 int Randomrandrange(struct Random *this, int upper_limit);
 
 void int_str_list__init__(struct int_str_list *this, int p_key);
-void int_str_list__del__(struct int_str_list *this);
 
 void Dict_int_string__init__(struct Dict_int_string *this);
 bool Dict_int_string__contains__(struct Dict_int_string *this, int p_key);
 void Dict_int_stringkey_exists_quit(struct Dict_int_string *this);
 void Dict_int_stringadd_key(struct Dict_int_string *this, int p_key);
-void Dict_int_string__del__(struct Dict_int_string *this);
 
 void ErrorHandlerRAISE_ERROR(struct ErrorHandler *this, char *p_error_msg);
 
@@ -309,14 +306,12 @@ void StructInstance__init__(struct StructInstance *this,
                             struct String p_templated_data_type, int p_scope);
 bool StructInstanceis_templated_instance(struct StructInstance *this);
 bool StructInstanceshould_struct_be_freed(struct StructInstance *this);
-void StructInstance__del__(struct StructInstance *this);
 
 void Symbol__init__(struct Symbol *this, struct String p_name,
                     struct String p_data_type);
 struct String Symbolget_name(struct Symbol *this);
 struct String Symbolget_data_type(struct Symbol *this);
 void Symbol__reassign__(struct Symbol *this, struct Symbol p_symbol);
-void Symbol__del__(struct Symbol *this);
 
 void NameSymbolPair__init__(struct NameSymbolPair *this, struct String p_name,
                             struct Symbol p_symbol);
@@ -330,11 +325,9 @@ void Scopedeclare_variable(struct Scope *this, struct String name,
 struct Optional_Symbol Scopelookup_variable(struct Scope *this,
                                             struct String name);
 struct String Scopedestructor_for_all_variables(struct Scope *this);
-void Scope__del__(struct Scope *this);
 
 void ScopeScopeIDPair__init__(struct ScopeScopeIDPair *this, int p_scope_id);
 int ScopeScopeIDPairget_scope_id(struct ScopeScopeIDPair *this);
-void ScopeScopeIDPair__del__(struct ScopeScopeIDPair *this);
 
 void SymbolTable__init__(struct SymbolTable *this);
 int SymbolTablecurrent_scope(struct SymbolTable *this);
@@ -350,7 +343,6 @@ void SymbolTabledeclare_variable(struct SymbolTable *this, struct String name,
                                  struct String p_type);
 struct Optional_Symbol SymbolTablelookup_variable(struct SymbolTable *this,
                                                   struct String name);
-void SymbolTable__del__(struct SymbolTable *this);
 
 int get_current_scope();
 void increment_scope();
@@ -462,6 +454,38 @@ bool Optional_Stringhas_value(struct Optional_String *this);
 struct String Optional_Stringget_value(struct Optional_String *this);
 void Optional_Stringset_value(struct Optional_String *this,
                               struct String p_value);
+
+void int_str_list__del__(struct int_str_list *this) {
+  Vector_String__del__(&this->value);
+}
+
+void Symbol__del__(struct Symbol *this) {
+  String__del__(&this->data_type);
+  String__del__(&this->name);
+}
+
+void Scope__del__(struct Scope *this) {
+  OrderedDict_Symbol__del__(&this->symbols);
+}
+
+void ScopeScopeIDPair__del__(struct ScopeScopeIDPair *this) {
+  Scope__del__(&this->scope);
+}
+
+void Optional_Symbol__del__(struct Optional_Symbol *this) {
+  Symbol__del__(&this->_value);
+}
+
+void Optional_String__del__(struct Optional_String *this) {
+  String__del__(&this->_value);
+}
+
+void SymbolTable__del__(struct SymbolTable *this) {
+  Vector_int__del__(&this->scope_stack);
+  Vector_ScopeScopeIDPair__del__(&this->scopes);
+}
+
+void Set__del__(struct Set *this) { Vector_String__del__(&this->arr); }
 
 char *Stringc_str(struct String *this) { return this->arr; }
 
@@ -698,8 +722,6 @@ struct String Set__getitem__(struct Set *this, int index) {
 void Set__init__(struct Set *this, int count) {
   Vector_String__init__(&this->arr, count);
 }
-
-void Set__del__(struct Set *this) { Vector_String__del__(&this->arr); }
 
 bool Set__contains__(struct Set *this, struct String value) {
   bool return_value = Vector_String__contains__(&this->arr, value);
@@ -1038,10 +1060,6 @@ void int_str_list__init__(struct int_str_list *this, int p_key) {
   Vector_String__init__(&this->value, 5);
 }
 
-void int_str_list__del__(struct int_str_list *this) {
-  Vector_String__del__(&this->value);
-}
-
 void Dict_int_string__init__(struct Dict_int_string *this) {
   Vector_int_str_list__init__(&this->pairs, 5);
 }
@@ -1079,10 +1097,6 @@ void Dict_int_stringadd_key(struct Dict_int_string *this, int p_key) {
   }
 }
 
-void Dict_int_string__del__(struct Dict_int_string *this) {
-  Vector_int_str_list__del__(&this->pairs);
-}
-
 void ErrorHandlerRAISE_ERROR(struct ErrorHandler *this, char *p_error_msg) {
   fprintf(stderr, p_error_msg);
   exit(EXIT_FAILURE);
@@ -1114,12 +1128,6 @@ bool StructInstanceshould_struct_be_freed(struct StructInstance *this) {
   return this->should_be_freed;
 }
 
-void StructInstance__del__(struct StructInstance *this) {
-  String__del__(&this->templated_data_type);
-  String__del__(&this->struct_name);
-  String__del__(&this->struct_type);
-}
-
 void Symbol__init__(struct Symbol *this, struct String p_name,
                     struct String p_data_type) {
   String__init__OVDstructString(&this->name, p_name);
@@ -1142,11 +1150,6 @@ void Symbol__reassign__(struct Symbol *this, struct Symbol p_symbol) {
   String__reassign__OVDstructString(&this->name, Symbolget_name(&p_symbol));
   String__reassign__OVDstructString(&this->data_type,
                                     Symbolget_data_type(&p_symbol));
-}
-
-void Symbol__del__(struct Symbol *this) {
-  String__del__(&this->data_type);
-  String__del__(&this->name);
 }
 
 void NameSymbolPair__init__(struct NameSymbolPair *this, struct String p_name,
@@ -1205,10 +1208,6 @@ struct String Scopedestructor_for_all_variables(struct Scope *this) {
   return d;
 }
 
-void Scope__del__(struct Scope *this) {
-  OrderedDict_Symbol__del__(&this->symbols);
-}
-
 void ScopeScopeIDPair__init__(struct ScopeScopeIDPair *this, int p_scope_id) {
   this->scope_id = p_scope_id;
   Scope__init__(&this->scope, p_scope_id);
@@ -1216,10 +1215,6 @@ void ScopeScopeIDPair__init__(struct ScopeScopeIDPair *this, int p_scope_id) {
 
 int ScopeScopeIDPairget_scope_id(struct ScopeScopeIDPair *this) {
   return this->scope_id;
-}
-
-void ScopeScopeIDPair__del__(struct ScopeScopeIDPair *this) {
-  Scope__del__(&this->scope);
 }
 
 void SymbolTable__init__(struct SymbolTable *this) {
@@ -1391,20 +1386,17 @@ struct Optional_Symbol SymbolTablelookup_variable(struct SymbolTable *this,
     struct Optional_Symbol variable = Scopelookup_variable(&scope, name);
 
     if (Optional_Symbolhas_value(&variable)) {
+      Optional_Symbol__del__(&variable);
       Scope__del__(&scope);
       return variable;
     }
+    Optional_Symbol__del__(&variable);
     Scope__del__(&scope);
   }
 
   struct Optional_Symbol none;
   Optional_Symbol__init__(&none);
   return none;
-}
-
-void SymbolTable__del__(struct SymbolTable *this) {
-  Vector_int__del__(&this->scope_stack);
-  Vector_ScopeScopeIDPair__del__(&this->scopes);
 }
 
 size_t Vector_Stringlen(struct Vector_String *this) { return this->size; }
@@ -2235,6 +2227,7 @@ struct Optional_String get_type_of_variable(struct String p_var_name) {
     Symbol__del__(&symbol);
   }
 
+  Optional_Symbol__del__(&var);
   return return_type;
 }
 
@@ -2245,14 +2238,17 @@ bool is_variable_of_type(struct String p_var_name, struct String p_type) {
     struct String value = Optional_Stringget_value(&var_type);
     bool return_value = String__eq__(&value, Stringc_str(&p_type));
     String__del__(&value);
+    Optional_String__del__(&var_type);
     return return_value;
   }
+  Optional_String__del__(&var_type);
   return false;
 }
 
 bool is_variable(struct String p_var_name) {
   struct Optional_String var_type = get_type_of_variable(p_var_name);
   bool return_value = Optional_Stringhas_value(&var_type);
+  Optional_String__del__(&var_type);
   return return_value;
 }
 

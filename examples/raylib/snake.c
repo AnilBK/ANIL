@@ -30,9 +30,6 @@ function __init__(p_position : rlVector2, p_speed : rlVector2)
     this.body.__init__(10)
 endfunction
 
-function __del__()
-endfunction
-
 function is_touching_itself() -> bool:
     let body_ref = this.body
 

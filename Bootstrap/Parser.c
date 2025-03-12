@@ -26,9 +26,6 @@ function __init__(line : String)
   this.tokens = tokens
 endfunction
 
-function __del__()
-endfunction
-
 function has_tokens_remaining() -> bool:
     return this.tokens.len() > 0
 endfunction

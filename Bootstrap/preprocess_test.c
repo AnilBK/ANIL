@@ -109,9 +109,6 @@ endfunction
 function should_struct_be_freed() -> bool:
   return this.should_be_freed
 endfunction
-
-function __del__()
-endfunction
 endnamespace
 
 struct Symbol{String name, String data_type};
@@ -137,9 +134,6 @@ endfunction
 function __reassign__(p_symbol : Symbol)
   this.name = p_symbol.get_name()
   this.data_type = p_symbol.get_data_type()
-endfunction
-
-function __del__()
 endfunction
 endnamespace
 
@@ -198,10 +192,6 @@ function destructor_for_all_variables() -> String:
   let d = ""
   return d
 endfunction
-
-function __del__()
-endfunction
-
 endnamespace
 
 let random = Random{};
@@ -216,9 +206,6 @@ endfunction
 
 function get_scope_id() -> int:
   return this.scope_id
-endfunction
-
-function __del__()
 endfunction
 endnamespace
 
@@ -369,9 +356,6 @@ function lookup_variable(name : String) -> Optional<Symbol>:
 
   let none = Optional<Symbol>{};
   return none
-endfunction
-    
-function __del__()
 endfunction
 endnamespace
 

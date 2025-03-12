@@ -247,7 +247,6 @@ void File__del__(struct File *this);
 struct List Lexerget_tokens(struct Lexer *this, struct String p_line);
 
 void Parser__init__(struct Parser *this, struct String line);
-void Parser__del__(struct Parser *this);
 bool Parserhas_tokens_remaining(struct Parser *this);
 struct ListObject Parsercurrent_token(struct Parser *this);
 void Parsernext_token(struct Parser *this);
@@ -281,6 +280,8 @@ void Dictionary_int__setitem__(struct Dictionary_int *this, char *p_key_str,
                                int p_value);
 bool Dictionary_int__contains__(struct Dictionary_int *this, char *p_key);
 void Dictionary_intprint(struct Dictionary_int *this);
+
+void Parser__del__(struct Parser *this) { List__del__(&this->tokens); }
 
 char *Stringc_str(struct String *this) { return this->arr; }
 
@@ -1021,8 +1022,6 @@ void Parser__init__(struct Parser *this, struct String line) {
   List__reassign__(&this->tokens, tokens);
   List__del__(&tokens);
 }
-
-void Parser__del__(struct Parser *this) { List__del__(&this->tokens); }
 
 bool Parserhas_tokens_remaining(struct Parser *this) {
   bool return_value = Listlen(&this->tokens) > 0;

@@ -18,9 +18,6 @@ function __init__(count : int)
   this.arr.__init__(count)
 endfunction  
 
-function __del__()
-endfunction
-
 function __contains__(value : String) -> bool:
   return value in this.arr  
 endfunction

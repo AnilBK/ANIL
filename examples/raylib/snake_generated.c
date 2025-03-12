@@ -186,7 +186,6 @@ void Food__init__(struct Food *this, struct rlVector2 p_position);
 
 void Snake__init__(struct Snake *this, struct rlVector2 p_position,
                    struct rlVector2 p_speed);
-void Snake__del__(struct Snake *this);
 bool Snakeis_touching_itself(struct Snake *this);
 bool Snakeate_food(struct Snake *this, struct Food p_food);
 void Snakemove_body(struct Snake *this);
@@ -227,6 +226,8 @@ void Vector_rlVector2clear(struct Vector_rlVector2 *this);
 bool Vector_rlVector2__contains__(struct Vector_rlVector2 *this,
                                   struct rlVector2 value);
 void Vector_rlVector2print(struct Vector_rlVector2 *this);
+
+void Snake__del__(struct Snake *this) { Vector_rlVector2__del__(&this->body); }
 
 void rlColor__init__(struct rlColor *this, u8 r, u8 g, u8 b, u8 a) {
   this->color = (Color){r, g, b, a};
@@ -623,8 +624,6 @@ void Snake__init__(struct Snake *this, struct rlVector2 p_position,
   rlVector2__reassign__(&this->speed, p_speed);
   Vector_rlVector2__init__(&this->body, 10);
 }
-
-void Snake__del__(struct Snake *this) { Vector_rlVector2__del__(&this->body); }
 
 bool Snakeis_touching_itself(struct Snake *this) {
   struct Vector_rlVector2 body_ref = this->body;

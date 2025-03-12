@@ -117,6 +117,11 @@ GlobalStructInitCode = ""
 #           struct A h(int b, ...);
 GlobalGeneratedFunctionDeclarations = ""
 
+# If classes don't provide their custom destructors(__del__()), then we recursively search if any of its members
+# has destructors. If any of it's members has destructors, then we emit a custom destructor. The emmited
+# destructor code is stored here.
+GlobalGeneratedStructDestructors = ""
+
 # Same as above, but for struct definations.
 # For e.g: It stores:
 #           struct Vector { ... };
@@ -597,6 +602,42 @@ class Struct:
     def has_destructor(self) -> bool:
         return any(fn.is_destructor() for fn in self.member_functions)
 
+    def fill_with_destructors_recursive(self):
+        # Recursively figure out if any of its children has destructors.
+        # If true, then we add destructor to their parent as well, if the parent doesn't have a destructor.
+        for member in self.members:
+            member_type = member.data_type
+
+            member_struct_def = get_struct_defination_of_type(member_type)
+            if member_struct_def is None:
+                # Skip for non struct members.
+                continue
+
+            if member_struct_def.has_destructor():
+                continue
+
+            member_struct_def.fill_with_destructors_recursive()
+
+        # All it's children have destructors filled if necessary.
+        # Now, if we don't have a destructor, then we need to fill the destructor in ourself.
+        if not self.has_destructor():
+            atleast_one_child_has_destructor = False
+
+            for member in self.members:
+                member_type = member.data_type
+
+                member_struct_def = get_struct_defination_of_type(member_type)
+                if member_struct_def is None:
+                    # Skip for non struct members.
+                    continue
+
+                if member_struct_def.has_destructor():
+                    atleast_one_child_has_destructor = True
+                    break
+
+            if atleast_one_child_has_destructor:
+                generate_destructor_for_struct(self.name)
+
     def has_member_fn(self, p_fn_name) -> bool:
         return any(fn.fn_name == p_fn_name for fn in self.member_functions)
 
@@ -1042,7 +1083,7 @@ class StructInstance:
 
     def struct_type_has_destructor(self) -> bool:
         return self.get_struct_defination().has_destructor()
-
+    
     def get_mangled_function_name(self, p_fn_name: str, parameters = None) -> str:
         StructInfo = self.get_struct_defination()
 
@@ -1130,6 +1171,46 @@ def add_fnbody_to_member_to_struct(p_struct_name: str, p_fn_name: str, p_fn_body
                 break
 
 
+""" Add destructor to a struct given it's member's destructors. We don't recursively check & add destructors to it's members. """
+def generate_destructor_for_struct(p_struct_name: str):
+    struct_defination = get_struct_defination_of_type(p_struct_name)
+
+    if struct_defination is None:
+        # Provided type is not a struct, so need to add a destructor.
+        return
+
+    if struct_defination.has_destructor():
+        # Provided type already has a destructor, so no need to add a destructor.
+        return
+
+    fn_body = ""
+
+    # Write member destructors in reverse order.
+    for member in struct_defination.members[::-1]:
+        member_type = member.data_type
+
+        member_struct_def = get_struct_defination_of_type(member_type)
+        if member_struct_def is None:
+            continue
+
+        if member_struct_def.has_destructor():
+            destructor_mangled_fn_name = get_mangled_fn_name(member_type, "__del__")
+            fn_body += f"{destructor_mangled_fn_name}(&this->{member.member});\n"
+
+    params = []
+    fn = MemberFunction("__del__", params, "void")
+    fn.fn_body = fn_body
+
+    add_fn_member_to_struct(p_struct_name, fn)
+
+    mangled_destructor_fn_name = get_mangled_fn_name(p_struct_name, "__del__")
+
+    global GlobalGeneratedStructDestructors
+    GlobalGeneratedStructDestructors += f"void {mangled_destructor_fn_name}(struct {p_struct_name} *this){{ \n"
+    GlobalGeneratedStructDestructors += fn_body
+    GlobalGeneratedStructDestructors += "}\n\n"
+
+
 def is_instanced_struct(p_struct_name: str):
     return any(struct.struct_name == p_struct_name for struct in instanced_struct_names)
 
@@ -1155,6 +1236,9 @@ def get_destructor_for_struct(p_name):
             # We mayn't need to check for scopes.
             struct_name = struct.struct_name
             if struct_name == p_name:
+                if not struct.struct_type_has_destructor():
+                    struct.get_struct_defination().fill_with_destructors_recursive()
+
                 if struct.struct_type_has_destructor():
                     destructor_fn_name = struct.get_destructor_fn_name()
                     des_code = f"{destructor_fn_name}(&{struct_name});\n"
@@ -1334,6 +1418,11 @@ while index < len(Lines):
                 LinesCache.append(code)
         continue
     elif Line.startswith("// DESTRUCTOR_CODE //"):
+        # Destructors NOTE: If structs aren't instantiated, then their destructors mayn't be emitted.
+        # TODO: This could be fixed by just generating destructors of all structs whose
+        # destructors haven't been emitted yet at the end of the code during final destructors generation.
+        # Not a necessity for now.
+
         # Destroy all variables, then emit the code to be parsed later.
         # Now the code to be parsed later has fresh symbol table to work with.
         LinesCache.append(symbol_table.destructor_code_for_all_remaining_variables())
@@ -5109,7 +5198,7 @@ if len(global_variables_initialization_code) > 0 and not main_fn_found:
 
 for i in range(len(LinesCache)):
     if "// STRUCT_DEFINATIONS //" in LinesCache[i]:
-        LinesCache[i] = GlobalGeneratedStructDefinations + GlobalGeneratedFunctionDeclarations + "\n\n" + GlobalStructInitCode
+        LinesCache[i] = GlobalGeneratedStructDefinations + GlobalGeneratedFunctionDeclarations + "\n\n" + GlobalGeneratedStructDestructors + GlobalStructInitCode
     elif "// DESTRUCTOR_CODE //" in LinesCache[i]:
         LinesCache[i] = ""
     elif "// HWND_VARIABLE_DECLARATIONS //" in LinesCache[i]:
