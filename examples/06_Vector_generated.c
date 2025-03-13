@@ -60,6 +60,8 @@ void String__init__from_charptr(struct String *this, char *text,
                                 int p_text_length);
 void Stringinit__STATIC__(struct String *this, char *text, int p_text_length);
 void String__init__OVDstr(struct String *this, char *text);
+void String__init__OVDstrint(struct String *this, char *text,
+                             int p_text_length);
 void String__init__OVDstructString(struct String *this, struct String text);
 void Stringclear(struct String *this);
 void Stringprint(struct String *this);
@@ -179,6 +181,11 @@ void Stringinit__STATIC__(struct String *this, char *text, int p_text_length) {
 
 void String__init__OVDstr(struct String *this, char *text) {
   size_t p_text_length = Stringlength_of_charptr(this, text);
+  String__init__from_charptr(this, text, p_text_length);
+}
+
+void String__init__OVDstrint(struct String *this, char *text,
+                             int p_text_length) {
   String__init__from_charptr(this, text, p_text_length);
 }
 
@@ -934,13 +941,13 @@ int main() {
   Vector_charprint(&string);
 
   struct String str;
-  String__init__OVDstr(&str, "Hello");
+  String__init__OVDstrint(&str, "Hello", 5);
   struct String str2;
-  String__init__OVDstr(&str2, "World");
+  String__init__OVDstrint(&str2, "World", 5);
   struct String str3;
-  String__init__OVDstr(&str3, "Honey");
+  String__init__OVDstrint(&str3, "Honey", 5);
   struct String str4;
-  String__init__OVDstr(&str4, "Bunny");
+  String__init__OVDstrint(&str4, "Bunny", 5);
 
   struct Vector_String test;
   Vector_String__init__(&test, 5);

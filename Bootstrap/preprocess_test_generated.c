@@ -219,6 +219,8 @@ void String__init__from_charptr(struct String *this, char *text,
                                 int p_text_length);
 void Stringinit__STATIC__(struct String *this, char *text, int p_text_length);
 void String__init__OVDstr(struct String *this, char *text);
+void String__init__OVDstrint(struct String *this, char *text,
+                             int p_text_length);
 void String__init__OVDstructString(struct String *this, struct String text);
 void Stringclear(struct String *this);
 void Stringprint(struct String *this);
@@ -531,6 +533,11 @@ void Stringinit__STATIC__(struct String *this, char *text, int p_text_length) {
 
 void String__init__OVDstr(struct String *this, char *text) {
   size_t p_text_length = Stringlength_of_charptr(this, text);
+  String__init__from_charptr(this, text, p_text_length);
+}
+
+void String__init__OVDstrint(struct String *this, char *text,
+                             int p_text_length) {
   String__init__from_charptr(this, text, p_text_length);
 }
 
@@ -1167,7 +1174,7 @@ struct String NameSymbolPairget_name(struct NameSymbolPair *this) {
   // Duplicate the string and return it.
   struct String n1 = NameSymbolPairuncopied_name(this);
   struct String name;
-  String__init__OVDstr(&name, "");
+  String__init__OVDstrint(&name, "", 0);
   String__reassign__OVDstructString(&name, n1);
   return name;
 }
@@ -1204,7 +1211,7 @@ struct Optional_Symbol Scopelookup_variable(struct Scope *this,
 
 struct String Scopedestructor_for_all_variables(struct Scope *this) {
   struct String d;
-  String__init__OVDstr(&d, "");
+  String__init__OVDstrint(&d, "", 0);
   return d;
 }
 
@@ -1299,7 +1306,7 @@ void SymbolTableremove_scope_by_id(struct SymbolTable *this, int scope_id) {
 struct String SymbolTabledestructor_code_for_all_remaining_variables(
     struct SymbolTable *this) {
   struct String destructor_code;
-  String__init__OVDstr(&destructor_code, "");
+  String__init__OVDstrint(&destructor_code, "", 0);
 
   while (Vector_intlen(&this->scope_stack) > 0) {
     int exiting_scope_id = Vector_intpop(&this->scope_stack);
@@ -2126,7 +2133,7 @@ struct String escape_quotes(struct String s) {
   // Add \ in front of any " in the string.
   // if we find \", then we don't add \ in front of ".
   struct String result;
-  String__init__OVDstr(&result, "");
+  String__init__OVDstrint(&result, "", 0);
   size_t len = Stringlen(&s);
 
   for (size_t i = 0; i < len; i++) {
@@ -2151,7 +2158,7 @@ struct String escape_quotes(struct String s) {
 
 struct String get_format_specifier(struct String p_type) {
   struct String return_type_str;
-  String__init__OVDstr(&return_type_str, "d");
+  String__init__OVDstrint(&return_type_str, "d", 1);
 
   if (String__eq__(&p_type, "char")) {
     String__reassign__OVDstr(&return_type_str, "c");
@@ -2316,7 +2323,7 @@ int main() {
   SymbolTable__init__(&symbol_table);
 
   struct String source_file;
-  String__init__OVDstr(&source_file, "../examples/01_variables.c");
+  String__init__OVDstrint(&source_file, "../examples/01_variables.c", 26);
   // source_file.printLn()
 
   // output_file_name = source_file.split(".")[0] + "_generated.c"
@@ -2326,7 +2333,7 @@ int main() {
   // output_file_name.print()
 
   struct String file;
-  String__init__OVDstr(&file, "");
+  String__init__OVDstrint(&file, "", 0);
   StringprintLn(&file);
 
   struct Vector_String Lines =
@@ -2364,14 +2371,14 @@ int main() {
       struct String module_name =
           Vector_String__getitem__(&imported_modules, i);
       struct String relative_path;
-      String__init__OVDstr(&relative_path, "../Lib/");
+      String__init__OVDstrint(&relative_path, "../Lib/", 7);
       String__add__(&relative_path, Stringc_str(&module_name));
       String__add__(&relative_path, ".c");
 
       StringprintLn(&relative_path);
 
       struct String module_file;
-      String__init__OVDstr(&module_file, "");
+      String__init__OVDstrint(&module_file, "", 0);
       struct Vector_String lines =
           StringreadlinesFrom(&module_file, Stringc_str(&relative_path));
       // lines.print()
@@ -2390,9 +2397,9 @@ int main() {
   }
 
   struct String s1;
-  String__init__OVDstr(&s1, "Hello World");
+  String__init__OVDstrint(&s1, "Hello World", 11);
   struct String insert;
-  String__init__OVDstr(&insert, "virus");
+  String__init__OVDstrint(&insert, "virus", 5);
   int index = 2;
 
   struct String new_string = insert_string(s1, index, insert);

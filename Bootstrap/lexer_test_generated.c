@@ -105,6 +105,8 @@ void String__init__from_charptr(struct String *this, char *text,
                                 int p_text_length);
 void Stringinit__STATIC__(struct String *this, char *text, int p_text_length);
 void String__init__OVDstr(struct String *this, char *text);
+void String__init__OVDstrint(struct String *this, char *text,
+                             int p_text_length);
 void String__init__OVDstructString(struct String *this, struct String text);
 void Stringclear(struct String *this);
 void Stringprint(struct String *this);
@@ -226,6 +228,11 @@ void Stringinit__STATIC__(struct String *this, char *text, int p_text_length) {
 
 void String__init__OVDstr(struct String *this, char *text) {
   size_t p_text_length = Stringlength_of_charptr(this, text);
+  String__init__from_charptr(this, text, p_text_length);
+}
+
+void String__init__OVDstrint(struct String *this, char *text,
+                             int p_text_length) {
   String__init__from_charptr(this, text, p_text_length);
 }
 
@@ -757,12 +764,13 @@ struct List Lexerget_tokens(struct Lexer *this) {
   Dictionary_int__setitem__(&KEYWORD_TOKENS, "hook_end", 40);
 
   struct String line_org;
-  String__init__OVDstr(&line_org, "  let arr = [ 1, 2, 3, 4 , 5 ]; } let");
+  String__init__OVDstrint(&line_org, "  let arr = [ 1, 2, 3, 4 , 5 ]; } let",
+                          37);
   struct String line = Stringstrip(&line_org);
   size_t length = Stringlen(&line);
 
   struct String token;
-  String__init__OVDstr(&token, "");
+  String__init__OVDstrint(&token, "", 0);
 
   struct List tokens;
   List__init__(&tokens);

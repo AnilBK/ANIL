@@ -50,6 +50,8 @@ void String__init__from_charptr(struct String *this, char *text,
                                 int p_text_length);
 void Stringinit__STATIC__(struct String *this, char *text, int p_text_length);
 void String__init__OVDstr(struct String *this, char *text);
+void String__init__OVDstrint(struct String *this, char *text,
+                             int p_text_length);
 void String__init__OVDstructString(struct String *this, struct String text);
 void Stringclear(struct String *this);
 void Stringprint(struct String *this);
@@ -133,6 +135,11 @@ void Stringinit__STATIC__(struct String *this, char *text, int p_text_length) {
 
 void String__init__OVDstr(struct String *this, char *text) {
   size_t p_text_length = Stringlength_of_charptr(this, text);
+  String__init__from_charptr(this, text, p_text_length);
+}
+
+void String__init__OVDstrint(struct String *this, char *text,
+                             int p_text_length) {
   String__init__from_charptr(this, text, p_text_length);
 }
 
@@ -496,7 +503,7 @@ int main() {
 
   printf("Reading from a file(10_FileIO.c) to a string:\n");
   struct String input_str;
-  String__init__OVDstr(&input_str, "");
+  String__init__OVDstrint(&input_str, "", 0);
   Stringset_to_file_contents(&input_str, "10_FileIO.c");
   StringprintLn(&input_str);
 

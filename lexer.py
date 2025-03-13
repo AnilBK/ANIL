@@ -127,6 +127,33 @@ def token_to_str(token):
     return None
 
 
+def get_escaped_length(line):
+    """
+    Returns the length of the string considering escape sequences. 
+    Escape sequences are counted as 1 character each, not their literal representations.
+    """
+
+    """
+    Escape sequences such as \n are not encoded as a single character '\n', but as two independent
+    characters '\','n' because when we output the string, the '\n' will be converted to a new line and,
+    an extra line will be added to the generated output file. We don't want this.
+    That's why we have this representation.
+    However, the actual length of the string should be the escaped length.
+    """
+
+    length = 0
+    i = 0
+    while i < len(line):
+        if line[i] == '\\' and i + 1 < len(line):
+            # If an escape sequence is detected, we just count the escape character and the next one
+            length += 1
+            i += 2  # Skip the next character as it's part of the escape sequence
+        else:
+            length += 1
+            i += 1
+    return length
+
+
 def get_tokens(line):
     line = line.strip("\n")
     length = len(line)

@@ -42,6 +42,8 @@ void String__init__from_charptr(struct String *this, char *text,
                                 int p_text_length);
 void Stringinit__STATIC__(struct String *this, char *text, int p_text_length);
 void String__init__OVDstr(struct String *this, char *text);
+void String__init__OVDstrint(struct String *this, char *text,
+                             int p_text_length);
 void String__init__OVDstructString(struct String *this, struct String text);
 void Stringclear(struct String *this);
 void Stringprint(struct String *this);
@@ -130,6 +132,11 @@ void Stringinit__STATIC__(struct String *this, char *text, int p_text_length) {
 
 void String__init__OVDstr(struct String *this, char *text) {
   size_t p_text_length = Stringlength_of_charptr(this, text);
+  String__init__from_charptr(this, text, p_text_length);
+}
+
+void String__init__OVDstrint(struct String *this, char *text,
+                             int p_text_length) {
   String__init__from_charptr(this, text, p_text_length);
 }
 
@@ -474,7 +481,7 @@ void my_first_ANIL_function() { printf("Hello World from function. \n"); }
 
 struct String get_format_specifier(struct String p_type) {
   struct String return_type_str;
-  String__init__OVDstr(&return_type_str, "d");
+  String__init__OVDstrint(&return_type_str, "d", 1);
 
   if (String__eq__(&p_type, "char")) {
     String__reassign__OVDstr(&return_type_str, "c");
@@ -515,7 +522,7 @@ int main() {
 
   ///*/// main()
   struct String string;
-  String__init__OVDstr(&string, "Hello World from String.\n");
+  String__init__OVDstrint(&string, "Hello World from String.\n", 25);
   Stringprint(&string);
 
   struct String s5;
@@ -524,9 +531,9 @@ int main() {
   my_first_ANIL_function();
 
   struct String class_name;
-  String__init__OVDstr(&class_name, "String");
+  String__init__OVDstrint(&class_name, "String", 6);
   struct String fn_name;
-  String__init__OVDstr(&fn_name, "__del__");
+  String__init__OVDstrint(&fn_name, "__del__", 7);
 
   struct String mangled_name = get_mangled_fn_name(class_name, fn_name);
   Stringprint(&mangled_name);

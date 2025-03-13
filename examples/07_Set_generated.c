@@ -52,6 +52,8 @@ void String__init__from_charptr(struct String *this, char *text,
                                 int p_text_length);
 void Stringinit__STATIC__(struct String *this, char *text, int p_text_length);
 void String__init__OVDstr(struct String *this, char *text);
+void String__init__OVDstrint(struct String *this, char *text,
+                             int p_text_length);
 void String__init__OVDstructString(struct String *this, struct String text);
 void Stringclear(struct String *this);
 void Stringprint(struct String *this);
@@ -141,6 +143,11 @@ void Stringinit__STATIC__(struct String *this, char *text, int p_text_length) {
 
 void String__init__OVDstr(struct String *this, char *text) {
   size_t p_text_length = Stringlength_of_charptr(this, text);
+  String__init__from_charptr(this, text, p_text_length);
+}
+
+void String__init__OVDstrint(struct String *this, char *text,
+                             int p_text_length) {
   String__init__from_charptr(this, text, p_text_length);
 }
 
@@ -520,11 +527,11 @@ int main() {
   ///*/// main()
 
   struct String s1;
-  String__init__OVDstr(&s1, "apple");
+  String__init__OVDstrint(&s1, "apple", 5);
   struct String s2;
-  String__init__OVDstr(&s2, "banana");
+  String__init__OVDstrint(&s2, "banana", 6);
   struct String s3;
-  String__init__OVDstr(&s3, "cherry");
+  String__init__OVDstrint(&s3, "cherry", 6);
 
   struct Set s;
   Set__init__(&s, 10);

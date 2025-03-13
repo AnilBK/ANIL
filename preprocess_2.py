@@ -4065,7 +4065,12 @@ while index < len(Lines):
 
                 # Emit ANIL code to create a struct 'String' object.
                 # This line will be parsed by the compiler in next line.
-                ANIL_code = f"let {array_name} = String{{\"{string}\"}};\n"
+                # ANIL_code = f"let {array_name} = String{{\"{string}\"}};\n"
+
+                # Same as the above commented line, 
+                # but this optimization removes a strlen() at runtime.
+                escaped_length = lexer.get_escaped_length(string)
+                ANIL_code = f"let {array_name} = String{{\"{string}\", {escaped_length}}};\n"
 
                 index_to_insert_at = index
                 Lines.insert(index_to_insert_at, ANIL_code)

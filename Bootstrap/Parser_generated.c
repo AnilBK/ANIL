@@ -190,6 +190,8 @@ void String__init__from_charptr(struct String *this, char *text,
                                 int p_text_length);
 void Stringinit__STATIC__(struct String *this, char *text, int p_text_length);
 void String__init__OVDstr(struct String *this, char *text);
+void String__init__OVDstrint(struct String *this, char *text,
+                             int p_text_length);
 void String__init__OVDstructString(struct String *this, struct String text);
 void Stringclear(struct String *this);
 void Stringprint(struct String *this);
@@ -327,6 +329,11 @@ void Stringinit__STATIC__(struct String *this, char *text, int p_text_length) {
 
 void String__init__OVDstr(struct String *this, char *text) {
   size_t p_text_length = Stringlength_of_charptr(this, text);
+  String__init__from_charptr(this, text, p_text_length);
+}
+
+void String__init__OVDstrint(struct String *this, char *text,
+                             int p_text_length) {
   String__init__from_charptr(this, text, p_text_length);
 }
 
@@ -872,13 +879,13 @@ struct List Lexerget_tokens(struct Lexer *this, struct String p_line) {
   Dictionary_int__setitem__(&KEYWORD_TOKENS, "hook_end", 40);
 
   struct String line_org;
-  String__init__OVDstr(&line_org, "");
+  String__init__OVDstrint(&line_org, "", 0);
   String__reassign__OVDstructString(&line_org, p_line);
   struct String line = Stringstrip(&line_org);
   size_t length = Stringlen(&line);
 
   struct String token;
-  String__init__OVDstr(&token, "");
+  String__init__OVDstrint(&token, "", 0);
 
   struct List tokens;
   List__init__(&tokens);
@@ -1088,7 +1095,7 @@ struct String Parserextract_string_literal(struct Parser *this) {
   Parsernext_token(this);
 
   struct String string;
-  String__init__OVDstr(&string, "");
+  String__init__OVDstrint(&string, "", 0);
 
   if (ListObjectis_str(&string_tk)) {
     String__reassign__OVDstr(&string, ListObjectget_str(&string_tk));
@@ -1337,7 +1344,7 @@ int main() {
   ///*/// main()
 
   struct String Line;
-  String__init__OVDstr(&Line, "print(");
+  String__init__OVDstrint(&Line, "print(", 6);
   String__add__(&Line, "\"Hello World!\");");
 
   struct Parser parser;
@@ -1356,7 +1363,7 @@ int main() {
     Parserconsume_token(&parser, 22);
 
     struct String str_to_write;
-    String__init__OVDstr(&str_to_write, "printf(");
+    String__init__OVDstrint(&str_to_write, "printf(", 7);
     String__add__(&str_to_write, "\"");
     String__add__(&str_to_write, Stringc_str(&actual_str));
     String__add__(&str_to_write, "\");");

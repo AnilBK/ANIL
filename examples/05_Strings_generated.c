@@ -42,6 +42,8 @@ void String__init__from_charptr(struct String *this, char *text,
                                 int p_text_length);
 void Stringinit__STATIC__(struct String *this, char *text, int p_text_length);
 void String__init__OVDstr(struct String *this, char *text);
+void String__init__OVDstrint(struct String *this, char *text,
+                             int p_text_length);
 void String__init__OVDstructString(struct String *this, struct String text);
 void Stringclear(struct String *this);
 void Stringprint(struct String *this);
@@ -122,6 +124,11 @@ void Stringinit__STATIC__(struct String *this, char *text, int p_text_length) {
 
 void String__init__OVDstr(struct String *this, char *text) {
   size_t p_text_length = Stringlength_of_charptr(this, text);
+  String__init__from_charptr(this, text, p_text_length);
+}
+
+void String__init__OVDstrint(struct String *this, char *text,
+                             int p_text_length) {
   String__init__from_charptr(this, text, p_text_length);
 }
 
@@ -474,7 +481,7 @@ int main() {
   }
 
   struct String str;
-  String__init__OVDstr(&str, "Hello World");
+  String__init__OVDstrint(&str, "Hello World", 11);
   // The following line is also valid, as the above syntax is shorthand for the
   // statement below. let str = String{"Hello World"};
   StringprintLn(&str);
@@ -483,7 +490,7 @@ int main() {
   StringprintLn(&str);
 
   struct String str2;
-  String__init__OVDstr(&str2, "Hi \n");
+  String__init__OVDstrint(&str2, "Hi \n", 4);
   Stringprint(&str2);
 
   struct String str3 = Stringstrip(&str2);
@@ -517,7 +524,8 @@ int main() {
   StringprintLn(&str);
 
   struct String str4;
-  String__init__OVDstr(&str4, "String constructed from another string. \n");
+  String__init__OVDstrint(&str4, "String constructed from another string. \n",
+                          41);
   struct String str5;
   String__init__OVDstructString(&str5, str4);
   StringprintLn(&str5);
@@ -527,13 +535,13 @@ int main() {
 
   printf("Split Test: \n");
   struct String split_str;
-  String__init__OVDstr(&split_str, "Splitting.with.dots.");
+  String__init__OVDstrint(&split_str, "Splitting.with.dots.", 20);
   StringprintLn(&split_str);
   struct Vector_String dot_split = Stringsplit(&split_str, '.');
   Vector_Stringprint(&dot_split);
 
   struct String split_str2;
-  String__init__OVDstr(&split_str2, "Splitting with Spaces.");
+  String__init__OVDstrint(&split_str2, "Splitting with Spaces.", 22);
   StringprintLn(&split_str2);
   struct Vector_String space_split = Stringsplit(&split_str2, ' ');
   Vector_Stringprint(&space_split);

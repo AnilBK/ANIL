@@ -45,6 +45,8 @@ void String__init__from_charptr(struct String *this, char *text,
                                 int p_text_length);
 void Stringinit__STATIC__(struct String *this, char *text, int p_text_length);
 void String__init__OVDstr(struct String *this, char *text);
+void String__init__OVDstrint(struct String *this, char *text,
+                             int p_text_length);
 void String__init__OVDstructString(struct String *this, struct String text);
 void Stringclear(struct String *this);
 void Stringprint(struct String *this);
@@ -133,6 +135,11 @@ void Stringinit__STATIC__(struct String *this, char *text, int p_text_length) {
 
 void String__init__OVDstr(struct String *this, char *text) {
   size_t p_text_length = Stringlength_of_charptr(this, text);
+  String__init__from_charptr(this, text, p_text_length);
+}
+
+void String__init__OVDstrint(struct String *this, char *text,
+                             int p_text_length) {
   String__init__from_charptr(this, text, p_text_length);
 }
 
@@ -474,7 +481,7 @@ void Vector_Stringprint(struct Vector_String *this) {
 
 bool return_test_bool(struct String p_str) {
   struct String a;
-  String__init__OVDstr(&a, "Test String");
+  String__init__OVDstrint(&a, "Test String", 11);
   bool return_value = String__contains__(&a, Stringc_str(&p_str));
   String__del__(&a);
   return return_value;
@@ -495,7 +502,7 @@ bool return_test_equals(struct String p_str, struct String p_str2) {
 
 bool return_test_equals2(struct String p_str) {
   struct String a;
-  String__init__OVDstr(&a, "Test String");
+  String__init__OVDstrint(&a, "Test String", 11);
   bool return_value = String__eq__(&p_str, Stringc_str(&a));
   String__del__(&a);
   return return_value;
@@ -503,9 +510,9 @@ bool return_test_equals2(struct String p_str) {
 
 bool return_test_equals3() {
   struct String a;
-  String__init__OVDstr(&a, "Test String");
+  String__init__OVDstrint(&a, "Test String", 11);
   struct String b;
-  String__init__OVDstr(&b, "Test String");
+  String__init__OVDstrint(&b, "Test String", 11);
   bool return_value = String__eq__(&a, Stringc_str(&b));
   String__del__(&b);
   String__del__(&a);
@@ -514,7 +521,7 @@ bool return_test_equals3() {
 
 struct String return_normal_value() {
   struct String a;
-  String__init__OVDstr(&a, "Test String");
+  String__init__OVDstrint(&a, "Test String", 11);
   return a;
 }
 

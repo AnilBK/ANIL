@@ -162,6 +162,8 @@ void String__init__from_charptr(struct String *this, char *text,
                                 int p_text_length);
 void Stringinit__STATIC__(struct String *this, char *text, int p_text_length);
 void String__init__OVDstr(struct String *this, char *text);
+void String__init__OVDstrint(struct String *this, char *text,
+                             int p_text_length);
 void String__init__OVDstructString(struct String *this, struct String text);
 void Stringclear(struct String *this);
 void Stringprint(struct String *this);
@@ -436,6 +438,11 @@ void Stringinit__STATIC__(struct String *this, char *text, int p_text_length) {
 
 void String__init__OVDstr(struct String *this, char *text) {
   size_t p_text_length = Stringlength_of_charptr(this, text);
+  String__init__from_charptr(this, text, p_text_length);
+}
+
+void String__init__OVDstrint(struct String *this, char *text,
+                             int p_text_length) {
   String__init__from_charptr(this, text, p_text_length);
 }
 
@@ -1028,7 +1035,7 @@ int main() {
 
   int score = 0;
   struct String scoreText;
-  String__init__OVDstr(&scoreText, "Score: 0        ");
+  String__init__OVDstrint(&scoreText, "Score: 0        ", 16);
   //                       ^^^^^^^^^ These spaces act as a buffer where sprintf
   //                                 can write the score digits.
 

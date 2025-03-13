@@ -48,6 +48,8 @@ void String__init__from_charptr(struct String *this, char *text,
                                 int p_text_length);
 void Stringinit__STATIC__(struct String *this, char *text, int p_text_length);
 void String__init__OVDstr(struct String *this, char *text);
+void String__init__OVDstrint(struct String *this, char *text,
+                             int p_text_length);
 void String__init__OVDstructString(struct String *this, struct String text);
 void Stringclear(struct String *this);
 void Stringprint(struct String *this);
@@ -141,6 +143,11 @@ void Stringinit__STATIC__(struct String *this, char *text, int p_text_length) {
 
 void String__init__OVDstr(struct String *this, char *text) {
   size_t p_text_length = Stringlength_of_charptr(this, text);
+  String__init__from_charptr(this, text, p_text_length);
+}
+
+void String__init__OVDstrint(struct String *this, char *text,
+                             int p_text_length) {
   String__init__from_charptr(this, text, p_text_length);
 }
 
@@ -611,14 +618,14 @@ int main() {
   int p_index = 5;
 
   struct String s1;
-  String__init__OVDstr(&s1, "Hello World");
+  String__init__OVDstrint(&s1, "Hello World", 11);
 
   if (String__getitem__(&s1, 2) == '\\') {
     String__add__(&s1, "\\");
   }
 
   struct String string_to_insert;
-  String__init__OVDstr(&string_to_insert, "*****");
+  String__init__OVDstrint(&string_to_insert, "*****", 5);
 
   struct String left_part = Stringsubstr(&s1, 0, p_index);
   struct String tmp_string_0 =

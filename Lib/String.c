@@ -55,7 +55,11 @@ endc_function
 
 function __init__<>(text: str)
   let p_text_length = this.length_of_charptr(text)
-  this.__init__from_charptr(text, p_text_length);
+  this.__init__from_charptr(text, p_text_length)
+endfunction
+
+function __init__<>(text: str, p_text_length: int)
+  this.__init__from_charptr(text, p_text_length)
 endfunction
 
 function __init__<>(text: String)
