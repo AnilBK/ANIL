@@ -62,6 +62,10 @@ int main() {
   let str5 = String{str4};
   str5.printLn()
 
+  let str6 = "String constructed from another string 2.\n"
+  let str7 = str6
+  str7.printLn()
+
   let substr_str = str4.substr(0, 6);
   substr_str.printLn()
   

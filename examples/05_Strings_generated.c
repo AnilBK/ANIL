@@ -530,6 +530,13 @@ int main() {
   String__init__OVDstructString(&str5, str4);
   StringprintLn(&str5);
 
+  struct String str6;
+  String__init__OVDstrint(&str6, "String constructed from another string 2.\n",
+                          42);
+  struct String str7;
+  String__init__OVDstructString(&str7, str6);
+  StringprintLn(&str7);
+
   struct String substr_str = Stringsubstr(&str4, 0, 6);
   StringprintLn(&substr_str);
 
@@ -551,6 +558,8 @@ int main() {
   Vector_String__del__(&dot_split);
   String__del__(&split_str);
   String__del__(&substr_str);
+  String__del__(&str7);
+  String__del__(&str6);
   String__del__(&str5);
   String__del__(&str4);
   String__del__(&str3);

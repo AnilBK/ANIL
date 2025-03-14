@@ -2249,7 +2249,22 @@ while index < len(Lines):
         #     .___________________ varname
         fn_call_parse_info = function_call_expression()
         if fn_call_parse_info == None:
-            RAISE_ERROR("Parsing function expression failed.")
+            # If it wasn't a function call assignment,
+            # then, try to parse a variable assignment.
+            term = parse_term()
+            term_type = term['type']
+            if term_type == ParameterType.STRING_CLASS:
+                # Creation of a string variable from another string variable.
+                # let str1 = str2
+                src_var_name = term["value"]
+
+                ANIL_code = [f"let {var_name} = String{{{src_var_name}}};\n"]
+                insert_intermediate_lines(index, ANIL_code)
+                return
+            elif term_type != ParameterType.UNDEFINED:
+                RAISE_ERROR(f"Variable assignment unimplemented for {term}.")
+
+            RAISE_ERROR("Error in parsing variable assignment.")
 
         parse_result = fn_call_parse_info.function_call_metadata
         fn_name = parse_result["fn_name"]
