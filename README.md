@@ -39,7 +39,7 @@ python preprocess_2.py --filename examples\FILE_NAME*.c
 - Standard Library: See [Lib/](Lib/). Shows mixing of C code and ANIL.
 - Dunder methods:
     - `__init__` : To implement constructors.
-    - `__del__` : To implement destructors.
+    - `__del__` : To implement destructors. For automatic destructor call for a struct member(if it has a destructor), use the ~ operator. Lookup `_call_destructor_for_element()` in [Vector](Lib/Vector.c)
     - `__getitem__` : To get an item at a specified index (e.g. `obj[index]`).
     - `__setitem__` : To set an item at a specified index (e.g. `obj[index] = value`).
     - `__reassign__` : To implement reassignment (e.g. `obj = value`).
