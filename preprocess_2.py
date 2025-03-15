@@ -2232,6 +2232,8 @@ while index < len(Lines):
 
             val = random.randrange(100000)
 
+            type_of_tk = type_of_tk.replace("*","")
+
             struct_instance = StructInstance(type_of_tk, f"tmp_struct_name_{str(val)}", get_current_scope())
 
             child_struct_info = struct_instance.get_struct_defination()
@@ -5207,6 +5209,51 @@ while index < len(Lines):
         namespace_name = ""
         templated_type_mappings = {}
         is_inside_name_space = False
+    elif check_token(lexer.Token.TILDE):
+        # ~a -> a.__del__() calls destructor to a if a has a destructor.
+        parser.consume_token(lexer.Token.TILDE)
+
+        if not is_inside_name_space:
+            RAISE_ERROR("Manual Destructor calls(~) are only allowed inside a namespace.")
+
+        # ~arr
+        #  ^^^ member_name
+        member_name = parser.get_token()
+        arrindex = None
+
+        if parser.has_tokens_remaining():
+            if parser.check_token(lexer.Token.LEFT_SQUARE_BRACKET):
+                parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)
+                # ~ arr[i]
+                #       ^ arrindex
+                arrindex = parser.get_token()
+                parser.consume_token(lexer.Token.RIGHT_SQUARE_BRACKET)
+
+        struct_defination = get_struct_defination_of_type(namespace_name)
+        if struct_defination is None:
+            RAISE_ERROR(f"[Internal Error]: \"{namespace_name}\" isn't a valid namespace name")
+
+        member_type = struct_defination.get_type_of_member(member_name)
+        # t* -> remove pointer
+        member_type = member_type.replace("*","")
+
+        member_type_struct_info = get_struct_defination_of_type(member_type)
+        if member_type_struct_info != None:
+            # Only structs have destructors, so write the destructors.
+            # Skip for other types.
+            if member_type_struct_info.has_destructor():
+                is_refering_to_array_element = arrindex != None
+                if is_refering_to_array_element:
+                    # arr[i].__del__()
+                    # ANIL_code = f"this.{member_name}[{arrindex}].__del__();\n"
+                    # FIMXE: Unimplemented array function call.      
+                    destructor_mangled_fn_name = get_mangled_fn_name(member_type, "__del__")
+                    des_code = f"{destructor_mangled_fn_name}(&this->{member_name}[{arrindex}]);\n"                                  
+                    insert_intermediate_lines(index, [des_code])
+                else:
+                    # arr.__del__()
+                    ANIL_code = f"this.{member_name}.__del__();\n"
+                    insert_intermediate_lines(index, [ANIL_code])
     else:
         LinesCache.append(Line)
 

@@ -53,6 +53,7 @@ class Token(Enum):
     CONST = 49
     WHILE = 50
     NOT = 51
+    TILDE = 52
 
 
 CHARACTER_TOKENS = {
@@ -79,6 +80,7 @@ CHARACTER_TOKENS = {
     "!": Token.EXCLAMATION,
     "/": Token.FRONT_SLASH,
     "&": Token.AMPERSAND,
+    "~": Token.TILDE,
 }
 
 
