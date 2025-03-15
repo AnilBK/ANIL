@@ -18,8 +18,6 @@
 ///*///
 
 ///*///
-
-#include <stdbool.h>
 #include <stdio.h>
 
 // IMPORTS //
@@ -35,6 +33,14 @@ struct Vector_String {
   struct String *arr;
   int size;
   int capacity;
+};
+
+struct UniquePtr_int {
+  int *arr;
+};
+
+struct UniquePtr_String {
+  struct String *arr;
 };
 
 char *Stringc_str(struct String *this);
@@ -67,14 +73,6 @@ void String__reassign__OVDstr(struct String *this, char *pstring);
 void Stringset_to_file_contents(struct String *this, char *pfilename);
 struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename);
 
-bool return_test_bool(struct String p_str);
-bool return_test_struct_in_struct(struct String p_str);
-bool return_test_equals(struct String p_str, struct String p_str2);
-bool return_test_equals2(struct String p_str);
-bool return_test_equals3();
-struct String return_normal_value();
-bool return_test_array();
-bool return_test_array2();
 size_t Vector_Stringlen(struct Vector_String *this);
 void Vector_String__init__(struct Vector_String *this, int capacity);
 void Vector_String_call_destructor_for_element(struct Vector_String *this,
@@ -104,6 +102,16 @@ void Vector_String_clear(struct Vector_String *this);
 void Vector_Stringclear(struct Vector_String *this);
 bool Vector_String__contains__(struct Vector_String *this, struct String value);
 void Vector_Stringprint(struct Vector_String *this);
+void UniquePtr_int__init__(struct UniquePtr_int *this, int capacity);
+void UniquePtr_int__call_destructor_if_available__(struct UniquePtr_int *this);
+void UniquePtr_int__free__ptr(struct UniquePtr_int *this);
+void UniquePtr_int__del__(struct UniquePtr_int *this);
+
+void UniquePtr_String__init__(struct UniquePtr_String *this, int capacity);
+void UniquePtr_String__call_destructor_if_available__(
+    struct UniquePtr_String *this);
+void UniquePtr_String__free__ptr(struct UniquePtr_String *this);
+void UniquePtr_String__del__(struct UniquePtr_String *this);
 
 char *Stringc_str(struct String *this) { return this->arr; }
 
@@ -551,97 +559,65 @@ void Vector_Stringprint(struct Vector_String *this) {
   printf("]\n");
 }
 
-///*///
+void UniquePtr_int__init__(struct UniquePtr_int *this, int capacity) {
+  this->arr = (int *)malloc(capacity * sizeof(int));
 
-bool return_test_bool(struct String p_str) {
-  struct String a;
-  String__init__OVDstrint(&a, "Test String", 11);
-  bool return_value = String__contains__(&a, Stringc_str(&p_str));
-  String__del__(&a);
-  return return_value;
-}
-
-bool return_test_struct_in_struct(struct String p_str) {
-  struct Vector_String z;
-  Vector_String__init__(&z, 5);
-  bool return_value = Vector_String__contains__(&z, p_str);
-  Vector_String__del__(&z);
-  return return_value;
-}
-
-bool return_test_equals(struct String p_str, struct String p_str2) {
-  bool return_value = String__eq__(&p_str, Stringc_str(&p_str2));
-  return return_value;
-}
-
-bool return_test_equals2(struct String p_str) {
-  struct String a;
-  String__init__OVDstrint(&a, "Test String", 11);
-  bool return_value = String__eq__(&p_str, Stringc_str(&a));
-  String__del__(&a);
-  return return_value;
-}
-
-bool return_test_equals3() {
-  struct String a;
-  String__init__OVDstrint(&a, "Test String", 11);
-  struct String b;
-  String__init__OVDstrint(&b, "Test String", 11);
-  bool return_value = String__eq__(&a, Stringc_str(&b));
-  String__del__(&b);
-  String__del__(&a);
-  return return_value;
-}
-
-struct String return_normal_value() {
-  struct String a;
-  String__init__OVDstrint(&a, "Test String", 11);
-  return a;
-}
-
-bool return_test_array() {
-  int arr[] = {1, 2, 3, 4, 5, 10};
-  unsigned int arr_array_size = 6;
-
-  bool arr__contains__10_0 = false;
-  for (unsigned int i = 0; i < arr_array_size; i++) {
-    if (arr[i] == 10) {
-      arr__contains__10_0 = true;
-      break;
-    }
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
   }
-
-  if (arr__contains__10_0) {
-    return true;
-  }
-
-  return false;
 }
 
-bool return_test_array2() {
-  int value = 10;
-  int arr[] = {1, 2, 3, 4, 5, 10};
-  unsigned int arr_array_size = 6;
-
-  bool arr__contains__value_1 = false;
-  for (unsigned int i = 0; i < arr_array_size; i++) {
-    if (arr[i] == value) {
-      arr__contains__value_1 = true;
-      break;
-    }
-  }
-  return arr__contains__value_1;
+void UniquePtr_int__call_destructor_if_available__(struct UniquePtr_int *this) {
+  // If arr has a destructor, then emit 'arr.__del__()'.
+  // Otherwise emit nothing.
+  // Evaluated at compile time.
 }
 
-///*///
+void UniquePtr_int__free__ptr(struct UniquePtr_int *this) { free(this->arr); }
+
+void UniquePtr_int__del__(struct UniquePtr_int *this) {
+  UniquePtr_int__call_destructor_if_available__(this);
+  UniquePtr_int__free__ptr(this);
+}
+
+void UniquePtr_String__init__(struct UniquePtr_String *this, int capacity) {
+  this->arr = (struct String *)malloc(capacity * sizeof(struct String));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+}
+
+void UniquePtr_String__call_destructor_if_available__(
+    struct UniquePtr_String *this) {
+  // If arr has a destructor, then emit 'arr.__del__()'.
+  // Otherwise emit nothing.
+  // Evaluated at compile time.
+  String__del__(&this->arr);
+}
+
+void UniquePtr_String__free__ptr(struct UniquePtr_String *this) {
+  free(this->arr);
+}
+
+void UniquePtr_String__del__(struct UniquePtr_String *this) {
+  UniquePtr_String__call_destructor_if_available__(this);
+  UniquePtr_String__free__ptr(this);
+}
 
 int main() {
 
-  ///*/// main()
+  ///*///  main()
 
-  printf("Code Generation Tests for return expressions, Just check if the code "
-         "generated is valid.");
+  struct UniquePtr_int i;
+  UniquePtr_int__init__(&i, 5);
+  struct UniquePtr_String s;
+  UniquePtr_String__init__(&s, 5);
 
+  UniquePtr_String__del__(&s);
+  UniquePtr_int__del__(&i);
   ///*///
 
   return 0;

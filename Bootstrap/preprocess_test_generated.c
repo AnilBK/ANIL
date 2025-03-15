@@ -360,35 +360,67 @@ bool is_variable_boolean_type(struct String p_var_name);
 bool is_variable_int_type(struct String p_var_name);
 bool is_variable_size_t_type(struct String p_var_name);
 size_t Vector_Stringlen(struct Vector_String *this);
-struct String Vector_String__getitem__(struct Vector_String *this, int index);
-void Vector_String__setitem__(struct Vector_String *this, int index,
-                              struct String value);
 void Vector_String__init__(struct Vector_String *this, int capacity);
+void Vector_String_call_destructor_for_element(struct Vector_String *this,
+                                               int index);
+void Vector_String_call_destructor_for_all_elements(struct Vector_String *this);
+void Vector_String_reset(struct Vector_String *this);
 void Vector_String__del__(struct Vector_String *this);
-void Vector_Stringpush(struct Vector_String *this, struct String value);
-void Vector_Stringallocate_more(struct Vector_String *this, int n);
+struct String Vector_String__getitem__(struct Vector_String *this, int index);
+void Vector_String_set_ith_item(struct Vector_String *this, int index,
+                                struct String value);
 void Vector_Stringpush_unchecked(struct Vector_String *this,
                                  struct String value);
+void Vector_Stringvalidate_index(struct Vector_String *this, int index);
+void Vector_String_set(struct Vector_String *this, int index,
+                       struct String value);
+void Vector_String__setitem__(struct Vector_String *this, int index,
+                              struct String value);
+void Vector_Stringallocate_more(struct Vector_String *this, int n);
+void Vector_String_grow_if_required(struct Vector_String *this);
+void Vector_String_push(struct Vector_String *this, struct String value);
+void Vector_Stringpush(struct Vector_String *this, struct String value);
 struct String Vector_Stringpop(struct Vector_String *this);
+void Vector_String_shift_left_from(struct Vector_String *this, int index);
+void Vector_String_dec_size(struct Vector_String *this);
 void Vector_Stringremove_at(struct Vector_String *this, int index);
+void Vector_String_clear(struct Vector_String *this);
 void Vector_Stringclear(struct Vector_String *this);
 bool Vector_String__contains__(struct Vector_String *this, struct String value);
 void Vector_Stringprint(struct Vector_String *this);
 size_t Vector_int_str_listlen(struct Vector_int_str_list *this);
-struct int_str_list
-Vector_int_str_list__getitem__(struct Vector_int_str_list *this, int index);
-void Vector_int_str_list__setitem__(struct Vector_int_str_list *this, int index,
-                                    struct int_str_list value);
 void Vector_int_str_list__init__(struct Vector_int_str_list *this,
                                  int capacity);
+void Vector_int_str_list_call_destructor_for_element(
+    struct Vector_int_str_list *this, int index);
+void Vector_int_str_list_call_destructor_for_all_elements(
+    struct Vector_int_str_list *this);
+void Vector_int_str_list_reset(struct Vector_int_str_list *this);
 void Vector_int_str_list__del__(struct Vector_int_str_list *this);
-void Vector_int_str_listpush(struct Vector_int_str_list *this,
-                             struct int_str_list value);
-void Vector_int_str_listallocate_more(struct Vector_int_str_list *this, int n);
+struct int_str_list
+Vector_int_str_list__getitem__(struct Vector_int_str_list *this, int index);
+void Vector_int_str_list_set_ith_item(struct Vector_int_str_list *this,
+                                      int index, struct int_str_list value);
 void Vector_int_str_listpush_unchecked(struct Vector_int_str_list *this,
                                        struct int_str_list value);
+void Vector_int_str_listvalidate_index(struct Vector_int_str_list *this,
+                                       int index);
+void Vector_int_str_list_set(struct Vector_int_str_list *this, int index,
+                             struct int_str_list value);
+void Vector_int_str_list__setitem__(struct Vector_int_str_list *this, int index,
+                                    struct int_str_list value);
+void Vector_int_str_listallocate_more(struct Vector_int_str_list *this, int n);
+void Vector_int_str_list_grow_if_required(struct Vector_int_str_list *this);
+void Vector_int_str_list_push(struct Vector_int_str_list *this,
+                              struct int_str_list value);
+void Vector_int_str_listpush(struct Vector_int_str_list *this,
+                             struct int_str_list value);
 struct int_str_list Vector_int_str_listpop(struct Vector_int_str_list *this);
+void Vector_int_str_list_shift_left_from(struct Vector_int_str_list *this,
+                                         int index);
+void Vector_int_str_list_dec_size(struct Vector_int_str_list *this);
 void Vector_int_str_listremove_at(struct Vector_int_str_list *this, int index);
+void Vector_int_str_list_clear(struct Vector_int_str_list *this);
 void Vector_int_str_listclear(struct Vector_int_str_list *this);
 void Vector_int_str_listprint(struct Vector_int_str_list *this);
 bool Vector_int_str_list__contains__(struct Vector_int_str_list *this,
@@ -414,40 +446,71 @@ void Optional_Symbolset_value(struct Optional_Symbol *this,
                               struct Symbol p_value);
 
 size_t Vector_ScopeScopeIDPairlen(struct Vector_ScopeScopeIDPair *this);
+void Vector_ScopeScopeIDPair__init__(struct Vector_ScopeScopeIDPair *this,
+                                     int capacity);
+void Vector_ScopeScopeIDPair_call_destructor_for_element(
+    struct Vector_ScopeScopeIDPair *this, int index);
+void Vector_ScopeScopeIDPair_call_destructor_for_all_elements(
+    struct Vector_ScopeScopeIDPair *this);
+void Vector_ScopeScopeIDPair_reset(struct Vector_ScopeScopeIDPair *this);
+void Vector_ScopeScopeIDPair__del__(struct Vector_ScopeScopeIDPair *this);
 struct ScopeScopeIDPair
 Vector_ScopeScopeIDPair__getitem__(struct Vector_ScopeScopeIDPair *this,
                                    int index);
+void Vector_ScopeScopeIDPair_set_ith_item(struct Vector_ScopeScopeIDPair *this,
+                                          int index,
+                                          struct ScopeScopeIDPair value);
+void Vector_ScopeScopeIDPairpush_unchecked(struct Vector_ScopeScopeIDPair *this,
+                                           struct ScopeScopeIDPair value);
+void Vector_ScopeScopeIDPairvalidate_index(struct Vector_ScopeScopeIDPair *this,
+                                           int index);
+void Vector_ScopeScopeIDPair_set(struct Vector_ScopeScopeIDPair *this,
+                                 int index, struct ScopeScopeIDPair value);
 void Vector_ScopeScopeIDPair__setitem__(struct Vector_ScopeScopeIDPair *this,
                                         int index,
                                         struct ScopeScopeIDPair value);
-void Vector_ScopeScopeIDPair__init__(struct Vector_ScopeScopeIDPair *this,
-                                     int capacity);
-void Vector_ScopeScopeIDPair__del__(struct Vector_ScopeScopeIDPair *this);
-void Vector_ScopeScopeIDPairpush(struct Vector_ScopeScopeIDPair *this,
-                                 struct ScopeScopeIDPair value);
 void Vector_ScopeScopeIDPairallocate_more(struct Vector_ScopeScopeIDPair *this,
                                           int n);
-void Vector_ScopeScopeIDPairpush_unchecked(struct Vector_ScopeScopeIDPair *this,
-                                           struct ScopeScopeIDPair value);
+void Vector_ScopeScopeIDPair_grow_if_required(
+    struct Vector_ScopeScopeIDPair *this);
+void Vector_ScopeScopeIDPair_push(struct Vector_ScopeScopeIDPair *this,
+                                  struct ScopeScopeIDPair value);
+void Vector_ScopeScopeIDPairpush(struct Vector_ScopeScopeIDPair *this,
+                                 struct ScopeScopeIDPair value);
 struct ScopeScopeIDPair
 Vector_ScopeScopeIDPairpop(struct Vector_ScopeScopeIDPair *this);
+void Vector_ScopeScopeIDPair_shift_left_from(
+    struct Vector_ScopeScopeIDPair *this, int index);
+void Vector_ScopeScopeIDPair_dec_size(struct Vector_ScopeScopeIDPair *this);
 void Vector_ScopeScopeIDPairremove_at(struct Vector_ScopeScopeIDPair *this,
                                       int index);
+void Vector_ScopeScopeIDPair_clear(struct Vector_ScopeScopeIDPair *this);
 void Vector_ScopeScopeIDPairclear(struct Vector_ScopeScopeIDPair *this);
 void Vector_ScopeScopeIDPairprint(struct Vector_ScopeScopeIDPair *this);
 bool Vector_ScopeScopeIDPair__contains__(struct Vector_ScopeScopeIDPair *this,
                                          struct ScopeScopeIDPair value);
 
 size_t Vector_intlen(struct Vector_int *this);
-int Vector_int__getitem__(struct Vector_int *this, int index);
-void Vector_int__setitem__(struct Vector_int *this, int index, int value);
 void Vector_int__init__(struct Vector_int *this, int capacity);
+void Vector_int_call_destructor_for_element(struct Vector_int *this, int index);
+void Vector_int_call_destructor_for_all_elements(struct Vector_int *this);
+void Vector_int_reset(struct Vector_int *this);
 void Vector_int__del__(struct Vector_int *this);
-void Vector_intpush(struct Vector_int *this, int value);
-void Vector_intallocate_more(struct Vector_int *this, int n);
+int Vector_int__getitem__(struct Vector_int *this, int index);
+void Vector_int_set_ith_item(struct Vector_int *this, int index, int value);
 void Vector_intpush_unchecked(struct Vector_int *this, int value);
+void Vector_intvalidate_index(struct Vector_int *this, int index);
+void Vector_int_set(struct Vector_int *this, int index, int value);
+void Vector_int__setitem__(struct Vector_int *this, int index, int value);
+void Vector_intallocate_more(struct Vector_int *this, int n);
+void Vector_int_grow_if_required(struct Vector_int *this);
+void Vector_int_push(struct Vector_int *this, int value);
+void Vector_intpush(struct Vector_int *this, int value);
 int Vector_intpop(struct Vector_int *this);
+void Vector_int_shift_left_from(struct Vector_int *this, int index);
+void Vector_int_dec_size(struct Vector_int *this);
 void Vector_intremove_at(struct Vector_int *this, int index);
+void Vector_int_clear(struct Vector_int *this);
 void Vector_intclear(struct Vector_int *this);
 bool Vector_int__contains__(struct Vector_int *this, int value);
 void Vector_intprint(struct Vector_int *this);
@@ -1408,34 +1471,6 @@ struct Optional_Symbol SymbolTablelookup_variable(struct SymbolTable *this,
 
 size_t Vector_Stringlen(struct Vector_String *this) { return this->size; }
 
-struct String Vector_String__getitem__(struct Vector_String *this, int index) {
-  if (index < 0) {
-    index += this->size;
-  }
-  // Vector<String> Specialization:
-  // Returns &T ie &String, which means the return type is reference type.
-  // So, the returned String isn't freed by the destructor.
-  // for x in Vector<String>{}
-  // x calls __getitem__() and is a String. Typically x should be freed at the
-  // end of the loop. Since __getitem__() is a reference return type, it isn't
-  // freed.
-  return *(this->arr + index);
-}
-
-void Vector_String__setitem__(struct Vector_String *this, int index,
-                              struct String value) {
-  if (index < 0) {
-    index += this->size;
-  }
-
-  String__del__(&this->arr[index]);
-
-  struct String str;
-  String__init__OVDstructString(&str, value);
-
-  this->arr[index] = str;
-}
-
 void Vector_String__init__(struct Vector_String *this, int capacity) {
   // if we want to use instanced template type in fn body, we use following
   // syntax.
@@ -1450,15 +1485,122 @@ void Vector_String__init__(struct Vector_String *this, int capacity) {
   this->capacity = capacity;
 }
 
-void Vector_String__del__(struct Vector_String *this) {
-  for (size_t i = 0; i < this->size; ++i) {
-    String__del__(&this->arr[i]);
-  }
+void Vector_String_call_destructor_for_element(struct Vector_String *this,
+                                               int index) {
+  // If element at 'index' has a destructor, then emit a destructor call.
+  // Otherwise emit nothing.
+  // Evaluated at compile time.
+  String__del__(&this->arr[index]);
+}
 
+void Vector_String_call_destructor_for_all_elements(
+    struct Vector_String *this) {
+  for (size_t i = 0; i < Vector_Stringlen(this); i++) {
+    Vector_String_call_destructor_for_element(this, i);
+  }
+}
+
+void Vector_String_reset(struct Vector_String *this) {
   free(this->arr);
   this->arr = NULL;
   this->size = 0;
   this->capacity = 0;
+}
+
+void Vector_String__del__(struct Vector_String *this) {
+  Vector_String_call_destructor_for_all_elements(this);
+  Vector_String_reset(this);
+}
+
+struct String Vector_String__getitem__(struct Vector_String *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
+  // Vector<String> Specialization:
+  // Returns &T ie &String, which means the return type is reference type.
+  // So, the returned String isn't freed by the destructor.
+  // for x in Vector<String>{}
+  // x calls __getitem__() and is a String. Typically x should be freed at the
+  // end of the loop. Since __getitem__() is a reference return type, it isn't
+  // freed.
+  return *(this->arr + index);
+}
+
+void Vector_String_set_ith_item(struct Vector_String *this, int index,
+                                struct String value) {
+  // NOTE: We assume that the index is valid.
+  this->arr[index] = value;
+}
+
+void Vector_Stringpush_unchecked(struct Vector_String *this,
+                                 struct String value) {
+  this->arr[this->size++] = value;
+}
+
+void Vector_Stringvalidate_index(struct Vector_String *this, int index) {
+  if (index < 0 || index >= this->size) {
+    fprintf(stderr, "Index out of bounds: index = %d, size = %d.\n", index,
+            this->size);
+    exit(EXIT_FAILURE);
+  }
+}
+
+void Vector_String_set(struct Vector_String *this, int index,
+                       struct String value) {
+
+  if (index < 0) {
+    index = index + this->size;
+  }
+  Vector_Stringvalidate_index(this, index);
+  Vector_String_call_destructor_for_element(this, index);
+  Vector_String_set_ith_item(this, index, value);
+}
+
+void Vector_String__setitem__(struct Vector_String *this, int index,
+                              struct String value) {
+  // Vector<String> Specialization:
+  // Duplicate a string object, to prevent dangling pointers,
+  // as when a string moves out of a scope, it is freed.
+  struct String str;
+  String__init__OVDstructString(&str, value);
+  Vector_String_set(this, index, str);
+}
+
+void Vector_Stringallocate_more(struct Vector_String *this, int n) {
+  if (n <= 0) {
+    // Prevent unnecessary reallocation or negative increments.
+    return;
+  }
+
+  size_t new_capacity = this->capacity + n;
+  struct String *new_arr =
+      (struct String *)realloc(this->arr, new_capacity * sizeof(struct String));
+
+  if (!new_arr) {
+    fprintf(stderr, "Vector<>::allocate_more(): Memory reallocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  this->arr = new_arr;
+  this->capacity = new_capacity;
+}
+
+void Vector_String_grow_if_required(struct Vector_String *this) {
+
+  if (this->size >= this->capacity) {
+
+    if (this->capacity > 0) {
+      Vector_Stringallocate_more(this, this->capacity);
+    } else {
+      // Avoid 0 capacity.
+      Vector_Stringallocate_more(this, 1);
+    }
+  }
+}
+
+void Vector_String_push(struct Vector_String *this, struct String value) {
+  Vector_String_grow_if_required(this);
+  Vector_Stringpush_unchecked(this, value);
 }
 
 void Vector_Stringpush(struct Vector_String *this, struct String value) {
@@ -1467,32 +1609,7 @@ void Vector_Stringpush(struct Vector_String *this, struct String value) {
   // as when a string moves out of a scope, it is freed.
   struct String str;
   String__init__OVDstructString(&str, value);
-
-  if (this->size == this->capacity) {
-    this->capacity *= 2;
-    this->arr = (struct String *)realloc(this->arr, this->capacity *
-                                                        sizeof(struct String));
-    if (this->arr == NULL) {
-      fprintf(stderr, "Memory reallocation failed.\n");
-      exit(EXIT_FAILURE);
-    }
-  }
-  this->arr[this->size++] = str;
-}
-
-void Vector_Stringallocate_more(struct Vector_String *this, int n) {
-  this->capacity += n;
-  this->arr = (struct String *)realloc(this->arr,
-                                       this->capacity * sizeof(struct String));
-  if (this->arr == NULL) {
-    fprintf(stderr, "Memory reallocation failed.\n");
-    exit(EXIT_FAILURE);
-  }
-}
-
-void Vector_Stringpush_unchecked(struct Vector_String *this,
-                                 struct String value) {
-  this->arr[this->size++] = value;
+  Vector_String_push(this, str);
 }
 
 struct String Vector_Stringpop(struct Vector_String *this) {
@@ -1503,38 +1620,44 @@ struct String Vector_Stringpop(struct Vector_String *this) {
   return this->arr[--this->size];
 }
 
-void Vector_Stringremove_at(struct Vector_String *this, int index) {
-  if (index < 0) {
-    index += this->size;
-  }
-
-  if (index < 0 || index >= this->size) {
-    fprintf(stderr, "Index out of bounds.\n");
-    exit(EXIT_FAILURE);
-  }
-
+void Vector_String_shift_left_from(struct Vector_String *this, int index) {
+  // NOTE: The index is assumed to be valid(i.e not negative and within bounds).
   for (int i = index; i < this->size - 1; i++) {
     this->arr[i] = this->arr[i + 1];
   }
-  this->size--;
 }
 
-void Vector_Stringclear(struct Vector_String *this) {
-  for (size_t i = 0; i < this->size; ++i) {
-    String__del__(&this->arr[i]);
-  }
+void Vector_String_dec_size(struct Vector_String *this) { this->size--; }
 
+void Vector_Stringremove_at(struct Vector_String *this, int index) {
+
+  if (index < 0) {
+    index = index + this->size;
+  }
+  Vector_Stringvalidate_index(this, index);
+  Vector_String_call_destructor_for_element(this, index);
+  Vector_String_shift_left_from(this, index);
+  Vector_String_dec_size(this);
+  // this.size = this.size - 1 : FIXME: Not supported yet.
+}
+
+void Vector_String_clear(struct Vector_String *this) {
   free(this->arr);
 
   this->capacity = 1;
   this->arr = (struct String *)malloc(this->capacity * sizeof(struct String));
 
   if (this->arr == NULL) {
-    fprintf(stderr, "clear(): Memory allocation failed.\n");
+    fprintf(stderr, "Vector<>::_clear(): Memory allocation failed.\n");
     exit(EXIT_FAILURE);
   }
 
   this->size = 0;
+}
+
+void Vector_Stringclear(struct Vector_String *this) {
+  Vector_String_call_destructor_for_all_elements(this);
+  Vector_String_clear(this);
 }
 
 bool Vector_String__contains__(struct Vector_String *this,
@@ -1569,25 +1692,6 @@ size_t Vector_int_str_listlen(struct Vector_int_str_list *this) {
   return this->size;
 }
 
-struct int_str_list
-Vector_int_str_list__getitem__(struct Vector_int_str_list *this, int index) {
-  if (index < 0) {
-    index += this->size;
-  }
-  return *(this->arr + index);
-}
-
-void Vector_int_str_list__setitem__(struct Vector_int_str_list *this, int index,
-                                    struct int_str_list value) {
-  if (index < 0) {
-    index += this->size;
-  }
-  // FIXME: If previous value is a struct with destructor, then that destructor
-  // should be called. This is fixed in the next overloaded function for String
-  // class.
-  this->arr[index] = value;
-}
-
 void Vector_int_str_list__init__(struct Vector_int_str_list *this,
                                  int capacity) {
   // if we want to use instanced template type in fn body, we use following
@@ -1604,40 +1708,118 @@ void Vector_int_str_list__init__(struct Vector_int_str_list *this,
   this->capacity = capacity;
 }
 
-void Vector_int_str_list__del__(struct Vector_int_str_list *this) {
+void Vector_int_str_list_call_destructor_for_element(
+    struct Vector_int_str_list *this, int index) {
+  // If element at 'index' has a destructor, then emit a destructor call.
+  // Otherwise emit nothing.
+  // Evaluated at compile time.
+  int_str_list__del__(&this->arr[index]);
+}
+
+void Vector_int_str_list_call_destructor_for_all_elements(
+    struct Vector_int_str_list *this) {
+  for (size_t i = 0; i < Vector_int_str_listlen(this); i++) {
+    Vector_int_str_list_call_destructor_for_element(this, i);
+  }
+}
+
+void Vector_int_str_list_reset(struct Vector_int_str_list *this) {
   free(this->arr);
   this->arr = NULL;
   this->size = 0;
   this->capacity = 0;
 }
 
-void Vector_int_str_listpush(struct Vector_int_str_list *this,
-                             struct int_str_list value) {
-  if (this->size == this->capacity) {
-    this->capacity *= 2;
-    this->arr = (struct int_str_list *)realloc(
-        this->arr, this->capacity * sizeof(struct int_str_list));
-    if (this->arr == NULL) {
-      fprintf(stderr, "Memory reallocation failed.\n");
-      exit(EXIT_FAILURE);
-    }
-  }
-  this->arr[this->size++] = value;
+void Vector_int_str_list__del__(struct Vector_int_str_list *this) {
+  Vector_int_str_list_call_destructor_for_all_elements(this);
+  Vector_int_str_list_reset(this);
 }
 
-void Vector_int_str_listallocate_more(struct Vector_int_str_list *this, int n) {
-  this->capacity += n;
-  this->arr = (struct int_str_list *)realloc(
-      this->arr, this->capacity * sizeof(struct int_str_list));
-  if (this->arr == NULL) {
-    fprintf(stderr, "Memory reallocation failed.\n");
-    exit(EXIT_FAILURE);
+struct int_str_list
+Vector_int_str_list__getitem__(struct Vector_int_str_list *this, int index) {
+  if (index < 0) {
+    index += this->size;
   }
+  return *(this->arr + index);
+}
+
+void Vector_int_str_list_set_ith_item(struct Vector_int_str_list *this,
+                                      int index, struct int_str_list value) {
+  // NOTE: We assume that the index is valid.
+  this->arr[index] = value;
 }
 
 void Vector_int_str_listpush_unchecked(struct Vector_int_str_list *this,
                                        struct int_str_list value) {
   this->arr[this->size++] = value;
+}
+
+void Vector_int_str_listvalidate_index(struct Vector_int_str_list *this,
+                                       int index) {
+  if (index < 0 || index >= this->size) {
+    fprintf(stderr, "Index out of bounds: index = %d, size = %d.\n", index,
+            this->size);
+    exit(EXIT_FAILURE);
+  }
+}
+
+void Vector_int_str_list_set(struct Vector_int_str_list *this, int index,
+                             struct int_str_list value) {
+
+  if (index < 0) {
+    index = index + this->size;
+  }
+  Vector_int_str_listvalidate_index(this, index);
+  Vector_int_str_list_call_destructor_for_element(this, index);
+  Vector_int_str_list_set_ith_item(this, index, value);
+}
+
+void Vector_int_str_list__setitem__(struct Vector_int_str_list *this, int index,
+                                    struct int_str_list value) {
+  Vector_int_str_list_set(this, index, value);
+}
+
+void Vector_int_str_listallocate_more(struct Vector_int_str_list *this, int n) {
+  if (n <= 0) {
+    // Prevent unnecessary reallocation or negative increments.
+    return;
+  }
+
+  size_t new_capacity = this->capacity + n;
+  struct int_str_list *new_arr = (struct int_str_list *)realloc(
+      this->arr, new_capacity * sizeof(struct int_str_list));
+
+  if (!new_arr) {
+    fprintf(stderr, "Vector<>::allocate_more(): Memory reallocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  this->arr = new_arr;
+  this->capacity = new_capacity;
+}
+
+void Vector_int_str_list_grow_if_required(struct Vector_int_str_list *this) {
+
+  if (this->size >= this->capacity) {
+
+    if (this->capacity > 0) {
+      Vector_int_str_listallocate_more(this, this->capacity);
+    } else {
+      // Avoid 0 capacity.
+      Vector_int_str_listallocate_more(this, 1);
+    }
+  }
+}
+
+void Vector_int_str_list_push(struct Vector_int_str_list *this,
+                              struct int_str_list value) {
+  Vector_int_str_list_grow_if_required(this);
+  Vector_int_str_listpush_unchecked(this, value);
+}
+
+void Vector_int_str_listpush(struct Vector_int_str_list *this,
+                             struct int_str_list value) {
+  Vector_int_str_list_push(this, value);
 }
 
 struct int_str_list Vector_int_str_listpop(struct Vector_int_str_list *this) {
@@ -1648,23 +1830,31 @@ struct int_str_list Vector_int_str_listpop(struct Vector_int_str_list *this) {
   return this->arr[--this->size];
 }
 
-void Vector_int_str_listremove_at(struct Vector_int_str_list *this, int index) {
-  if (index < 0) {
-    index += this->size;
-  }
-
-  if (index < 0 || index >= this->size) {
-    fprintf(stderr, "Index out of bounds.\n");
-    exit(EXIT_FAILURE);
-  }
-
+void Vector_int_str_list_shift_left_from(struct Vector_int_str_list *this,
+                                         int index) {
+  // NOTE: The index is assumed to be valid(i.e not negative and within bounds).
   for (int i = index; i < this->size - 1; i++) {
     this->arr[i] = this->arr[i + 1];
   }
+}
+
+void Vector_int_str_list_dec_size(struct Vector_int_str_list *this) {
   this->size--;
 }
 
-void Vector_int_str_listclear(struct Vector_int_str_list *this) {
+void Vector_int_str_listremove_at(struct Vector_int_str_list *this, int index) {
+
+  if (index < 0) {
+    index = index + this->size;
+  }
+  Vector_int_str_listvalidate_index(this, index);
+  Vector_int_str_list_call_destructor_for_element(this, index);
+  Vector_int_str_list_shift_left_from(this, index);
+  Vector_int_str_list_dec_size(this);
+  // this.size = this.size - 1 : FIXME: Not supported yet.
+}
+
+void Vector_int_str_list_clear(struct Vector_int_str_list *this) {
   free(this->arr);
 
   this->capacity = 1;
@@ -1672,11 +1862,16 @@ void Vector_int_str_listclear(struct Vector_int_str_list *this) {
                                             sizeof(struct int_str_list));
 
   if (this->arr == NULL) {
-    fprintf(stderr, "clear(): Memory allocation failed.\n");
+    fprintf(stderr, "Vector<>::_clear(): Memory allocation failed.\n");
     exit(EXIT_FAILURE);
   }
 
   this->size = 0;
+}
+
+void Vector_int_str_listclear(struct Vector_int_str_list *this) {
+  Vector_int_str_list_call_destructor_for_all_elements(this);
+  Vector_int_str_list_clear(this);
 }
 
 void Vector_int_str_listprint(struct Vector_int_str_list *this) {
@@ -1830,27 +2025,6 @@ size_t Vector_ScopeScopeIDPairlen(struct Vector_ScopeScopeIDPair *this) {
   return this->size;
 }
 
-struct ScopeScopeIDPair
-Vector_ScopeScopeIDPair__getitem__(struct Vector_ScopeScopeIDPair *this,
-                                   int index) {
-  if (index < 0) {
-    index += this->size;
-  }
-  return *(this->arr + index);
-}
-
-void Vector_ScopeScopeIDPair__setitem__(struct Vector_ScopeScopeIDPair *this,
-                                        int index,
-                                        struct ScopeScopeIDPair value) {
-  if (index < 0) {
-    index += this->size;
-  }
-  // FIXME: If previous value is a struct with destructor, then that destructor
-  // should be called. This is fixed in the next overloaded function for String
-  // class.
-  this->arr[index] = value;
-}
-
 void Vector_ScopeScopeIDPair__init__(struct Vector_ScopeScopeIDPair *this,
                                      int capacity) {
   // if we want to use instanced template type in fn body, we use following
@@ -1867,41 +2041,123 @@ void Vector_ScopeScopeIDPair__init__(struct Vector_ScopeScopeIDPair *this,
   this->capacity = capacity;
 }
 
-void Vector_ScopeScopeIDPair__del__(struct Vector_ScopeScopeIDPair *this) {
+void Vector_ScopeScopeIDPair_call_destructor_for_element(
+    struct Vector_ScopeScopeIDPair *this, int index) {
+  // If element at 'index' has a destructor, then emit a destructor call.
+  // Otherwise emit nothing.
+  // Evaluated at compile time.
+  ScopeScopeIDPair__del__(&this->arr[index]);
+}
+
+void Vector_ScopeScopeIDPair_call_destructor_for_all_elements(
+    struct Vector_ScopeScopeIDPair *this) {
+  for (size_t i = 0; i < Vector_ScopeScopeIDPairlen(this); i++) {
+    Vector_ScopeScopeIDPair_call_destructor_for_element(this, i);
+  }
+}
+
+void Vector_ScopeScopeIDPair_reset(struct Vector_ScopeScopeIDPair *this) {
   free(this->arr);
   this->arr = NULL;
   this->size = 0;
   this->capacity = 0;
 }
 
-void Vector_ScopeScopeIDPairpush(struct Vector_ScopeScopeIDPair *this,
-                                 struct ScopeScopeIDPair value) {
-  if (this->size == this->capacity) {
-    this->capacity *= 2;
-    this->arr = (struct ScopeScopeIDPair *)realloc(
-        this->arr, this->capacity * sizeof(struct ScopeScopeIDPair));
-    if (this->arr == NULL) {
-      fprintf(stderr, "Memory reallocation failed.\n");
-      exit(EXIT_FAILURE);
-    }
-  }
-  this->arr[this->size++] = value;
+void Vector_ScopeScopeIDPair__del__(struct Vector_ScopeScopeIDPair *this) {
+  Vector_ScopeScopeIDPair_call_destructor_for_all_elements(this);
+  Vector_ScopeScopeIDPair_reset(this);
 }
 
-void Vector_ScopeScopeIDPairallocate_more(struct Vector_ScopeScopeIDPair *this,
-                                          int n) {
-  this->capacity += n;
-  this->arr = (struct ScopeScopeIDPair *)realloc(
-      this->arr, this->capacity * sizeof(struct ScopeScopeIDPair));
-  if (this->arr == NULL) {
-    fprintf(stderr, "Memory reallocation failed.\n");
-    exit(EXIT_FAILURE);
+struct ScopeScopeIDPair
+Vector_ScopeScopeIDPair__getitem__(struct Vector_ScopeScopeIDPair *this,
+                                   int index) {
+  if (index < 0) {
+    index += this->size;
   }
+  return *(this->arr + index);
+}
+
+void Vector_ScopeScopeIDPair_set_ith_item(struct Vector_ScopeScopeIDPair *this,
+                                          int index,
+                                          struct ScopeScopeIDPair value) {
+  // NOTE: We assume that the index is valid.
+  this->arr[index] = value;
 }
 
 void Vector_ScopeScopeIDPairpush_unchecked(struct Vector_ScopeScopeIDPair *this,
                                            struct ScopeScopeIDPair value) {
   this->arr[this->size++] = value;
+}
+
+void Vector_ScopeScopeIDPairvalidate_index(struct Vector_ScopeScopeIDPair *this,
+                                           int index) {
+  if (index < 0 || index >= this->size) {
+    fprintf(stderr, "Index out of bounds: index = %d, size = %d.\n", index,
+            this->size);
+    exit(EXIT_FAILURE);
+  }
+}
+
+void Vector_ScopeScopeIDPair_set(struct Vector_ScopeScopeIDPair *this,
+                                 int index, struct ScopeScopeIDPair value) {
+
+  if (index < 0) {
+    index = index + this->size;
+  }
+  Vector_ScopeScopeIDPairvalidate_index(this, index);
+  Vector_ScopeScopeIDPair_call_destructor_for_element(this, index);
+  Vector_ScopeScopeIDPair_set_ith_item(this, index, value);
+}
+
+void Vector_ScopeScopeIDPair__setitem__(struct Vector_ScopeScopeIDPair *this,
+                                        int index,
+                                        struct ScopeScopeIDPair value) {
+  Vector_ScopeScopeIDPair_set(this, index, value);
+}
+
+void Vector_ScopeScopeIDPairallocate_more(struct Vector_ScopeScopeIDPair *this,
+                                          int n) {
+  if (n <= 0) {
+    // Prevent unnecessary reallocation or negative increments.
+    return;
+  }
+
+  size_t new_capacity = this->capacity + n;
+  struct ScopeScopeIDPair *new_arr = (struct ScopeScopeIDPair *)realloc(
+      this->arr, new_capacity * sizeof(struct ScopeScopeIDPair));
+
+  if (!new_arr) {
+    fprintf(stderr, "Vector<>::allocate_more(): Memory reallocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  this->arr = new_arr;
+  this->capacity = new_capacity;
+}
+
+void Vector_ScopeScopeIDPair_grow_if_required(
+    struct Vector_ScopeScopeIDPair *this) {
+
+  if (this->size >= this->capacity) {
+
+    if (this->capacity > 0) {
+      Vector_ScopeScopeIDPairallocate_more(this, this->capacity);
+    } else {
+      // Avoid 0 capacity.
+      Vector_ScopeScopeIDPairallocate_more(this, 1);
+    }
+  }
+}
+
+void Vector_ScopeScopeIDPair_push(struct Vector_ScopeScopeIDPair *this,
+                                  struct ScopeScopeIDPair value) {
+  Vector_ScopeScopeIDPair_grow_if_required(this);
+  Vector_ScopeScopeIDPairpush_unchecked(this, value);
+}
+
+void Vector_ScopeScopeIDPairpush(struct Vector_ScopeScopeIDPair *this,
+                                 struct ScopeScopeIDPair value) {
+  Vector_ScopeScopeIDPair_push(this, value);
 }
 
 struct ScopeScopeIDPair
@@ -1913,24 +2169,32 @@ Vector_ScopeScopeIDPairpop(struct Vector_ScopeScopeIDPair *this) {
   return this->arr[--this->size];
 }
 
-void Vector_ScopeScopeIDPairremove_at(struct Vector_ScopeScopeIDPair *this,
-                                      int index) {
-  if (index < 0) {
-    index += this->size;
-  }
-
-  if (index < 0 || index >= this->size) {
-    fprintf(stderr, "Index out of bounds.\n");
-    exit(EXIT_FAILURE);
-  }
-
+void Vector_ScopeScopeIDPair_shift_left_from(
+    struct Vector_ScopeScopeIDPair *this, int index) {
+  // NOTE: The index is assumed to be valid(i.e not negative and within bounds).
   for (int i = index; i < this->size - 1; i++) {
     this->arr[i] = this->arr[i + 1];
   }
+}
+
+void Vector_ScopeScopeIDPair_dec_size(struct Vector_ScopeScopeIDPair *this) {
   this->size--;
 }
 
-void Vector_ScopeScopeIDPairclear(struct Vector_ScopeScopeIDPair *this) {
+void Vector_ScopeScopeIDPairremove_at(struct Vector_ScopeScopeIDPair *this,
+                                      int index) {
+
+  if (index < 0) {
+    index = index + this->size;
+  }
+  Vector_ScopeScopeIDPairvalidate_index(this, index);
+  Vector_ScopeScopeIDPair_call_destructor_for_element(this, index);
+  Vector_ScopeScopeIDPair_shift_left_from(this, index);
+  Vector_ScopeScopeIDPair_dec_size(this);
+  // this.size = this.size - 1 : FIXME: Not supported yet.
+}
+
+void Vector_ScopeScopeIDPair_clear(struct Vector_ScopeScopeIDPair *this) {
   free(this->arr);
 
   this->capacity = 1;
@@ -1938,11 +2202,16 @@ void Vector_ScopeScopeIDPairclear(struct Vector_ScopeScopeIDPair *this) {
       this->capacity * sizeof(struct ScopeScopeIDPair));
 
   if (this->arr == NULL) {
-    fprintf(stderr, "clear(): Memory allocation failed.\n");
+    fprintf(stderr, "Vector<>::_clear(): Memory allocation failed.\n");
     exit(EXIT_FAILURE);
   }
 
   this->size = 0;
+}
+
+void Vector_ScopeScopeIDPairclear(struct Vector_ScopeScopeIDPair *this) {
+  Vector_ScopeScopeIDPair_call_destructor_for_all_elements(this);
+  Vector_ScopeScopeIDPair_clear(this);
 }
 
 void Vector_ScopeScopeIDPairprint(struct Vector_ScopeScopeIDPair *this) {
@@ -1972,23 +2241,6 @@ bool Vector_ScopeScopeIDPair__contains__(struct Vector_ScopeScopeIDPair *this,
 
 size_t Vector_intlen(struct Vector_int *this) { return this->size; }
 
-int Vector_int__getitem__(struct Vector_int *this, int index) {
-  if (index < 0) {
-    index += this->size;
-  }
-  return *(this->arr + index);
-}
-
-void Vector_int__setitem__(struct Vector_int *this, int index, int value) {
-  if (index < 0) {
-    index += this->size;
-  }
-  // FIXME: If previous value is a struct with destructor, then that destructor
-  // should be called. This is fixed in the next overloaded function for String
-  // class.
-  this->arr[index] = value;
-}
-
 void Vector_int__init__(struct Vector_int *this, int capacity) {
   // if we want to use instanced template type in fn body, we use following
   // syntax.
@@ -2003,36 +2255,107 @@ void Vector_int__init__(struct Vector_int *this, int capacity) {
   this->capacity = capacity;
 }
 
-void Vector_int__del__(struct Vector_int *this) {
+void Vector_int_call_destructor_for_element(struct Vector_int *this,
+                                            int index) {
+  // If element at 'index' has a destructor, then emit a destructor call.
+  // Otherwise emit nothing.
+  // Evaluated at compile time.
+}
+
+void Vector_int_call_destructor_for_all_elements(struct Vector_int *this) {
+  for (size_t i = 0; i < Vector_intlen(this); i++) {
+    Vector_int_call_destructor_for_element(this, i);
+  }
+}
+
+void Vector_int_reset(struct Vector_int *this) {
   free(this->arr);
   this->arr = NULL;
   this->size = 0;
   this->capacity = 0;
 }
 
-void Vector_intpush(struct Vector_int *this, int value) {
-  if (this->size == this->capacity) {
-    this->capacity *= 2;
-    this->arr = (int *)realloc(this->arr, this->capacity * sizeof(int));
-    if (this->arr == NULL) {
-      fprintf(stderr, "Memory reallocation failed.\n");
-      exit(EXIT_FAILURE);
-    }
-  }
-  this->arr[this->size++] = value;
+void Vector_int__del__(struct Vector_int *this) {
+  Vector_int_call_destructor_for_all_elements(this);
+  Vector_int_reset(this);
 }
 
-void Vector_intallocate_more(struct Vector_int *this, int n) {
-  this->capacity += n;
-  this->arr = (int *)realloc(this->arr, this->capacity * sizeof(int));
-  if (this->arr == NULL) {
-    fprintf(stderr, "Memory reallocation failed.\n");
-    exit(EXIT_FAILURE);
+int Vector_int__getitem__(struct Vector_int *this, int index) {
+  if (index < 0) {
+    index += this->size;
   }
+  return *(this->arr + index);
+}
+
+void Vector_int_set_ith_item(struct Vector_int *this, int index, int value) {
+  // NOTE: We assume that the index is valid.
+  this->arr[index] = value;
 }
 
 void Vector_intpush_unchecked(struct Vector_int *this, int value) {
   this->arr[this->size++] = value;
+}
+
+void Vector_intvalidate_index(struct Vector_int *this, int index) {
+  if (index < 0 || index >= this->size) {
+    fprintf(stderr, "Index out of bounds: index = %d, size = %d.\n", index,
+            this->size);
+    exit(EXIT_FAILURE);
+  }
+}
+
+void Vector_int_set(struct Vector_int *this, int index, int value) {
+
+  if (index < 0) {
+    index = index + this->size;
+  }
+  Vector_intvalidate_index(this, index);
+  Vector_int_call_destructor_for_element(this, index);
+  Vector_int_set_ith_item(this, index, value);
+}
+
+void Vector_int__setitem__(struct Vector_int *this, int index, int value) {
+  Vector_int_set(this, index, value);
+}
+
+void Vector_intallocate_more(struct Vector_int *this, int n) {
+  if (n <= 0) {
+    // Prevent unnecessary reallocation or negative increments.
+    return;
+  }
+
+  size_t new_capacity = this->capacity + n;
+  int *new_arr = (int *)realloc(this->arr, new_capacity * sizeof(int));
+
+  if (!new_arr) {
+    fprintf(stderr, "Vector<>::allocate_more(): Memory reallocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  this->arr = new_arr;
+  this->capacity = new_capacity;
+}
+
+void Vector_int_grow_if_required(struct Vector_int *this) {
+
+  if (this->size >= this->capacity) {
+
+    if (this->capacity > 0) {
+      Vector_intallocate_more(this, this->capacity);
+    } else {
+      // Avoid 0 capacity.
+      Vector_intallocate_more(this, 1);
+    }
+  }
+}
+
+void Vector_int_push(struct Vector_int *this, int value) {
+  Vector_int_grow_if_required(this);
+  Vector_intpush_unchecked(this, value);
+}
+
+void Vector_intpush(struct Vector_int *this, int value) {
+  Vector_int_push(this, value);
 }
 
 int Vector_intpop(struct Vector_int *this) {
@@ -2043,34 +2366,44 @@ int Vector_intpop(struct Vector_int *this) {
   return this->arr[--this->size];
 }
 
-void Vector_intremove_at(struct Vector_int *this, int index) {
-  if (index < 0) {
-    index += this->size;
-  }
-
-  if (index < 0 || index >= this->size) {
-    fprintf(stderr, "Index out of bounds.\n");
-    exit(EXIT_FAILURE);
-  }
-
+void Vector_int_shift_left_from(struct Vector_int *this, int index) {
+  // NOTE: The index is assumed to be valid(i.e not negative and within bounds).
   for (int i = index; i < this->size - 1; i++) {
     this->arr[i] = this->arr[i + 1];
   }
-  this->size--;
 }
 
-void Vector_intclear(struct Vector_int *this) {
+void Vector_int_dec_size(struct Vector_int *this) { this->size--; }
+
+void Vector_intremove_at(struct Vector_int *this, int index) {
+
+  if (index < 0) {
+    index = index + this->size;
+  }
+  Vector_intvalidate_index(this, index);
+  Vector_int_call_destructor_for_element(this, index);
+  Vector_int_shift_left_from(this, index);
+  Vector_int_dec_size(this);
+  // this.size = this.size - 1 : FIXME: Not supported yet.
+}
+
+void Vector_int_clear(struct Vector_int *this) {
   free(this->arr);
 
   this->capacity = 1;
   this->arr = (int *)malloc(this->capacity * sizeof(int));
 
   if (this->arr == NULL) {
-    fprintf(stderr, "clear(): Memory allocation failed.\n");
+    fprintf(stderr, "Vector<>::_clear(): Memory allocation failed.\n");
     exit(EXIT_FAILURE);
   }
 
   this->size = 0;
+}
+
+void Vector_intclear(struct Vector_int *this) {
+  Vector_int_call_destructor_for_all_elements(this);
+  Vector_int_clear(this);
 }
 
 bool Vector_int__contains__(struct Vector_int *this, int value) {
