@@ -41,6 +41,7 @@ source_file = "examples\\00_Hello_World.c"
 # Misc.
 # source_file = "examples\\Enumerate.c"
 # source_file = "examples\\decorators_inside_fn_body.c"
+# source_file = "examples\\Unique_ptr_example.c"
 
 # Windows Specific.
 # source_file = "examples\\Variables_GUI_Input_Win.c"

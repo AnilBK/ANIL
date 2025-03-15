@@ -14,9 +14,21 @@ c_function __init__(capacity : int)
   }
 endc_function
 
-c_function __del__()
+function __call_destructor_if_available__()
+  // If arr has a destructor, then emit 'arr.__del__()'.
+  // Otherwise emit nothing.
+  // Evaluated at compile time.
+  ~arr
+endfunction
+
+c_function __free__ptr()
   free(this->arr);
 endc_function
+
+function __del__()
+  this.__call_destructor_if_available__()
+  this.__free__ptr()
+endfunction
 endnamespace
 
 ///*///
