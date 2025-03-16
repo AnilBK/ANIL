@@ -166,10 +166,6 @@ c_function _shift_left_from(index : int)
   }
 endc_function  
 
-c_function _dec_size()
-  this->size--;
-endc_function
-
 function remove_at(index : int)
   if index < 0 {
     index = index + this.size
@@ -177,8 +173,7 @@ function remove_at(index : int)
   this.validate_index(index)
   this._call_destructor_for_element(index)
   this._shift_left_from(index)
-  this._dec_size()
-  // this.size = this.size - 1 : FIXME: Not supported yet.
+  this.size -= 1
 endfunction
 
 c_function _clear()

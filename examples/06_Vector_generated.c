@@ -105,7 +105,6 @@ void Vector_String_push(struct Vector_String *this, struct String value);
 void Vector_Stringpush(struct Vector_String *this, struct String value);
 struct String Vector_Stringpop(struct Vector_String *this);
 void Vector_String_shift_left_from(struct Vector_String *this, int index);
-void Vector_String_dec_size(struct Vector_String *this);
 void Vector_Stringremove_at(struct Vector_String *this, int index);
 void Vector_String_clear(struct Vector_String *this);
 void Vector_Stringclear(struct Vector_String *this);
@@ -129,7 +128,6 @@ void Vector_int_push(struct Vector_int *this, int value);
 void Vector_intpush(struct Vector_int *this, int value);
 int Vector_intpop(struct Vector_int *this);
 void Vector_int_shift_left_from(struct Vector_int *this, int index);
-void Vector_int_dec_size(struct Vector_int *this);
 void Vector_intremove_at(struct Vector_int *this, int index);
 void Vector_int_clear(struct Vector_int *this);
 void Vector_intclear(struct Vector_int *this);
@@ -155,7 +153,6 @@ void Vector_float_push(struct Vector_float *this, float value);
 void Vector_floatpush(struct Vector_float *this, float value);
 float Vector_floatpop(struct Vector_float *this);
 void Vector_float_shift_left_from(struct Vector_float *this, int index);
-void Vector_float_dec_size(struct Vector_float *this);
 void Vector_floatremove_at(struct Vector_float *this, int index);
 void Vector_float_clear(struct Vector_float *this);
 void Vector_floatclear(struct Vector_float *this);
@@ -180,7 +177,6 @@ void Vector_char_push(struct Vector_char *this, char value);
 void Vector_charpush(struct Vector_char *this, char value);
 char Vector_charpop(struct Vector_char *this);
 void Vector_char_shift_left_from(struct Vector_char *this, int index);
-void Vector_char_dec_size(struct Vector_char *this);
 void Vector_charremove_at(struct Vector_char *this, int index);
 void Vector_char_clear(struct Vector_char *this);
 void Vector_charclear(struct Vector_char *this);
@@ -572,8 +568,6 @@ void Vector_String_shift_left_from(struct Vector_String *this, int index) {
   }
 }
 
-void Vector_String_dec_size(struct Vector_String *this) { this->size--; }
-
 void Vector_Stringremove_at(struct Vector_String *this, int index) {
 
   if (index < 0) {
@@ -582,8 +576,7 @@ void Vector_Stringremove_at(struct Vector_String *this, int index) {
   Vector_Stringvalidate_index(this, index);
   Vector_String_call_destructor_for_element(this, index);
   Vector_String_shift_left_from(this, index);
-  Vector_String_dec_size(this);
-  // this.size = this.size - 1 : FIXME: Not supported yet.
+  this->size -= 1;
 }
 
 void Vector_String_clear(struct Vector_String *this) {
@@ -767,8 +760,6 @@ void Vector_int_shift_left_from(struct Vector_int *this, int index) {
   }
 }
 
-void Vector_int_dec_size(struct Vector_int *this) { this->size--; }
-
 void Vector_intremove_at(struct Vector_int *this, int index) {
 
   if (index < 0) {
@@ -777,8 +768,7 @@ void Vector_intremove_at(struct Vector_int *this, int index) {
   Vector_intvalidate_index(this, index);
   Vector_int_call_destructor_for_element(this, index);
   Vector_int_shift_left_from(this, index);
-  Vector_int_dec_size(this);
-  // this.size = this.size - 1 : FIXME: Not supported yet.
+  this->size -= 1;
 }
 
 void Vector_int_clear(struct Vector_int *this) {
@@ -959,8 +949,6 @@ void Vector_float_shift_left_from(struct Vector_float *this, int index) {
   }
 }
 
-void Vector_float_dec_size(struct Vector_float *this) { this->size--; }
-
 void Vector_floatremove_at(struct Vector_float *this, int index) {
 
   if (index < 0) {
@@ -969,8 +957,7 @@ void Vector_floatremove_at(struct Vector_float *this, int index) {
   Vector_floatvalidate_index(this, index);
   Vector_float_call_destructor_for_element(this, index);
   Vector_float_shift_left_from(this, index);
-  Vector_float_dec_size(this);
-  // this.size = this.size - 1 : FIXME: Not supported yet.
+  this->size -= 1;
 }
 
 void Vector_float_clear(struct Vector_float *this) {
@@ -1149,8 +1136,6 @@ void Vector_char_shift_left_from(struct Vector_char *this, int index) {
   }
 }
 
-void Vector_char_dec_size(struct Vector_char *this) { this->size--; }
-
 void Vector_charremove_at(struct Vector_char *this, int index) {
 
   if (index < 0) {
@@ -1159,8 +1144,7 @@ void Vector_charremove_at(struct Vector_char *this, int index) {
   Vector_charvalidate_index(this, index);
   Vector_char_call_destructor_for_element(this, index);
   Vector_char_shift_left_from(this, index);
-  Vector_char_dec_size(this);
-  // this.size = this.size - 1 : FIXME: Not supported yet.
+  this->size -= 1;
 }
 
 void Vector_char_clear(struct Vector_char *this) {

@@ -3634,7 +3634,8 @@ while index < len(Lines):
                 ASSIGNMENT = 0 # a.b = 10
                 FUNCTION_CALL = 1 # a.b()
                 ADD = 2 # a += b + c + ...
-                INDEXED_MEMBER_ACCESS = 3 # a[3] = ..
+                SUBTRACT = 3 # a -= 1 ..
+                INDEXED_MEMBER_ACCESS = 4 # a[3] = ..
             expression_type = ExpressionType.ASSIGNMENT
 
             struct_tk = tk
@@ -3657,6 +3658,9 @@ while index < len(Lines):
                     break
                 elif tk == lexer.Token.PLUS:
                     expression_type = ExpressionType.ADD
+                    break
+                elif tk == lexer.Token.MINUS:
+                    expression_type = ExpressionType.SUBTRACT
                     break
                 elif tk == lexer.Token.LEFT_SQUARE_BRACKET:
                     expression_type = ExpressionType.INDEXED_MEMBER_ACCESS
@@ -3761,6 +3765,21 @@ while index < len(Lines):
 
                 insert_intermediate_lines(index, lines)
                 continue                                
+            elif expression_type == ExpressionType.SUBTRACT:
+                # this.size -= 1
+                #            ^
+                parser.consume_token(lexer.Token.EQUALS)
+
+                value = get_integer_expression("Expected integer expression to subtract from existing integer named \"{parsed_member}\".")
+            
+                data_type = struct_instance.struct_type
+                if data_type == "int":
+                    # member_access_string = this->size
+                    ANIL_code = f"{member_access_string} -= {value}; \n"
+                    LinesCache.append(ANIL_code)
+                else:
+                    RAISE_ERROR(f"Subtraction operation is not implemented for data type {data_type}.")
+                continue
             elif expression_type == ExpressionType.ASSIGNMENT:
                 data_type = struct_instance.struct_type
                 if data_type in {"int", "bool", "float", "char"}: 
