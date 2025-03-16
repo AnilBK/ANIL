@@ -317,7 +317,6 @@ void Symbol__reassign__(struct Symbol *this, struct Symbol p_symbol);
 
 void NameSymbolPair__init__(struct NameSymbolPair *this, struct String p_name,
                             struct Symbol p_symbol);
-struct String NameSymbolPairuncopied_name(struct NameSymbolPair *this);
 struct String NameSymbolPairget_name(struct NameSymbolPair *this);
 struct Symbol NameSymbolPairget_symbol(struct NameSymbolPair *this);
 
@@ -1227,17 +1226,11 @@ void NameSymbolPair__init__(struct NameSymbolPair *this, struct String p_name,
                  Symbolget_data_type(&p_symbol));
 }
 
-struct String NameSymbolPairuncopied_name(struct NameSymbolPair *this) {
-  return this->name;
-}
-
 struct String NameSymbolPairget_name(struct NameSymbolPair *this) {
-  // Duplicate the string and return it.
-  struct String n1 = NameSymbolPairuncopied_name(this);
-  struct String name;
-  String__init__OVDstrint(&name, "", 0);
-  String__reassign__OVDstructString(&name, n1);
-  return name;
+  struct String n;
+  String__init__OVDstrint(&n, "", 0);
+  String__reassign__OVDstructString(&n, this->name);
+  return n;
 }
 
 struct Symbol NameSymbolPairget_symbol(struct NameSymbolPair *this) {

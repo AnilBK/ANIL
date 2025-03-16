@@ -146,16 +146,10 @@ function __init__(p_name : String, p_symbol : Symbol)
   this.symbol.__init__(p_symbol.get_name(), p_symbol.get_data_type())
 endfunction
 
-function uncopied_name() -> &String:
-  return this.name
-endfunction
-
 function get_name() -> String:
-  // Duplicate the string and return it.
-  let n1 = this.uncopied_name()
-  let name = ""
-  name = n1
-  return name
+  let n = ""
+  n = this.name
+  return n
 endfunction
 
 function get_symbol() -> Symbol:
