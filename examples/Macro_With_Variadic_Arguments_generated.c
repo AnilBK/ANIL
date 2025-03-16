@@ -36,7 +36,6 @@ void Vector_int_push(struct Vector_int *this, int value);
 void Vector_intpush(struct Vector_int *this, int value);
 int Vector_intpop(struct Vector_int *this);
 void Vector_int_shift_left_from(struct Vector_int *this, int index);
-void Vector_int_dec_size(struct Vector_int *this);
 void Vector_intremove_at(struct Vector_int *this, int index);
 void Vector_int_clear(struct Vector_int *this);
 void Vector_intclear(struct Vector_int *this);
@@ -177,8 +176,6 @@ void Vector_int_shift_left_from(struct Vector_int *this, int index) {
   }
 }
 
-void Vector_int_dec_size(struct Vector_int *this) { this->size--; }
-
 void Vector_intremove_at(struct Vector_int *this, int index) {
 
   if (index < 0) {
@@ -187,8 +184,7 @@ void Vector_intremove_at(struct Vector_int *this, int index) {
   Vector_intvalidate_index(this, index);
   Vector_int_call_destructor_for_element(this, index);
   Vector_int_shift_left_from(this, index);
-  Vector_int_dec_size(this);
-  // this.size = this.size - 1 : FIXME: Not supported yet.
+  this->size -= 1;
 }
 
 void Vector_int_clear(struct Vector_int *this) {

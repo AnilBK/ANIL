@@ -218,7 +218,6 @@ void Vector_String_push(struct Vector_String *this, struct String value);
 void Vector_Stringpush(struct Vector_String *this, struct String value);
 struct String Vector_Stringpop(struct Vector_String *this);
 void Vector_String_shift_left_from(struct Vector_String *this, int index);
-void Vector_String_dec_size(struct Vector_String *this);
 void Vector_Stringremove_at(struct Vector_String *this, int index);
 void Vector_String_clear(struct Vector_String *this);
 void Vector_Stringclear(struct Vector_String *this);
@@ -251,7 +250,6 @@ void Vector_rlVector2push(struct Vector_rlVector2 *this,
                           struct rlVector2 value);
 struct rlVector2 Vector_rlVector2pop(struct Vector_rlVector2 *this);
 void Vector_rlVector2_shift_left_from(struct Vector_rlVector2 *this, int index);
-void Vector_rlVector2_dec_size(struct Vector_rlVector2 *this);
 void Vector_rlVector2remove_at(struct Vector_rlVector2 *this, int index);
 void Vector_rlVector2_clear(struct Vector_rlVector2 *this);
 void Vector_rlVector2clear(struct Vector_rlVector2 *this);
@@ -861,8 +859,6 @@ void Vector_String_shift_left_from(struct Vector_String *this, int index) {
   }
 }
 
-void Vector_String_dec_size(struct Vector_String *this) { this->size--; }
-
 void Vector_Stringremove_at(struct Vector_String *this, int index) {
 
   if (index < 0) {
@@ -871,8 +867,7 @@ void Vector_Stringremove_at(struct Vector_String *this, int index) {
   Vector_Stringvalidate_index(this, index);
   Vector_String_call_destructor_for_element(this, index);
   Vector_String_shift_left_from(this, index);
-  Vector_String_dec_size(this);
-  // this.size = this.size - 1 : FIXME: Not supported yet.
+  this->size -= 1;
 }
 
 void Vector_String_clear(struct Vector_String *this) {
@@ -1066,8 +1061,6 @@ void Vector_rlVector2_shift_left_from(struct Vector_rlVector2 *this,
   }
 }
 
-void Vector_rlVector2_dec_size(struct Vector_rlVector2 *this) { this->size--; }
-
 void Vector_rlVector2remove_at(struct Vector_rlVector2 *this, int index) {
 
   if (index < 0) {
@@ -1076,8 +1069,7 @@ void Vector_rlVector2remove_at(struct Vector_rlVector2 *this, int index) {
   Vector_rlVector2validate_index(this, index);
   Vector_rlVector2_call_destructor_for_element(this, index);
   Vector_rlVector2_shift_left_from(this, index);
-  Vector_rlVector2_dec_size(this);
-  // this.size = this.size - 1 : FIXME: Not supported yet.
+  this->size -= 1;
 }
 
 void Vector_rlVector2_clear(struct Vector_rlVector2 *this) {

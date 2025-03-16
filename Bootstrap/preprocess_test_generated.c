@@ -382,7 +382,6 @@ void Vector_String_push(struct Vector_String *this, struct String value);
 void Vector_Stringpush(struct Vector_String *this, struct String value);
 struct String Vector_Stringpop(struct Vector_String *this);
 void Vector_String_shift_left_from(struct Vector_String *this, int index);
-void Vector_String_dec_size(struct Vector_String *this);
 void Vector_Stringremove_at(struct Vector_String *this, int index);
 void Vector_String_clear(struct Vector_String *this);
 void Vector_Stringclear(struct Vector_String *this);
@@ -418,7 +417,6 @@ void Vector_int_str_listpush(struct Vector_int_str_list *this,
 struct int_str_list Vector_int_str_listpop(struct Vector_int_str_list *this);
 void Vector_int_str_list_shift_left_from(struct Vector_int_str_list *this,
                                          int index);
-void Vector_int_str_list_dec_size(struct Vector_int_str_list *this);
 void Vector_int_str_listremove_at(struct Vector_int_str_list *this, int index);
 void Vector_int_str_list_clear(struct Vector_int_str_list *this);
 void Vector_int_str_listclear(struct Vector_int_str_list *this);
@@ -481,7 +479,6 @@ struct ScopeScopeIDPair
 Vector_ScopeScopeIDPairpop(struct Vector_ScopeScopeIDPair *this);
 void Vector_ScopeScopeIDPair_shift_left_from(
     struct Vector_ScopeScopeIDPair *this, int index);
-void Vector_ScopeScopeIDPair_dec_size(struct Vector_ScopeScopeIDPair *this);
 void Vector_ScopeScopeIDPairremove_at(struct Vector_ScopeScopeIDPair *this,
                                       int index);
 void Vector_ScopeScopeIDPair_clear(struct Vector_ScopeScopeIDPair *this);
@@ -508,7 +505,6 @@ void Vector_int_push(struct Vector_int *this, int value);
 void Vector_intpush(struct Vector_int *this, int value);
 int Vector_intpop(struct Vector_int *this);
 void Vector_int_shift_left_from(struct Vector_int *this, int index);
-void Vector_int_dec_size(struct Vector_int *this);
 void Vector_intremove_at(struct Vector_int *this, int index);
 void Vector_int_clear(struct Vector_int *this);
 void Vector_intclear(struct Vector_int *this);
@@ -1627,8 +1623,6 @@ void Vector_String_shift_left_from(struct Vector_String *this, int index) {
   }
 }
 
-void Vector_String_dec_size(struct Vector_String *this) { this->size--; }
-
 void Vector_Stringremove_at(struct Vector_String *this, int index) {
 
   if (index < 0) {
@@ -1637,8 +1631,7 @@ void Vector_Stringremove_at(struct Vector_String *this, int index) {
   Vector_Stringvalidate_index(this, index);
   Vector_String_call_destructor_for_element(this, index);
   Vector_String_shift_left_from(this, index);
-  Vector_String_dec_size(this);
-  // this.size = this.size - 1 : FIXME: Not supported yet.
+  this->size -= 1;
 }
 
 void Vector_String_clear(struct Vector_String *this) {
@@ -1838,10 +1831,6 @@ void Vector_int_str_list_shift_left_from(struct Vector_int_str_list *this,
   }
 }
 
-void Vector_int_str_list_dec_size(struct Vector_int_str_list *this) {
-  this->size--;
-}
-
 void Vector_int_str_listremove_at(struct Vector_int_str_list *this, int index) {
 
   if (index < 0) {
@@ -1850,8 +1839,7 @@ void Vector_int_str_listremove_at(struct Vector_int_str_list *this, int index) {
   Vector_int_str_listvalidate_index(this, index);
   Vector_int_str_list_call_destructor_for_element(this, index);
   Vector_int_str_list_shift_left_from(this, index);
-  Vector_int_str_list_dec_size(this);
-  // this.size = this.size - 1 : FIXME: Not supported yet.
+  this->size -= 1;
 }
 
 void Vector_int_str_list_clear(struct Vector_int_str_list *this) {
@@ -2177,10 +2165,6 @@ void Vector_ScopeScopeIDPair_shift_left_from(
   }
 }
 
-void Vector_ScopeScopeIDPair_dec_size(struct Vector_ScopeScopeIDPair *this) {
-  this->size--;
-}
-
 void Vector_ScopeScopeIDPairremove_at(struct Vector_ScopeScopeIDPair *this,
                                       int index) {
 
@@ -2190,8 +2174,7 @@ void Vector_ScopeScopeIDPairremove_at(struct Vector_ScopeScopeIDPair *this,
   Vector_ScopeScopeIDPairvalidate_index(this, index);
   Vector_ScopeScopeIDPair_call_destructor_for_element(this, index);
   Vector_ScopeScopeIDPair_shift_left_from(this, index);
-  Vector_ScopeScopeIDPair_dec_size(this);
-  // this.size = this.size - 1 : FIXME: Not supported yet.
+  this->size -= 1;
 }
 
 void Vector_ScopeScopeIDPair_clear(struct Vector_ScopeScopeIDPair *this) {
@@ -2373,8 +2356,6 @@ void Vector_int_shift_left_from(struct Vector_int *this, int index) {
   }
 }
 
-void Vector_int_dec_size(struct Vector_int *this) { this->size--; }
-
 void Vector_intremove_at(struct Vector_int *this, int index) {
 
   if (index < 0) {
@@ -2383,8 +2364,7 @@ void Vector_intremove_at(struct Vector_int *this, int index) {
   Vector_intvalidate_index(this, index);
   Vector_int_call_destructor_for_element(this, index);
   Vector_int_shift_left_from(this, index);
-  Vector_int_dec_size(this);
-  // this.size = this.size - 1 : FIXME: Not supported yet.
+  this->size -= 1;
 }
 
 void Vector_int_clear(struct Vector_int *this) {
