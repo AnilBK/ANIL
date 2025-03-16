@@ -372,6 +372,8 @@ void Vector_String_set_ith_item(struct Vector_String *this, int index,
 void Vector_Stringpush_unchecked(struct Vector_String *this,
                                  struct String value);
 void Vector_Stringvalidate_index(struct Vector_String *this, int index);
+struct String Vector_String_copy_string(struct Vector_String *this,
+                                        struct String s);
 void Vector_String_set(struct Vector_String *this, int index,
                        struct String value);
 void Vector_String__setitem__(struct Vector_String *this, int index,
@@ -1541,6 +1543,13 @@ void Vector_Stringvalidate_index(struct Vector_String *this, int index) {
   }
 }
 
+struct String Vector_String_copy_string(struct Vector_String *this,
+                                        struct String s) {
+  struct String string_copy;
+  String__init__OVDstructString(&string_copy, s);
+  return string_copy;
+}
+
 void Vector_String_set(struct Vector_String *this, int index,
                        struct String value) {
 
@@ -1557,9 +1566,7 @@ void Vector_String__setitem__(struct Vector_String *this, int index,
   // Vector<String> Specialization:
   // Duplicate a string object, to prevent dangling pointers,
   // as when a string moves out of a scope, it is freed.
-  struct String str;
-  String__init__OVDstructString(&str, value);
-  Vector_String_set(this, index, str);
+  Vector_String_set(this, index, Vector_String_copy_string(this, value));
 }
 
 void Vector_Stringallocate_more(struct Vector_String *this, int n) {
@@ -1603,9 +1610,7 @@ void Vector_Stringpush(struct Vector_String *this, struct String value) {
   // Vector<String> Specialization:
   // Duplicate a string object, to prevent dangling pointers,
   // as when a string moves out of a scope, it is freed.
-  struct String str;
-  String__init__OVDstructString(&str, value);
-  Vector_String_push(this, str);
+  Vector_String_push(this, Vector_String_copy_string(this, value));
 }
 
 struct String Vector_Stringpop(struct Vector_String *this) {

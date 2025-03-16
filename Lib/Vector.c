@@ -81,6 +81,11 @@ c_function validate_index(index : int)
   }
 endc_function
 
+function<String> _copy_string(s : String) -> String:
+  let string_copy = s
+  return string_copy
+endfunction
+
 function _set(index : int, value : T)
   if index < 0 {
     index = index + this.size
@@ -94,15 +99,12 @@ function<> __setitem__(index : int, value : T)
   this._set(index, value)
 endfunction
 
-c_function<String> __setitem__(index : int, value : T)
+function<String> __setitem__(index : int, value : T)
   // Vector<String> Specialization: 
   // Duplicate a string object, to prevent dangling pointers,
   // as when a string moves out of a scope, it is freed.
-  struct String str;
-  String__init__OVDstructString(&str, value);
-  Vector_String_set(this, index, str);
-endc_function
-
+  this._set(index, this._copy_string(value))
+endfunction
 
 c_function allocate_more(n : int)
   if (n <= 0) {
@@ -142,14 +144,12 @@ function<> push(value : T)
   this._push(value)  
 endfunction
 
-c_function<String> push(value : T)
+function<String> push(value : T)
   // Vector<String> Specialization: 
   // Duplicate a string object, to prevent dangling pointers,
   // as when a string moves out of a scope, it is freed.
-  struct String str;
-  String__init__OVDstructString(&str, value);
-  Vector_String_push(this, str);
-endc_function
+  this._push(this._copy_string(value))
+endfunction
 
 c_function pop() -> T:
   if (this->size == 0) {
