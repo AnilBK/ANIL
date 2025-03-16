@@ -2177,7 +2177,7 @@ while index < len(Lines):
                 strs.append("char*")
             elif param.param_type == ParameterType.VARIABLE:
                 strs.append(get_type_of_variable(param.param))
-            elif param.param_type == ParameterType.STRING_CLASS or param.param_type == "struct String":
+            elif param.param_type == ParameterType.STRING_CLASS or param.param_type == "struct String" or param.param_type == "String":
                 strs.append("struct String")
             elif param.param_type == ParameterType.FUNCTION_POINTER:
                 strs.append("fn_ptr")
