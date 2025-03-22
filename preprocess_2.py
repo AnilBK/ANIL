@@ -44,6 +44,7 @@ source_file = "examples\\00_Hello_World.c"
 # source_file = "examples\\Unique_ptr_example.c"
 
 # Windows Specific.
+# source_file = "examples\\HTML_Like_UI.c"
 # source_file = "examples\\Variables_GUI_Input_Win.c"
 # source_file = "examples\\WebServer.c"
 
@@ -136,6 +137,8 @@ main_fn_found = False
 
 is_inside_form = False
 gui_manager = InputVariablesGUI()
+
+is_inside_GUI_code = False
 
 # When a fn is declared, we need to track all the scopes inside it,
 # such that for return statements we can generate destructor code for all the required variables in those scopes.
@@ -1418,6 +1421,21 @@ while index < len(Lines):
             for code in gui_code:
                 LinesCache.append(code)
         continue
+    elif Line.startswith("<UI>"):
+        if is_inside_GUI_code:
+            RAISE_ERROR("GUI within a GUI, not allowed.")
+        else:
+            is_inside_GUI_code = True
+        continue
+    elif Line.startswith("</UI>"):
+        if not is_inside_GUI_code:
+            RAISE_ERROR("Not inside a GUI, can't close it.")
+        else:
+            is_inside_GUI_code = False
+            gui_code = gui_manager.get_window_code()
+            for code in gui_code:
+                LinesCache.append(code)
+        continue
     elif Line.startswith("// DESTRUCTOR_CODE //"):
         # Destructors NOTE: If structs aren't instantiated, then their destructors mayn't be emitted.
         # TODO: This could be fixed by just generating destructors of all structs whose
@@ -2691,6 +2709,47 @@ while index < len(Lines):
             "is_overloaded_fn" : is_overloaded_fn,
             "overload_for_type" : overload_for_type,
         }
+
+    if is_inside_GUI_code:
+        # Parse :
+        #   <Label>"Label Text"</Label>
+        #   <Button>"Button Text"</Button>
+        #   <Label>"Label Text"</Label>
+        if check_token(lexer.Token.SMALLER_THAN):
+            parser.consume_token(lexer.Token.SMALLER_THAN)
+
+            tag_name = parser.get_token()
+
+            parser.consume_token(lexer.Token.GREATER_THAN)
+
+            parser.consume_token(lexer.Token.QUOTE)
+            text = parser.get_token()
+            parser.consume_token(lexer.Token.QUOTE)
+
+            parser.consume_token(lexer.Token.SMALLER_THAN)
+            parser.consume_token(lexer.Token.FRONT_SLASH)
+
+            closing_tag_name = parser.get_token()
+
+            if tag_name != closing_tag_name:
+                RAISE_ERROR(f"Closing tag {closing_tag_name} doesn't match with opening tag {tag_name}.")
+
+            parser.consume_token(lexer.Token.GREATER_THAN)
+
+            # print(f"Tag : {tag_name}, Text : {text}")
+
+            if tag_name == "Label":
+                gui_manager.add_label(text)
+            elif tag_name == "Button":
+                gui_manager.add_button(text)
+            elif tag_name == "Input":
+                gui_manager.add_text_input_field(text)
+            else:
+                RAISE_ERROR(f"Unknown tag {tag_name}.")
+            continue
+        else:
+            RAISE_ERROR("Expected <tag> but got something else.")
+
 
     if is_inside_def and "enddef" in Line:
         if check_token(lexer.Token.ENDDEF):

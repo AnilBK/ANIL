@@ -15,6 +15,15 @@ class InputVariablesGUI:
         self.gui_item_options = []
         self.default_value = ""
 
+        self.static_label_counter = 0
+        self.static_labels = []
+
+        self.static_button_counter = 0
+        self.static_buttons = []
+
+        self.text_field_counter = 0
+        self.text_fields = []
+
     def add_gui_item_option(self, option):
         self.gui_item_options.extend(option)
 
@@ -52,6 +61,32 @@ class InputVariablesGUI:
 
         self.gui_item_options = []
         self.hwnd_variables_list.append(item)
+        self.g_y += 40
+
+    def add_label(self, p_label_text):
+        self.static_label_counter += 1
+        var_name = f"hStaticLabel{self.static_label_counter}"
+        self.gui_code.append(f'// Static Label {self.static_label_counter}')
+        self.gui_code.append(f'{var_name} = CreateWindowW(L"Static", L"{p_label_text}", WS_VISIBLE | WS_CHILD, {self.g_x}, {self.g_y}, 200, 25, hwnd, NULL, NULL, NULL);')
+        self.static_labels.append(var_name)
+        self.g_y += 40
+
+    def add_button(self, p_button_text):
+        self.static_button_counter += 1
+        # Button ID is set to 2000 + static_button_counter
+        button_id = 2000 + self.static_button_counter
+        var_name = f"hStaticButton{self.static_button_counter}"
+        self.gui_code.append(f'// Static Button {self.static_button_counter}')
+        self.gui_code.append(f'{var_name} = CreateWindowW(L"Button", L"{p_button_text}", WS_VISIBLE | WS_CHILD, {self.g_x}, {self.g_y}, 100, 25, hwnd, (HMENU){button_id}, NULL, NULL);')
+        self.static_buttons.append(var_name)
+        self.g_y += 40
+
+    def add_text_input_field(self, initial_text):
+        self.text_field_counter += 1
+        var_name = f"hTextInput{self.text_field_counter}"
+        self.gui_code.append(f'// Text Input Field')
+        self.gui_code.append(f'{var_name} = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL, {self.g_x}, {self.g_y}, 280, 24, hwnd, (HMENU){self.text_field_counter}, GetModuleHandle(NULL), NULL);')
+        self.text_fields.append(var_name)
         self.g_y += 40
 
     def process_bool_variable(self, p_var_name):
@@ -168,14 +203,26 @@ class InputVariablesGUI:
         # A global struct to hold all the values from gui nodes of the current_form.
         struct_code = "struct Form1Output{"
 
-        for item in self.hwnd_variables_list:
-            gui_item_names = item.associated_gui_variable_names
-            names.extend(gui_item_names)
-            # int age;
-            struct_code += f"{item.var_type} {item.name};"
+        if len(self.hwnd_variables_list) == 0:
+            # Add a dummy member to avoid empty struct.
+            struct_code += f"char __dummy;"
+            # FIXME: The better thing to do would be to eliminate this struct generation in the first place.
+        else:
+            for item in self.hwnd_variables_list:
+                gui_item_names = item.associated_gui_variable_names
+                names.extend(gui_item_names)
+                # int age;
+                struct_code += f"{item.var_type} {item.name};"
         struct_code += "}Form1Output;"
 
-        name_joined = ",".join(names)
+        joined_names_arr = []
+
+        for var_names in [names, self.static_labels, self.static_buttons, self.text_fields]:
+            if len(var_names) == 0:
+                continue
+            joined_names_arr.append(",".join(var_names))
+
+        name_joined = ",".join(joined_names_arr)
 
         # HWND hNameLabel, hNameInput, hAgeLabel, hAgeInput, hCheckbox, hSubmitButton, hFruitLabel, hFruitDropdown;
         return f"HWND {name_joined} , hSubmitButton; {struct_code}\n\n"
