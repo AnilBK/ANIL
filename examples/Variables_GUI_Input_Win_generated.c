@@ -67,12 +67,13 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wParam,
                       10 + 100, 90, 200, 25, hwnd, NULL, NULL, NULL);
     // Set default value for is_electric Checkbox to checked
     SendMessage(his_electricCheckbox, BM_SETCHECK, BST_CHECKED, 0);
-    hSubmitButton = CreateWindowW(L"Button", L"Submit", WS_VISIBLE | WS_CHILD,
-                                  10, 130, 100, 25, hwnd, (HMENU)1, NULL, NULL);
+    hSubmitButton =
+        CreateWindowW(L"Button", L"Submit", WS_VISIBLE | WS_CHILD, 10, 130, 100,
+                      25, hwnd, (HMENU)1000, NULL, NULL);
     break;
 
   case WM_COMMAND:
-    if (LOWORD(wParam) == 1) { // Submit Button Clicked
+    if (LOWORD(wParam) == 1000) { // Submit Button Clicked
 
       // Get the selected index from the dropdown
       int car_age_tmp_index =

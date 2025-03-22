@@ -186,7 +186,8 @@ class InputVariablesGUI:
             codes += f"{code}\n"
         
         # // Submit Button
-        codes += f'hSubmitButton = CreateWindowW(L"Button", L"Submit", WS_VISIBLE | WS_CHILD, {self.g_x}, {self.g_y}, 100, 25, hwnd, (HMENU)1, NULL, NULL);'
+        submit_button_id = 1000
+        codes += f'hSubmitButton = CreateWindowW(L"Button", L"Submit", WS_VISIBLE | WS_CHILD, {self.g_x}, {self.g_y}, 100, 25, hwnd, (HMENU){submit_button_id}, NULL, NULL);'
         self.g_y += 40
         return f"{codes}\n"
     

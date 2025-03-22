@@ -33,7 +33,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
       break;
 
     case WM_COMMAND:
-      if (LOWORD(wParam) == 1) { // Submit Button Clicked
+      if (LOWORD(wParam) == 1000) { // Submit Button Clicked
 // ASSIGN_GUI_OUTPUTS //
 
         // Close the window
