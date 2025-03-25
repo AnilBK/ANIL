@@ -2720,6 +2720,12 @@ while index < len(Lines):
 
             tag_name = parser.get_token()
 
+            bind_to_string_variable = ""
+            if tag_name == "Input":
+                # <Input @todo_text>"Todo"</Input>
+                parser.consume_token(lexer.Token.AT)
+                bind_to_string_variable = parser.get_token()
+
             parser.consume_token(lexer.Token.GREATER_THAN)
 
             parser.consume_token(lexer.Token.QUOTE)
@@ -2743,7 +2749,7 @@ while index < len(Lines):
             elif tag_name == "Button":
                 gui_manager.add_button(text)
             elif tag_name == "Input":
-                gui_manager.add_text_input_field(text)
+                gui_manager.add_text_input_field(text, bind_to_string_variable)
             else:
                 RAISE_ERROR(f"Unknown tag {tag_name}.")
             continue
@@ -5353,6 +5359,9 @@ for i in range(len(LinesCache)):
         LinesCache[i] = gui_manager.get_gui_nodes_creation_code()
     elif "// ASSIGN_GUI_OUTPUTS //" in LinesCache[i]:
         LinesCache[i] = gui_manager.get_gui_assignment_code()
+    elif "// INPUT_FIELD_AUTO_BIND_TO_STRING //"  in LinesCache[i]:
+        LinesCache[i] = gui_manager.get_all_input_field_update_code()
+
 
 with open(output_file_name, "w") as outputFile:
     for Line in LinesCache:

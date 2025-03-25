@@ -5,6 +5,20 @@ class GuiItem:
         self.has_options = has_options
         self.associated_gui_variable_names = []
 
+class InputFieldObject:
+    # An input field has HMenu index, HWND variable name, and the string it is bounded to.
+    def __init__(self, hmenu_index, hwnd_variable_name, bound_to_string_variable):
+        self.hmenu_index = hmenu_index
+        self.hwnd_variable_name = hwnd_variable_name
+        self.bound_to_string_variable = bound_to_string_variable
+
+    def get_update_code(self):
+        #   case 1:
+        #      UpdateStringFromTextInput(hTextInput1, &todo_text);
+        #   break;
+        return f"case {self.hmenu_index}:\nUpdateStringFromTextInput({self.hwnd_variable_name}, &{self.bound_to_string_variable});\nbreak;\n"
+
+
 # This class handles generating GUI from input variables.
 class InputVariablesGUI:
     def __init__(self):
@@ -23,6 +37,8 @@ class InputVariablesGUI:
 
         self.text_field_counter = 0
         self.text_fields = []
+
+        self.input_text_fields = []
 
     def add_gui_item_option(self, option):
         self.gui_item_options.extend(option)
@@ -81,12 +97,20 @@ class InputVariablesGUI:
         self.static_buttons.append(var_name)
         self.g_y += 40
 
-    def add_text_input_field(self, initial_text):
+    def get_all_input_field_update_code(self):
+        code = ""
+        for input_field in self.input_text_fields:
+            code += input_field.get_update_code()
+        return code
+
+    def add_text_input_field(self, initial_text, bind_to_string_variable):
         self.text_field_counter += 1
         var_name = f"hTextInput{self.text_field_counter}"
         self.gui_code.append(f'// Text Input Field')
         self.gui_code.append(f'{var_name} = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL, {self.g_x}, {self.g_y}, 280, 24, hwnd, (HMENU){self.text_field_counter}, GetModuleHandle(NULL), NULL);')
         self.text_fields.append(var_name)
+
+        self.input_text_fields.append(InputFieldObject(self.text_field_counter, var_name, bind_to_string_variable))
         self.g_y += 40
 
     def process_bool_variable(self, p_var_name):
