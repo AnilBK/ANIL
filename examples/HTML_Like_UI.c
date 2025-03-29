@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
+#include <commctrl.h>
+
+// gcc -O2 HTML_Like_UI_generated.c -o HTML_Like_UI_generated -lgdi32 -lcomctl32 
 
 // IMPORTS //
 
@@ -14,7 +17,21 @@ import Vector
 import String
 
 let todo_text = ""
+let todo_text_list = Vector<String>{5};
+
+function add_todo()
+  todo_text_list.push(todo_text)
+  todo_text = ""
+endfunction
 ///*///
+
+void DrawVectorString(HDC hdc, int x, int y, struct Vector_String *vec) {
+  int yOffset = 20;
+  for (size_t i = 0; i < vec->size; i++) {
+    TextOutA(hdc, x, y + (int)(i * yOffset), vec->arr[i].arr,
+             lstrlenA(vec->arr[i].arr));
+  }
+}
 
 // Function to redirect console I/O to a console window
 void RedirectIOToConsole() {
@@ -62,11 +79,38 @@ void UpdateStringFromTextInput(HWND textInput, struct String *str) {
   printf("Updated String: %s\n", str->arr);
 }
 
-LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam){
+LRESULT CALLBACK EditSubclassProc(HWND hwnd, UINT msg, WPARAM wParam,
+                                  LPARAM lParam, UINT_PTR uIdSubclass,
+                                  DWORD_PTR dwRefData) {
   switch (msg) {
-    case WM_CREATE:
-// GUI_NODES_CREATION //
-      break;
+  case WM_KEYDOWN:
+    if (wParam == VK_RETURN) {
+      add_todo();
+      SetWindowTextW(hwnd, L"");
+      InvalidateRect(GetParent(hwnd), NULL,
+                     TRUE); // Trigger repaint of parent window
+      return 0; // Fully handle the Enter key and prevent default processing
+    }
+    break;
+
+  case WM_CHAR:
+    if (wParam == VK_RETURN) { // Suppress the Enter key character
+      return 0;                // Prevent beep by consuming WM_CHAR for Enter
+    }
+    break;
+  }
+  return DefSubclassProc(hwnd, msg, wParam,
+                         lParam); // Default handling for other messages
+}
+
+LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wParam,
+                                 LPARAM lParam) {
+  switch (msg) {
+  case WM_CREATE:
+    // GUI_NODES_CREATION //
+    // Subclass the text input field to capture Enter key.
+    SetWindowSubclass(hTextInput1, EditSubclassProc, 1, 0);
+    break;
 
   case WM_COMMAND:
 
@@ -84,7 +128,14 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
     }
     break;
 
-    case WM_DESTROY:
+  case WM_PAINT: {
+    PAINTSTRUCT ps;
+    HDC hdc = BeginPaint(hwnd, &ps);
+    DrawVectorString(hdc, 10, 170, &todo_text_list);
+    EndPaint(hwnd, &ps);
+  } break;
+
+  case WM_DESTROY:
     PostQuitMessage(0);
     break;
 
@@ -104,6 +155,15 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args,
   RedirectIOToConsole();
 
   ///*///  main()
+
+  let str1 = "Complete UI"
+  todo_text_list.push(str1)
+
+  str1 = "Design Containers"
+  todo_text_list.push(str1)
+
+  str1 = "Implement Lists"
+  todo_text_list.push(str1)
 
     <UI>
       <Label>"Enter Todo"</Label>

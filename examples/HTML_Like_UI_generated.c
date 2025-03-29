@@ -19,6 +19,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
+#include <commctrl.h>
+
+// gcc -O2 HTML_Like_UI_generated.c -o HTML_Like_UI_generated -lgdi32 -lcomctl32
 
 // IMPORTS //
 
@@ -65,6 +68,7 @@ void String__reassign__OVDstr(struct String *this, char *pstring);
 void Stringset_to_file_contents(struct String *this, char *pfilename);
 struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename);
 
+void add_todo();
 size_t Vector_Stringlen(struct Vector_String *this);
 void Vector_String__init__(struct Vector_String *this, int capacity);
 void Vector_String_call_destructor_for_element(struct Vector_String *this,
@@ -550,7 +554,21 @@ struct Form1Output {
 ///*///
 
 struct String todo_text;
+struct Vector_String todo_text_list;
+
+void add_todo() {
+  Vector_Stringpush(&todo_text_list, todo_text);
+  String__reassign__OVDstr(&todo_text, "");
+}
 ///*///
+
+void DrawVectorString(HDC hdc, int x, int y, struct Vector_String *vec) {
+  int yOffset = 20;
+  for (size_t i = 0; i < vec->size; i++) {
+    TextOutA(hdc, x, y + (int)(i * yOffset), vec->arr[i].arr,
+             lstrlenA(vec->arr[i].arr));
+  }
+}
 
 // Function to redirect console I/O to a console window
 void RedirectIOToConsole() {
@@ -598,6 +616,30 @@ void UpdateStringFromTextInput(HWND textInput, struct String *str) {
   printf("Updated String: %s\n", str->arr);
 }
 
+LRESULT CALLBACK EditSubclassProc(HWND hwnd, UINT msg, WPARAM wParam,
+                                  LPARAM lParam, UINT_PTR uIdSubclass,
+                                  DWORD_PTR dwRefData) {
+  switch (msg) {
+  case WM_KEYDOWN:
+    if (wParam == VK_RETURN) {
+      add_todo();
+      SetWindowTextW(hwnd, L"");
+      InvalidateRect(GetParent(hwnd), NULL,
+                     TRUE); // Trigger repaint of parent window
+      return 0; // Fully handle the Enter key and prevent default processing
+    }
+    break;
+
+  case WM_CHAR:
+    if (wParam == VK_RETURN) { // Suppress the Enter key character
+      return 0;                // Prevent beep by consuming WM_CHAR for Enter
+    }
+    break;
+  }
+  return DefSubclassProc(hwnd, msg, wParam,
+                         lParam); // Default handling for other messages
+}
+
 LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wParam,
                                  LPARAM lParam) {
   switch (msg) {
@@ -618,6 +660,8 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wParam,
     hSubmitButton =
         CreateWindowW(L"Button", L"Submit", WS_VISIBLE | WS_CHILD, 10, 130, 100,
                       25, hwnd, (HMENU)1000, NULL, NULL);
+    // Subclass the text input field to capture Enter key.
+    SetWindowSubclass(hTextInput1, EditSubclassProc, 1, 0);
     break;
 
   case WM_COMMAND:
@@ -636,6 +680,13 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wParam,
       DestroyWindow(hwnd);
     }
     break;
+
+  case WM_PAINT: {
+    PAINTSTRUCT ps;
+    HDC hdc = BeginPaint(hwnd, &ps);
+    DrawVectorString(hdc, 10, 170, &todo_text_list);
+    EndPaint(hwnd, &ps);
+  } break;
 
   case WM_DESTROY:
     PostQuitMessage(0);
@@ -657,6 +708,17 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args,
   ///*///  main()
   // Global Variables Initialization.
   String__init__OVDstrint(&todo_text, "", 0);
+  Vector_String__init__(&todo_text_list, 5);
+
+  struct String str1;
+  String__init__OVDstrint(&str1, "Complete UI", 11);
+  Vector_Stringpush(&todo_text_list, str1);
+
+  String__reassign__OVDstr(&str1, "Design Containers");
+  Vector_Stringpush(&todo_text_list, str1);
+
+  String__reassign__OVDstr(&str1, "Implement Lists");
+  Vector_Stringpush(&todo_text_list, str1);
 
   WNDCLASSW wc = {0};
   wc.hbrBackground = (HBRUSH)(COLOR_WINDOW);
@@ -669,8 +731,9 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args,
     return -1;
   }
 
-  CreateWindowW(L"FormWindow", L"Form", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 100,
-                100, 400, 230, NULL, NULL, NULL, NULL);
+  CreateWindowW(L"FormWindow", L"Form", WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+                //    100, 100, 400, 230, NULL, NULL, NULL, NULL);
+                100, 100, 400, 600, NULL, NULL, NULL, NULL);
 
   MSG msg = {0};
   while (GetMessage(&msg, NULL, 0, 0)) {
@@ -678,6 +741,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args,
     DispatchMessage(&msg);
   }
 
+  String__del__(&str1);
+  Vector_String__del__(&todo_text_list);
   String__del__(&todo_text);
   ///*///
 
