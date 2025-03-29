@@ -2175,6 +2175,9 @@ while index < len(Lines):
 
             parameters.append(_read_a_parameter())
 
+            if not parser.has_tokens_remaining():
+                RAISE_ERROR("Expected ',' or ')' while parsing parameters for function call.")
+
             curr_param = parser.current_token()
             if curr_param != lexer.Token.RIGHT_ROUND_BRACKET:
                 # There are few other tokens rather than ).
