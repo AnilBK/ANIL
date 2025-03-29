@@ -155,7 +155,8 @@ class InputVariablesGUI:
             }}
 
             CreateWindowW(L"FormWindow", L"Form", WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-                100, 100, 400, {self.g_y + 100}, NULL, NULL, NULL, NULL);
+            //    100, 100, 400, {self.g_y + 100}, NULL, NULL, NULL, NULL);
+                100, 100, 400, 600, NULL, NULL, NULL, NULL);
 
             MSG msg = {{0}};
             while (GetMessage(&msg, NULL, 0, 0)) {{
