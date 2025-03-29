@@ -39,10 +39,10 @@ void UpdateStringFromTextInput(HWND textInput, struct String *str) {
   int len = GetWindowTextLengthW(textInput);
   if (len == 0) {
     // TODO: Use utility functions from String class itself.
-      free(str->arr);
-      str->arr = NULL;
-      str->length = 0;
-      return;
+    free(str->arr);
+    str->arr = NULL;
+    str->length = 0;
+    return;
   }
 
   // Allocate buffer for wide characters
@@ -50,13 +50,14 @@ void UpdateStringFromTextInput(HWND textInput, struct String *str) {
   GetWindowTextW(textInput, wideText, len + 1); // Retrieve text
 
   // Convert wide string (UTF-16) to multi-byte string (UTF-8 or ANSI)
-  int charLen = WideCharToMultiByte(CP_UTF8, 0, wideText, -1, NULL, 0, NULL, NULL);
+  int charLen =
+      WideCharToMultiByte(CP_UTF8, 0, wideText, -1, NULL, 0, NULL, NULL);
   free(str->arr); // Free old data if any
   str->arr = (char *)malloc(charLen);
   WideCharToMultiByte(CP_UTF8, 0, wideText, -1, str->arr, charLen, NULL, NULL);
 
   str->length = charLen - 1; // Exclude null terminator
-  free(wideText); // Free wide-text buffer
+  free(wideText);            // Free wide-text buffer
 
   printf("Updated String: %s\n", str->arr);
 }
@@ -67,34 +68,35 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 // GUI_NODES_CREATION //
       break;
 
-    case WM_COMMAND:
-    
+  case WM_COMMAND:
+
     if (HIWORD(wParam) == EN_CHANGE) { // Text input changed
       switch (LOWORD(wParam)) {
-        // INPUT_FIELD_AUTO_BIND_TO_STRING //  
+        // INPUT_FIELD_AUTO_BIND_TO_STRING //
       }
     }
 
     if (LOWORD(wParam) == 1000) { // Submit Button Clicked
 // ASSIGN_GUI_OUTPUTS //
 
-        // Close the window
-        DestroyWindow(hwnd);
-      }
-      break;
+      // Close the window
+      DestroyWindow(hwnd);
+    }
+    break;
 
     case WM_DESTROY:
-      PostQuitMessage(0);
-      break;
+    PostQuitMessage(0);
+    break;
 
-    default:
-      return DefWindowProcW(hwnd, msg, wParam, lParam);
+  default:
+    return DefWindowProcW(hwnd, msg, wParam, lParam);
   }
 
   return 0;
 }
 
-int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdshow) {
+int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args,
+                   int ncmdshow) {
 
   // clang-format off
 
