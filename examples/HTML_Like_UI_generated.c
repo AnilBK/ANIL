@@ -616,13 +616,20 @@ void UpdateStringFromTextInput(HWND textInput, struct String *str) {
   printf("Updated String: %s\n", str->arr);
 }
 
+typedef void (*CallbackFunction)();
+
 LRESULT CALLBACK EditSubclassProc(HWND hwnd, UINT msg, WPARAM wParam,
                                   LPARAM lParam, UINT_PTR uIdSubclass,
                                   DWORD_PTR dwRefData) {
   switch (msg) {
   case WM_KEYDOWN:
     if (wParam == VK_RETURN) {
-      add_todo();
+      // Call the function stored in dwRefData
+      CallbackFunction func = (CallbackFunction)dwRefData;
+      if (func) {
+        func(); // Execute function if valid
+      }
+
       SetWindowTextW(hwnd, L"");
       InvalidateRect(GetParent(hwnd), NULL,
                      TRUE); // Trigger repaint of parent window
@@ -653,6 +660,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wParam,
         WS_EX_CLIENTEDGE, L"EDIT", L"",
         WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL, 10, 50, 280, 24,
         hwnd, (HMENU)1, GetModuleHandle(NULL), NULL);
+    SetWindowSubclass(hTextInput1, EditSubclassProc, 1, (DWORD_PTR)add_todo);
     // Static Button 1
     hStaticButton1 =
         CreateWindowW(L"Button", L"Add Todo", WS_VISIBLE | WS_CHILD, 10, 90,
@@ -660,8 +668,6 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wParam,
     hSubmitButton =
         CreateWindowW(L"Button", L"Submit", WS_VISIBLE | WS_CHILD, 10, 130, 100,
                       25, hwnd, (HMENU)1000, NULL, NULL);
-    // Subclass the text input field to capture Enter key.
-    SetWindowSubclass(hTextInput1, EditSubclassProc, 1, 0);
     break;
 
   case WM_COMMAND:

@@ -2724,10 +2724,24 @@ while index < len(Lines):
             tag_name = parser.get_token()
 
             bind_to_string_variable = ""
+            on_enterkey_pressed_fn_name = ""
             if tag_name == "Input":
                 # <Input @todo_text>"Todo"</Input>
                 parser.consume_token(lexer.Token.AT)
                 bind_to_string_variable = parser.get_token()
+
+                # <Input @todo_text onenterkeypress=add_todo()>"Todo"</Input>
+                curr_tk = parser.current_token()
+                if curr_tk == "onenterkeypress":
+                    parser.next_token()
+
+                    parser.consume_token(lexer.Token.EQUALS)
+
+                    on_enterkey_pressed_fn_name = parser.get_token()
+                    parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
+                    parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
+                else:
+                    RAISE_ERROR("Expected 'onenterkeypress' attribute.")
 
             parser.consume_token(lexer.Token.GREATER_THAN)
 
@@ -2752,7 +2766,7 @@ while index < len(Lines):
             elif tag_name == "Button":
                 gui_manager.add_button(text)
             elif tag_name == "Input":
-                gui_manager.add_text_input_field(text, bind_to_string_variable)
+                gui_manager.add_text_input_field(text, bind_to_string_variable, on_enterkey_pressed_fn_name)
             else:
                 RAISE_ERROR(f"Unknown tag {tag_name}.")
             continue

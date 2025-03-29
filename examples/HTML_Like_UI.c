@@ -79,13 +79,20 @@ void UpdateStringFromTextInput(HWND textInput, struct String *str) {
   printf("Updated String: %s\n", str->arr);
 }
 
+typedef void (*CallbackFunction)();
+
 LRESULT CALLBACK EditSubclassProc(HWND hwnd, UINT msg, WPARAM wParam,
                                   LPARAM lParam, UINT_PTR uIdSubclass,
                                   DWORD_PTR dwRefData) {
   switch (msg) {
   case WM_KEYDOWN:
     if (wParam == VK_RETURN) {
-      add_todo();
+      // Call the function stored in dwRefData
+      CallbackFunction func = (CallbackFunction)dwRefData;
+      if (func){
+        func(); // Execute function if valid
+      }
+      
       SetWindowTextW(hwnd, L"");
       InvalidateRect(GetParent(hwnd), NULL,
                      TRUE); // Trigger repaint of parent window
@@ -108,8 +115,6 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wParam,
   switch (msg) {
   case WM_CREATE:
     // GUI_NODES_CREATION //
-    // Subclass the text input field to capture Enter key.
-    SetWindowSubclass(hTextInput1, EditSubclassProc, 1, 0);
     break;
 
   case WM_COMMAND:
@@ -167,7 +172,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args,
 
     <UI>
       <Label>"Enter Todo"</Label>
-      <Input @todo_text>"Todo"</Input>
+      <Input @todo_text onenterkeypress=add_todo()>"Todo"</Input>
       <Button>"Add Todo"</Button>
     </UI>
 
