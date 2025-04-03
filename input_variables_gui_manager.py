@@ -242,7 +242,7 @@ class InputVariablesGUI:
                 struct_code += f"{item.var_type} {item.name};"
         struct_code += "}Form1Output;"
 
-        joined_names_arr = []
+        joined_names_arr = ["hSubmitButton"]  # Every form has a submit button.
 
         for var_names in [names, self.static_labels, self.static_buttons, self.text_fields]:
             if len(var_names) == 0:
@@ -252,7 +252,7 @@ class InputVariablesGUI:
         name_joined = ",".join(joined_names_arr)
 
         # HWND hNameLabel, hNameInput, hAgeLabel, hAgeInput, hCheckbox, hSubmitButton, hFruitLabel, hFruitDropdown;
-        return f"HWND {name_joined} , hSubmitButton; {struct_code}\n\n"
+        return f"HWND {name_joined}; {struct_code}\n\n"
     
     def get_gui_nodes_creation_code(self):
         codes = ""
