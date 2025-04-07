@@ -45,6 +45,7 @@ source_file = "examples\\00_Hello_World.c"
 
 # Windows Specific.
 # source_file = "examples\\HTML_Like_UI.c"
+# source_file = "examples\\UI_TODO_App.c"
 # source_file = "examples\\Variables_GUI_Input_Win.c"
 # source_file = "examples\\WebServer.c"
 

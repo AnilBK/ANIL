@@ -19,6 +19,7 @@ file_names = [
     "examples\\decorators_inside_fn_body.c",
     "examples\\Unique_ptr_example.c",
     "examples\\HTML_Like_UI.c",
+    "examples\\UI_TODO_App.c",
     "examples\\Variables_GUI_Input_Win.c",
     "examples\\WebServer.c",
     "examples\\TestSuites\\Expression_parse_tests.c",
