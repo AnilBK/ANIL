@@ -3934,8 +3934,32 @@ while index < len(Lines):
                 LinesCache.append(f"{parsed_member}(); \n")
                 continue
             else:
-                # TODO ??
-                RAISE_ERROR(f"UserDefined Function : {parsed_member} calling void functions can't take parameters as of now. ")
+                fn_name = parsed_member
+                parser.next_token()
+
+                # call_func(ANIL_function, 5)
+                #          ^
+                parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
+
+                params = []
+
+                while True:
+                    if parser.check_token(lexer.Token.RIGHT_ROUND_BRACKET):
+                        break
+                    # FIXME: Only a single keyword long parameter is supported as of now.
+                    # Use built in other parsers to parse the parameters.
+                    # The advantage now is that it doesn't perform strict
+                    # checking of the parameters.
+                    param = parser.get_token()
+                    params.append(param)
+                    if parser.check_token(lexer.Token.COMMA):
+                        parser.consume_token(lexer.Token.COMMA)
+                parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
+
+                LinesCache.append(f"{fn_name}( {', '.join(params)}); \n")
+                continue
+                # LinesCache.append(f"  {return_code};\n")
+                # RAISE_ERROR(f"UserDefined Function : {parsed_member} calling void functions can't take parameters as of now. ")
         elif is_variable_boolean_type(parsed_member):
             # escape_back_slash = False
             parser.next_token()
