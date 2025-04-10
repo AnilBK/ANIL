@@ -18,6 +18,7 @@ file_names = [
     "examples\\Enumerate.c",
     "examples\\decorators_inside_fn_body.c",
     "examples\\Unique_ptr_example.c",
+    "examples\\FunctionPointer.c",
     "examples\\HTML_Like_UI.c",
     "examples\\UI_TODO_App.c",
     "examples\\Variables_GUI_Input_Win.c",

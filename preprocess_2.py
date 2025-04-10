@@ -42,6 +42,7 @@ source_file = "examples\\00_Hello_World.c"
 # source_file = "examples\\Enumerate.c"
 # source_file = "examples\\decorators_inside_fn_body.c"
 # source_file = "examples\\Unique_ptr_example.c"
+# source_file = "examples\\FunctionPointer.c"
 
 # Windows Specific.
 # source_file = "examples\\HTML_Like_UI.c"
@@ -1702,6 +1703,39 @@ while index < len(Lines):
             )
         REGISTER_VARIABLE(current_array_value_variable, "size_t")
 
+    def parse_function_pointer():
+        # Fn(int, int) -> void
+        #   ^
+        parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
+
+        arg_type_list = []
+        while True:
+            if parser.check_token(lexer.Token.RIGHT_ROUND_BRACKET):
+                break
+            arg_type = parse_data_type()
+            arg_type_list.append(arg_type)
+            if parser.check_token(lexer.Token.COMMA):
+                parser.consume_token(lexer.Token.COMMA)
+        parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
+
+        # Fn(int, int) -> void
+        #              ^
+        parser.consume_token(lexer.Token.MINUS)
+        parser.consume_token(lexer.Token.GREATER_THAN)
+
+        # TODO: Maybe use parse_data_type() here as well.
+        # But, does that handle 'void' types ??
+        return_type = parser.get_token()
+
+        def to_string():
+            # Lookup "Function Pointer Implementation" Section. 
+            # (*callback)(UIElement*, void*)
+            #   ^^^^^^^^
+            #                        VVVVVVV Replace FNNAME later.
+            return f"{return_type} (*#FNNAME#)({', '.join(arg_type_list)})"
+        
+        return to_string()
+
     def parse_data_type(inner = False, incomplete_types = None):
         # inner is used as a tag for name mangling during recursive data parsing.
 
@@ -1717,6 +1751,10 @@ while index < len(Lines):
         # ^^^^^^
         data_type = parser.get_token()
 
+        if data_type == "Fn":
+            # Fn(int, int) -> void
+            return parse_function_pointer()
+        
         # struct Vector
         # ^^^^^^
         if data_type == lexer.Token.STRUCT:
@@ -2669,6 +2707,20 @@ while index < len(Lines):
             #                       ^
             param_type = parse_data_type()
             # print(f"Function Param Name : {param_name}, type : {param_type}")
+
+            if "(*#FNNAME#)" in param_type:
+                # "Function Pointer Implementation" Section. 
+                # TODO: This is a temporary solution to handle function pointers.
+                # Probably DataType class should be refactored to handle function pointers.
+                # FIXME: Investigate.
+                # This section is executed after 'parse_function_pointer()'.
+                # So, investigate that function to see how it is being handled.
+                # Fn(int, int) -> void
+                # (*callback)(UIElement*, void*)
+                #   ^^^^^^^^ #FNNAME#
+                # return f"{return_type} (*#FNNAME#)({', '.join(arg_type_list)})"
+                param_type = param_type.replace("#FNNAME#", param_name)
+                param_name = ""
 
             if parser.has_tokens_remaining():
                 # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
