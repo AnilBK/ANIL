@@ -40,6 +40,8 @@ typedef struct WinUIAppCoreData {
 } WinUIAppCoreData;
 
 typedef WinUIAppCoreData *WinUIAppCoreDataPtr;
+typedef UIElement *UIElementPtr;
+typedef void *voidPtr;
 
 // Global root element for traversal
 UIElement *g_rootElement = NULL;
@@ -498,6 +500,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 // IMPORTS //
 
+struct VoidPointer {
+  void *ptr;
+};
+
 struct UIWidget {
   UIElement *uiElement;
 };
@@ -512,6 +518,11 @@ struct WinUIApp {
   WinUIAppCoreData *appCoreData;
 };
 
+void VoidPointer__init__(struct VoidPointer *this, struct UIWidget payload);
+
+void UIWidgetSetOnClickCallback(struct UIWidget *this,
+                                void (*onClickFn)(UIElementPtr, voidPtr),
+                                struct VoidPointer payload);
 void UIWidgetAddChild(struct UIWidget *this, struct UIWidget p_child);
 struct UIWidget UIWidgetCreateLabel(struct UIWidget *this, int x, int y,
                                     int width, int height, char *initialText,
@@ -542,6 +553,21 @@ int WinUIApp_RunMessageLoop(struct WinUIApp *this);
 int WinUIAppRun(struct WinUIApp *this);
 void WinUIAppCleanUp(struct WinUIApp *this);
 void WinUIApp__del__(struct WinUIApp *this);
+
+void AddTodo(UIElementPtr button, voidPtr userData);
+
+void VoidPointer__init__(struct VoidPointer *this, struct UIWidget payload) {
+  // Create a void* from UIWidget.
+  // Used by 'SetOnClickCallback' of UIWidget.
+  this->ptr = (void *)payload.uiElement;
+}
+
+void UIWidgetSetOnClickCallback(struct UIWidget *this,
+                                void (*onClickFn)(UIElementPtr, voidPtr),
+                                struct VoidPointer payload) {
+  this->uiElement->onClick = onClickFn;
+  this->uiElement->userData = payload.ptr;
+}
 
 void UIWidgetAddChild(struct UIWidget *this, struct UIWidget p_child) {
   UIElement *parent = this->uiElement;
@@ -802,9 +828,6 @@ struct Form1Output {
   char __dummy;
 } Form1Output;
 
-///*///
-///*///
-
 void AddTodoHandler(UIElement *button, void *userData) {
   // Cast userData back to the expected type (the root UIElement)
   UIElement *root = (UIElement *)userData;
@@ -838,6 +861,13 @@ void AddTodoHandler(UIElement *button, void *userData) {
                       "passed to AddTodoHandler.\n");
   }
 }
+
+///*///
+
+void AddTodo(UIElementPtr button, voidPtr userData) {
+  AddTodoHandler(button, userData);
+}
+///*///
 
 void RedirectIOToConsole() {
   // Allocate a console for the current process
@@ -943,13 +973,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     return -1;
   }
 
-  ///*///
-  UIElement *win_root_element = App.appCoreData->rootElement;
-
   // Setup Event Handlers.
   // Pass the root element as userData so the handler can find other elements
-  SetEventHandler(addButton.uiElement, AddTodoHandler, win_root_element);
-  ///*///
+  struct VoidPointer payload;
+  VoidPointer__init__(&payload, root_elem);
+  UIWidgetSetOnClickCallback(&addButton, AddTodo, payload);
 
   UIWidgetAddItemToList(&todoList, "Complete UI Framework");
   UIWidgetAddItemToList(&todoList, "Implement JSX like syntax");

@@ -40,6 +40,8 @@ typedef struct WinUIAppCoreData {
 } WinUIAppCoreData;
 
 typedef WinUIAppCoreData *WinUIAppCoreDataPtr;
+typedef UIElement *UIElementPtr;
+typedef void *voidPtr;
 
 // Global root element for traversal
 UIElement *g_rootElement = NULL;
@@ -485,9 +487,24 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 }
 ///*///
 
+struct VoidPointer{void* ptr};
+
 struct UIWidget { UIElement *uiElement };
 
+namespace VoidPointer
+c_function __init__(payload:UIWidget)
+  // Create a void* from UIWidget.
+  // Used by 'SetOnClickCallback' of UIWidget.
+  this->ptr = (void*) payload.uiElement;
+endc_function
+endnamespace
+
 namespace UIWidget
+
+c_function SetOnClickCallback(onClickFn:Fn(UIElementPtr,voidPtr)->void, payload:VoidPointer)
+  this->uiElement->onClick = onClickFn;
+  this->uiElement->userData = payload.ptr;
+endc_function
 
 c_function AddChild(p_child:UIWidget)
   UIElement* parent = this->uiElement;

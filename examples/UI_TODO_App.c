@@ -12,10 +12,6 @@
 
 // HWND_VARIABLE_DECLARATIONS //
 
-///*///
-import UI
-///*///
-
 void AddTodoHandler(UIElement *button, void *userData) {
   // Cast userData back to the expected type (the root UIElement)
   UIElement *root = (UIElement *)userData; 
@@ -44,6 +40,14 @@ void AddTodoHandler(UIElement *button, void *userData) {
       if (!listElement) fprintf(stderr, "Error: Could not find element 'todoList' from root passed to AddTodoHandler.\n");
   }
 }
+
+///*///
+import UI
+
+function AddTodo(button: UIElementPtr, userData: voidPtr)
+  AddTodoHandler(button, userData);
+endfunction
+///*///
 
 void RedirectIOToConsole() {
   // Allocate a console for the current process
@@ -143,13 +147,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     return -1
   }
 
-  ///*///
-  UIElement *win_root_element = App.appCoreData->rootElement;
-
   // Setup Event Handlers.
   // Pass the root element as userData so the handler can find other elements
-  SetEventHandler(addButton.uiElement, AddTodoHandler, win_root_element);
-  ///*///
+  let payload = VoidPointer{root_elem};
+  addButton.SetOnClickCallback(AddTodo, payload)
 
   todoList.AddItemToList("Complete UI Framework")
   todoList.AddItemToList("Implement JSX like syntax")
