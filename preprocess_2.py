@@ -12,6 +12,7 @@ import lexer
 import Parser
 from ErrorHandler import ErrorHandler
 from input_variables_gui_manager import InputVariablesGUI
+from JSXLikeParser import UIAttribute, UIElement, UIElementTree 
 
 # We don't typically pass filenames through command line, this is mostly for batch compile operations.
 filename_parser = argparse.ArgumentParser()
@@ -47,6 +48,7 @@ source_file = "examples\\00_Hello_World.c"
 # Windows Specific.
 # source_file = "examples\\HTML_Like_UI.c"
 # source_file = "examples\\UI_TODO_App.c"
+# source_file = "examples\\UI_TODO_JSX.c"
 # source_file = "examples\\Variables_GUI_Input_Win.c"
 # source_file = "examples\\WebServer.c"
 
@@ -139,6 +141,7 @@ main_fn_found = False
 
 is_inside_form = False
 gui_manager = InputVariablesGUI()
+JSXlike_element_tree = UIElementTree()
 
 is_inside_GUI_code = False
 
@@ -1434,9 +1437,8 @@ while index < len(Lines):
             RAISE_ERROR("Not inside a GUI, can't close it.")
         else:
             is_inside_GUI_code = False
-            gui_code = gui_manager.get_window_code()
-            for code in gui_code:
-                LinesCache.append(code)
+            ANIL_GUI_code = JSXlike_element_tree.generate_code()
+            insert_intermediate_lines(index, ANIL_GUI_code)
         continue
     elif Line.startswith("// DESTRUCTOR_CODE //"):
         # Destructors NOTE: If structs aren't instantiated, then their destructors mayn't be emitted.
@@ -2767,65 +2769,88 @@ while index < len(Lines):
         }
 
     if is_inside_GUI_code:
+        # JSX like parsing.
         # Parse :
         #   <Label>"Label Text"</Label>
         #   <Button>"Button Text"</Button>
         #   <Label>"Label Text"</Label>
+
         if check_token(lexer.Token.SMALLER_THAN):
             parser.consume_token(lexer.Token.SMALLER_THAN)
 
+            # </UI>
+            #  ^
+            if parser.check_token(lexer.Token.FRONT_SLASH):
+                parser.consume_token(lexer.Token.FRONT_SLASH)
+                # </UI>
+                #   ^^
+                node_name = parser.get_token()
+                parser.consume_token(lexer.Token.GREATER_THAN)
+
+                JSXlike_element_tree.close_tag(node_name)
+                continue
+
+            # <Label>"Label Text"</Label>
+            #  ^^^^^
             tag_name = parser.get_token()
 
-            bind_to_string_variable = ""
-            on_enterkey_pressed_fn_name = ""
-            if tag_name == "Input":
-                # <Input @todo_text>"Todo"</Input>
-                parser.consume_token(lexer.Token.AT)
-                bind_to_string_variable = parser.get_token()
+            ui_Element = UIElement(tag_name)
 
-                # <Input @todo_text onenterkeypress=add_todo()>"Todo"</Input>
-                curr_tk = parser.current_token()
-                if curr_tk == "onenterkeypress":
-                    parser.next_token()
+            # <Label id="headerLabel">
+            #        ^
+            while parser.has_tokens_remaining():
+                if parser.check_token(lexer.Token.GREATER_THAN):
+                    break
+                
+                # <Label id="headerLabel">
+                #        ^^ 
+                attribute = parser.get_token()
 
-                    parser.consume_token(lexer.Token.EQUALS)
+                parser.consume_token(lexer.Token.EQUALS)
 
-                    on_enterkey_pressed_fn_name = parser.get_token()
-                    parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
-                    parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
-                else:
-                    RAISE_ERROR("Expected 'onenterkeypress' attribute.")
+                # <Label id="headerLabel">
+                #           ^^^^^^^^^^^^^
+                value = parser.extract_string_literal()
 
+                # print(f"Attribute : {attribute}, Value : \"{value}\"")
+
+                ui_Attribute = UIAttribute(attribute, value)
+                ui_Element.add_attribute(ui_Attribute)
+
+            # <Label>"Label Text"</Label>
+            #       ^
             parser.consume_token(lexer.Token.GREATER_THAN)
 
-            parser.consume_token(lexer.Token.QUOTE)
-            text = parser.get_token()
-            parser.consume_token(lexer.Token.QUOTE)
+            closing_tag_found = False
+            if parser.has_tokens_remaining():
+                # <HBox id="inputRow">
+                #                     ^
+                #   <Input id="todoInput"></Input>
 
-            parser.consume_token(lexer.Token.SMALLER_THAN)
-            parser.consume_token(lexer.Token.FRONT_SLASH)
+                # <Label>"Label Text"</Label>
+                #        ^^^^^^^^^^^^
+                if parser.check_token(lexer.Token.QUOTE):
+                    node_content = parser.extract_string_literal()
+                    ui_Element.set_content(node_content)
 
-            closing_tag_name = parser.get_token()
+                # <Label>"Label Text"</Label>
+                #                    ^
+                parser.consume_token(lexer.Token.SMALLER_THAN)
+                parser.consume_token(lexer.Token.FRONT_SLASH)
 
-            if tag_name != closing_tag_name:
-                RAISE_ERROR(f"Closing tag {closing_tag_name} doesn't match with opening tag {tag_name}.")
+                closing_tag_name = parser.get_token()
+                if tag_name != closing_tag_name:
+                    RAISE_ERROR(f"Closing tag {closing_tag_name} doesn't match with opening tag {tag_name}.")
+                parser.consume_token(lexer.Token.GREATER_THAN)
+                closing_tag_found = True
 
-            parser.consume_token(lexer.Token.GREATER_THAN)
+            JSXlike_element_tree.add_element(ui_Element)
 
-            # print(f"Tag : {tag_name}, Text : {text}")
-
-            if tag_name == "Label":
-                gui_manager.add_label(text)
-            elif tag_name == "Button":
-                gui_manager.add_button(text)
-            elif tag_name == "Input":
-                gui_manager.add_text_input_field(text, bind_to_string_variable, on_enterkey_pressed_fn_name)
-            else:
-                RAISE_ERROR(f"Unknown tag {tag_name}.")
-            continue
+            if closing_tag_found:
+                JSXlike_element_tree.close_tag(closing_tag_name)
         else:
-            RAISE_ERROR("Expected <tag> but got something else.")
-
+            RAISE_ERROR(f"Expected '<' i.e JSX like UI Syntax but got {Line}.")
+        
 
     if is_inside_def and "enddef" in Line:
         if check_token(lexer.Token.ENDDEF):

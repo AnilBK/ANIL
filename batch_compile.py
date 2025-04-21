@@ -21,6 +21,7 @@ file_names = [
     "examples\\FunctionPointer.c",
     "examples\\HTML_Like_UI.c",
     "examples\\UI_TODO_App.c",
+    "examples\\UI_TODO_JSX.c",
     "examples\\Variables_GUI_Input_Win.c",
     "examples\\WebServer.c",
     "examples\\TestSuites\\Expression_parse_tests.c",
