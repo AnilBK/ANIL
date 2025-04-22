@@ -134,7 +134,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     <List id="todoList"></List>
     <HBox id="inputRow">
       <Input id="todoInput"></Input>
-      <Button id="addButton">"Add TODO"</Button>
+      <Button id="addButton" onclick="AddTodo(root_elem)">"Add TODO"</Button>
     </HBox>
   </UI>
 
@@ -145,11 +145,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     App.CleanUp()
     return -1
   }
-
-  // Setup Event Handlers.
-  // Pass the root element as userData so the handler can find other elements
-  let payload = VoidPointer{root_elem};
-  addButton.SetOnClickCallback(AddTodo, payload)
 
   todoList.AddItemToList("Complete UI Framework")
   todoList.AddItemToList("Implement JSX like syntax")

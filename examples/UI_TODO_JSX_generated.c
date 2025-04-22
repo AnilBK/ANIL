@@ -967,6 +967,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
   UIWidgetAddChild(&inputRow, todoInput);
   UIWidgetAddChild(&inputRow, addButton);
 
+  // OnClick Callbacks.
+  struct VoidPointer __payload_0;
+  VoidPointer__init__(&__payload_0, root_elem);
+  UIWidgetSetOnClickCallback(&addButton, AddTodo, __payload_0);
+
   // Create Windows Controls (HWNDs) for Children of Root.
   bool create_status = WinUIAppCreateControls(&App);
 
@@ -976,12 +981,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     WinUIAppCleanUp(&App);
     return -1;
   }
-
-  // Setup Event Handlers.
-  // Pass the root element as userData so the handler can find other elements
-  struct VoidPointer payload;
-  VoidPointer__init__(&payload, root_elem);
-  UIWidgetSetOnClickCallback(&addButton, AddTodo, payload);
 
   UIWidgetAddItemToList(&todoList, "Complete UI Framework");
   UIWidgetAddItemToList(&todoList, "Implement JSX like syntax");

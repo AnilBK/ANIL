@@ -41,6 +41,8 @@ class UIElementTree:
         self.current = self.root
         self.stack = [self.root]
 
+        self.payload_var_count = 0
+
     def add_element(self, element):
         self.current.children.append(element)
         self.stack.append(element)
@@ -137,5 +139,34 @@ class UIElementTree:
 
         # root_elem.AddChild(headerLabel)
         code.extend(generate_add_child_code(self.root))
+
+        def generate_onclick_code(self):
+            code = []
+            for element in all_elements:
+                if element.name == "Button":
+                    onclick = element.get_attribute_value("onclick")
+                    if onclick:
+                        # onclick can be "f()" or "f(payload)"
+                        fn_name = onclick.split("(")[0]
+                        fn_param = onclick.split("(")[1].split(")")[0]
+            
+                        # // Setup Event Handlers.
+                        # // Pass the root element as userData so the handler can find other elements
+                        # let payload = VoidPointer{root_elem};
+                        # addButton.SetOnClickCallback(AddTodo, payload)
+
+                        payload_var_name =  f"__payload_{self.payload_var_count}"
+                        self.payload_var_count += 1
+
+                        payload_code = f"let {payload_var_name} = VoidPointer{{ {fn_param} }}; \n"
+                        code.append(payload_code)
+                        code.append(f"{element.id}.SetOnClickCallback({fn_name}, {payload_var_name}) \n")
+
+            if code:
+                comment_line = ["\n", "\n", "#OnClick Callbacks.\n"]
+                code = comment_line + code
+            return code
+
+        code.extend(generate_onclick_code(self))
 
         return code
