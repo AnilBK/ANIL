@@ -47,6 +47,20 @@ import UI
 function AddTodo(button: UIElementPtr, userData: voidPtr)
   AddTodoHandler(button, userData);
 endfunction
+
+function AddTODOAction(root:UIWidget)
+  let editElement = root.FindElementById("todoInput")
+  let listElement = root.FindElementById("todoList")
+
+  if editElement.isValid(){
+    if listElement.isValid(){
+      let text = editElement.GetEditText()
+      editElement.AddItemToList(text)
+      editElement.ClearEditText()
+    }
+  }
+  
+endfunction
 ///*///
 
 void RedirectIOToConsole() {

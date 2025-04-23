@@ -520,6 +520,8 @@ struct WinUIApp {
 
 void VoidPointer__init__(struct VoidPointer *this, struct UIWidget payload);
 
+bool UIWidgetisValid(struct UIWidget *this);
+struct UIWidget UIWidgetFindElementById(struct UIWidget *this, char *id);
 void UIWidgetSetOnClickCallback(struct UIWidget *this,
                                 void (*onClickFn)(UIElementPtr, voidPtr),
                                 struct VoidPointer payload);
@@ -539,7 +541,8 @@ struct UIWidget UIWidgetCreateVBox(struct UIWidget *this, int x, int y,
 struct UIWidget UIWidgetCreateHBox(struct UIWidget *this, int x, int y,
                                    int width, int height, char *id);
 void UIWidgetAddItemToList(struct UIWidget *this, char *itemText);
-
+void UIWidgetClearEditText(struct UIWidget *this);
+char *UIWidgetGetEditText(struct UIWidget *this);
 struct UIWidget WinUIAppGetRootWidget(struct WinUIApp *this);
 WinUIAppCoreDataPtr WinUIApp_InitializeMainWindow(struct WinUIApp *this,
                                                   char *p_title, int width,
@@ -555,11 +558,38 @@ void WinUIAppCleanUp(struct WinUIApp *this);
 void WinUIApp__del__(struct WinUIApp *this);
 
 void AddTodo(UIElementPtr button, voidPtr userData);
+void AddTODOAction(struct UIWidget root);
 
 void VoidPointer__init__(struct VoidPointer *this, struct UIWidget payload) {
   // Create a void* from UIWidget.
   // Used by 'SetOnClickCallback' of UIWidget.
   this->ptr = (void *)payload.uiElement;
+}
+
+bool UIWidgetisValid(struct UIWidget *this) {
+  if (this->uiElement == NULL) {
+    fprintf(stderr, "Error: UIWidget is not valid (NULL uiElement).\n");
+    return false;
+  }
+  return true;
+}
+
+struct UIWidget UIWidgetFindElementById(struct UIWidget *this, char *id) {
+  struct UIWidget w;
+  w.uiElement = NULL;
+
+  if (this->uiElement == NULL || id == NULL) {
+    fprintf(stderr, "Error: FindElementById called with NULL element or id.\n");
+    return w;
+  }
+
+  UIElement *found = FindElementById(this->uiElement, id);
+  if (found) {
+    w.uiElement = found;
+  } else {
+    fprintf(stderr, "Warning: Element with ID '%s' not found.\n", id);
+  }
+  return w;
 }
 
 void UIWidgetSetOnClickCallback(struct UIWidget *this,
@@ -654,7 +684,35 @@ void UIWidgetAddItemToList(struct UIWidget *this, char *itemText) {
     fprintf(stderr, "Error: AddItemToList called on non-list element.\n");
     return;
   }
+
+  if (!itemText) {
+    fprintf(stderr, "Error: AddItemToList called with NULL itemText.\n");
+    return;
+  }
+
+  if (strlen(itemText) == 0) {
+    return;
+  }
+
   AddItemToList(this->uiElement, itemText);
+}
+
+void UIWidgetClearEditText(struct UIWidget *this) {
+  if (this->uiElement->type != EDIT) {
+    fprintf(stderr, "Error: ClearEditText called on non-edit element.\n");
+    return;
+  }
+  ClearEditText(this->uiElement);
+}
+
+char *UIWidgetGetEditText(struct UIWidget *this) {
+  if (this->uiElement->type != EDIT) {
+    fprintf(stderr, "Error: GetEditText called on non-edit element.\n");
+    return NULL;
+  }
+  char *text = GetEditText(this->uiElement);
+  return text;
+  // TODO: This should be freed, so use ANILs string.
 }
 
 struct UIWidget WinUIAppGetRootWidget(struct WinUIApp *this) {
@@ -866,6 +924,20 @@ void AddTodoHandler(UIElement *button, void *userData) {
 
 void AddTodo(UIElementPtr button, voidPtr userData) {
   AddTodoHandler(button, userData);
+}
+
+void AddTODOAction(struct UIWidget root) {
+  struct UIWidget editElement = UIWidgetFindElementById(&root, "todoInput");
+  struct UIWidget listElement = UIWidgetFindElementById(&root, "todoList");
+
+  if (UIWidgetisValid(&editElement)) {
+
+    if (UIWidgetisValid(&listElement)) {
+      char *text = UIWidgetGetEditText(&editElement);
+      UIWidgetAddItemToList(&editElement, text);
+      UIWidgetClearEditText(&editElement);
+    }
+  }
 }
 ///*///
 

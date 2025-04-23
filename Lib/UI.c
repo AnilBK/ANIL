@@ -501,6 +501,34 @@ endnamespace
 
 namespace UIWidget
 
+c_function isValid() -> bool:
+  if (this->uiElement == NULL) {
+    fprintf(stderr, "Error: UIWidget is not valid (NULL uiElement).\n");
+    return false;
+  }
+  return true;
+endc_function
+
+
+c_function FindElementById(id:str) -> UIWidget:
+  struct UIWidget w;
+  w.uiElement = NULL;
+
+  if (this->uiElement == NULL || id == NULL){
+    fprintf(stderr, "Error: FindElementById called with NULL element or id.\n");
+    return w;
+  }
+
+  UIElement *found = FindElementById(this->uiElement, id);
+  if (found) {
+    w.uiElement = found;
+  } else {
+    fprintf(stderr, "Warning: Element with ID '%s' not found.\n", id);
+  }
+  return w;
+endc_function
+
+
 c_function SetOnClickCallback(onClickFn:Fn(UIElementPtr,voidPtr)->void, payload:VoidPointer)
   this->uiElement->onClick = onClickFn;
   this->uiElement->userData = payload.ptr;
@@ -577,8 +605,38 @@ c_function AddItemToList(itemText:str)
     fprintf(stderr, "Error: AddItemToList called on non-list element.\n");
     return;
   }
+
+  if (!itemText) {
+    fprintf(stderr, "Error: AddItemToList called with NULL itemText.\n");
+    return;
+  }
+
+  if (strlen(itemText) == 0) {
+    return;
+  }
+
   AddItemToList(this->uiElement, itemText);
 endc_function
+
+c_function ClearEditText()
+  if (this->uiElement->type != EDIT) {
+    fprintf(stderr, "Error: ClearEditText called on non-edit element.\n");
+    return;
+  }
+  ClearEditText(this->uiElement);
+endc_function
+
+c_function GetEditText() -> str:
+  if (this->uiElement->type != EDIT) {
+    fprintf(stderr, "Error: GetEditText called on non-edit element.\n");
+    return NULL;
+  }
+  char *text = GetEditText(this->uiElement);
+  return text;
+  // TODO: This should be freed, so use ANILs string.
+endc_function
+
+
 endnamespace
 
 
