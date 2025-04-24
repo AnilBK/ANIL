@@ -934,7 +934,7 @@ void AddTODOAction(struct UIWidget root) {
 
     if (UIWidgetisValid(&listElement)) {
       char *text = UIWidgetGetEditText(&editElement);
-      UIWidgetAddItemToList(&editElement, text);
+      UIWidgetAddItemToList(&listElement, text);
       UIWidgetClearEditText(&editElement);
     }
   }

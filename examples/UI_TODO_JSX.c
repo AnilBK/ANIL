@@ -55,7 +55,7 @@ function AddTODOAction(root:UIWidget)
   if editElement.isValid(){
     if listElement.isValid(){
       let text = editElement.GetEditText()
-      editElement.AddItemToList(text)
+      listElement.AddItemToList(text)
       editElement.ClearEditText()
     }
   }
