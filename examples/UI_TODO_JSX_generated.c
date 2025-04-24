@@ -520,6 +520,8 @@ struct WinUIApp {
 
 void VoidPointer__init__(struct VoidPointer *this, struct UIWidget payload);
 
+struct UIWidget UIWidgetCreateUIWidgetFromVoidPtr(struct UIWidget *this,
+                                                  voidPtr ptr);
 bool UIWidgetisValid(struct UIWidget *this);
 struct UIWidget UIWidgetFindElementById(struct UIWidget *this, char *id);
 void UIWidgetSetOnClickCallback(struct UIWidget *this,
@@ -557,13 +559,29 @@ int WinUIAppRun(struct WinUIApp *this);
 void WinUIAppCleanUp(struct WinUIApp *this);
 void WinUIApp__del__(struct WinUIApp *this);
 
-void AddTodo(UIElementPtr button, voidPtr userData);
 void AddTODOAction(struct UIWidget root);
+void AddTodo(UIElementPtr button, voidPtr userData);
 
 void VoidPointer__init__(struct VoidPointer *this, struct UIWidget payload) {
   // Create a void* from UIWidget.
   // Used by 'SetOnClickCallback' of UIWidget.
   this->ptr = (void *)payload.uiElement;
+}
+
+struct UIWidget UIWidgetCreateUIWidgetFromVoidPtr(struct UIWidget *this,
+                                                  voidPtr ptr) {
+  // FIXME: This is like a static function.
+  // TODO: Have to do this because global c_functions dont have c function
+  // bodies.
+  UIElement *element = (UIElement *)ptr;
+  if (element == NULL) {
+    fprintf(stderr, "Error: Could not create UIWidget from a void*.\n");
+    return;
+  }
+
+  struct UIWidget w;
+  w.uiElement = element;
+  return w;
 }
 
 bool UIWidgetisValid(struct UIWidget *this) {
@@ -886,45 +904,7 @@ struct Form1Output {
   char __dummy;
 } Form1Output;
 
-void AddTodoHandler(UIElement *button, void *userData) {
-  // Cast userData back to the expected type (the root UIElement)
-  UIElement *root = (UIElement *)userData;
-  if (!root) {
-    fprintf(stderr,
-            "Error: AddTodoHandler called with NULL userData (root).\n");
-    return;
-  }
-
-  // Find elements starting from the provided root context
-  UIElement *editElement = FindElementById(root, "todoInput");
-  UIElement *listElement = FindElementById(root, "todoList");
-
-  if (editElement && listElement) {
-    char *text = GetEditText(editElement);
-    if (text) {
-      if (strlen(text) > 0) {
-        AddItemToList(listElement, text);
-        ClearEditText(editElement);
-      }
-      free(text);
-    } else {
-      fprintf(stderr, "Error: GetEditText failed for 'todoInput'.\n");
-    }
-  } else {
-    if (!editElement)
-      fprintf(stderr, "Error: Could not find element 'todoInput' from root "
-                      "passed to AddTodoHandler.\n");
-    if (!listElement)
-      fprintf(stderr, "Error: Could not find element 'todoList' from root "
-                      "passed to AddTodoHandler.\n");
-  }
-}
-
 ///*///
-
-void AddTodo(UIElementPtr button, voidPtr userData) {
-  AddTodoHandler(button, userData);
-}
 
 void AddTODOAction(struct UIWidget root) {
   struct UIWidget editElement = UIWidgetFindElementById(&root, "todoInput");
@@ -939,6 +919,14 @@ void AddTODOAction(struct UIWidget root) {
     }
   }
 }
+
+void AddTodo(UIElementPtr button, voidPtr userData) {
+  // Extract root UIWidget from userData.
+  struct UIWidget r1;
+  struct UIWidget root = UIWidgetCreateUIWidgetFromVoidPtr(&r1, userData);
+  AddTODOAction(root);
+}
+
 ///*///
 
 void RedirectIOToConsole() {

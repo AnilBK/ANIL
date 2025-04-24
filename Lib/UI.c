@@ -501,6 +501,20 @@ endnamespace
 
 namespace UIWidget
 
+c_function CreateUIWidgetFromVoidPtr(ptr: voidPtr) -> UIWidget:
+  // FIXME: This is like a static function.
+  // TODO: Have to do this because global c_functions dont have c function bodies.
+  UIElement* element = (UIElement*)ptr;
+  if (element == NULL) {
+    fprintf(stderr, "Error: Could not create UIWidget from a void*.\n");
+    return;
+  }
+
+  struct UIWidget w;
+  w.uiElement = element;
+  return w;
+endc_function
+
 c_function isValid() -> bool:
   if (this->uiElement == NULL) {
     fprintf(stderr, "Error: UIWidget is not valid (NULL uiElement).\n");

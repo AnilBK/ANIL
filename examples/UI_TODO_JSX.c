@@ -12,41 +12,8 @@
 
 // HWND_VARIABLE_DECLARATIONS //
 
-void AddTodoHandler(UIElement *button, void *userData) {
-  // Cast userData back to the expected type (the root UIElement)
-  UIElement *root = (UIElement *)userData; 
-  if (!root) {
-    fprintf(stderr, "Error: AddTodoHandler called with NULL userData (root).\n");
-    return;
-  }
-
-  // Find elements starting from the provided root context
-  UIElement *editElement = FindElementById(root, "todoInput");
-  UIElement *listElement = FindElementById(root, "todoList");
-
-  if (editElement && listElement) {
-    char *text = GetEditText(editElement);
-    if (text) {
-      if (strlen(text) > 0) {
-        AddItemToList(listElement, text);
-        ClearEditText(editElement);
-      }
-      free(text);
-    } else {
-        fprintf(stderr, "Error: GetEditText failed for 'todoInput'.\n");
-    }
-  } else {
-    if (!editElement) fprintf(stderr, "Error: Could not find element 'todoInput' from root passed to AddTodoHandler.\n");
-    if (!listElement) fprintf(stderr, "Error: Could not find element 'todoList' from root passed to AddTodoHandler.\n");
-  }
-}
-
 ///*///
 import UI
-
-function AddTodo(button: UIElementPtr, userData: voidPtr)
-  AddTodoHandler(button, userData);
-endfunction
 
 function AddTODOAction(root:UIWidget)
   let editElement = root.FindElementById("todoInput")
@@ -61,6 +28,14 @@ function AddTODOAction(root:UIWidget)
   }
   
 endfunction
+
+function AddTodo(button: UIElementPtr, userData: voidPtr)
+  // Extract root UIWidget from userData.
+  let r1 = UIWidget{};
+  let root = r1.CreateUIWidgetFromVoidPtr(userData)
+  AddTODOAction(root)
+endfunction
+
 ///*///
 
 void RedirectIOToConsole() {
