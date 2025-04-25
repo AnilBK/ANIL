@@ -12,99 +12,29 @@
 
 // HWND_VARIABLE_DECLARATIONS //
 
-void AddTodoHandler(UIElement *button, void *userData) {
-  // Cast userData back to the expected type (the root UIElement)
-  UIElement *root = (UIElement *)userData; 
-  if (!root) {
-      fprintf(stderr, "Error: AddTodoHandler called with NULL userData (root).\n");
-      return;
-  }
-
-  // Find elements starting from the provided root context
-  UIElement *editElement = FindElementById(root, "todoInput");
-  UIElement *listElement = FindElementById(root, "todoList");
-
-  if (editElement && listElement) {
-      char *text = GetEditText(editElement);
-      if (text) {
-          if (strlen(text) > 0) {
-              AddItemToList(listElement, text);
-              ClearEditText(editElement);
-          }
-          free(text);
-      } else {
-           fprintf(stderr, "Error: GetEditText failed for 'todoInput'.\n");
-      }
-  } else {
-      if (!editElement) fprintf(stderr, "Error: Could not find element 'todoInput' from root passed to AddTodoHandler.\n");
-      if (!listElement) fprintf(stderr, "Error: Could not find element 'todoList' from root passed to AddTodoHandler.\n");
-  }
-}
-
 ///*///
 import UI
 
-function AddTodo(button: UIElementPtr, userData: voidPtr)
-  AddTodoHandler(button, userData);
-endfunction
-///*///
+function AddTodo(userData: voidPtr)
+  // 'userData' has UIElement* to the root element.
+  // Convert it to UIWidget for easier access to UIWidget methods,
+  // and tree traversal.
+  let r1 = UIWidget{};
+  let root = r1.CreateUIWidgetFromVoidPtr(userData)
 
-void RedirectIOToConsole() {
-  // Allocate a console for the current process
-  AllocConsole();
+  let editElement = root.FindElementById("todoInput")
+  let listElement = root.FindElementById("todoList")
 
-  // Redirect the STDOUT to the console
-  FILE* fp;
-  freopen_s(&fp, "CONOUT$", "w", stdout);
-  freopen_s(&fp, "CONOUT$", "w", stderr);
-
-  // Redirect STDIN to the console
-  freopen_s(&fp, "CONIN$", "r", stdin);
-
-  // Optional: You can set the console title if you like
-  SetConsoleTitle(TEXT("Console Window"));
-} 
-
-LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wParam,
-                                 LPARAM lParam) {
-  switch (msg) {
-  case WM_CREATE:
-    // GUI_NODES_CREATION //
-    break;
-
-  case WM_COMMAND:
-
-    if (HIWORD(wParam) == EN_CHANGE) { // Text input changed
-      switch (LOWORD(wParam)) {
-        // INPUT_FIELD_AUTO_BIND_TO_STRING //
-      }
+  if editElement.isValid(){
+    if listElement.isValid(){
+      let text = editElement.GetEditText()
+      listElement.AddItemToList(text)
+      editElement.ClearEditText()
     }
-
-    if (LOWORD(wParam) == 1000) { // Submit Button Clicked
-// ASSIGN_GUI_OUTPUTS //
-
-      // Close the window
-      DestroyWindow(hwnd);
-    }
-    break;
-
-  case WM_PAINT: {
-    PAINTSTRUCT ps;
-    HDC hdc = BeginPaint(hwnd, &ps);
-    // DrawVectorString(hdc, 10, 170, &todo_text_list);
-    EndPaint(hwnd, &ps);
-  } break;
-
-  case WM_DESTROY:
-    PostQuitMessage(0);
-    break;
-
-  default:
-    return DefWindowProcW(hwnd, msg, wParam, lParam);
   }
+endfunction
 
-  return 0;
-}
+///*///
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     LPSTR lpCmdLine, int nCmdShow) {

@@ -15,7 +15,7 @@ typedef enum { LABEL, BUTTON, LIST, EDIT, HORIZONTAL, VERTICAL } UIType;
 struct UIElement;
 
 // Function pointer type for event handlers
-typedef void (*EventHandler)(struct UIElement *, void *);
+typedef void (*EventHandler)(void *);
 
 typedef struct UIElement {
   UIType type;
@@ -451,7 +451,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
       UIElement *element =
           (UIElement *)GetWindowLongPtr(controlHwnd, GWLP_USERDATA);
       if (element && element->onClick) {
-        element->onClick(element, element->userData);
+        element->onClick(element->userData);
       }
     } else if (HIWORD(wParam) == LBN_SELCHANGE) {
       HWND controlHwnd = (HWND)lParam;
@@ -484,6 +484,23 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
   }
   return 0;
 }
+
+void RedirectIOToConsole() {
+  // Allocate a console for the current process
+  AllocConsole();
+
+  // Redirect the STDOUT to the console
+  FILE *fp;
+  freopen_s(&fp, "CONOUT$", "w", stdout);
+  freopen_s(&fp, "CONOUT$", "w", stderr);
+
+  // Redirect STDIN to the console
+  freopen_s(&fp, "CONIN$", "r", stdin);
+
+  // Optional: You can set the console title if you like
+  SetConsoleTitle(TEXT("Console Window"));
+}
+
 ///*///
 
 // Initializes the main window, creates the root UI element, and sets up the
@@ -520,8 +537,12 @@ struct WinUIApp {
 
 void VoidPointer__init__(struct VoidPointer *this, struct UIWidget payload);
 
+struct UIWidget UIWidgetCreateUIWidgetFromVoidPtr(struct UIWidget *this,
+                                                  voidPtr ptr);
+bool UIWidgetisValid(struct UIWidget *this);
+struct UIWidget UIWidgetFindElementById(struct UIWidget *this, char *id);
 void UIWidgetSetOnClickCallback(struct UIWidget *this,
-                                void (*onClickFn)(UIElementPtr, voidPtr),
+                                void (*onClickFn)(voidPtr),
                                 struct VoidPointer payload);
 void UIWidgetAddChild(struct UIWidget *this, struct UIWidget p_child);
 struct UIWidget UIWidgetCreateLabel(struct UIWidget *this, int x, int y,
@@ -539,7 +560,8 @@ struct UIWidget UIWidgetCreateVBox(struct UIWidget *this, int x, int y,
 struct UIWidget UIWidgetCreateHBox(struct UIWidget *this, int x, int y,
                                    int width, int height, char *id);
 void UIWidgetAddItemToList(struct UIWidget *this, char *itemText);
-
+void UIWidgetClearEditText(struct UIWidget *this);
+char *UIWidgetGetEditText(struct UIWidget *this);
 struct UIWidget WinUIAppGetRootWidget(struct WinUIApp *this);
 WinUIAppCoreDataPtr WinUIApp_InitializeMainWindow(struct WinUIApp *this,
                                                   char *p_title, int width,
@@ -554,7 +576,7 @@ int WinUIAppRun(struct WinUIApp *this);
 void WinUIAppCleanUp(struct WinUIApp *this);
 void WinUIApp__del__(struct WinUIApp *this);
 
-void AddTodo(UIElementPtr button, voidPtr userData);
+void AddTodo(voidPtr userData);
 
 void VoidPointer__init__(struct VoidPointer *this, struct UIWidget payload) {
   // Create a void* from UIWidget.
@@ -562,8 +584,50 @@ void VoidPointer__init__(struct VoidPointer *this, struct UIWidget payload) {
   this->ptr = (void *)payload.uiElement;
 }
 
+struct UIWidget UIWidgetCreateUIWidgetFromVoidPtr(struct UIWidget *this,
+                                                  voidPtr ptr) {
+  // FIXME: This is like a static function.
+  // TODO: Have to do this because global c_functions dont have c function
+  // bodies.
+  UIElement *element = (UIElement *)ptr;
+  if (element == NULL) {
+    fprintf(stderr, "Error: Could not create UIWidget from a void*.\n");
+    exit(-1);
+  }
+
+  struct UIWidget w;
+  w.uiElement = element;
+  return w;
+}
+
+bool UIWidgetisValid(struct UIWidget *this) {
+  if (this->uiElement == NULL) {
+    fprintf(stderr, "Error: UIWidget is not valid (NULL uiElement).\n");
+    return false;
+  }
+  return true;
+}
+
+struct UIWidget UIWidgetFindElementById(struct UIWidget *this, char *id) {
+  struct UIWidget w;
+  w.uiElement = NULL;
+
+  if (this->uiElement == NULL || id == NULL) {
+    fprintf(stderr, "Error: FindElementById called with NULL element or id.\n");
+    return w;
+  }
+
+  UIElement *found = FindElementById(this->uiElement, id);
+  if (found) {
+    w.uiElement = found;
+  } else {
+    fprintf(stderr, "Warning: Element with ID '%s' not found.\n", id);
+  }
+  return w;
+}
+
 void UIWidgetSetOnClickCallback(struct UIWidget *this,
-                                void (*onClickFn)(UIElementPtr, voidPtr),
+                                void (*onClickFn)(voidPtr),
                                 struct VoidPointer payload) {
   this->uiElement->onClick = onClickFn;
   this->uiElement->userData = payload.ptr;
@@ -654,7 +718,35 @@ void UIWidgetAddItemToList(struct UIWidget *this, char *itemText) {
     fprintf(stderr, "Error: AddItemToList called on non-list element.\n");
     return;
   }
+
+  if (!itemText) {
+    fprintf(stderr, "Error: AddItemToList called with NULL itemText.\n");
+    return;
+  }
+
+  if (strlen(itemText) == 0) {
+    return;
+  }
+
   AddItemToList(this->uiElement, itemText);
+}
+
+void UIWidgetClearEditText(struct UIWidget *this) {
+  if (this->uiElement->type != EDIT) {
+    fprintf(stderr, "Error: ClearEditText called on non-edit element.\n");
+    return;
+  }
+  ClearEditText(this->uiElement);
+}
+
+char *UIWidgetGetEditText(struct UIWidget *this) {
+  if (this->uiElement->type != EDIT) {
+    fprintf(stderr, "Error: GetEditText called on non-edit element.\n");
+    return NULL;
+  }
+  char *text = GetEditText(this->uiElement);
+  return text;
+  // TODO: This should be freed, so use ANILs string.
 }
 
 struct UIWidget WinUIAppGetRootWidget(struct WinUIApp *this) {
@@ -828,102 +920,29 @@ struct Form1Output {
   char __dummy;
 } Form1Output;
 
-void AddTodoHandler(UIElement *button, void *userData) {
-  // Cast userData back to the expected type (the root UIElement)
-  UIElement *root = (UIElement *)userData;
-  if (!root) {
-    fprintf(stderr,
-            "Error: AddTodoHandler called with NULL userData (root).\n");
-    return;
-  }
+///*///
 
-  // Find elements starting from the provided root context
-  UIElement *editElement = FindElementById(root, "todoInput");
-  UIElement *listElement = FindElementById(root, "todoList");
+void AddTodo(voidPtr userData) {
+  // 'userData' has UIElement* to the root element.
+  // Convert it to UIWidget for easier access to UIWidget methods,
+  // and tree traversal.
+  struct UIWidget r1;
+  struct UIWidget root = UIWidgetCreateUIWidgetFromVoidPtr(&r1, userData);
 
-  if (editElement && listElement) {
-    char *text = GetEditText(editElement);
-    if (text) {
-      if (strlen(text) > 0) {
-        AddItemToList(listElement, text);
-        ClearEditText(editElement);
-      }
-      free(text);
-    } else {
-      fprintf(stderr, "Error: GetEditText failed for 'todoInput'.\n");
+  struct UIWidget editElement = UIWidgetFindElementById(&root, "todoInput");
+  struct UIWidget listElement = UIWidgetFindElementById(&root, "todoList");
+
+  if (UIWidgetisValid(&editElement)) {
+
+    if (UIWidgetisValid(&listElement)) {
+      char *text = UIWidgetGetEditText(&editElement);
+      UIWidgetAddItemToList(&listElement, text);
+      UIWidgetClearEditText(&editElement);
     }
-  } else {
-    if (!editElement)
-      fprintf(stderr, "Error: Could not find element 'todoInput' from root "
-                      "passed to AddTodoHandler.\n");
-    if (!listElement)
-      fprintf(stderr, "Error: Could not find element 'todoList' from root "
-                      "passed to AddTodoHandler.\n");
   }
 }
 
 ///*///
-
-void AddTodo(UIElementPtr button, voidPtr userData) {
-  AddTodoHandler(button, userData);
-}
-///*///
-
-void RedirectIOToConsole() {
-  // Allocate a console for the current process
-  AllocConsole();
-
-  // Redirect the STDOUT to the console
-  FILE *fp;
-  freopen_s(&fp, "CONOUT$", "w", stdout);
-  freopen_s(&fp, "CONOUT$", "w", stderr);
-
-  // Redirect STDIN to the console
-  freopen_s(&fp, "CONIN$", "r", stdin);
-
-  // Optional: You can set the console title if you like
-  SetConsoleTitle(TEXT("Console Window"));
-}
-
-LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wParam,
-                                 LPARAM lParam) {
-  switch (msg) {
-  case WM_CREATE:
-    hSubmitButton =
-        CreateWindowW(L"Button", L"Submit", WS_VISIBLE | WS_CHILD, 10, 10, 100,
-                      25, hwnd, (HMENU)1000, NULL, NULL);
-    break;
-
-  case WM_COMMAND:
-
-    if (HIWORD(wParam) == EN_CHANGE) { // Text input changed
-      switch (LOWORD(wParam)) {}
-    }
-
-    if (LOWORD(wParam) == 1000) { // Submit Button Clicked
-
-      // Close the window
-      DestroyWindow(hwnd);
-    }
-    break;
-
-  case WM_PAINT: {
-    PAINTSTRUCT ps;
-    HDC hdc = BeginPaint(hwnd, &ps);
-    // DrawVectorString(hdc, 10, 170, &todo_text_list);
-    EndPaint(hwnd, &ps);
-  } break;
-
-  case WM_DESTROY:
-    PostQuitMessage(0);
-    break;
-
-  default:
-    return DefWindowProcW(hwnd, msg, wParam, lParam);
-  }
-
-  return 0;
-}
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                    LPSTR lpCmdLine, int nCmdShow) {
