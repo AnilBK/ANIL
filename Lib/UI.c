@@ -16,7 +16,7 @@ typedef enum { LABEL, BUTTON, LIST, EDIT, HORIZONTAL, VERTICAL } UIType;
 struct UIElement;
 
 // Function pointer type for event handlers
-typedef void (*EventHandler)(struct UIElement *, void *);
+typedef void (*EventHandler)(void *);
 
 typedef struct UIElement {
   UIType type;
@@ -452,7 +452,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
       UIElement *element =
           (UIElement *)GetWindowLongPtr(controlHwnd, GWLP_USERDATA);
       if (element && element->onClick) {
-        element->onClick(element, element->userData);
+        element->onClick(element->userData);
       }
     } else if (HIWORD(wParam) == LBN_SELCHANGE) {
       HWND controlHwnd = (HWND)lParam;
@@ -524,7 +524,7 @@ c_function CreateUIWidgetFromVoidPtr(ptr: voidPtr) -> UIWidget:
   UIElement* element = (UIElement*)ptr;
   if (element == NULL) {
     fprintf(stderr, "Error: Could not create UIWidget from a void*.\n");
-    return;
+    exit(-1);
   }
 
   struct UIWidget w;
@@ -539,7 +539,6 @@ c_function isValid() -> bool:
   }
   return true;
 endc_function
-
 
 c_function FindElementById(id:str) -> UIWidget:
   struct UIWidget w;
@@ -559,8 +558,7 @@ c_function FindElementById(id:str) -> UIWidget:
   return w;
 endc_function
 
-
-c_function SetOnClickCallback(onClickFn:Fn(UIElementPtr,voidPtr)->void, payload:VoidPointer)
+c_function SetOnClickCallback(onClickFn:Fn(voidPtr)->void, payload:VoidPointer)
   this->uiElement->onClick = onClickFn;
   this->uiElement->userData = payload.ptr;
 endc_function

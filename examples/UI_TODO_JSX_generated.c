@@ -15,7 +15,7 @@ typedef enum { LABEL, BUTTON, LIST, EDIT, HORIZONTAL, VERTICAL } UIType;
 struct UIElement;
 
 // Function pointer type for event handlers
-typedef void (*EventHandler)(struct UIElement *, void *);
+typedef void (*EventHandler)(void *);
 
 typedef struct UIElement {
   UIType type;
@@ -451,7 +451,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
       UIElement *element =
           (UIElement *)GetWindowLongPtr(controlHwnd, GWLP_USERDATA);
       if (element && element->onClick) {
-        element->onClick(element, element->userData);
+        element->onClick(element->userData);
       }
     } else if (HIWORD(wParam) == LBN_SELCHANGE) {
       HWND controlHwnd = (HWND)lParam;
@@ -542,7 +542,7 @@ struct UIWidget UIWidgetCreateUIWidgetFromVoidPtr(struct UIWidget *this,
 bool UIWidgetisValid(struct UIWidget *this);
 struct UIWidget UIWidgetFindElementById(struct UIWidget *this, char *id);
 void UIWidgetSetOnClickCallback(struct UIWidget *this,
-                                void (*onClickFn)(UIElementPtr, voidPtr),
+                                void (*onClickFn)(voidPtr),
                                 struct VoidPointer payload);
 void UIWidgetAddChild(struct UIWidget *this, struct UIWidget p_child);
 struct UIWidget UIWidgetCreateLabel(struct UIWidget *this, int x, int y,
@@ -576,8 +576,7 @@ int WinUIAppRun(struct WinUIApp *this);
 void WinUIAppCleanUp(struct WinUIApp *this);
 void WinUIApp__del__(struct WinUIApp *this);
 
-void AddTODOAction(struct UIWidget root);
-void AddTodo(UIElementPtr button, voidPtr userData);
+void AddTodo(voidPtr userData);
 
 void VoidPointer__init__(struct VoidPointer *this, struct UIWidget payload) {
   // Create a void* from UIWidget.
@@ -593,7 +592,7 @@ struct UIWidget UIWidgetCreateUIWidgetFromVoidPtr(struct UIWidget *this,
   UIElement *element = (UIElement *)ptr;
   if (element == NULL) {
     fprintf(stderr, "Error: Could not create UIWidget from a void*.\n");
-    return;
+    exit(-1);
   }
 
   struct UIWidget w;
@@ -628,7 +627,7 @@ struct UIWidget UIWidgetFindElementById(struct UIWidget *this, char *id) {
 }
 
 void UIWidgetSetOnClickCallback(struct UIWidget *this,
-                                void (*onClickFn)(UIElementPtr, voidPtr),
+                                void (*onClickFn)(voidPtr),
                                 struct VoidPointer payload) {
   this->uiElement->onClick = onClickFn;
   this->uiElement->userData = payload.ptr;
@@ -923,7 +922,13 @@ struct Form1Output {
 
 ///*///
 
-void AddTODOAction(struct UIWidget root) {
+void AddTodo(voidPtr userData) {
+  // 'userData' has UIElement* to the root element.
+  // Convert it to UIWidget for easier access to UIWidget methods,
+  // and tree traversal.
+  struct UIWidget r1;
+  struct UIWidget root = UIWidgetCreateUIWidgetFromVoidPtr(&r1, userData);
+
   struct UIWidget editElement = UIWidgetFindElementById(&root, "todoInput");
   struct UIWidget listElement = UIWidgetFindElementById(&root, "todoList");
 
@@ -935,13 +940,6 @@ void AddTODOAction(struct UIWidget root) {
       UIWidgetClearEditText(&editElement);
     }
   }
-}
-
-void AddTodo(UIElementPtr button, voidPtr userData) {
-  // Extract root UIWidget from userData.
-  struct UIWidget r1;
-  struct UIWidget root = UIWidgetCreateUIWidgetFromVoidPtr(&r1, userData);
-  AddTODOAction(root);
 }
 
 ///*///
