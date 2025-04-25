@@ -484,6 +484,23 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
   }
   return 0;
 }
+
+void RedirectIOToConsole() {
+  // Allocate a console for the current process
+  AllocConsole();
+
+  // Redirect the STDOUT to the console
+  FILE *fp;
+  freopen_s(&fp, "CONOUT$", "w", stdout);
+  freopen_s(&fp, "CONOUT$", "w", stderr);
+
+  // Redirect STDIN to the console
+  freopen_s(&fp, "CONIN$", "r", stdin);
+
+  // Optional: You can set the console title if you like
+  SetConsoleTitle(TEXT("Console Window"));
+}
+
 ///*///
 
 // Initializes the main window, creates the root UI element, and sets up the
@@ -928,62 +945,6 @@ void AddTodo(UIElementPtr button, voidPtr userData) {
 }
 
 ///*///
-
-void RedirectIOToConsole() {
-  // Allocate a console for the current process
-  AllocConsole();
-
-  // Redirect the STDOUT to the console
-  FILE *fp;
-  freopen_s(&fp, "CONOUT$", "w", stdout);
-  freopen_s(&fp, "CONOUT$", "w", stderr);
-
-  // Redirect STDIN to the console
-  freopen_s(&fp, "CONIN$", "r", stdin);
-
-  // Optional: You can set the console title if you like
-  SetConsoleTitle(TEXT("Console Window"));
-}
-
-LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wParam,
-                                 LPARAM lParam) {
-  switch (msg) {
-  case WM_CREATE:
-    hSubmitButton =
-        CreateWindowW(L"Button", L"Submit", WS_VISIBLE | WS_CHILD, 10, 10, 100,
-                      25, hwnd, (HMENU)1000, NULL, NULL);
-    break;
-
-  case WM_COMMAND:
-
-    if (HIWORD(wParam) == EN_CHANGE) { // Text input changed
-      switch (LOWORD(wParam)) {}
-    }
-
-    if (LOWORD(wParam) == 1000) { // Submit Button Clicked
-
-      // Close the window
-      DestroyWindow(hwnd);
-    }
-    break;
-
-  case WM_PAINT: {
-    PAINTSTRUCT ps;
-    HDC hdc = BeginPaint(hwnd, &ps);
-    // DrawVectorString(hdc, 10, 170, &todo_text_list);
-    EndPaint(hwnd, &ps);
-  } break;
-
-  case WM_DESTROY:
-    PostQuitMessage(0);
-    break;
-
-  default:
-    return DefWindowProcW(hwnd, msg, wParam, lParam);
-  }
-
-  return 0;
-}
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                    LPSTR lpCmdLine, int nCmdShow) {
