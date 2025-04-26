@@ -47,6 +47,7 @@ typedef void *voidPtr;
 UIElement *g_rootElement = NULL;
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+void RefreshUILayout();
 void LayoutChildren(UIElement *);
 int CalculatePreferredHeight(UIElement *element);
 void FreeUIElementTree(UIElement *element);
@@ -281,24 +282,7 @@ void AddItemToList(UIElement *list, LPCSTR itemText) {
     return;
   SendMessage(list->hwnd, LB_ADDSTRING, 0, (LPARAM)itemText);
   list->itemCount++;
-  if (g_rootElement) {
-    HWND topLevelWindow = NULL;
-    if (g_rootElement->hwnd)
-      topLevelWindow = GetAncestor(g_rootElement->hwnd, GA_ROOTOWNER);
-    if (!topLevelWindow && g_rootElement)
-      topLevelWindow = g_rootElement->hwnd;
-
-    if (topLevelWindow) {
-      RECT clientRect;
-      GetClientRect(topLevelWindow, &clientRect);
-      g_rootElement->width = clientRect.right - clientRect.left;
-      // Maybe don't adjust height here, let layout handle it
-      LayoutChildren(g_rootElement);
-      InvalidateRect(topLevelWindow, NULL, true);
-    } else {
-      LayoutChildren(g_rootElement);
-    }
-  }
+  RefreshUILayout();
 }
 
 void SetEventHandler(UIElement *element, EventHandler handler, void *userData) {
@@ -359,6 +343,30 @@ void FreeUIElementTree(UIElement *element) {
   // We only free the struct memory. HWNDs are destroyed by the OS when the
   // top-level window closes.
   free(element);
+}
+
+void RefreshUILayout() {
+  if (g_rootElement) {
+    HWND topLevelWindow = NULL;
+    if (g_rootElement->hwnd) {
+      topLevelWindow = GetAncestor(g_rootElement->hwnd, GA_ROOTOWNER);
+    }
+    if (!topLevelWindow && g_rootElement) {
+      topLevelWindow = g_rootElement->hwnd;
+    }
+
+    if (topLevelWindow) {
+      RECT clientRect;
+      GetClientRect(topLevelWindow, &clientRect);
+      g_rootElement->width = clientRect.right - clientRect.left;
+      // Height is not set here.
+      // LayoutChildren determines it based on children.
+      LayoutChildren(g_rootElement);
+      InvalidateRect(topLevelWindow, NULL, TRUE);
+    } else {
+      LayoutChildren(g_rootElement);
+    }
+  }
 }
 
 void LayoutChildren(UIElement *container) {
@@ -562,6 +570,7 @@ struct UIWidget UIWidgetCreateHBox(struct UIWidget *this, int x, int y,
 void UIWidgetAddItemToList(struct UIWidget *this, char *itemText);
 void UIWidgetClearEditText(struct UIWidget *this);
 char *UIWidgetGetEditText(struct UIWidget *this);
+void UIWidgetRemoveSelectedListItem(struct UIWidget *this);
 struct UIWidget WinUIAppGetRootWidget(struct WinUIApp *this);
 WinUIAppCoreDataPtr WinUIApp_InitializeMainWindow(struct WinUIApp *this,
                                                   char *p_title, int width,
@@ -577,6 +586,7 @@ void WinUIAppCleanUp(struct WinUIApp *this);
 void WinUIApp__del__(struct WinUIApp *this);
 
 void AddTodo(voidPtr userData);
+void DeleteSelectedTodo(voidPtr userData);
 
 void VoidPointer__init__(struct VoidPointer *this, struct UIWidget payload) {
   // Create a void* from UIWidget.
@@ -747,6 +757,24 @@ char *UIWidgetGetEditText(struct UIWidget *this) {
   char *text = GetEditText(this->uiElement);
   return text;
   // TODO: This should be freed, so use ANILs string.
+}
+
+void UIWidgetRemoveSelectedListItem(struct UIWidget *this) {
+  if (this->uiElement->type != LIST) {
+    fprintf(stderr,
+            "Error: RemoveSelectedListItem called on non-list element.\n");
+    return;
+  }
+
+  int selectedIndex = SendMessage(this->uiElement->hwnd, LB_GETCURSEL, 0, 0);
+
+  if (selectedIndex != LB_ERR) {
+    SendMessage(this->uiElement->hwnd, LB_DELETESTRING, selectedIndex, 0);
+    this->uiElement->itemCount--;
+    RefreshUILayout();
+  } else {
+    fprintf(stderr, "Error: No item selected in the list.\n");
+  }
 }
 
 struct UIWidget WinUIAppGetRootWidget(struct WinUIApp *this) {
@@ -942,6 +970,17 @@ void AddTodo(voidPtr userData) {
   }
 }
 
+void DeleteSelectedTodo(voidPtr userData) {
+  struct UIWidget r1;
+  struct UIWidget root = UIWidgetCreateUIWidgetFromVoidPtr(&r1, userData);
+
+  struct UIWidget listElement = UIWidgetFindElementById(&root, "todoList");
+
+  if (UIWidgetisValid(&listElement)) {
+    UIWidgetRemoveSelectedListItem(&listElement);
+  }
+}
+
 ///*///
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
@@ -980,16 +1019,22 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
       UIWidgetCreateLineInput(&App__ui, 0, 0, 0, 0, "todoInput");
   struct UIWidget addButton =
       UIWidgetCreateButton(&App__ui, 0, 0, 60, 0, "Add TODO", "addButton");
+  struct UIWidget deleteButton = UIWidgetCreateButton(
+      &App__ui, 0, 0, 60, 0, "Delete Selected TODO", "deleteButton");
   UIWidgetAddChild(&root_elem, headerLabel);
   UIWidgetAddChild(&root_elem, todoList);
   UIWidgetAddChild(&root_elem, inputRow);
   UIWidgetAddChild(&inputRow, todoInput);
   UIWidgetAddChild(&inputRow, addButton);
+  UIWidgetAddChild(&inputRow, deleteButton);
 
   // OnClick Callbacks.
   struct VoidPointer __payload_0;
   VoidPointer__init__(&__payload_0, root_elem);
   UIWidgetSetOnClickCallback(&addButton, AddTodo, __payload_0);
+  struct VoidPointer __payload_1;
+  VoidPointer__init__(&__payload_1, root_elem);
+  UIWidgetSetOnClickCallback(&deleteButton, DeleteSelectedTodo, __payload_1);
 
   // Create Windows Controls (HWNDs) for Children of Root.
   bool create_status = WinUIAppCreateControls(&App);

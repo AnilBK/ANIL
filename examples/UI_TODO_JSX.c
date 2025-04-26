@@ -34,6 +34,17 @@ function AddTodo(userData: voidPtr)
   }
 endfunction
 
+function DeleteSelectedTodo(userData: voidPtr)
+  let r1 = UIWidget{};
+  let root = r1.CreateUIWidgetFromVoidPtr(userData)
+
+  let listElement = root.FindElementById("todoList")
+
+  if listElement.isValid(){
+    listElement.RemoveSelectedListItem()
+  }
+endfunction
+
 ///*///
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
@@ -65,6 +76,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     <HBox id="inputRow">
       <Input id="todoInput"></Input>
       <Button id="addButton" onclick="AddTodo(root_elem)">"Add TODO"</Button>
+      <Button id="deleteButton" onclick="DeleteSelectedTodo(root_elem)">"Delete Selected TODO"</Button>
     </HBox>
   </UI>
 
