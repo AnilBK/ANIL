@@ -47,6 +47,7 @@ typedef void *voidPtr;
 UIElement *g_rootElement = NULL;
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+void RefreshUILayout();
 void LayoutChildren(UIElement *);
 int CalculatePreferredHeight(UIElement *element);
 void FreeUIElementTree(UIElement *element);
@@ -282,24 +283,7 @@ void AddItemToList(UIElement *list, LPCSTR itemText) {
     return;
   SendMessage(list->hwnd, LB_ADDSTRING, 0, (LPARAM)itemText);
   list->itemCount++;
-  if (g_rootElement) {
-    HWND topLevelWindow = NULL;
-    if (g_rootElement->hwnd)
-      topLevelWindow = GetAncestor(g_rootElement->hwnd, GA_ROOTOWNER);
-    if (!topLevelWindow && g_rootElement)
-      topLevelWindow = g_rootElement->hwnd;
-
-    if (topLevelWindow) {
-      RECT clientRect;
-      GetClientRect(topLevelWindow, &clientRect);
-      g_rootElement->width = clientRect.right - clientRect.left;
-      // Maybe don't adjust height here, let layout handle it
-      LayoutChildren(g_rootElement);
-      InvalidateRect(topLevelWindow, NULL, true);
-    } else {
-      LayoutChildren(g_rootElement);
-    }
-  }
+  RefreshUILayout();
 }
 
 void SetEventHandler(UIElement *element, EventHandler handler, void *userData) {
@@ -360,6 +344,30 @@ void FreeUIElementTree(UIElement *element) {
   // We only free the struct memory. HWNDs are destroyed by the OS when the
   // top-level window closes.
   free(element);
+}
+
+void RefreshUILayout() {
+  if (g_rootElement) {
+    HWND topLevelWindow = NULL;
+    if (g_rootElement->hwnd) {
+      topLevelWindow = GetAncestor(g_rootElement->hwnd, GA_ROOTOWNER);
+    }
+    if (!topLevelWindow && g_rootElement) {
+      topLevelWindow = g_rootElement->hwnd;
+    }
+
+    if (topLevelWindow) {
+      RECT clientRect;
+      GetClientRect(topLevelWindow, &clientRect);
+      g_rootElement->width = clientRect.right - clientRect.left;
+      // Height is not set here.
+      // LayoutChildren determines it based on children.
+      LayoutChildren(g_rootElement);
+      InvalidateRect(topLevelWindow, NULL, TRUE);
+    } else {
+      LayoutChildren(g_rootElement);
+    }
+  }
 }
 
 void LayoutChildren(UIElement *container) {
@@ -665,6 +673,22 @@ c_function GetEditText() -> str:
   // TODO: This should be freed, so use ANILs string.
 endc_function
 
+c_function RemoveSelectedListItem()
+  if (this->uiElement->type != LIST) {
+    fprintf(stderr, "Error: RemoveSelectedListItem called on non-list element.\n");
+    return;
+  }
+
+  int selectedIndex = SendMessage(this->uiElement->hwnd, LB_GETCURSEL, 0, 0);
+  
+  if (selectedIndex != LB_ERR) {
+    SendMessage(this->uiElement->hwnd, LB_DELETESTRING, selectedIndex, 0);
+    this->uiElement->itemCount--;
+    RefreshUILayout();
+  } else {
+    fprintf(stderr, "Error: No item selected in the list.\n");
+  }
+endc_function
 
 endnamespace
 
