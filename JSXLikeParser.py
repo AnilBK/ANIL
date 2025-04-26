@@ -20,6 +20,9 @@ class UIElement:
             self.id = attribute.value
         self.attributes.append(attribute)
 
+    def has_attribute(self, attribute_name):
+        return any(attr.name == attribute_name for attr in self.attributes)
+
     def get_attribute_value(self, attribute_name):
         for attr in self.attributes:
             if attr.name == attribute_name:
@@ -143,7 +146,7 @@ class UIElementTree:
         def generate_onclick_code(self):
             code = []
             for element in all_elements:
-                if element.name == "Button":
+                if element.name == "Button" and element.has_attribute("onclick"):
                     onclick = element.get_attribute_value("onclick")
                     if onclick:
                         # onclick can be "f()" or "f(payload)"
