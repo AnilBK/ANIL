@@ -690,6 +690,67 @@ c_function RemoveSelectedListItem()
   }
 endc_function
 
+c_function GetTotalItemsInList() -> int:
+  if (this->uiElement->type != LIST) {
+    fprintf(stderr, "Error: GetTotalItemsInList called on non-list element.\n");
+    return 0;
+  }
+  // return this->uiElement->itemCount;
+
+  int itemCount = SendMessage(this->uiElement->hwnd, LB_GETCOUNT, 0, 0);
+  if (itemCount == LB_ERR) {
+    fprintf(stderr, "Error: Failed to get listbox item count.\n");
+    return 0;
+  }
+  return itemCount;
+endc_function
+
+c_function GetListItemAtIndex(index:int) -> String:
+  struct String text;
+
+  bool success = false;
+  if (this->uiElement->type != LIST) {
+    fprintf(stderr, "Error: GetListItemAtIndex called on non-list element.\n");
+  }
+
+  if (index < 0 || index >= this->uiElement->itemCount) {
+    fprintf(stderr, "Error: Index out of bounds for list element.\n");
+  }
+
+  char *itemText = (char *)malloc(UIElement__MAX_TEXT_LENGTH);
+  if (!itemText) {
+    fprintf(stderr, "Error: Failed to allocate memory for item text.\n");
+  }else{
+    success = true;
+    SendMessage(this->uiElement->hwnd, LB_GETTEXT, index, (LPARAM)itemText);
+  }
+
+  if(success){
+    // Use of mangled function directly.
+    String__init__from_charptr(&text, itemText, strlen(itemText));
+    free(itemText);
+  } else{
+    // Initialize an empty string if allocation failed or other error occurred.
+    String__init__OVDstr(&text, "");
+  }
+
+  return text;
+endc_function
+
+function GetAllItemsInList() -> Vector<String>:
+  // Returns a vector of strings containing all items in the list.
+  let total_items = this.GetTotalItemsInList()
+  let result = Vector<String>{total_items};
+
+  for i in range(0..total_items){
+    let item = this.GetListItemAtIndex(i)
+    if item.len() > 0 {
+      result.push(item)
+    }
+  }
+  return result
+endfunction
+
 endnamespace
 
 
