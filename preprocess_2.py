@@ -4444,6 +4444,16 @@ while index < len(Lines):
                 # We already have created a scope above by increment scope.
                 # We call decrement_scope() to compensate that.
                 for_loop_depth -= 1
+                
+                # 'NestingLevel.FOR_LOOP' is added to 'nesting_levels' above.
+                # But this FOR_LOOP scope is not used, because
+                # create_array_iterator_from_struct below generates another
+                # range FOR LOOP which creates it's own scope.
+                # So, we need to remove the FOR Loop scope that we just added above.
+                popped = nesting_levels.pop(-1)
+                if popped != NestingLevel.FOR_LOOP:
+                    RAISE_ERROR("FATAL ERROR(Should never happen): Currently removed scope should be FOR_LOOP.")
+
                 decrement_scope()
                 create_array_iterator_from_struct(
                     array_name, current_array_value_variable
