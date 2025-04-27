@@ -206,21 +206,26 @@ c_function set_to_file_contents(pfilename: str)
   // function name.
   Stringclear(this);
 
-  FILE* ptr;
- 
-  ptr = fopen(pfilename, "r");
- 
+  FILE* ptr = fopen(pfilename, "r");
   if (ptr == NULL) {
     printf("File \"%s\" couldn't be opened.\n", pfilename);
     exit(0);
   }
  
   char myString[256];
-  while (fgets(myString, 256, ptr)) {
+  bool has_data = false;
+  
+  while (fgets(myString, sizeof(myString), ptr)) {
     String__add__(this, myString);
+    has_data = true;
   }
 
   fclose(ptr);
+
+  if (!has_data) {
+    // Double-clear just in case
+    Stringclear(this);  
+  }
 endc_function
 
 function readlinesFrom(pfilename: str) -> Vector<String>:
