@@ -13,14 +13,49 @@
 // HWND_VARIABLE_DECLARATIONS //
 
 ///*///
+import Vector
+import String
 import UI
+import File
+
+function CreateUIWidgetFromVoidPtr(ptr: voidPtr) -> UIWidget:
+  // We don't have static functions in ANIL yet, so we have to do this.
+  let w = UIWidget{};
+  let widget = w.CreateUIWidgetFromVoidPtr(ptr)
+  return widget
+endfunction
+
+function WriteTodosToFile(listElement: UIWidget)
+  let file = File{"todos.txt"};
+
+  let todoItems = listElement.GetAllItemsInList()
+  for todoItem in todoItems{
+    file.writeline(todoItem)
+  }
+endfunction
+
+function LoadTodosFromFile(listElement: UIWidget)
+  let str = ""
+  let storedTodos = str.readlinesFrom("todos.txt")
+
+  if storedTodos.len() > 0{
+    // If todos.txt already exists and has some lines, then read the todos from it and add them to the list.
+    for todo in storedTodos{
+      listElement.AddItemToList(todo)
+    }
+  }else{
+    // Otherwise, add some default todos.
+    // AddItemToList will automatically create the file if it doesn't exist.
+    listElement.AddItemToList("Complete UI Framework")
+    listElement.AddItemToList("Implement JSX like syntax")
+  }
+endfunction
 
 function AddTodo(userData: voidPtr)
   // 'userData' has UIElement* to the root element.
   // Convert it to UIWidget for easier access to UIWidget methods,
   // and tree traversal.
-  let r1 = UIWidget{};
-  let root = r1.CreateUIWidgetFromVoidPtr(userData)
+  let root = CreateUIWidgetFromVoidPtr(userData)
 
   let editElement = root.FindElementById("todoInput")
   let listElement = root.FindElementById("todoList")
@@ -30,18 +65,19 @@ function AddTodo(userData: voidPtr)
       let text = editElement.GetEditText()
       listElement.AddItemToList(text)
       editElement.ClearEditText()
+      WriteTodosToFile(listElement)
     }
   }
 endfunction
 
 function DeleteSelectedTodo(userData: voidPtr)
-  let r1 = UIWidget{};
-  let root = r1.CreateUIWidgetFromVoidPtr(userData)
+  let root = CreateUIWidgetFromVoidPtr(userData)
 
   let listElement = root.FindElementById("todoList")
 
   if listElement.isValid(){
     listElement.RemoveSelectedListItem()
+    WriteTodosToFile(listElement)
   }
 endfunction
 
@@ -88,8 +124,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     return -1
   }
 
-  todoList.AddItemToList("Complete UI Framework")
-  todoList.AddItemToList("Implement JSX like syntax")
+  LoadTodosFromFile(todoList)
 
   let exitCode = App.Run()
 
