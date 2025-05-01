@@ -1338,9 +1338,9 @@ class Annotation:
     #  ^^^^^ annotation_name
     # function Home():
     #          ^^^^ annotated_fn_name
-    def __init__(self, p_annotation_name, p_annotation_argument_value, p_annotated_fn_name):
+    def __init__(self, p_annotation_name, p_annotation_argument_values, p_annotated_fn_name):
         self.annotation_name = p_annotation_name
-        self.annotation_argument_value = p_annotation_argument_value
+        self.annotation_argument_values = p_annotation_argument_values
         self.annotated_fn_name = p_annotated_fn_name
 
 annotations_list = []
@@ -2574,9 +2574,11 @@ while index < len(Lines):
                         item_list = []
                         for annotated_item in annotations_list:
                             if annotated_item.annotation_name == class_name:
-                                arg1 = stringify(annotated_item.annotation_argument_value)
-                                arg2 = stringify(annotated_item.annotated_fn_name)
-                                args_list = [arg1, arg2]
+                                fn_name = stringify(annotated_item.annotated_fn_name)
+args = [stringify(args) for args in annotated_item.annotation_argument_values] 
+                                # The args_list is [fn_name, arg1, arg2, ... argn]
+                                args_list = [fn_name]
+                                args_list.extend(args)
                                 item_list.append(args_list)
                         return item_list
 
@@ -4936,10 +4938,22 @@ while index < len(Lines):
             #          ^^^^ annotated_fn_name
             annotation_name = parser.get_token()
             parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
+
+            annotation_argument_values = []
+            
+            # @route("GET", "/get_todos")
+            while True:
             annotation_argument_value = parser.extract_string_literal()
+annotation_argument_values.append(annotation_argument_value)
+
+                if parser.check_token(lexer.Token.COMMA):
+                    parser.consume_token(lexer.Token.COMMA)
+                elif parser.check_token(lexer.Token.RIGHT_ROUND_BRACKET):
+                    break
+
             parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
 
-            annotated_item = Annotation(annotation_name, annotation_argument_value, "")
+            annotated_item = Annotation(annotation_name, annotation_argument_values, "")
             # Leave annotated_fn_name empty. Patch it later. 
             # PATCH_ANNOTATION
 

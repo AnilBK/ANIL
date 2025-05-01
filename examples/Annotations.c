@@ -76,8 +76,8 @@ int main() {
   // It will be replaced by actual value of 'annotation_argument_value'.
 
   def reflection():
-    forall annotation_argument_value, annotated_fn_name in annotated_functions_by_name(route) UNQUOTE: router.add_key_value("annotation_argument_value", annotated_fn_name)
-    forall annotation_argument_value, annotated_fn_name in annotated_functions_by_name(default_route) UNQUOTE: router.add_key_value("annotation_argument_value", annotated_fn_name)
+    forall annotated_fn_name, annotation_argument_value in annotated_functions_by_name(route) UNQUOTE: router.add_key_value("annotation_argument_value", annotated_fn_name)
+    forall annotated_fn_name, annotation_argument_value in annotated_functions_by_name(default_route) UNQUOTE: router.add_key_value("annotation_argument_value", annotated_fn_name)
   enddef  
   reflection
 
