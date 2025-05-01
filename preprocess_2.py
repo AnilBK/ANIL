@@ -5206,6 +5206,10 @@ while index < len(Lines):
     elif parser.current_token() == lexer.Token.RETURN:
         parser.consume_token(lexer.Token.RETURN)
 
+        if not parser.has_tokens_remaining():
+            LinesCache.append(f"return;\n")
+            continue
+
         result = boolean_expression()
 
         # Boolean expressions for Structs function call need to save the result
