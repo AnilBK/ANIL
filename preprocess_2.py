@@ -2575,7 +2575,7 @@ while index < len(Lines):
                         for annotated_item in annotations_list:
                             if annotated_item.annotation_name == class_name:
                                 fn_name = stringify(annotated_item.annotated_fn_name)
-args = [stringify(args) for args in annotated_item.annotation_argument_values] 
+                                args = [stringify(args) for args in annotated_item.annotation_argument_values] 
                                 # The args_list is [fn_name, arg1, arg2, ... argn]
                                 args_list = [fn_name]
                                 args_list.extend(args)
@@ -4943,8 +4943,8 @@ args = [stringify(args) for args in annotated_item.annotation_argument_values]
             
             # @route("GET", "/get_todos")
             while True:
-            annotation_argument_value = parser.extract_string_literal()
-annotation_argument_values.append(annotation_argument_value)
+                annotation_argument_value = parser.extract_string_literal()
+                annotation_argument_values.append(annotation_argument_value)
 
                 if parser.check_token(lexer.Token.COMMA):
                     parser.consume_token(lexer.Token.COMMA)
