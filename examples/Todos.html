@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple TODO App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .delete-btn {
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 3px 8px;
+            cursor: pointer;
+        }
+
+        #new-todo-form {
+            display: flex;
+            margin-bottom: 20px;
+        }
+
+        #new-todo {
+            flex-grow: 1;
+            padding: 8px;
+            margin-right: 10px;
+        }
+
+        #add-todo-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            cursor: pointer;
+        }
+
+        .loading {
+            color: #999;
+            font-style: italic;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>TODO List</h1>
+
+    <form id="new-todo-form">
+        <input type="text" id="new-todo" placeholder="Enter new task...">
+        <button type="submit" id="add-todo-btn">Add</button>
+    </form>
+
+    <div id="status" class="loading"></div>
+
+    <ul id="todo-list"></ul>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            // API endpoint base URL
+            const API_URL = "http://localhost:8080";
+
+            // Load todos when page loads
+            loadTodos();
+
+            $("#new-todo-form").on("submit", function (e) {
+                e.preventDefault();
+
+                const todoText = $("#new-todo").val().trim();
+                if (todoText) {
+                    addTodoToList(todoText);
+
+                    $("#new-todo").val("");
+
+                    saveTodos();
+                }
+            });
+
+            $("#todo-list").on("click", ".delete-btn", function () {
+                $(this).parent().remove();
+                saveTodos();
+            });
+
+            function loadTodos() {
+                $("#status").text("Loading todos...");
+
+                $.ajax({
+                    url: API_URL + "/get_todos",
+                    method: "GET",
+                    dataType: "json",
+                    success: function (data) {
+                        $("#todo-list").empty();
+
+                        if (data && data.length > 0) {
+                            data.forEach(function (todo) {
+                                addTodoToList(todo);
+                            });
+                        }
+
+                        $("#status").text("");
+                    },
+                    error: function () {
+                        $("#status").text("Failed to load todos. Please try again.");
+                    }
+                });
+            }
+
+            function saveTodos() {
+                $("#status").text("Saving...");
+
+                const todos = [];
+                $("#todo-list li").each(function () {
+                    todos.push($(this).find("span").text());
+                });
+
+                $.ajax({
+                    url: API_URL + "/save_todos",
+                    method: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(todos),
+                    success: function () {
+                        $("#status").text("Saved!");
+                        setTimeout(function () {
+                            $("#status").text("");
+                        }, 1000);
+                    },
+                    error: function () {
+                        $("#status").text("Failed to save todos. Please try again.");
+                    }
+                });
+            }
+
+            function addTodoToList(text) {
+                $("#todo-list").append(
+                    $("<li>").append(
+                        $("<span>").text(text),
+                        $("<button>").addClass("delete-btn").text("Delete")
+                    )
+                );
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -22,6 +22,7 @@ file_names = [
     "examples\\HTML_Like_UI.c",
     "examples\\UI_TODO_App.c",
     "examples\\UI_TODO_JSX.c",
+    "examples\\TODO_App_Web.c",
     "examples\\Variables_GUI_Input_Win.c",
     "examples\\WebServer.c",
     "examples\\TestSuites\\Expression_parse_tests.c",
