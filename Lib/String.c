@@ -209,7 +209,7 @@ c_function set_to_file_contents(pfilename: str)
   FILE* ptr = fopen(pfilename, "r");
   if (ptr == NULL) {
     printf("File \"%s\" couldn't be opened.\n", pfilename);
-    exit(0);
+    return;
   }
  
   char myString[256];
