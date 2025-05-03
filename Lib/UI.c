@@ -663,14 +663,25 @@ c_function ClearEditText()
   ClearEditText(this->uiElement);
 endc_function
 
-c_function GetEditText() -> str:
+c_function GetEditText() -> String:
+  struct String EditText;
+
   if (this->uiElement->type != EDIT) {
     fprintf(stderr, "Error: GetEditText called on non-edit element.\n");
-    return NULL;
+
+    // Just return an empty string.
+    String__init__OVDstr(&EditText, "");
+    return EditText;
   }
+  
   char *text = GetEditText(this->uiElement);
-  return text;
-  // TODO: This should be freed, so use ANILs string.
+
+  String__init__from_charptr(&EditText, text, strlen(text));
+
+  // 'GetEditText' provides a buffer that needs to be freed after use.
+  free(text);
+
+  return EditText;
 endc_function
 
 c_function RemoveSelectedListItem()

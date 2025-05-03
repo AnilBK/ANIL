@@ -18,37 +18,34 @@ import String
 import UI
 import File
 
-function CreateUIWidgetFromVoidPtr(ptr: voidPtr) -> UIWidget:
-  // We don't have static functions in ANIL yet, so we have to do this.
-  let w = UIWidget{};
-  let widget = w.CreateUIWidgetFromVoidPtr(ptr)
-  return widget
-endfunction
-
-function WriteTodosToFile(listElement: UIWidget)
+function SaveTodos(todoList: UIWidget)
   let file = File{"todos.txt"};
-
-  let todoItems = listElement.GetAllItemsInList()
+  let todoItems = todoList.GetAllItemsInList()
   for todoItem in todoItems{
     file.writeline(todoItem)
   }
 endfunction
 
-function LoadTodosFromFile(listElement: UIWidget)
+function LoadTodos(todoList: UIWidget)
   let str = ""
   let storedTodos = str.readlinesFrom("todos.txt")
 
   if storedTodos.len() > 0{
-    // If todos.txt already exists and has some lines, then read the todos from it and add them to the list.
     for todo in storedTodos{
-      listElement.AddItemToList(todo)
+      todoList.AddItemToList(todo)
     }
   }else{
-    // Otherwise, add some default todos and write to file.
-    listElement.AddItemToList("Complete UI Framework")
-    listElement.AddItemToList("Implement JSX like syntax")
-    WriteTodosToFile(listElement)
+    todoList.AddItemToList("Complete UI Framework")
+    todoList.AddItemToList("Implement JSX like syntax")
+    SaveTodos(todoList)
   }
+endfunction
+
+function CreateUIWidgetFromVoidPtr(ptr: voidPtr) -> UIWidget:
+  // We don't have static functions in ANIL yet, so we have to do this.
+  let w = UIWidget{};
+  let widget = w.CreateUIWidgetFromVoidPtr(ptr)
+  return widget
 endfunction
 
 function AddTodo(userData: voidPtr)
@@ -57,15 +54,15 @@ function AddTodo(userData: voidPtr)
   // and tree traversal.
   let root = CreateUIWidgetFromVoidPtr(userData)
 
-  let editElement = root.FindElementById("todoInput")
-  let listElement = root.FindElementById("todoList")
+  let todoInput = root.FindElementById("todoInput")
+  let todoList = root.FindElementById("todoList")
 
-  if editElement.isValid(){
-    if listElement.isValid(){
-      let text = editElement.GetEditText()
-      listElement.AddItemToList(text)
-      editElement.ClearEditText()
-      WriteTodosToFile(listElement)
+  if todoInput.isValid(){
+    if todoList.isValid(){
+      let text = todoInput.GetEditText()
+      todoList.AddItemToList(text)
+      todoInput.ClearEditText()
+      SaveTodos(todoList)
     }
   }
 endfunction
@@ -73,11 +70,11 @@ endfunction
 function DeleteSelectedTodo(userData: voidPtr)
   let root = CreateUIWidgetFromVoidPtr(userData)
 
-  let listElement = root.FindElementById("todoList")
+  let todoList = root.FindElementById("todoList")
 
-  if listElement.isValid(){
-    listElement.RemoveSelectedListItem()
-    WriteTodosToFile(listElement)
+  if todoList.isValid(){
+    todoList.RemoveSelectedListItem()
+    SaveTodos(todoList)
   }
 endfunction
 
@@ -124,7 +121,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     return -1
   }
 
-  LoadTodosFromFile(todoList)
+  LoadTodos(todoList)
 
   let exitCode = App.Run()
 

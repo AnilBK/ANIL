@@ -637,7 +637,7 @@ struct UIWidget UIWidgetCreateHBox(struct UIWidget *this, int x, int y,
                                    int width, int height, char *id);
 void UIWidgetAddItemToList(struct UIWidget *this, char *itemText);
 void UIWidgetClearEditText(struct UIWidget *this);
-char *UIWidgetGetEditText(struct UIWidget *this);
+struct String UIWidgetGetEditText(struct UIWidget *this);
 void UIWidgetRemoveSelectedListItem(struct UIWidget *this);
 int UIWidgetGetTotalItemsInList(struct UIWidget *this);
 struct String UIWidgetGetListItemAtIndex(struct UIWidget *this, int index);
@@ -660,9 +660,9 @@ void WinUIApp__del__(struct WinUIApp *this);
 void File__init__(struct File *this, char *p_file_name);
 void Filewriteline(struct File *this, char *p_content);
 void File__del__(struct File *this);
+void SaveTodos(struct UIWidget todoList);
+void LoadTodos(struct UIWidget todoList);
 struct UIWidget CreateUIWidgetFromVoidPtr(voidPtr ptr);
-void WriteTodosToFile(struct UIWidget listElement);
-void LoadTodosFromFile(struct UIWidget listElement);
 void AddTodo(voidPtr userData);
 void DeleteSelectedTodo(voidPtr userData);
 size_t Vector_Stringlen(struct Vector_String *this);
@@ -1089,14 +1089,25 @@ void UIWidgetClearEditText(struct UIWidget *this) {
   ClearEditText(this->uiElement);
 }
 
-char *UIWidgetGetEditText(struct UIWidget *this) {
+struct String UIWidgetGetEditText(struct UIWidget *this) {
+  struct String EditText;
+
   if (this->uiElement->type != EDIT) {
     fprintf(stderr, "Error: GetEditText called on non-edit element.\n");
-    return NULL;
+
+    // Just return an empty string.
+    String__init__OVDstr(&EditText, "");
+    return EditText;
   }
+
   char *text = GetEditText(this->uiElement);
-  return text;
-  // TODO: This should be freed, so use ANILs string.
+
+  String__init__from_charptr(&EditText, text, strlen(text));
+
+  // 'GetEditText' provides a buffer that needs to be freed after use.
+  free(text);
+
+  return EditText;
 }
 
 void UIWidgetRemoveSelectedListItem(struct UIWidget *this) {
@@ -1588,18 +1599,10 @@ struct Form1Output {
 
 ///*///
 
-struct UIWidget CreateUIWidgetFromVoidPtr(voidPtr ptr) {
-  // We don't have static functions in ANIL yet, so we have to do this.
-  struct UIWidget w;
-  struct UIWidget widget = UIWidgetCreateUIWidgetFromVoidPtr(&w, ptr);
-  return widget;
-}
-
-void WriteTodosToFile(struct UIWidget listElement) {
+void SaveTodos(struct UIWidget todoList) {
   struct File file;
   File__init__(&file, "todos.txt");
-
-  struct Vector_String todoItems = UIWidgetGetAllItemsInList(&listElement);
+  struct Vector_String todoItems = UIWidgetGetAllItemsInList(&todoList);
   size_t tmp_len_1 = Vector_Stringlen(&todoItems);
   for (size_t i = 0; i < tmp_len_1; i++) {
     struct String todoItem = Vector_String__getitem__(&todoItems, i);
@@ -1609,27 +1612,31 @@ void WriteTodosToFile(struct UIWidget listElement) {
   File__del__(&file);
 }
 
-void LoadTodosFromFile(struct UIWidget listElement) {
+void LoadTodos(struct UIWidget todoList) {
   struct String str;
   String__init__OVDstrint(&str, "", 0);
   struct Vector_String storedTodos = StringreadlinesFrom(&str, "todos.txt");
 
   if (Vector_Stringlen(&storedTodos) > 0) {
-    // If todos.txt already exists and has some lines, then read the todos from
-    // it and add them to the list.
     size_t tmp_len_2 = Vector_Stringlen(&storedTodos);
     for (size_t i = 0; i < tmp_len_2; i++) {
       struct String todo = Vector_String__getitem__(&storedTodos, i);
-      UIWidgetAddItemToList(&listElement, Stringc_str(&todo));
+      UIWidgetAddItemToList(&todoList, Stringc_str(&todo));
     }
   } else {
-    // Otherwise, add some default todos and write to file.
-    UIWidgetAddItemToList(&listElement, "Complete UI Framework");
-    UIWidgetAddItemToList(&listElement, "Implement JSX like syntax");
-    WriteTodosToFile(listElement);
+    UIWidgetAddItemToList(&todoList, "Complete UI Framework");
+    UIWidgetAddItemToList(&todoList, "Implement JSX like syntax");
+    SaveTodos(todoList);
   }
   Vector_String__del__(&storedTodos);
   String__del__(&str);
+}
+
+struct UIWidget CreateUIWidgetFromVoidPtr(voidPtr ptr) {
+  // We don't have static functions in ANIL yet, so we have to do this.
+  struct UIWidget w;
+  struct UIWidget widget = UIWidgetCreateUIWidgetFromVoidPtr(&w, ptr);
+  return widget;
 }
 
 void AddTodo(voidPtr userData) {
@@ -1638,16 +1645,17 @@ void AddTodo(voidPtr userData) {
   // and tree traversal.
   struct UIWidget root = CreateUIWidgetFromVoidPtr(userData);
 
-  struct UIWidget editElement = UIWidgetFindElementById(&root, "todoInput");
-  struct UIWidget listElement = UIWidgetFindElementById(&root, "todoList");
+  struct UIWidget todoInput = UIWidgetFindElementById(&root, "todoInput");
+  struct UIWidget todoList = UIWidgetFindElementById(&root, "todoList");
 
-  if (UIWidgetisValid(&editElement)) {
+  if (UIWidgetisValid(&todoInput)) {
 
-    if (UIWidgetisValid(&listElement)) {
-      char *text = UIWidgetGetEditText(&editElement);
-      UIWidgetAddItemToList(&listElement, text);
-      UIWidgetClearEditText(&editElement);
-      WriteTodosToFile(listElement);
+    if (UIWidgetisValid(&todoList)) {
+      struct String text = UIWidgetGetEditText(&todoInput);
+      UIWidgetAddItemToList(&todoList, Stringc_str(&text));
+      UIWidgetClearEditText(&todoInput);
+      SaveTodos(todoList);
+      String__del__(&text);
     }
   }
 }
@@ -1655,11 +1663,11 @@ void AddTodo(voidPtr userData) {
 void DeleteSelectedTodo(voidPtr userData) {
   struct UIWidget root = CreateUIWidgetFromVoidPtr(userData);
 
-  struct UIWidget listElement = UIWidgetFindElementById(&root, "todoList");
+  struct UIWidget todoList = UIWidgetFindElementById(&root, "todoList");
 
-  if (UIWidgetisValid(&listElement)) {
-    UIWidgetRemoveSelectedListItem(&listElement);
-    WriteTodosToFile(listElement);
+  if (UIWidgetisValid(&todoList)) {
+    UIWidgetRemoveSelectedListItem(&todoList);
+    SaveTodos(todoList);
   }
 }
 
@@ -1728,7 +1736,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     return -1;
   }
 
-  LoadTodosFromFile(todoList);
+  LoadTodos(todoList);
 
   int exitCode = WinUIAppRun(&App);
 
