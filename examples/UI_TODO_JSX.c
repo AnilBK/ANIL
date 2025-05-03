@@ -44,10 +44,10 @@ function LoadTodosFromFile(listElement: UIWidget)
       listElement.AddItemToList(todo)
     }
   }else{
-    // Otherwise, add some default todos.
-    // AddItemToList will automatically create the file if it doesn't exist.
+    // Otherwise, add some default todos and write to file.
     listElement.AddItemToList("Complete UI Framework")
     listElement.AddItemToList("Implement JSX like syntax")
+    WriteTodosToFile(listElement)
   }
 endfunction
 

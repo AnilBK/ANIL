@@ -903,7 +903,7 @@ void Stringset_to_file_contents(struct String *this, char *pfilename) {
   FILE *ptr = fopen(pfilename, "r");
   if (ptr == NULL) {
     printf("File \"%s\" couldn't be opened.\n", pfilename);
-    exit(0);
+    return;
   }
 
   char myString[256];
@@ -1623,10 +1623,10 @@ void LoadTodosFromFile(struct UIWidget listElement) {
       UIWidgetAddItemToList(&listElement, Stringc_str(&todo));
     }
   } else {
-    // Otherwise, add some default todos.
-    // AddItemToList will automatically create the file if it doesn't exist.
+    // Otherwise, add some default todos and write to file.
     UIWidgetAddItemToList(&listElement, "Complete UI Framework");
     UIWidgetAddItemToList(&listElement, "Implement JSX like syntax");
+    WriteTodosToFile(listElement);
   }
   Vector_String__del__(&storedTodos);
   String__del__(&str);
