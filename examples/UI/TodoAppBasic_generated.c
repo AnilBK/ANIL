@@ -531,18 +531,13 @@ void RedirectIOToConsole() {
 // Initializes the main window, creates the root UI element, and sets up the
 // WinUIAppCoreData structure.
 
-///*//////*///
-
 ///*///
+// Very Basic Version of Todo App.
+// Doesn't use JSX like syntax to create UI elements.
+// No todo saving/loading functionality.
+// Look TodoAppJSX.c for a more advanced version.
 
-#include <commctrl.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <windows.h>
-
-// gcc -O2 UI_TODO_JSX_generated.c -o UI_TODO_JSX_generated -lgdi32 -lcomctl32
-// -mwindows
+// gcc -O2 TodoAppBasic_generated.c -o TodoAppBasic -lgdi32 -lcomctl32 -mwindows
 
 // IMPORTS //
 
@@ -575,10 +570,6 @@ struct WinUIAppConfig {
 struct WinUIApp {
   struct WinUIAppConfig winConfig;
   WinUIAppCoreData *appCoreData;
-};
-
-struct File {
-  FILE *file_ptr;
 };
 
 char *Stringc_str(struct String *this);
@@ -657,14 +648,7 @@ int WinUIAppRun(struct WinUIApp *this);
 void WinUIAppCleanUp(struct WinUIApp *this);
 void WinUIApp__del__(struct WinUIApp *this);
 
-void File__init__(struct File *this, char *p_file_name);
-void Filewriteline(struct File *this, char *p_content);
-void File__del__(struct File *this);
-void SaveTodos(struct UIWidget todoList);
-void LoadTodos(struct UIWidget todoList);
-struct UIWidget CreateUIWidgetFromVoidPtr(voidPtr ptr);
 void AddTodo(voidPtr userData);
-void DeleteSelectedTodo(voidPtr userData);
 size_t Vector_Stringlen(struct Vector_String *this);
 void Vector_String__init__(struct Vector_String *this, int capacity);
 void Vector_String_call_destructor_for_element(struct Vector_String *this,
@@ -1358,21 +1342,6 @@ void WinUIAppCleanUp(struct WinUIApp *this) {
 
 void WinUIApp__del__(struct WinUIApp *this) { WinUIAppCleanUp(this); }
 
-void File__init__(struct File *this, char *p_file_name) {
-  this->file_ptr = fopen(p_file_name, "w");
-  if (this->file_ptr == NULL) {
-    printf("Failed to open file %s.\n", p_file_name);
-    exit(0);
-  }
-}
-
-void Filewriteline(struct File *this, char *p_content) {
-  // Write a line to the file with terminating newline.
-  fprintf(this->file_ptr, "%s\n", p_content);
-}
-
-void File__del__(struct File *this) { fclose(this->file_ptr); }
-
 size_t Vector_Stringlen(struct Vector_String *this) { return this->size; }
 
 void Vector_String__init__(struct Vector_String *this, int capacity) {
@@ -1566,8 +1535,8 @@ void Vector_Stringclear(struct Vector_String *this) {
 
 bool Vector_String__contains__(struct Vector_String *this,
                                struct String value) {
-  size_t tmp_len_3 = Vector_Stringlen(this);
-  for (size_t i = 0; i < tmp_len_3; i++) {
+  size_t tmp_len_1 = Vector_Stringlen(this);
+  for (size_t i = 0; i < tmp_len_1; i++) {
     struct String string = Vector_String__getitem__(this, i);
 
     if (Stringlen(&string) == Stringlen(&value)) {
@@ -1592,82 +1561,26 @@ void Vector_Stringprint(struct Vector_String *this) {
   printf("]\n");
 }
 
-HWND hSubmitButton;
-struct Form1Output {
-  char __dummy;
-} Form1Output;
-
 ///*///
-
-void SaveTodos(struct UIWidget todoList) {
-  struct File file;
-  File__init__(&file, "todos.txt");
-  struct Vector_String todoItems = UIWidgetGetAllItemsInList(&todoList);
-  size_t tmp_len_1 = Vector_Stringlen(&todoItems);
-  for (size_t i = 0; i < tmp_len_1; i++) {
-    struct String todoItem = Vector_String__getitem__(&todoItems, i);
-    Filewriteline(&file, Stringc_str(&todoItem));
-  }
-  Vector_String__del__(&todoItems);
-  File__del__(&file);
-}
-
-void LoadTodos(struct UIWidget todoList) {
-  struct String str;
-  String__init__OVDstrint(&str, "", 0);
-  struct Vector_String storedTodos = StringreadlinesFrom(&str, "todos.txt");
-
-  if (Vector_Stringlen(&storedTodos) > 0) {
-    size_t tmp_len_2 = Vector_Stringlen(&storedTodos);
-    for (size_t i = 0; i < tmp_len_2; i++) {
-      struct String todo = Vector_String__getitem__(&storedTodos, i);
-      UIWidgetAddItemToList(&todoList, Stringc_str(&todo));
-    }
-  } else {
-    UIWidgetAddItemToList(&todoList, "Complete UI Framework");
-    UIWidgetAddItemToList(&todoList, "Implement JSX like syntax");
-    SaveTodos(todoList);
-  }
-  Vector_String__del__(&storedTodos);
-  String__del__(&str);
-}
-
-struct UIWidget CreateUIWidgetFromVoidPtr(voidPtr ptr) {
-  // We don't have static functions in ANIL yet, so we have to do this.
-  struct UIWidget w;
-  struct UIWidget widget = UIWidgetCreateUIWidgetFromVoidPtr(&w, ptr);
-  return widget;
-}
 
 void AddTodo(voidPtr userData) {
   // 'userData' has UIElement* to the root element.
   // Convert it to UIWidget for easier access to UIWidget methods,
   // and tree traversal.
-  struct UIWidget root = CreateUIWidgetFromVoidPtr(userData);
+  struct UIWidget r1;
+  struct UIWidget root = UIWidgetCreateUIWidgetFromVoidPtr(&r1, userData);
 
-  struct UIWidget todoInput = UIWidgetFindElementById(&root, "todoInput");
-  struct UIWidget todoList = UIWidgetFindElementById(&root, "todoList");
+  struct UIWidget editElement = UIWidgetFindElementById(&root, "todoInput");
+  struct UIWidget listElement = UIWidgetFindElementById(&root, "todoList");
 
-  if (UIWidgetisValid(&todoInput)) {
+  if (UIWidgetisValid(&editElement)) {
 
-    if (UIWidgetisValid(&todoList)) {
-      struct String text = UIWidgetGetEditText(&todoInput);
-      UIWidgetAddItemToList(&todoList, Stringc_str(&text));
-      UIWidgetClearEditText(&todoInput);
-      SaveTodos(todoList);
+    if (UIWidgetisValid(&listElement)) {
+      struct String text = UIWidgetGetEditText(&editElement);
+      UIWidgetAddItemToList(&listElement, Stringc_str(&text));
+      UIWidgetClearEditText(&editElement);
       String__del__(&text);
     }
-  }
-}
-
-void DeleteSelectedTodo(voidPtr userData) {
-  struct UIWidget root = CreateUIWidgetFromVoidPtr(userData);
-
-  struct UIWidget todoList = UIWidgetFindElementById(&root, "todoList");
-
-  if (UIWidgetisValid(&todoList)) {
-    UIWidgetRemoveSelectedListItem(&todoList);
-    SaveTodos(todoList);
   }
 }
 
@@ -1694,37 +1607,22 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     return -1;
   }
 
-  // JSX like syntax to create UI elements.
-  // Alternative, for UI_TODO_App.c.
+  struct UIWidget ui;
+  struct UIWidget headerLabel = UIWidgetCreateLabel(
+      &ui, 0, 0, 100, 25, "Todo Application", "headerLabel");
+  struct UIWidget todoList = UIWidgetCreateList(&ui, 0, 0, 0, 150, "todoList");
+  struct UIWidget inputRow = UIWidgetCreateHBox(&ui, 0, 0, 0, 30, "inputRow");
+  struct UIWidget todoInput =
+      UIWidgetCreateLineInput(&ui, 0, 0, 0, 0, "todoInput");
+  struct UIWidget addButton =
+      UIWidgetCreateButton(&ui, 0, 0, 60, 0, "Add TODO", "addButton");
 
   struct UIWidget root_elem = WinUIAppGetRootWidget(&App);
-  struct UIWidget App__ui;
-  struct UIWidget headerLabel = UIWidgetCreateLabel(
-      &App__ui, 0, 0, 100, 25, "Todo Application", "headerLabel");
-  struct UIWidget todoList =
-      UIWidgetCreateList(&App__ui, 0, 0, 100, 25, "todoList");
-  struct UIWidget inputRow =
-      UIWidgetCreateHBox(&App__ui, 0, 0, 0, 30, "inputRow");
-  struct UIWidget todoInput =
-      UIWidgetCreateLineInput(&App__ui, 0, 0, 0, 0, "todoInput");
-  struct UIWidget addButton =
-      UIWidgetCreateButton(&App__ui, 0, 0, 60, 0, "Add TODO", "addButton");
-  struct UIWidget deleteButton = UIWidgetCreateButton(
-      &App__ui, 0, 0, 60, 0, "Delete Selected TODO", "deleteButton");
   UIWidgetAddChild(&root_elem, headerLabel);
   UIWidgetAddChild(&root_elem, todoList);
   UIWidgetAddChild(&root_elem, inputRow);
   UIWidgetAddChild(&inputRow, todoInput);
   UIWidgetAddChild(&inputRow, addButton);
-  UIWidgetAddChild(&inputRow, deleteButton);
-
-  // OnClick Callbacks.
-  struct VoidPointer __payload_0;
-  VoidPointer__init__(&__payload_0, root_elem);
-  UIWidgetSetOnClickCallback(&addButton, AddTodo, __payload_0);
-  struct VoidPointer __payload_1;
-  VoidPointer__init__(&__payload_1, root_elem);
-  UIWidgetSetOnClickCallback(&deleteButton, DeleteSelectedTodo, __payload_1);
 
   // Create Windows Controls (HWNDs) for Children of Root.
   bool create_status = WinUIAppCreateControls(&App);
@@ -1736,7 +1634,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     return -1;
   }
 
-  LoadTodos(todoList);
+  // Setup Event Handlers.
+  // Pass the root element as userData so the handler can find other elements
+  struct VoidPointer payload;
+  VoidPointer__init__(&payload, root_elem);
+  UIWidgetSetOnClickCallback(&addButton, AddTodo, payload);
+
+  UIWidgetAddItemToList(&todoList, "Complete UI Framework");
+  UIWidgetAddItemToList(&todoList, "Implement JSX like syntax");
 
   int exitCode = WinUIAppRun(&App);
 

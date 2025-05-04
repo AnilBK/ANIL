@@ -1,18 +1,19 @@
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <windows.h>
-#include <commctrl.h>
 
-// gcc -O2 UI_TODO_App_generated.c -o UI_TODO_App_generated -lgdi32 -lcomctl32 -mwindows
+// Very Basic Version of Todo App.
+// Doesn't use JSX like syntax to create UI elements.
+// No todo saving/loading functionality.
+// Look TodoAppJSX.c for a more advanced version.
+
+// gcc -O2 TodoAppBasic_generated.c -o TodoAppBasic -lgdi32 -lcomctl32 -mwindows
 
 // IMPORTS //
 
 // STRUCT_DEFINATIONS //
 
-// HWND_VARIABLE_DECLARATIONS //
-
 ///*///
+
+import Vector
+import String
 import UI
 
 function AddTodo(userData: voidPtr)

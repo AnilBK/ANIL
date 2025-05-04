@@ -428,7 +428,10 @@ bool HTTPServerInternal_ParseHttpRequest(const char *buffer, int buffer_len,
 ///*///
 
 ///*///
-//  gcc -o .\TODO_App_Web .\TODO_App_Web_generated.c cJSON.c -lws2_32
+// Run this file and then open Todos.html in a browser to see the UI.
+
+// gcc -o .\TodoAppWebServer .\TodoAppWebServer_generated.c cJSON.c -lws2_32
+
 #include <stdio.h>
 
 // IMPORTS //
@@ -1048,7 +1051,7 @@ void Stringset_to_file_contents(struct String *this, char *pfilename) {
   FILE *ptr = fopen(pfilename, "r");
   if (ptr == NULL) {
     printf("File \"%s\" couldn't be opened.\n", pfilename);
-    exit(0);
+    return;
   }
 
   char myString[256];

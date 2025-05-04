@@ -4,13 +4,11 @@
 #include <windows.h>
 #include <commctrl.h>
 
-// gcc -O2 UI_TODO_JSX_generated.c -o UI_TODO_JSX_generated -lgdi32 -lcomctl32 -mwindows
+// gcc -O2 TodoAppJSX_generated.c -o TodoAppJSX -lgdi32 -lcomctl32 -mwindows
 
 // IMPORTS //
 
 // STRUCT_DEFINATIONS //
-
-// HWND_VARIABLE_DECLARATIONS //
 
 ///*///
 import Vector
@@ -98,9 +96,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     // Initialization failed
     return -1; 
   }
-
-  // JSX like syntax to create UI elements.
-  // Alternative, for UI_TODO_App.c.
 
   <UI>
     <App id="_" name="App" rootElement="root_elem"></App>

@@ -1,3 +1,20 @@
+///*///
+
+#include <string.h>
+
+///////////////////////////////////////////
+
+///*///
+
+///*///
+
+#include <ctype.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
+
+///*///
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,6 +64,7 @@ typedef void *voidPtr;
 UIElement *g_rootElement = NULL;
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+void RefreshUILayout();
 void LayoutChildren(UIElement *);
 int CalculatePreferredHeight(UIElement *element);
 void FreeUIElementTree(UIElement *element);
@@ -281,24 +299,7 @@ void AddItemToList(UIElement *list, LPCSTR itemText) {
     return;
   SendMessage(list->hwnd, LB_ADDSTRING, 0, (LPARAM)itemText);
   list->itemCount++;
-  if (g_rootElement) {
-    HWND topLevelWindow = NULL;
-    if (g_rootElement->hwnd)
-      topLevelWindow = GetAncestor(g_rootElement->hwnd, GA_ROOTOWNER);
-    if (!topLevelWindow && g_rootElement)
-      topLevelWindow = g_rootElement->hwnd;
-
-    if (topLevelWindow) {
-      RECT clientRect;
-      GetClientRect(topLevelWindow, &clientRect);
-      g_rootElement->width = clientRect.right - clientRect.left;
-      // Maybe don't adjust height here, let layout handle it
-      LayoutChildren(g_rootElement);
-      InvalidateRect(topLevelWindow, NULL, true);
-    } else {
-      LayoutChildren(g_rootElement);
-    }
-  }
+  RefreshUILayout();
 }
 
 void SetEventHandler(UIElement *element, EventHandler handler, void *userData) {
@@ -359,6 +360,30 @@ void FreeUIElementTree(UIElement *element) {
   // We only free the struct memory. HWNDs are destroyed by the OS when the
   // top-level window closes.
   free(element);
+}
+
+void RefreshUILayout() {
+  if (g_rootElement) {
+    HWND topLevelWindow = NULL;
+    if (g_rootElement->hwnd) {
+      topLevelWindow = GetAncestor(g_rootElement->hwnd, GA_ROOTOWNER);
+    }
+    if (!topLevelWindow && g_rootElement) {
+      topLevelWindow = g_rootElement->hwnd;
+    }
+
+    if (topLevelWindow) {
+      RECT clientRect;
+      GetClientRect(topLevelWindow, &clientRect);
+      g_rootElement->width = clientRect.right - clientRect.left;
+      // Height is not set here.
+      // LayoutChildren determines it based on children.
+      LayoutChildren(g_rootElement);
+      InvalidateRect(topLevelWindow, NULL, TRUE);
+    } else {
+      LayoutChildren(g_rootElement);
+    }
+  }
 }
 
 void LayoutChildren(UIElement *container) {
@@ -506,16 +531,32 @@ void RedirectIOToConsole() {
 // Initializes the main window, creates the root UI element, and sets up the
 // WinUIAppCoreData structure.
 
-///*///#include <stdbool.h>
+///*//////*///
+
+///*///
+
 #include <commctrl.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
 
-// gcc -O2 UI_TODO_App_generated.c -o UI_TODO_App_generated -lgdi32 -lcomctl32
-// -mwindows
+// gcc -O2 TodoAppJSX_generated.c -o TodoAppJSX -lgdi32 -lcomctl32 -mwindows
 
 // IMPORTS //
+
+struct String {
+  char *arr;
+  int length;
+  int capacity;
+  bool is_constexpr;
+};
+
+struct Vector_String {
+  struct String *arr;
+  int size;
+  int capacity;
+};
 
 struct VoidPointer {
   void *ptr;
@@ -534,6 +575,40 @@ struct WinUIApp {
   struct WinUIAppConfig winConfig;
   WinUIAppCoreData *appCoreData;
 };
+
+struct File {
+  FILE *file_ptr;
+};
+
+char *Stringc_str(struct String *this);
+size_t Stringlen(struct String *this);
+char String__getitem__(struct String *this, int index);
+size_t Stringlength_of_charptr(struct String *this, char *p_string);
+void String__init__from_charptr(struct String *this, char *text,
+                                int p_text_length);
+void Stringinit__STATIC__(struct String *this, char *text, int p_text_length);
+void String__init__OVDstr(struct String *this, char *text);
+void String__init__OVDstrint(struct String *this, char *text,
+                             int p_text_length);
+void String__init__OVDstructString(struct String *this, struct String text);
+void Stringclear(struct String *this);
+void Stringprint(struct String *this);
+void StringprintLn(struct String *this);
+void String__del__(struct String *this);
+bool Stringstartswith(struct String *this, char *prefix);
+struct String Stringsubstr(struct String *this, int start, int length);
+struct String Stringstrip(struct String *this);
+struct Vector_String Stringsplit(struct String *this, char delimeter);
+bool String__contains__(struct String *this, char *substring);
+bool String__eq__(struct String *this, char *pstring);
+void String__add__(struct String *this, char *pstring);
+void Stringreassign_internal(struct String *this, char *pstring,
+                             int p_text_length);
+void String__reassign__OVDstructString(struct String *this,
+                                       struct String pstring);
+void String__reassign__OVDstr(struct String *this, char *pstring);
+void Stringset_to_file_contents(struct String *this, char *pfilename);
+struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename);
 
 void VoidPointer__init__(struct VoidPointer *this, struct UIWidget payload);
 
@@ -561,7 +636,12 @@ struct UIWidget UIWidgetCreateHBox(struct UIWidget *this, int x, int y,
                                    int width, int height, char *id);
 void UIWidgetAddItemToList(struct UIWidget *this, char *itemText);
 void UIWidgetClearEditText(struct UIWidget *this);
-char *UIWidgetGetEditText(struct UIWidget *this);
+struct String UIWidgetGetEditText(struct UIWidget *this);
+void UIWidgetRemoveSelectedListItem(struct UIWidget *this);
+int UIWidgetGetTotalItemsInList(struct UIWidget *this);
+struct String UIWidgetGetListItemAtIndex(struct UIWidget *this, int index);
+struct Vector_String UIWidgetGetAllItemsInList(struct UIWidget *this);
+
 struct UIWidget WinUIAppGetRootWidget(struct WinUIApp *this);
 WinUIAppCoreDataPtr WinUIApp_InitializeMainWindow(struct WinUIApp *this,
                                                   char *p_title, int width,
@@ -576,7 +656,276 @@ int WinUIAppRun(struct WinUIApp *this);
 void WinUIAppCleanUp(struct WinUIApp *this);
 void WinUIApp__del__(struct WinUIApp *this);
 
+void File__init__(struct File *this, char *p_file_name);
+void Filewriteline(struct File *this, char *p_content);
+void File__del__(struct File *this);
+void SaveTodos(struct UIWidget todoList);
+void LoadTodos(struct UIWidget todoList);
+struct UIWidget CreateUIWidgetFromVoidPtr(voidPtr ptr);
 void AddTodo(voidPtr userData);
+void DeleteSelectedTodo(voidPtr userData);
+size_t Vector_Stringlen(struct Vector_String *this);
+void Vector_String__init__(struct Vector_String *this, int capacity);
+void Vector_String_call_destructor_for_element(struct Vector_String *this,
+                                               int index);
+void Vector_String_call_destructor_for_all_elements(struct Vector_String *this);
+void Vector_String_reset(struct Vector_String *this);
+void Vector_String__del__(struct Vector_String *this);
+struct String Vector_String__getitem__(struct Vector_String *this, int index);
+void Vector_String_set_ith_item(struct Vector_String *this, int index,
+                                struct String value);
+void Vector_Stringpush_unchecked(struct Vector_String *this,
+                                 struct String value);
+void Vector_Stringvalidate_index(struct Vector_String *this, int index);
+struct String Vector_String_copy_string(struct Vector_String *this,
+                                        struct String s);
+void Vector_String_set(struct Vector_String *this, int index,
+                       struct String value);
+void Vector_String__setitem__(struct Vector_String *this, int index,
+                              struct String value);
+void Vector_Stringallocate_more(struct Vector_String *this, int n);
+void Vector_String_grow_if_required(struct Vector_String *this);
+void Vector_String_push(struct Vector_String *this, struct String value);
+void Vector_Stringpush(struct Vector_String *this, struct String value);
+struct String Vector_Stringpop(struct Vector_String *this);
+void Vector_String_shift_left_from(struct Vector_String *this, int index);
+void Vector_Stringremove_at(struct Vector_String *this, int index);
+void Vector_String_clear(struct Vector_String *this);
+void Vector_Stringclear(struct Vector_String *this);
+bool Vector_String__contains__(struct Vector_String *this, struct String value);
+void Vector_Stringprint(struct Vector_String *this);
+
+char *Stringc_str(struct String *this) { return this->arr; }
+
+size_t Stringlen(struct String *this) { return this->length; }
+
+char String__getitem__(struct String *this, int index) {
+  return *(this->arr + index);
+}
+
+size_t Stringlength_of_charptr(struct String *this, char *p_string) {
+  // This should be some kind of static method.
+  return strlen(p_string);
+}
+
+void String__init__from_charptr(struct String *this, char *text,
+                                int p_text_length) {
+  // p_text_length : Length of the string without the null terminator.
+  this->arr = (char *)malloc((p_text_length + 1) * sizeof(char));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  strncpy(this->arr, text, p_text_length);
+  this->arr[p_text_length] = '\0';
+
+  this->length = p_text_length;
+  this->capacity = p_text_length + 1;
+  this->is_constexpr = false;
+}
+
+void Stringinit__STATIC__(struct String *this, char *text, int p_text_length) {
+  // WARNING: Only the compiler should write a call to this function.
+  // The compiler uses this initialization function to create a temporary String
+  // object when a string literal is passed to a function that expects a String
+  // object.
+  this->arr = text;
+  this->length = p_text_length;
+  this->capacity = p_text_length + 1;
+  this->is_constexpr = true;
+}
+
+void String__init__OVDstr(struct String *this, char *text) {
+  size_t p_text_length = Stringlength_of_charptr(this, text);
+  String__init__from_charptr(this, text, p_text_length);
+}
+
+void String__init__OVDstrint(struct String *this, char *text,
+                             int p_text_length) {
+  String__init__from_charptr(this, text, p_text_length);
+}
+
+void String__init__OVDstructString(struct String *this, struct String text) {
+  size_t p_text_length = Stringlen(&text);
+  String__init__from_charptr(this, Stringc_str(&text), p_text_length);
+}
+
+void Stringclear(struct String *this) {
+  this->arr = (char *)realloc(this->arr, sizeof(char));
+  this->arr[0] = '\0';
+  this->length = 0;
+  this->capacity = 1;
+}
+
+void Stringprint(struct String *this) { printf("%s", this->arr); }
+
+void StringprintLn(struct String *this) { printf("%s\n", this->arr); }
+
+void String__del__(struct String *this) {
+  if (!this->is_constexpr) {
+    free(this->arr);
+  }
+}
+
+bool Stringstartswith(struct String *this, char *prefix) {
+  return strncmp(this->arr, prefix, strlen(prefix)) == 0;
+}
+
+struct String Stringsubstr(struct String *this, int start, int length) {
+  struct String text;
+  String__init__from_charptr(&text, &this->arr[start], length);
+  return text;
+}
+
+struct String Stringstrip(struct String *this) {
+  char *begin = this->arr;
+  char *end = begin + Stringlen(this) - 1;
+
+  // Remove leading whitespaces.
+  while (isspace(*begin)) {
+    begin++;
+  }
+
+  // Remove trailing whitespaces.
+  while (end > begin && isspace(*end)) {
+    end--;
+  }
+
+  // Length of the substring between 'begin' and 'end' inclusive.
+  int new_length = end - begin + 1;
+
+  struct String text;
+  String__init__from_charptr(&text, begin, new_length);
+  return text;
+}
+
+struct Vector_String Stringsplit(struct String *this, char delimeter) {
+  // NOTE : Because of this function, before import String, we require import
+  // Vector.
+  struct Vector_String split_result;
+  Vector_String__init__(&split_result, 2);
+
+  int index = 0;
+  int segment_start = 0;
+
+  size_t tmp_len_0 = Stringlen(this);
+  for (size_t i = 0; i < tmp_len_0; i++) {
+    char character = String__getitem__(this, i);
+
+    if (character == delimeter) {
+
+      if (segment_start < index) {
+        struct String segment =
+            Stringsubstr(this, segment_start, index - segment_start);
+        Vector_Stringpush(&split_result, segment);
+        String__del__(&segment);
+      }
+      segment_start = index + 1;
+    }
+    index = index + 1;
+  }
+
+  if (segment_start < Stringlen(this)) {
+    struct String remaining_segment =
+        Stringsubstr(this, segment_start, Stringlen(this) - segment_start);
+    Vector_Stringpush(&split_result, remaining_segment);
+    String__del__(&remaining_segment);
+  }
+
+  return split_result;
+}
+
+bool String__contains__(struct String *this, char *substring) {
+  return strstr(this->arr, substring) != NULL;
+}
+
+bool String__eq__(struct String *this, char *pstring) {
+  return strcmp(this->arr, pstring) == 0;
+}
+
+void String__add__(struct String *this, char *pstring) {
+  size_t new_length = this->length + strlen(pstring) + 1;
+
+  if (new_length > this->capacity) {
+    size_t new_capacity;
+    if (this->capacity == 0) {
+      new_capacity = new_length * 2;
+    } else {
+      new_capacity = this->capacity;
+      while (new_capacity <= new_length) {
+        new_capacity *= 2;
+      }
+    }
+    this->arr = (char *)realloc(this->arr, new_capacity * sizeof(char));
+    this->capacity = new_capacity;
+  }
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory Re-Allocation Error.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  strcat(this->arr, pstring);
+  this->length = new_length;
+}
+
+void Stringreassign_internal(struct String *this, char *pstring,
+                             int p_text_length) {
+  if (this->arr != NULL) {
+    free(this->arr);
+  }
+
+  String__init__from_charptr(this, pstring, p_text_length);
+}
+
+void String__reassign__OVDstructString(struct String *this,
+                                       struct String pstring) {
+  char *src = Stringc_str(&pstring);
+  size_t p_text_length = Stringlen(&pstring);
+  Stringreassign_internal(this, src, p_text_length);
+}
+
+void String__reassign__OVDstr(struct String *this, char *pstring) {
+  size_t p_text_length = Stringlength_of_charptr(this, pstring);
+  Stringreassign_internal(this, pstring, p_text_length);
+}
+
+void Stringset_to_file_contents(struct String *this, char *pfilename) {
+  // Read from the file & store the contents to this string.
+
+  // TODO: Implement this function in ANIL itself, because the function below is
+  // a mangled function name.
+  Stringclear(this);
+
+  FILE *ptr = fopen(pfilename, "r");
+  if (ptr == NULL) {
+    printf("File \"%s\" couldn't be opened.\n", pfilename);
+    return;
+  }
+
+  char myString[256];
+  bool has_data = false;
+
+  while (fgets(myString, sizeof(myString), ptr)) {
+    String__add__(this, myString);
+    has_data = true;
+  }
+
+  fclose(ptr);
+
+  if (!has_data) {
+    // Double-clear just in case
+    Stringclear(this);
+  }
+}
+
+struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename) {
+  Stringset_to_file_contents(this, pfilename);
+  struct Vector_String result = Stringsplit(this, '\n');
+  return result;
+}
 
 void VoidPointer__init__(struct VoidPointer *this, struct UIWidget payload) {
   // Create a void* from UIWidget.
@@ -739,14 +1088,107 @@ void UIWidgetClearEditText(struct UIWidget *this) {
   ClearEditText(this->uiElement);
 }
 
-char *UIWidgetGetEditText(struct UIWidget *this) {
+struct String UIWidgetGetEditText(struct UIWidget *this) {
+  struct String EditText;
+
   if (this->uiElement->type != EDIT) {
     fprintf(stderr, "Error: GetEditText called on non-edit element.\n");
-    return NULL;
+
+    // Just return an empty string.
+    String__init__OVDstr(&EditText, "");
+    return EditText;
   }
+
   char *text = GetEditText(this->uiElement);
+
+  String__init__from_charptr(&EditText, text, strlen(text));
+
+  // 'GetEditText' provides a buffer that needs to be freed after use.
+  free(text);
+
+  return EditText;
+}
+
+void UIWidgetRemoveSelectedListItem(struct UIWidget *this) {
+  if (this->uiElement->type != LIST) {
+    fprintf(stderr,
+            "Error: RemoveSelectedListItem called on non-list element.\n");
+    return;
+  }
+
+  int selectedIndex = SendMessage(this->uiElement->hwnd, LB_GETCURSEL, 0, 0);
+
+  if (selectedIndex != LB_ERR) {
+    SendMessage(this->uiElement->hwnd, LB_DELETESTRING, selectedIndex, 0);
+    this->uiElement->itemCount--;
+    RefreshUILayout();
+  } else {
+    fprintf(stderr, "Error: No item selected in the list.\n");
+  }
+}
+
+int UIWidgetGetTotalItemsInList(struct UIWidget *this) {
+  if (this->uiElement->type != LIST) {
+    fprintf(stderr, "Error: GetTotalItemsInList called on non-list element.\n");
+    return 0;
+  }
+  // return this->uiElement->itemCount;
+
+  int itemCount = SendMessage(this->uiElement->hwnd, LB_GETCOUNT, 0, 0);
+  if (itemCount == LB_ERR) {
+    fprintf(stderr, "Error: Failed to get listbox item count.\n");
+    return 0;
+  }
+  return itemCount;
+}
+
+struct String UIWidgetGetListItemAtIndex(struct UIWidget *this, int index) {
+  struct String text;
+
+  bool success = false;
+  if (this->uiElement->type != LIST) {
+    fprintf(stderr, "Error: GetListItemAtIndex called on non-list element.\n");
+  }
+
+  if (index < 0 || index >= this->uiElement->itemCount) {
+    fprintf(stderr, "Error: Index out of bounds for list element.\n");
+  }
+
+  char *itemText = (char *)malloc(UIElement__MAX_TEXT_LENGTH);
+  if (!itemText) {
+    fprintf(stderr, "Error: Failed to allocate memory for item text.\n");
+  } else {
+    success = true;
+    SendMessage(this->uiElement->hwnd, LB_GETTEXT, index, (LPARAM)itemText);
+  }
+
+  if (success) {
+    // Use of mangled function directly.
+    String__init__from_charptr(&text, itemText, strlen(itemText));
+    free(itemText);
+  } else {
+    // Initialize an empty string if allocation failed or other error occurred.
+    String__init__OVDstr(&text, "");
+  }
+
   return text;
-  // TODO: This should be freed, so use ANILs string.
+}
+
+struct Vector_String UIWidgetGetAllItemsInList(struct UIWidget *this) {
+  // Returns a vector of strings containing all items in the list.
+  int total_items = UIWidgetGetTotalItemsInList(this);
+  struct Vector_String result;
+  Vector_String__init__(&result, total_items);
+
+  for (size_t i = 0; i < total_items; i++) {
+    struct String item = UIWidgetGetListItemAtIndex(this, i);
+
+    if (Stringlen(&item) > 0) {
+      Vector_Stringpush(&result, item);
+    }
+    String__del__(&item);
+  }
+  return result;
 }
 
 struct UIWidget WinUIAppGetRootWidget(struct WinUIApp *this) {
@@ -915,30 +1357,311 @@ void WinUIAppCleanUp(struct WinUIApp *this) {
 
 void WinUIApp__del__(struct WinUIApp *this) { WinUIAppCleanUp(this); }
 
-HWND hSubmitButton;
-struct Form1Output {
-  char __dummy;
-} Form1Output;
+void File__init__(struct File *this, char *p_file_name) {
+  this->file_ptr = fopen(p_file_name, "w");
+  if (this->file_ptr == NULL) {
+    printf("Failed to open file %s.\n", p_file_name);
+    exit(0);
+  }
+}
+
+void Filewriteline(struct File *this, char *p_content) {
+  // Write a line to the file with terminating newline.
+  fprintf(this->file_ptr, "%s\n", p_content);
+}
+
+void File__del__(struct File *this) { fclose(this->file_ptr); }
+
+size_t Vector_Stringlen(struct Vector_String *this) { return this->size; }
+
+void Vector_String__init__(struct Vector_String *this, int capacity) {
+  // if we want to use instanced template type in fn body, we use following
+  // syntax.
+  // @ TEMPLATED_DATA_TYPE @
+  this->arr = (struct String *)malloc(capacity * sizeof(struct String));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+  this->size = 0;
+  this->capacity = capacity;
+}
+
+void Vector_String_call_destructor_for_element(struct Vector_String *this,
+                                               int index) {
+  // If element at 'index' has a destructor, then emit a destructor call.
+  // Otherwise emit nothing.
+  // Evaluated at compile time.
+  String__del__(&this->arr[index]);
+}
+
+void Vector_String_call_destructor_for_all_elements(
+    struct Vector_String *this) {
+  for (size_t i = 0; i < Vector_Stringlen(this); i++) {
+    Vector_String_call_destructor_for_element(this, i);
+  }
+}
+
+void Vector_String_reset(struct Vector_String *this) {
+  free(this->arr);
+  this->arr = NULL;
+  this->size = 0;
+  this->capacity = 0;
+}
+
+void Vector_String__del__(struct Vector_String *this) {
+  Vector_String_call_destructor_for_all_elements(this);
+  Vector_String_reset(this);
+}
+
+struct String Vector_String__getitem__(struct Vector_String *this, int index) {
+  if (index < 0) {
+    index += this->size;
+  }
+  // Vector<String> Specialization:
+  // Returns &T ie &String, which means the return type is reference type.
+  // So, the returned String isn't freed by the destructor.
+  // for x in Vector<String>{}
+  // x calls __getitem__() and is a String. Typically x should be freed at the
+  // end of the loop. Since __getitem__() is a reference return type, it isn't
+  // freed.
+  return *(this->arr + index);
+}
+
+void Vector_String_set_ith_item(struct Vector_String *this, int index,
+                                struct String value) {
+  // NOTE: We assume that the index is valid.
+  this->arr[index] = value;
+}
+
+void Vector_Stringpush_unchecked(struct Vector_String *this,
+                                 struct String value) {
+  this->arr[this->size++] = value;
+}
+
+void Vector_Stringvalidate_index(struct Vector_String *this, int index) {
+  if (index < 0 || index >= this->size) {
+    fprintf(stderr, "Index out of bounds: index = %d, size = %d.\n", index,
+            this->size);
+    exit(EXIT_FAILURE);
+  }
+}
+
+struct String Vector_String_copy_string(struct Vector_String *this,
+                                        struct String s) {
+  struct String string_copy;
+  String__init__OVDstructString(&string_copy, s);
+  return string_copy;
+}
+
+void Vector_String_set(struct Vector_String *this, int index,
+                       struct String value) {
+
+  if (index < 0) {
+    index = index + this->size;
+  }
+  Vector_Stringvalidate_index(this, index);
+  Vector_String_call_destructor_for_element(this, index);
+  Vector_String_set_ith_item(this, index, value);
+}
+
+void Vector_String__setitem__(struct Vector_String *this, int index,
+                              struct String value) {
+  // Vector<String> Specialization:
+  // Duplicate a string object, to prevent dangling pointers,
+  // as when a string moves out of a scope, it is freed.
+  Vector_String_set(this, index, Vector_String_copy_string(this, value));
+}
+
+void Vector_Stringallocate_more(struct Vector_String *this, int n) {
+  if (n <= 0) {
+    // Prevent unnecessary reallocation or negative increments.
+    return;
+  }
+
+  size_t new_capacity = this->capacity + n;
+  struct String *new_arr =
+      (struct String *)realloc(this->arr, new_capacity * sizeof(struct String));
+
+  if (!new_arr) {
+    fprintf(stderr, "Vector<>::allocate_more(): Memory reallocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  this->arr = new_arr;
+  this->capacity = new_capacity;
+}
+
+void Vector_String_grow_if_required(struct Vector_String *this) {
+
+  if (this->size >= this->capacity) {
+
+    if (this->capacity > 0) {
+      Vector_Stringallocate_more(this, this->capacity);
+    } else {
+      // Avoid 0 capacity.
+      Vector_Stringallocate_more(this, 1);
+    }
+  }
+}
+
+void Vector_String_push(struct Vector_String *this, struct String value) {
+  Vector_String_grow_if_required(this);
+  Vector_Stringpush_unchecked(this, value);
+}
+
+void Vector_Stringpush(struct Vector_String *this, struct String value) {
+  // Vector<String> Specialization:
+  // Duplicate a string object, to prevent dangling pointers,
+  // as when a string moves out of a scope, it is freed.
+  Vector_String_push(this, Vector_String_copy_string(this, value));
+}
+
+struct String Vector_Stringpop(struct Vector_String *this) {
+  if (this->size == 0) {
+    fprintf(stderr, "Pop from empty Vector.\n");
+    exit(EXIT_FAILURE);
+  }
+  return this->arr[--this->size];
+}
+
+void Vector_String_shift_left_from(struct Vector_String *this, int index) {
+  // NOTE: The index is assumed to be valid(i.e not negative and within bounds).
+  for (int i = index; i < this->size - 1; i++) {
+    this->arr[i] = this->arr[i + 1];
+  }
+}
+
+void Vector_Stringremove_at(struct Vector_String *this, int index) {
+
+  if (index < 0) {
+    index = index + this->size;
+  }
+  Vector_Stringvalidate_index(this, index);
+  Vector_String_call_destructor_for_element(this, index);
+  Vector_String_shift_left_from(this, index);
+  this->size -= 1;
+}
+
+void Vector_String_clear(struct Vector_String *this) {
+  free(this->arr);
+
+  this->capacity = 1;
+  this->arr = (struct String *)malloc(this->capacity * sizeof(struct String));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "Vector<>::_clear(): Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  this->size = 0;
+}
+
+void Vector_Stringclear(struct Vector_String *this) {
+  Vector_String_call_destructor_for_all_elements(this);
+  Vector_String_clear(this);
+}
+
+bool Vector_String__contains__(struct Vector_String *this,
+                               struct String value) {
+  size_t tmp_len_3 = Vector_Stringlen(this);
+  for (size_t i = 0; i < tmp_len_3; i++) {
+    struct String string = Vector_String__getitem__(this, i);
+
+    if (Stringlen(&string) == Stringlen(&value)) {
+
+      if (String__eq__(&string, Stringc_str(&value))) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+void Vector_Stringprint(struct Vector_String *this) {
+  printf("Vector<String> (size = %d, capacity = %d) : [", this->size,
+         this->capacity);
+  for (size_t i = 0; i < this->size; ++i) {
+    printf("\"%s\"", this->arr[i].arr);
+    if (i < this->size - 1) {
+      printf(", ");
+    }
+  }
+  printf("]\n");
+}
 
 ///*///
+
+void SaveTodos(struct UIWidget todoList) {
+  struct File file;
+  File__init__(&file, "todos.txt");
+  struct Vector_String todoItems = UIWidgetGetAllItemsInList(&todoList);
+  size_t tmp_len_1 = Vector_Stringlen(&todoItems);
+  for (size_t i = 0; i < tmp_len_1; i++) {
+    struct String todoItem = Vector_String__getitem__(&todoItems, i);
+    Filewriteline(&file, Stringc_str(&todoItem));
+  }
+  Vector_String__del__(&todoItems);
+  File__del__(&file);
+}
+
+void LoadTodos(struct UIWidget todoList) {
+  struct String str;
+  String__init__OVDstrint(&str, "", 0);
+  struct Vector_String storedTodos = StringreadlinesFrom(&str, "todos.txt");
+
+  if (Vector_Stringlen(&storedTodos) > 0) {
+    size_t tmp_len_2 = Vector_Stringlen(&storedTodos);
+    for (size_t i = 0; i < tmp_len_2; i++) {
+      struct String todo = Vector_String__getitem__(&storedTodos, i);
+      UIWidgetAddItemToList(&todoList, Stringc_str(&todo));
+    }
+  } else {
+    UIWidgetAddItemToList(&todoList, "Complete UI Framework");
+    UIWidgetAddItemToList(&todoList, "Implement JSX like syntax");
+    SaveTodos(todoList);
+  }
+  Vector_String__del__(&storedTodos);
+  String__del__(&str);
+}
+
+struct UIWidget CreateUIWidgetFromVoidPtr(voidPtr ptr) {
+  // We don't have static functions in ANIL yet, so we have to do this.
+  struct UIWidget w;
+  struct UIWidget widget = UIWidgetCreateUIWidgetFromVoidPtr(&w, ptr);
+  return widget;
+}
 
 void AddTodo(voidPtr userData) {
   // 'userData' has UIElement* to the root element.
   // Convert it to UIWidget for easier access to UIWidget methods,
   // and tree traversal.
-  struct UIWidget r1;
-  struct UIWidget root = UIWidgetCreateUIWidgetFromVoidPtr(&r1, userData);
+  struct UIWidget root = CreateUIWidgetFromVoidPtr(userData);
 
-  struct UIWidget editElement = UIWidgetFindElementById(&root, "todoInput");
-  struct UIWidget listElement = UIWidgetFindElementById(&root, "todoList");
+  struct UIWidget todoInput = UIWidgetFindElementById(&root, "todoInput");
+  struct UIWidget todoList = UIWidgetFindElementById(&root, "todoList");
 
-  if (UIWidgetisValid(&editElement)) {
+  if (UIWidgetisValid(&todoInput)) {
 
-    if (UIWidgetisValid(&listElement)) {
-      char *text = UIWidgetGetEditText(&editElement);
-      UIWidgetAddItemToList(&listElement, text);
-      UIWidgetClearEditText(&editElement);
+    if (UIWidgetisValid(&todoList)) {
+      struct String text = UIWidgetGetEditText(&todoInput);
+      UIWidgetAddItemToList(&todoList, Stringc_str(&text));
+      UIWidgetClearEditText(&todoInput);
+      SaveTodos(todoList);
+      String__del__(&text);
     }
+  }
+}
+
+void DeleteSelectedTodo(voidPtr userData) {
+  struct UIWidget root = CreateUIWidgetFromVoidPtr(userData);
+
+  struct UIWidget todoList = UIWidgetFindElementById(&root, "todoList");
+
+  if (UIWidgetisValid(&todoList)) {
+    UIWidgetRemoveSelectedListItem(&todoList);
+    SaveTodos(todoList);
   }
 }
 
@@ -965,22 +1688,34 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     return -1;
   }
 
-  struct UIWidget ui;
-  struct UIWidget headerLabel = UIWidgetCreateLabel(
-      &ui, 0, 0, 100, 25, "Todo Application", "headerLabel");
-  struct UIWidget todoList = UIWidgetCreateList(&ui, 0, 0, 0, 150, "todoList");
-  struct UIWidget inputRow = UIWidgetCreateHBox(&ui, 0, 0, 0, 30, "inputRow");
-  struct UIWidget todoInput =
-      UIWidgetCreateLineInput(&ui, 0, 0, 0, 0, "todoInput");
-  struct UIWidget addButton =
-      UIWidgetCreateButton(&ui, 0, 0, 60, 0, "Add TODO", "addButton");
-
   struct UIWidget root_elem = WinUIAppGetRootWidget(&App);
+  struct UIWidget App__ui;
+  struct UIWidget headerLabel = UIWidgetCreateLabel(
+      &App__ui, 0, 0, 100, 25, "Todo Application", "headerLabel");
+  struct UIWidget todoList =
+      UIWidgetCreateList(&App__ui, 0, 0, 100, 25, "todoList");
+  struct UIWidget inputRow =
+      UIWidgetCreateHBox(&App__ui, 0, 0, 0, 30, "inputRow");
+  struct UIWidget todoInput =
+      UIWidgetCreateLineInput(&App__ui, 0, 0, 0, 0, "todoInput");
+  struct UIWidget addButton =
+      UIWidgetCreateButton(&App__ui, 0, 0, 60, 0, "Add TODO", "addButton");
+  struct UIWidget deleteButton = UIWidgetCreateButton(
+      &App__ui, 0, 0, 60, 0, "Delete Selected TODO", "deleteButton");
   UIWidgetAddChild(&root_elem, headerLabel);
   UIWidgetAddChild(&root_elem, todoList);
   UIWidgetAddChild(&root_elem, inputRow);
   UIWidgetAddChild(&inputRow, todoInput);
   UIWidgetAddChild(&inputRow, addButton);
+  UIWidgetAddChild(&inputRow, deleteButton);
+
+  // OnClick Callbacks.
+  struct VoidPointer __payload_0;
+  VoidPointer__init__(&__payload_0, root_elem);
+  UIWidgetSetOnClickCallback(&addButton, AddTodo, __payload_0);
+  struct VoidPointer __payload_1;
+  VoidPointer__init__(&__payload_1, root_elem);
+  UIWidgetSetOnClickCallback(&deleteButton, DeleteSelectedTodo, __payload_1);
 
   // Create Windows Controls (HWNDs) for Children of Root.
   bool create_status = WinUIAppCreateControls(&App);
@@ -992,14 +1727,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     return -1;
   }
 
-  // Setup Event Handlers.
-  // Pass the root element as userData so the handler can find other elements
-  struct VoidPointer payload;
-  VoidPointer__init__(&payload, root_elem);
-  UIWidgetSetOnClickCallback(&addButton, AddTodo, payload);
-
-  UIWidgetAddItemToList(&todoList, "Complete UI Framework");
-  UIWidgetAddItemToList(&todoList, "Implement JSX like syntax");
+  LoadTodos(todoList);
 
   int exitCode = WinUIAppRun(&App);
 

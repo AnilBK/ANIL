@@ -1,4 +1,7 @@
-//  gcc -o .\TODO_App_Web .\TODO_App_Web_generated.c cJSON.c -lws2_32
+// Run this file and then open Todos.html in a browser to see the UI.
+
+// gcc -o .\TodoAppWebServer .\TodoAppWebServer_generated.c cJSON.c -lws2_32
+
 #include <stdio.h>
 
 // IMPORTS //
