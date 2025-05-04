@@ -37,8 +37,9 @@ python preprocess_2.py --filename examples\FILE_NAME*.c
 - Compile-Time Reflection: [Example 1](examples/Reflection.c) 
 - Annotations: [Example 1](examples/Annotations.c) [WebSever Example](examples/WebServer.c)
 - Standard Library: See [Lib/](Lib/). Shows mixing of C code and ANIL.
-- Windows UI FrameWork: See [Todo App Example](examples/UI_TODO_App.c)
-- Windows UI App using JSX like syntax: See [Todo APP JSX like Syntax Example](examples/UI_TODO_JSX.c)
+- Windows UI FrameWork: See [Todo App Example](examples/UI/TodoAppBasic.c)
+- Windows UI App using JSX like syntax: See [Todo App JSX like Syntax Example](examples/UI/TodoAppJSX.c)
+- Windows Web Server: See [Todo App Web Server Example](examples/UI/TodoAppWebServer.c)
 - Function Pointers: See [Example](examples/FunctionPointer.c)
 - Dunder methods:
     - `__init__` : To implement constructors.
