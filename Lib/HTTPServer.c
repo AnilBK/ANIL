@@ -52,17 +52,6 @@ typedef struct Request Request;
 
 typedef void (*RouteHandler)(Response res, Request request);
 
-typedef struct Route {
-    const char *method; // Method (e.g., "GET", "POST")
-    const char *route_key; // Path (e.g., "/", "/about")
-    RouteHandler handler;
-} Route;
-
-typedef struct Routes {
-  Route routes[10];
-  int route_count;
-} Routes;
-
 // Validation criteria for an HTTP request
 typedef struct ValidationRules {
     const char* required_method;            // e.g., "GET", "POST". NULL = Don't check method.
@@ -76,6 +65,19 @@ typedef struct ValidationRules {
     // const char** required_headers;       // NULL-terminated list of required header names
     // bool require_query_param;
 } ValidationRules;
+
+typedef struct Route {
+    const char *method; // Method (e.g., "GET", "POST")
+    const char *route_key; // Path (e.g., "/", "/about")
+    RouteHandler handler;
+    bool has_validation_rules;
+    ValidationRules rules; // Validation rules for this route
+} Route;
+
+typedef struct Routes {
+  Route routes[10];
+  int route_count;
+} Routes;
 
 void Responsesend(struct Response *this, char *body, int code);
 
@@ -382,19 +384,6 @@ c_function GetBodyStart() -> str:
         return NULL; // No body found
     }
 endc_function
-
-c_function ValidateIsPostAndJSON(res: Response) -> bool:
-    // Requests validation.
-    // Harcode validation rules.
-    ValidationRules rules = {
-        .required_method = "POST",
-        .require_body = true,
-        .disallow_body = false,
-        .required_content_type = "application/json"
-    };
-
-    return HTTPServerInternal_ValidateRequest(&res, &this->request, &rules);
-endc_function
 endnamespace
 
 struct HTTPServer{SocketConnectionInfo server, Routes routes};
@@ -404,6 +393,65 @@ c_function __init__()
     this->routes.route_count = 0;
 endc_function
 
+c_function add_validation_rule(route_name : str, method : str, required_content_type : str)
+  if (this->routes.route_count == 0) {
+    fprintf(stderr, "Error: No routes registered.\n");
+    return;
+  }
+
+  bool rule_applied = false;
+  for (int i = 0; i < this->routes.route_count; i++) {
+    if (strcmp(this->routes.routes[i].route_key, route_name) == 0 &&
+        strcmp(this->routes.routes[i].method, method) == 0) {
+
+      // Apply rules based on the method being configured
+      if (strcmp(method, "OPTIONS") == 0) {
+        this->routes.routes[i].rules.required_method = method;
+        this->routes.routes[i].rules.require_body = false;
+        this->routes.routes[i].rules.disallow_body =
+            true; // Enforce no body for OPTIONS
+        this->routes.routes[i].rules.required_content_type = NULL;
+        printf(
+            "DEBUG: Validation rules applied to: OPTIONS %s (Disallow Body)\n",
+            route_name);
+      } else if (strcmp(method, "POST") == 0) { // Example for POST
+        this->routes.routes[i].rules.required_method = method;
+        this->routes.routes[i].rules.require_body = true;
+        this->routes.routes[i].rules.disallow_body = false;
+        this->routes.routes[i].rules.required_content_type =
+            required_content_type;
+        printf("DEBUG: Validation rules applied to: POST %s (Require Body, "
+               "Type: %s)\n",
+               route_name,
+               required_content_type ? required_content_type : "Any");
+      } else if (strcmp(method, "GET") ==
+                 0) { // Example for GET (typically no body)
+        this->routes.routes[i].rules.required_method = method;
+        this->routes.routes[i].rules.require_body = false;
+        this->routes.routes[i].rules.disallow_body =
+            true; // Usually disallow body for GET
+        this->routes.routes[i].rules.required_content_type = NULL;
+        printf("DEBUG: Validation rules applied to: GET %s (Disallow Body)\n",
+               route_name);
+      } else {
+        fprintf(stderr, "Error: Unsupported method for validation rule: %s\n",
+                method);
+        return;
+      }
+
+      this->routes.routes[i].has_validation_rules = true;
+      rule_applied = true;
+      break;
+    }
+  }
+
+  if (!rule_applied) {
+    fprintf(stderr,
+            "Error: For Adding Validation Rule, Route %s %s not found.\n",
+            method, route_name);
+  }
+endc_function
+
 c_function register_route(method : str, route_key : str, handler : RouteHandler)
     if (this->routes.route_count >= sizeof(this->routes.routes) / sizeof(this->routes.routes[0])) {
         fprintf(stderr, "Error: Maximum number of routes reached.\n");
@@ -411,7 +459,14 @@ c_function register_route(method : str, route_key : str, handler : RouteHandler)
     }
     
     // Should ideally duplicate method and route_key strings if they aren't static literals
-    Route route = {method, route_key, handler};
+    Route route;
+    route.method = method;
+    route.route_key = route_key;
+    route.handler = handler;
+
+    route.rules = (ValidationRules){0}; // Initialize rules to default values
+    route.has_validation_rules = false; // Default to false, can be set later if needed
+
     this->routes.routes[this->routes.route_count++] = route;
     printf("Registered route: %s %s\n", method, route_key);
 endc_function
@@ -456,7 +511,11 @@ endc_function
 c_function handle_client()
   char buffer[HTTP_BUFFER_SIZE];
   int recv_size;
-  SOCKET client_sock = this->server.client_socket;
+
+  // Keep track of the original socket descriptor for logging, as client_socket
+  // might change
+  SOCKET client_sock_original = this->server.client_socket;
+  SOCKET client_sock = this->server.client_socket; // Use this local copy
 
   printf("DEBUG: Handling client on Socket: %d\n", (int)client_sock);
 
@@ -480,9 +539,12 @@ c_function handle_client()
       printf("DEBUG: Client (Socket: %d) disconnected gracefully.\n",
              (int)client_sock);
     }
-    closesocket(client_sock);
-    printf("DEBUG: Closed Socket %d due to recv error/timeout/disconnect.\n",
-           (int)client_sock);
+    if (HTTPServerInternal_is_socket_valid(
+            client_sock)) { // Check before closing
+      closesocket(client_sock);
+      printf("DEBUG: Closed Socket %d due to recv error/timeout/disconnect.\n",
+             (int)client_sock_original);
+    }
     return;
   }
 
@@ -491,12 +553,13 @@ c_function handle_client()
   HttpRequest request;
   if (!HTTPServerInternal_ParseHttpRequest(buffer, recv_size, &request)) {
     fprintf(stderr, "Failed to parse request on Socket %d.\n",
-            (int)client_sock);
+            (int)client_sock_original);
     HttpResponse resp_info = {client_sock};
     HTTPServerInternal_SendResponse(
         &resp_info, "<html><body><h1>400 Bad Request</h1></body></html>", 400);
     closesocket(client_sock);
-    printf("DEBUG: Closed Socket %d due to parse error.\n", (int)client_sock);
+    printf("DEBUG: Closed Socket %d due to parse error.\n",
+           (int)client_sock_original);
     return;
   }
 
@@ -508,7 +571,7 @@ c_function handle_client()
       fprintf(stderr,
               "WARN: Content-Length %ld specified, but no body found after "
               "headers on Socket %d.\n",
-              request.content_length, (int)client_sock);
+              request.content_length, (int)client_sock_original);
       HttpResponse resp_info = {client_sock};
       HTTPServerInternal_SendResponse(
           &resp_info,
@@ -516,7 +579,7 @@ c_function handle_client()
           400);
       closesocket(client_sock);
       printf("DEBUG: Closed Socket %d due to missing body.\n",
-             (int)client_sock);
+             (int)client_sock_original);
       return;
     }
     if (request.body_length < request.content_length) {
@@ -534,7 +597,7 @@ c_function handle_client()
           400);
       closesocket(client_sock);
       printf("DEBUG: Closed Socket %d due to incomplete body.\n",
-             (int)client_sock);
+             (int)client_sock_original);
       return;
     }
     // Note: request.body_length might be > request.content_length if pipelining
@@ -547,12 +610,40 @@ c_function handle_client()
   HttpResponse res_info = {client_sock};
   Response resp = {res_info};
   bool route_found = false;
+  bool response_sent =
+      false; // Track if a response was already sent (e.g., by validation)
 
   for (int i = 0; i < this->routes.route_count; i++) {
     if (strcmp(request.method, this->routes.routes[i].method) == 0 &&
         strcmp(request.path, this->routes.routes[i].route_key) == 0) {
       printf("DEBUG: Matched route %s %s for Socket %d.\n", request.method,
              request.path, (int)client_sock);
+
+      route_found = true;
+      printf("DEBUG: Matched route definition %s %s for Socket %d.\n",
+             request.method, request.path, (int)client_sock_original);
+
+      struct Request req;
+      req.request = request;
+
+      // --- Validate Request ---
+      if (this->routes.routes[i].has_validation_rules) {
+        if (!HTTPServerInternal_ValidateRequest(
+                &resp, &req.request, &this->routes.routes[i].rules)) {
+          // Validation failed. ValidateRequest already sent the error response.
+          printf("DEBUG: Validation failed for route %s %s on Socket %d.\n",
+                 request.method, request.path, (int)client_sock_original);
+
+          if (HTTPServerInternal_is_socket_valid(
+                  client_sock)) { // Check before closing
+            closesocket(client_sock);
+            printf("DEBUG: Closed Socket %d due to validation failure.\n",
+                   (int)client_sock_original);
+          }
+          response_sent = true;
+          break;
+        }
+      }
 
       // --- Handle OPTIONS request generically for CORS preflight ---
       // This check should generally happen *before* trying to dispatch to a
@@ -562,41 +653,76 @@ c_function handle_client()
         // Send simple 200 OK with CORS headers (already added in SendResponse)
         HTTPServerInternal_SendResponse(&res_info, NULL, 200); // No body needed
         route_found = true; // Mark as handled
-        break;              // Stop processing routes
+        response_sent = true;
+        break; // Stop processing routes
       }
 
-      struct Request req;
-      req.request = request;
-      this->routes.routes[i].handler(resp, req);
+      // --- Call the Registered Handler ---
+      // Only call handler if validation passed/wasn't needed AND we haven't
+      // already sent a response (like the default OPTIONS one)
+      if (!response_sent) {
+        printf("DEBUG: Calling handler for %s %s.\n", request.method,
+               request.path);
+        this->routes.routes[i].handler(resp, req);
+        response_sent = true; // Assume handler sends a response
+      }
 
-      route_found = true;
       break;
     }
   }
 
   // --- Handle 404 Not Found ---
+  // Only send 404 if no route definition was matched AT ALL.
+  // If route_found is true but response_sent is false, it means a handler
+  // didn't send anything (server error). If route_found is true and
+  // response_sent is true, everything worked or validation failed correctly.
   if (!route_found) {
-    printf("DEBUG: No route matched for %s %s on Socket %d. Sending 404.\n",
-           request.method, request.path, (int)client_sock);
-    struct Request req;
+    printf("DEBUG: No route definition matched for %s %s on Socket %d. Sending "
+           "404.\n",
+           request.method, request.path, (int)client_sock_original);
+    struct Request req; // Need to create req again for Handle404
     req.request = request;
-    Handle404(resp, req);
+    // Ensure Handle404 sets response_sent if it sends a response
+    Handle404(resp, req); // Assuming Handle404 sends the response
+    response_sent = true;
+  } else if (route_found && !response_sent) {
+    // This case indicates an internal issue - route matched but no response
+    // sent by validation, OPTIONS default, or handler.
+    fprintf(stderr,
+            "ERROR: Route %s %s matched but no response sent on Socket %d! "
+            "Sending 500.\n",
+            request.method, request.path, (int)client_sock_original);
+    HttpResponse resp_info_err = {client_sock};
+    HTTPServerInternal_SendResponse(
+        &resp_info_err,
+        "{\"error\":\"Internal server error: Handler did not send response\"}",
+        500);
+    response_sent = true;
   }
 
   // --- Shutdown and Close ---
-  printf("DEBUG: Request handling complete for Socket %d. Shutting down send "
-         "side.\n",
-         (int)client_sock);
-  if (shutdown(client_sock, SD_SEND) == SOCKET_ERROR) {
-    if (WSAGetLastError() != WSAENOTCONN) {
-      printf("WARN: shutdown(SD_SEND) failed for Socket %d. Error: %d\n",
-             (int)client_sock, WSAGetLastError());
+  // Check if socket is still valid before shutting down/closing
+  if (HTTPServerInternal_is_socket_valid(client_sock)) {
+    printf("DEBUG: Request handling complete for Socket %d. Shutting down send "
+           "side.\n",
+           (int)client_sock_original);
+    if (shutdown(client_sock, SD_SEND) == SOCKET_ERROR) {
+      int error_code = WSAGetLastError();
+      // Avoid logging error if client already disconnected (WSAENOTCONN)
+      if (error_code != WSAENOTCONN) {
+        printf("WARN: shutdown(SD_SEND) failed for Socket %d. Error: %d\n",
+               (int)client_sock_original, error_code);
+      }
     }
+    printf("DEBUG: Closing client socket %d (Normal completion).\n",
+           (int)client_sock_original);
+    closesocket(client_sock);
+  } else {
+    // Socket was already closed, likely due to an earlier error (recv, parse,
+    // validation)
+    printf("DEBUG: Socket %d was already closed before final cleanup.\n",
+           (int)client_sock_original);
   }
-
-  printf("DEBUG: Closing client socket %d (Normal completion).\n",
-         (int)client_sock);
-  closesocket(client_sock);
 endc_function
 
 c_function accept_connections()

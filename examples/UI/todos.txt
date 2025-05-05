@@ -3,4 +3,4 @@ Implement JSX like syntax
 Return; statements should call all destructors.
 return False produces error but return false doesnt.
 Add Copy constructors for Vectors. See Json.c
-HTTP Validations via annotations.
+Optimize Comma in Vector Print

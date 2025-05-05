@@ -75,15 +75,10 @@ function HandleGetTodos(res : Response, req : Request)
   res.send(jsonString, 200)
 endfunction
 
-@route("OPTIONS", "/save_todos")
-@route("POST", "/save_todos")
+@routeWithValidation("OPTIONS", "/save_todos", "")
+@routeWithValidation("POST", "/save_todos", "application/json")
 function HandleSaveTodos(res : Response, request : Request)
-  if request.ValidateIsPostAndJSON(res) == false {
-    return
-  }
-
   let jsonParser = JSON{};
-
   let todos = jsonParser.ParseRequest(request)
 
   if todos.len() == 0 {
@@ -107,6 +102,9 @@ int main() {
   // Use reflection to get all functions with annotations '@route' and register those functions as routes.
   def register_routes_reflection():
     forall annotated_fn_name, arg_value1, arg_value2 in annotated_functions_by_name(route) UNQUOTE: server.register_route("arg_value1", "arg_value2", annotated_fn_name)
+    
+    forall annotated_fn_name, arg_value1, arg_value2, arg_value3 in annotated_functions_by_name(routeWithValidation) UNQUOTE: server.register_route("arg_value1", "arg_value2", annotated_fn_name)
+    forall annotated_fn_name, arg_value1, arg_value2, arg_value3 in annotated_functions_by_name(routeWithValidation) UNQUOTE: server.add_validation_rule("arg_value2", "arg_value1", "arg_value3")
   enddef  
   register_routes_reflection
   
