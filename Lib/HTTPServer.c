@@ -371,6 +371,10 @@ c_function GetContentLength() -> int:
     return this->request.content_length;
 endc_function
 
+c_function HasAValidBody() -> bool:
+    return (this->request.body_start && this->request.body_length > 0);
+endc_function
+
 c_function GetBodyStart() -> str:
     if (this->request.body_start) {
         return this->request.body_start;

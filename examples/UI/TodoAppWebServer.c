@@ -9,11 +9,11 @@
 // STRUCT_DEFINATIONS //
 
 ///*///
-import HTTPServer
 import Vector
 import String
-import File
+import HTTPServer
 import JSON
+import File
 
 function LoadTodosFromFile() -> Vector<String>:
   let str = ""
@@ -82,18 +82,16 @@ function HandleSaveTodos(res : Response, request : Request)
     return
   }
 
-  let body_start = request.GetBodyStart()
-  let body_len = request.GetContentLength()
-
   let jsonParser = JSON{};
 
-  if jsonParser.Parse(body_start, body_len) {
-    let todos = jsonParser.parsed_strings
+  let todos = jsonParser.ParseRequest(request)
+
+  if todos.len() == 0 {
+    fprintf(stderr, "Failed to parse JSON body for POST /save_todos\n");
+    res.send("{\"error\":\"Invalid JSON format\"}", 400) // Bad Request
+  } else{
     WriteTodosToFile(todos)
     res.send("{\"message\":\"Todos saved successfully\"}", 201) // Created
-  }else{
-    fprintf(stderr, "Failed to parse JSON body for POST /api/todos\n");
-    res.send("{\"error\":\"Invalid JSON format\"}", 400) // Bad Request
   }
 endfunction
 

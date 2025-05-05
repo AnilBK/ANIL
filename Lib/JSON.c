@@ -13,6 +13,17 @@ function __init__()
     this.parsed_strings.__init__(1)
 endfunction
 
+function ParsedStringsList() -> Vector<String>:
+    // Duplicate the vector to avoid returning the raw pointer,
+    // which may be freed somewhere else.
+    let length = this.parsed_strings.len()
+    let copy = Vector<String>{length};
+    for str in this.parsed_strings{
+        copy.push(str)
+    }
+    return copy
+endfunction
+
 c_function Parse(json_string : str, len : int) -> bool:
     // Parse the JSON and store the strings in 'parsed_strings'.
     Vector_Stringclear(&this->parsed_strings);
@@ -89,5 +100,21 @@ c_function Parse(json_string : str, len : int) -> bool:
     // Return true if parsing and iteration were generally successful
     return success; 
 endc_function
+
+function ParseRequest(request : Request) -> Vector<String>:
+    if request.HasAValidBody(){
+        let body_start = request.GetBodyStart();
+        let body_len = request.GetContentLength();
+
+        if this.Parse(body_start, body_len){
+            // Sucessful Parse.
+            return this.ParsedStringsList()
+        }        
+    }
+
+    let empty_result = Vector<String>{1};
+    return empty_result
+endfunction
+
 endnamespace
 ///*///

@@ -1,3 +1,20 @@
+///*///
+
+#include <string.h>
+
+///////////////////////////////////////////
+
+///*///
+
+///*///
+
+#include <ctype.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
+
+///*///
+
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -399,35 +416,18 @@ bool HTTPServerInternal_ParseHttpRequest(const char *buffer, int buffer_len,
 
 ///*///
 
-///*//////*///
-
-#include <string.h>
-
-///////////////////////////////////////////
-
-///*///
-
-///*///
-
-#include <ctype.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-
-///*///
-
-///*///
-
-///*///
-
+///*///#include <stdio.h>
 #include "cJSON.h"
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 ///*///
 
 ///*///
+///*///
+
+///*///
+
 // Run this file and then open Todos.html in a browser to see the UI.
 
 // gcc -o .\TodoAppWebServer .\TodoAppWebServer_generated.c cJSON.c -lws2_32
@@ -435,19 +435,6 @@ bool HTTPServerInternal_ParseHttpRequest(const char *buffer, int buffer_len,
 #include <stdio.h>
 
 // IMPORTS //
-
-struct Response {
-  HttpResponse res;
-};
-
-struct Request {
-  HttpRequest request;
-};
-
-struct HTTPServer {
-  SocketConnectionInfo server;
-  Routes routes;
-};
 
 struct String {
   char *arr;
@@ -462,28 +449,26 @@ struct Vector_String {
   int capacity;
 };
 
-struct File {
-  FILE *file_ptr;
+struct Response {
+  HttpResponse res;
+};
+
+struct Request {
+  HttpRequest request;
+};
+
+struct HTTPServer {
+  SocketConnectionInfo server;
+  Routes routes;
 };
 
 struct JSON {
   struct Vector_String parsed_strings;
 };
 
-void Responsesend(struct Response *this, char *body, int code);
-
-int RequestGetContentLength(struct Request *this);
-char *RequestGetBodyStart(struct Request *this);
-bool RequestValidateIsPostAndJSON(struct Request *this, struct Response res);
-
-void HTTPServer__init__(struct HTTPServer *this);
-void HTTPServerregister_route(struct HTTPServer *this, char *method,
-                              char *route_key, RouteHandler handler);
-int HTTPServerstart_server(struct HTTPServer *this, int port);
-void HTTPServerhandle_client(struct HTTPServer *this);
-void HTTPServeraccept_connections(struct HTTPServer *this);
-void HTTPServerlisten(struct HTTPServer *this, int port);
-void HTTPServer__del__(struct HTTPServer *this);
+struct File {
+  FILE *file_ptr;
+};
 
 char *Stringc_str(struct String *this);
 size_t Stringlen(struct String *this);
@@ -515,12 +500,30 @@ void String__reassign__OVDstr(struct String *this, char *pstring);
 void Stringset_to_file_contents(struct String *this, char *pfilename);
 struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename);
 
+void Responsesend(struct Response *this, char *body, int code);
+
+int RequestGetContentLength(struct Request *this);
+bool RequestHasAValidBody(struct Request *this);
+char *RequestGetBodyStart(struct Request *this);
+bool RequestValidateIsPostAndJSON(struct Request *this, struct Response res);
+
+void HTTPServer__init__(struct HTTPServer *this);
+void HTTPServerregister_route(struct HTTPServer *this, char *method,
+                              char *route_key, RouteHandler handler);
+int HTTPServerstart_server(struct HTTPServer *this, int port);
+void HTTPServerhandle_client(struct HTTPServer *this);
+void HTTPServeraccept_connections(struct HTTPServer *this);
+void HTTPServerlisten(struct HTTPServer *this, int port);
+void HTTPServer__del__(struct HTTPServer *this);
+void JSON__init__(struct JSON *this);
+struct Vector_String JSONParsedStringsList(struct JSON *this);
+bool JSONParse(struct JSON *this, char *json_string, int len);
+struct Vector_String JSONParseRequest(struct JSON *this,
+                                      struct Request request);
+
 void File__init__(struct File *this, char *p_file_name);
 void Filewriteline(struct File *this, char *p_content);
 void File__del__(struct File *this);
-void JSON__init__(struct JSON *this);
-bool JSONParse(struct JSON *this, char *json_string, int len);
-
 struct Vector_String LoadTodosFromFile();
 void WriteTodosToFile(struct Vector_String todos);
 struct String VectorStringToJSONString(struct Vector_String todos);
@@ -562,12 +565,248 @@ void JSON__del__(struct JSON *this) {
   Vector_String__del__(&this->parsed_strings);
 }
 
+char *Stringc_str(struct String *this) { return this->arr; }
+
+size_t Stringlen(struct String *this) { return this->length; }
+
+char String__getitem__(struct String *this, int index) {
+  return *(this->arr + index);
+}
+
+size_t Stringlength_of_charptr(struct String *this, char *p_string) {
+  // This should be some kind of static method.
+  return strlen(p_string);
+}
+
+void String__init__from_charptr(struct String *this, char *text,
+                                int p_text_length) {
+  // p_text_length : Length of the string without the null terminator.
+  this->arr = (char *)malloc((p_text_length + 1) * sizeof(char));
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory allocation failed.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  strncpy(this->arr, text, p_text_length);
+  this->arr[p_text_length] = '\0';
+
+  this->length = p_text_length;
+  this->capacity = p_text_length + 1;
+  this->is_constexpr = false;
+}
+
+void Stringinit__STATIC__(struct String *this, char *text, int p_text_length) {
+  // WARNING: Only the compiler should write a call to this function.
+  // The compiler uses this initialization function to create a temporary String
+  // object when a string literal is passed to a function that expects a String
+  // object.
+  this->arr = text;
+  this->length = p_text_length;
+  this->capacity = p_text_length + 1;
+  this->is_constexpr = true;
+}
+
+void String__init__OVDstr(struct String *this, char *text) {
+  size_t p_text_length = Stringlength_of_charptr(this, text);
+  String__init__from_charptr(this, text, p_text_length);
+}
+
+void String__init__OVDstrint(struct String *this, char *text,
+                             int p_text_length) {
+  String__init__from_charptr(this, text, p_text_length);
+}
+
+void String__init__OVDstructString(struct String *this, struct String text) {
+  size_t p_text_length = Stringlen(&text);
+  String__init__from_charptr(this, Stringc_str(&text), p_text_length);
+}
+
+void Stringclear(struct String *this) {
+  this->arr = (char *)realloc(this->arr, sizeof(char));
+  this->arr[0] = '\0';
+  this->length = 0;
+  this->capacity = 1;
+}
+
+void Stringprint(struct String *this) { printf("%s", this->arr); }
+
+void StringprintLn(struct String *this) { printf("%s\n", this->arr); }
+
+void String__del__(struct String *this) {
+  if (!this->is_constexpr) {
+    free(this->arr);
+  }
+}
+
+bool Stringstartswith(struct String *this, char *prefix) {
+  return strncmp(this->arr, prefix, strlen(prefix)) == 0;
+}
+
+struct String Stringsubstr(struct String *this, int start, int length) {
+  struct String text;
+  String__init__from_charptr(&text, &this->arr[start], length);
+  return text;
+}
+
+struct String Stringstrip(struct String *this) {
+  char *begin = this->arr;
+  char *end = begin + Stringlen(this) - 1;
+
+  // Remove leading whitespaces.
+  while (isspace(*begin)) {
+    begin++;
+  }
+
+  // Remove trailing whitespaces.
+  while (end > begin && isspace(*end)) {
+    end--;
+  }
+
+  // Length of the substring between 'begin' and 'end' inclusive.
+  int new_length = end - begin + 1;
+
+  struct String text;
+  String__init__from_charptr(&text, begin, new_length);
+  return text;
+}
+
+struct Vector_String Stringsplit(struct String *this, char delimeter) {
+  // NOTE : Because of this function, before import String, we require import
+  // Vector.
+  struct Vector_String split_result;
+  Vector_String__init__(&split_result, 2);
+
+  int index = 0;
+  int segment_start = 0;
+
+  size_t tmp_len_0 = Stringlen(this);
+  for (size_t i = 0; i < tmp_len_0; i++) {
+    char character = String__getitem__(this, i);
+
+    if (character == delimeter) {
+
+      if (segment_start < index) {
+        struct String segment =
+            Stringsubstr(this, segment_start, index - segment_start);
+        Vector_Stringpush(&split_result, segment);
+        String__del__(&segment);
+      }
+      segment_start = index + 1;
+    }
+    index = index + 1;
+  }
+
+  if (segment_start < Stringlen(this)) {
+    struct String remaining_segment =
+        Stringsubstr(this, segment_start, Stringlen(this) - segment_start);
+    Vector_Stringpush(&split_result, remaining_segment);
+    String__del__(&remaining_segment);
+  }
+
+  return split_result;
+}
+
+bool String__contains__(struct String *this, char *substring) {
+  return strstr(this->arr, substring) != NULL;
+}
+
+bool String__eq__(struct String *this, char *pstring) {
+  return strcmp(this->arr, pstring) == 0;
+}
+
+void String__add__(struct String *this, char *pstring) {
+  size_t new_length = this->length + strlen(pstring) + 1;
+
+  if (new_length > this->capacity) {
+    size_t new_capacity;
+    if (this->capacity == 0) {
+      new_capacity = new_length * 2;
+    } else {
+      new_capacity = this->capacity;
+      while (new_capacity <= new_length) {
+        new_capacity *= 2;
+      }
+    }
+    this->arr = (char *)realloc(this->arr, new_capacity * sizeof(char));
+    this->capacity = new_capacity;
+  }
+
+  if (this->arr == NULL) {
+    fprintf(stderr, "Memory Re-Allocation Error.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  strcat(this->arr, pstring);
+  this->length = new_length;
+}
+
+void Stringreassign_internal(struct String *this, char *pstring,
+                             int p_text_length) {
+  if (this->arr != NULL) {
+    free(this->arr);
+  }
+
+  String__init__from_charptr(this, pstring, p_text_length);
+}
+
+void String__reassign__OVDstructString(struct String *this,
+                                       struct String pstring) {
+  char *src = Stringc_str(&pstring);
+  size_t p_text_length = Stringlen(&pstring);
+  Stringreassign_internal(this, src, p_text_length);
+}
+
+void String__reassign__OVDstr(struct String *this, char *pstring) {
+  size_t p_text_length = Stringlength_of_charptr(this, pstring);
+  Stringreassign_internal(this, pstring, p_text_length);
+}
+
+void Stringset_to_file_contents(struct String *this, char *pfilename) {
+  // Read from the file & store the contents to this string.
+
+  // TODO: Implement this function in ANIL itself, because the function below is
+  // a mangled function name.
+  Stringclear(this);
+
+  FILE *ptr = fopen(pfilename, "r");
+  if (ptr == NULL) {
+    printf("File \"%s\" couldn't be opened.\n", pfilename);
+    return;
+  }
+
+  char myString[256];
+  bool has_data = false;
+
+  while (fgets(myString, sizeof(myString), ptr)) {
+    String__add__(this, myString);
+    has_data = true;
+  }
+
+  fclose(ptr);
+
+  if (!has_data) {
+    // Double-clear just in case
+    Stringclear(this);
+  }
+}
+
+struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename) {
+  Stringset_to_file_contents(this, pfilename);
+  struct Vector_String result = Stringsplit(this, '\n');
+  return result;
+}
+
 void Responsesend(struct Response *this, char *body, int code) {
   HTTPServerInternal_SendResponse(&this->res, body, code);
 }
 
 int RequestGetContentLength(struct Request *this) {
   return this->request.content_length;
+}
+
+bool RequestHasAValidBody(struct Request *this) {
+  return (this->request.body_start && this->request.body_length > 0);
 }
 
 char *RequestGetBodyStart(struct Request *this) {
@@ -844,255 +1083,22 @@ void HTTPServer__del__(struct HTTPServer *this) {
   WSACleanup();
 }
 
-char *Stringc_str(struct String *this) { return this->arr; }
-
-size_t Stringlen(struct String *this) { return this->length; }
-
-char String__getitem__(struct String *this, int index) {
-  return *(this->arr + index);
-}
-
-size_t Stringlength_of_charptr(struct String *this, char *p_string) {
-  // This should be some kind of static method.
-  return strlen(p_string);
-}
-
-void String__init__from_charptr(struct String *this, char *text,
-                                int p_text_length) {
-  // p_text_length : Length of the string without the null terminator.
-  this->arr = (char *)malloc((p_text_length + 1) * sizeof(char));
-
-  if (this->arr == NULL) {
-    fprintf(stderr, "Memory allocation failed.\n");
-    exit(EXIT_FAILURE);
-  }
-
-  strncpy(this->arr, text, p_text_length);
-  this->arr[p_text_length] = '\0';
-
-  this->length = p_text_length;
-  this->capacity = p_text_length + 1;
-  this->is_constexpr = false;
-}
-
-void Stringinit__STATIC__(struct String *this, char *text, int p_text_length) {
-  // WARNING: Only the compiler should write a call to this function.
-  // The compiler uses this initialization function to create a temporary String
-  // object when a string literal is passed to a function that expects a String
-  // object.
-  this->arr = text;
-  this->length = p_text_length;
-  this->capacity = p_text_length + 1;
-  this->is_constexpr = true;
-}
-
-void String__init__OVDstr(struct String *this, char *text) {
-  size_t p_text_length = Stringlength_of_charptr(this, text);
-  String__init__from_charptr(this, text, p_text_length);
-}
-
-void String__init__OVDstrint(struct String *this, char *text,
-                             int p_text_length) {
-  String__init__from_charptr(this, text, p_text_length);
-}
-
-void String__init__OVDstructString(struct String *this, struct String text) {
-  size_t p_text_length = Stringlen(&text);
-  String__init__from_charptr(this, Stringc_str(&text), p_text_length);
-}
-
-void Stringclear(struct String *this) {
-  this->arr = (char *)realloc(this->arr, sizeof(char));
-  this->arr[0] = '\0';
-  this->length = 0;
-  this->capacity = 1;
-}
-
-void Stringprint(struct String *this) { printf("%s", this->arr); }
-
-void StringprintLn(struct String *this) { printf("%s\n", this->arr); }
-
-void String__del__(struct String *this) {
-  if (!this->is_constexpr) {
-    free(this->arr);
-  }
-}
-
-bool Stringstartswith(struct String *this, char *prefix) {
-  return strncmp(this->arr, prefix, strlen(prefix)) == 0;
-}
-
-struct String Stringsubstr(struct String *this, int start, int length) {
-  struct String text;
-  String__init__from_charptr(&text, &this->arr[start], length);
-  return text;
-}
-
-struct String Stringstrip(struct String *this) {
-  char *begin = this->arr;
-  char *end = begin + Stringlen(this) - 1;
-
-  // Remove leading whitespaces.
-  while (isspace(*begin)) {
-    begin++;
-  }
-
-  // Remove trailing whitespaces.
-  while (end > begin && isspace(*end)) {
-    end--;
-  }
-
-  // Length of the substring between 'begin' and 'end' inclusive.
-  int new_length = end - begin + 1;
-
-  struct String text;
-  String__init__from_charptr(&text, begin, new_length);
-  return text;
-}
-
-struct Vector_String Stringsplit(struct String *this, char delimeter) {
-  // NOTE : Because of this function, before import String, we require import
-  // Vector.
-  struct Vector_String split_result;
-  Vector_String__init__(&split_result, 2);
-
-  int index = 0;
-  int segment_start = 0;
-
-  size_t tmp_len_0 = Stringlen(this);
-  for (size_t i = 0; i < tmp_len_0; i++) {
-    char character = String__getitem__(this, i);
-
-    if (character == delimeter) {
-
-      if (segment_start < index) {
-        struct String segment =
-            Stringsubstr(this, segment_start, index - segment_start);
-        Vector_Stringpush(&split_result, segment);
-        String__del__(&segment);
-      }
-      segment_start = index + 1;
-    }
-    index = index + 1;
-  }
-
-  if (segment_start < Stringlen(this)) {
-    struct String remaining_segment =
-        Stringsubstr(this, segment_start, Stringlen(this) - segment_start);
-    Vector_Stringpush(&split_result, remaining_segment);
-    String__del__(&remaining_segment);
-  }
-
-  return split_result;
-}
-
-bool String__contains__(struct String *this, char *substring) {
-  return strstr(this->arr, substring) != NULL;
-}
-
-bool String__eq__(struct String *this, char *pstring) {
-  return strcmp(this->arr, pstring) == 0;
-}
-
-void String__add__(struct String *this, char *pstring) {
-  size_t new_length = this->length + strlen(pstring) + 1;
-
-  if (new_length > this->capacity) {
-    size_t new_capacity;
-    if (this->capacity == 0) {
-      new_capacity = new_length * 2;
-    } else {
-      new_capacity = this->capacity;
-      while (new_capacity <= new_length) {
-        new_capacity *= 2;
-      }
-    }
-    this->arr = (char *)realloc(this->arr, new_capacity * sizeof(char));
-    this->capacity = new_capacity;
-  }
-
-  if (this->arr == NULL) {
-    fprintf(stderr, "Memory Re-Allocation Error.\n");
-    exit(EXIT_FAILURE);
-  }
-
-  strcat(this->arr, pstring);
-  this->length = new_length;
-}
-
-void Stringreassign_internal(struct String *this, char *pstring,
-                             int p_text_length) {
-  if (this->arr != NULL) {
-    free(this->arr);
-  }
-
-  String__init__from_charptr(this, pstring, p_text_length);
-}
-
-void String__reassign__OVDstructString(struct String *this,
-                                       struct String pstring) {
-  char *src = Stringc_str(&pstring);
-  size_t p_text_length = Stringlen(&pstring);
-  Stringreassign_internal(this, src, p_text_length);
-}
-
-void String__reassign__OVDstr(struct String *this, char *pstring) {
-  size_t p_text_length = Stringlength_of_charptr(this, pstring);
-  Stringreassign_internal(this, pstring, p_text_length);
-}
-
-void Stringset_to_file_contents(struct String *this, char *pfilename) {
-  // Read from the file & store the contents to this string.
-
-  // TODO: Implement this function in ANIL itself, because the function below is
-  // a mangled function name.
-  Stringclear(this);
-
-  FILE *ptr = fopen(pfilename, "r");
-  if (ptr == NULL) {
-    printf("File \"%s\" couldn't be opened.\n", pfilename);
-    return;
-  }
-
-  char myString[256];
-  bool has_data = false;
-
-  while (fgets(myString, sizeof(myString), ptr)) {
-    String__add__(this, myString);
-    has_data = true;
-  }
-
-  fclose(ptr);
-
-  if (!has_data) {
-    // Double-clear just in case
-    Stringclear(this);
-  }
-}
-
-struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename) {
-  Stringset_to_file_contents(this, pfilename);
-  struct Vector_String result = Stringsplit(this, '\n');
-  return result;
-}
-
-void File__init__(struct File *this, char *p_file_name) {
-  this->file_ptr = fopen(p_file_name, "w");
-  if (this->file_ptr == NULL) {
-    printf("Failed to open file %s.\n", p_file_name);
-    exit(0);
-  }
-}
-
-void Filewriteline(struct File *this, char *p_content) {
-  // Write a line to the file with terminating newline.
-  fprintf(this->file_ptr, "%s\n", p_content);
-}
-
-void File__del__(struct File *this) { fclose(this->file_ptr); }
-
 void JSON__init__(struct JSON *this) {
   Vector_String__init__(&this->parsed_strings, 1);
+}
+
+struct Vector_String JSONParsedStringsList(struct JSON *this) {
+  // Duplicate the vector to avoid returning the raw pointer,
+  // which may be freed somewhere else.
+  size_t length = Vector_Stringlen(&this->parsed_strings);
+  struct Vector_String copy;
+  Vector_String__init__(&copy, length);
+  size_t tmp_len_1 = Vector_Stringlen(&this->parsed_strings);
+  for (size_t i = 0; i < tmp_len_1; i++) {
+    struct String str = Vector_String__getitem__(&this->parsed_strings, i);
+    Vector_Stringpush(&copy, str);
+  }
+  return copy;
 }
 
 bool JSONParse(struct JSON *this, char *json_string, int len) {
@@ -1173,6 +1179,40 @@ bool JSONParse(struct JSON *this, char *json_string, int len) {
   // Return true if parsing and iteration were generally successful
   return success;
 }
+
+struct Vector_String JSONParseRequest(struct JSON *this,
+                                      struct Request request) {
+
+  if (RequestHasAValidBody(&request)) {
+    char *body_start = RequestGetBodyStart(&request);
+    int body_len = RequestGetContentLength(&request);
+
+    if (JSONParse(this, body_start, body_len)) {
+      // Sucessful Parse.
+      struct Vector_String return_value = JSONParsedStringsList(this);
+      return return_value;
+    }
+  }
+
+  struct Vector_String empty_result;
+  Vector_String__init__(&empty_result, 1);
+  return empty_result;
+}
+
+void File__init__(struct File *this, char *p_file_name) {
+  this->file_ptr = fopen(p_file_name, "w");
+  if (this->file_ptr == NULL) {
+    printf("Failed to open file %s.\n", p_file_name);
+    exit(0);
+  }
+}
+
+void Filewriteline(struct File *this, char *p_content) {
+  // Write a line to the file with terminating newline.
+  fprintf(this->file_ptr, "%s\n", p_content);
+}
+
+void File__del__(struct File *this) { fclose(this->file_ptr); }
 
 size_t Vector_Stringlen(struct Vector_String *this) { return this->size; }
 
@@ -1367,8 +1407,8 @@ void Vector_Stringclear(struct Vector_String *this) {
 
 bool Vector_String__contains__(struct Vector_String *this,
                                struct String value) {
-  size_t tmp_len_4 = Vector_Stringlen(this);
-  for (size_t i = 0; i < tmp_len_4; i++) {
+  size_t tmp_len_5 = Vector_Stringlen(this);
+  for (size_t i = 0; i < tmp_len_5; i++) {
     struct String string = Vector_String__getitem__(this, i);
 
     if (Stringlen(&string) == Stringlen(&value)) {
@@ -1406,8 +1446,8 @@ struct Vector_String LoadTodosFromFile() {
   if (Vector_Stringlen(&storedTodos) > 0) {
     // If todos.txt already exists and has some lines, then read the todos from
     // it.
-    size_t tmp_len_1 = Vector_Stringlen(&storedTodos);
-    for (size_t i = 0; i < tmp_len_1; i++) {
+    size_t tmp_len_2 = Vector_Stringlen(&storedTodos);
+    for (size_t i = 0; i < tmp_len_2; i++) {
       struct String todo = Vector_String__getitem__(&storedTodos, i);
 
       if (String__eq__(&todo, "")) {
@@ -1430,8 +1470,8 @@ void WriteTodosToFile(struct Vector_String todos) {
   struct File file;
   File__init__(&file, "todos.txt");
 
-  size_t tmp_len_2 = Vector_Stringlen(&todos);
-  for (size_t i = 0; i < tmp_len_2; i++) {
+  size_t tmp_len_3 = Vector_Stringlen(&todos);
+  for (size_t i = 0; i < tmp_len_3; i++) {
     struct String todo = Vector_String__getitem__(&todos, i);
     Filewriteline(&file, Stringc_str(&todo));
   }
@@ -1443,8 +1483,8 @@ struct String VectorStringToJSONString(struct Vector_String todos) {
   String__init__OVDstrint(&jsonString, "[", 1);
 
   int todo_count = 0;
-  size_t tmp_len_3 = Vector_Stringlen(&todos);
-  for (size_t i = 0; i < tmp_len_3; i++) {
+  size_t tmp_len_4 = Vector_Stringlen(&todos);
+  for (size_t i = 0; i < tmp_len_4; i++) {
     struct String todo = Vector_String__getitem__(&todos, i);
     String__add__(&jsonString, "\"");
     String__add__(&jsonString, Stringc_str(&todo));
@@ -1481,20 +1521,19 @@ void HandleSaveTodos(struct Response res, struct Request request) {
     return;
   }
 
-  char *body_start = RequestGetBodyStart(&request);
-  int body_len = RequestGetContentLength(&request);
-
   struct JSON jsonParser;
   JSON__init__(&jsonParser);
 
-  if (JSONParse(&jsonParser, body_start, body_len)) {
-    struct Vector_String todos = jsonParser.parsed_strings;
+  struct Vector_String todos = JSONParseRequest(&jsonParser, request);
+
+  if (Vector_Stringlen(&todos) == 0) {
+    fprintf(stderr, "Failed to parse JSON body for POST /save_todos\n");
+    Responsesend(&res, "{\"error\":\"Invalid JSON format\"}", 400);
+  } else {
     WriteTodosToFile(todos);
     Responsesend(&res, "{\"message\":\"Todos saved successfully\"}", 201);
-  } else {
-    fprintf(stderr, "Failed to parse JSON body for POST /api/todos\n");
-    Responsesend(&res, "{\"error\":\"Invalid JSON format\"}", 400);
   }
+  Vector_String__del__(&todos);
   JSON__del__(&jsonParser);
 }
 
