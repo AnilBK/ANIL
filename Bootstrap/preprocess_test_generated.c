@@ -753,21 +753,26 @@ void Stringset_to_file_contents(struct String *this, char *pfilename) {
   // a mangled function name.
   Stringclear(this);
 
-  FILE *ptr;
-
-  ptr = fopen(pfilename, "r");
-
+  FILE *ptr = fopen(pfilename, "r");
   if (ptr == NULL) {
     printf("File \"%s\" couldn't be opened.\n", pfilename);
-    exit(0);
+    return;
   }
 
   char myString[256];
-  while (fgets(myString, 256, ptr)) {
+  bool has_data = false;
+
+  while (fgets(myString, sizeof(myString), ptr)) {
     String__add__(this, myString);
+    has_data = true;
   }
 
   fclose(ptr);
+
+  if (!has_data) {
+    // Double-clear just in case
+    Stringclear(this);
+  }
 }
 
 struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename) {
@@ -1654,8 +1659,8 @@ void Vector_Stringclear(struct Vector_String *this) {
 bool Vector_String__contains__(struct Vector_String *this,
                                struct String value) {
   size_t tmp_len_11 = Vector_Stringlen(this);
-  for (size_t h = 0; h < tmp_len_11; h++) {
-    struct String string = Vector_String__getitem__(this, h);
+  for (size_t i = 0; i < tmp_len_11; i++) {
+    struct String string = Vector_String__getitem__(this, i);
 
     if (Stringlen(&string) == Stringlen(&value)) {
 
@@ -1871,8 +1876,8 @@ void Vector_int_str_listprint(struct Vector_int_str_list *this) {
 bool Vector_int_str_list__contains__(struct Vector_int_str_list *this,
                                      struct int_str_list value) {
   size_t tmp_len_12 = Vector_int_str_listlen(this);
-  for (size_t h = 0; h < tmp_len_12; h++) {
-    struct int_str_list pair = Vector_int_str_list__getitem__(this, h);
+  for (size_t i = 0; i < tmp_len_12; i++) {
+    struct int_str_list pair = Vector_int_str_list__getitem__(this, i);
 
     if (pair.key == value.key) {
       // FIXME: Incomplete implementation.
@@ -2206,8 +2211,8 @@ void Vector_ScopeScopeIDPairprint(struct Vector_ScopeScopeIDPair *this) {
 bool Vector_ScopeScopeIDPair__contains__(struct Vector_ScopeScopeIDPair *this,
                                          struct ScopeScopeIDPair value) {
   size_t tmp_len_13 = Vector_ScopeScopeIDPairlen(this);
-  for (size_t h = 0; h < tmp_len_13; h++) {
-    struct ScopeScopeIDPair pair = Vector_ScopeScopeIDPair__getitem__(this, h);
+  for (size_t i = 0; i < tmp_len_13; i++) {
+    struct ScopeScopeIDPair pair = Vector_ScopeScopeIDPair__getitem__(this, i);
 
     if (ScopeScopeIDPairget_scope_id(&pair) ==
         ScopeScopeIDPairget_scope_id(&value)) {

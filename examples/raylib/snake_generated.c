@@ -628,21 +628,26 @@ void Stringset_to_file_contents(struct String *this, char *pfilename) {
   // a mangled function name.
   Stringclear(this);
 
-  FILE *ptr;
-
-  ptr = fopen(pfilename, "r");
-
+  FILE *ptr = fopen(pfilename, "r");
   if (ptr == NULL) {
     printf("File \"%s\" couldn't be opened.\n", pfilename);
-    exit(0);
+    return;
   }
 
   char myString[256];
-  while (fgets(myString, 256, ptr)) {
+  bool has_data = false;
+
+  while (fgets(myString, sizeof(myString), ptr)) {
     String__add__(this, myString);
+    has_data = true;
   }
 
   fclose(ptr);
+
+  if (!has_data) {
+    // Double-clear just in case
+    Stringclear(this);
+  }
 }
 
 struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename) {
@@ -897,8 +902,8 @@ void Vector_Stringclear(struct Vector_String *this) {
 bool Vector_String__contains__(struct Vector_String *this,
                                struct String value) {
   size_t tmp_len_3 = Vector_Stringlen(this);
-  for (size_t h = 0; h < tmp_len_3; h++) {
-    struct String string = Vector_String__getitem__(this, h);
+  for (size_t i = 0; i < tmp_len_3; i++) {
+    struct String string = Vector_String__getitem__(this, i);
 
     if (Stringlen(&string) == Stringlen(&value)) {
 
@@ -1100,8 +1105,8 @@ void Vector_rlVector2clear(struct Vector_rlVector2 *this) {
 bool Vector_rlVector2__contains__(struct Vector_rlVector2 *this,
                                   struct rlVector2 value) {
   size_t tmp_len_4 = Vector_rlVector2len(this);
-  for (size_t h = 0; h < tmp_len_4; h++) {
-    struct rlVector2 vec = Vector_rlVector2__getitem__(this, h);
+  for (size_t i = 0; i < tmp_len_4; i++) {
+    struct rlVector2 vec = Vector_rlVector2__getitem__(this, i);
 
     if (rlVector2__eq__(&vec, value)) {
       return true;

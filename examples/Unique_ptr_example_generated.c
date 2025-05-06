@@ -318,21 +318,26 @@ void Stringset_to_file_contents(struct String *this, char *pfilename) {
   // a mangled function name.
   Stringclear(this);
 
-  FILE *ptr;
-
-  ptr = fopen(pfilename, "r");
-
+  FILE *ptr = fopen(pfilename, "r");
   if (ptr == NULL) {
     printf("File \"%s\" couldn't be opened.\n", pfilename);
-    exit(0);
+    return;
   }
 
   char myString[256];
-  while (fgets(myString, 256, ptr)) {
+  bool has_data = false;
+
+  while (fgets(myString, sizeof(myString), ptr)) {
     String__add__(this, myString);
+    has_data = true;
   }
 
   fclose(ptr);
+
+  if (!has_data) {
+    // Double-clear just in case
+    Stringclear(this);
+  }
 }
 
 struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename) {
