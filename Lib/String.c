@@ -74,6 +74,24 @@ c_function clear()
   this->capacity = 1;
 endc_function
 
+c_function _allocate_more(n: int)
+  if (n <= 0) {
+    // Prevent unnecessary reallocation or negative increments.
+    return; 
+  } 
+
+  size_t new_capacity = this->capacity + n + 1;
+
+  char *new_arr = (char *)realloc(this->arr, new_capacity * sizeof(char));
+  if (!new_arr) {
+    fprintf(stderr, "Memory reallocation failed.\n");
+    exit(EXIT_FAILURE);
+  } else{
+    this->arr = new_arr;
+    this->capacity = new_capacity;
+  }
+endc_function
+
 c_function print()
   printf("%s", this->arr);
 endc_function

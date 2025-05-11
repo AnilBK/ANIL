@@ -187,6 +187,7 @@ void String__init__OVDstrint(struct String *this, char *text,
                              int p_text_length);
 void String__init__OVDstructString(struct String *this, struct String text);
 void Stringclear(struct String *this);
+void String_allocate_more(struct String *this, int n);
 void Stringprint(struct String *this);
 void StringprintLn(struct String *this);
 void String__del__(struct String *this);
@@ -575,6 +576,24 @@ void Stringclear(struct String *this) {
   this->arr[0] = '\0';
   this->length = 0;
   this->capacity = 1;
+}
+
+void String_allocate_more(struct String *this, int n) {
+  if (n <= 0) {
+    // Prevent unnecessary reallocation or negative increments.
+    return;
+  }
+
+  size_t new_capacity = this->capacity + n + 1;
+
+  char *new_arr = (char *)realloc(this->arr, new_capacity * sizeof(char));
+  if (!new_arr) {
+    fprintf(stderr, "Memory reallocation failed.\n");
+    exit(EXIT_FAILURE);
+  } else {
+    this->arr = new_arr;
+    this->capacity = new_capacity;
+  }
 }
 
 void Stringprint(struct String *this) { printf("%s", this->arr); }
