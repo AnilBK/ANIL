@@ -27,20 +27,12 @@ void Rectangleprint_param(struct Rectangle *this, int param) {
   printf("Parameter provided to the rectangle is %d.\n", param);
 }
 
-///*///
-
-///*///
-
 int main() {
-
-  ///*/// main()
 
   struct Rectangle rect;
   Rectangle__init__(&rect, 10, 20);
   Rectanglearea(&rect);
   Rectangleprint_param(&rect, 10);
-
-  ///*///
 
   return 0;
 }

@@ -1,4 +1,3 @@
-///*///
 
 // This provides bindings for raylib.h.
 // https://github.com/raysan5/raylib/blob/master/LICENSE
@@ -7,30 +6,18 @@
 
 typedef unsigned char u8;
 
-///*///
-///*///
 ///////////////////////////////////////////
 #include <stdlib.h>
 #include <time.h>
 
-///*///
-
-///*///
-
 #include <string.h>
 
 ///////////////////////////////////////////
-
-///*///
-
-///*///
 
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-
-///*///
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1123,8 +1110,6 @@ void Vector_rlVector2print(struct Vector_rlVector2 *this) {
   printf("Unknown Format Specifier for type struct rlVector2.\n");
 }
 
-///*///
-
 struct rlVector2 new_food_spawn(struct Snake snake, int grid_width,
                                 int grid_height) {
   struct Random rng;
@@ -1146,11 +1131,8 @@ struct rlVector2 new_food_spawn(struct Snake snake, int grid_width,
   rlVector2__init__OVDintint(&res, 0, 0);
   return res;
 }
-///*///
 
 int main() {
-
-  ///*///  main()
 
   struct rlColor rlRED;
   rlColor__init__(&rlRED, 230, 41, 55, 255);
@@ -1316,7 +1298,6 @@ int main() {
 
   String__del__(&scoreText);
   Snake__del__(&snake);
-  ///*///
 
   return 0;
 }

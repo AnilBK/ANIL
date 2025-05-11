@@ -46,8 +46,6 @@ Iterator create_iterator_from_array(int *array, int len) {
 
 int main() {
 
-  ///*/// main()
-
   int arr[] = {1, 2, 3, 4, 5};
   unsigned int arr_array_size = 5;
 
@@ -60,8 +58,6 @@ int main() {
     int value = arr_enumerator.val;
     printf("index : %d value : %d \n", index, value);
   }
-
-  ///*///
 
   return 0;
 }

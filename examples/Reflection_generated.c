@@ -1,10 +1,7 @@
-///*///
 
 #include <string.h>
 
 ///////////////////////////////////////////
-
-///*///
 
 #include <stdlib.h>
 #include <string.h>
@@ -20,10 +17,6 @@ typedef struct Variant {
 
 typedef struct Variant Variant;
 typedef struct ListObject *ListObjectptr;
-
-///*///
-
-///*///
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -378,8 +371,6 @@ void List__reassign__(struct List *this, struct List p_list) {
 
 int main() {
 
-  ///*/// main()
-
   struct List vector_class_members;
   List__init__(&vector_class_members);
   struct List vector_class_member_functions;
@@ -408,7 +399,6 @@ int main() {
   List__del__(&list_instances);
   List__del__(&vector_class_member_functions);
   List__del__(&vector_class_members);
-  ///*///
 
   return 0;
 }

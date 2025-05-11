@@ -1,23 +1,13 @@
-///*///
 
 #include <string.h>
 
 ///////////////////////////////////////////
-
-///*///
-
-///*///
 
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
-///*///
-
-///*///
-
-///*///
 #include <stdio.h>
 
 // IMPORTS //
@@ -615,8 +605,6 @@ void UniquePtr_String__del__(struct UniquePtr_String *this) {
 
 int main() {
 
-  ///*///  main()
-
   struct UniquePtr_int i;
   UniquePtr_int__init__(&i, 5);
   struct UniquePtr_String s;
@@ -624,7 +612,6 @@ int main() {
 
   UniquePtr_String__del__(&s);
   UniquePtr_int__del__(&i);
-  ///*///
 
   return 0;
 }

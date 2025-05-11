@@ -58,17 +58,11 @@ void FunctionDictionaryHandleRequest(struct FunctionDictionary *this,
   printf("%s is not a valid route.\n", p_str);
 }
 
-///*///
-
 void Home() { printf("Hello World\n"); }
 
 void About() { printf("Anil BK\n"); }
 
-///*///
-
 int main() {
-
-  ///*/// main()
 
   struct FunctionDictionary router;
   FunctionDictionary__init__(&router);
@@ -86,8 +80,6 @@ int main() {
   FunctionDictionaryHandleRequest(&router, "/Home");
   FunctionDictionaryHandleRequest(&router, "/About");
   FunctionDictionaryHandleRequest(&router, "/Home/1");
-
-  ///*///
 
   return 0;
 }

@@ -1,10 +1,7 @@
-///*///
 
 #include <string.h>
 
 ///////////////////////////////////////////
-
-///*///
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -231,8 +228,6 @@ void Vector_intprint(struct Vector_int *this) {
 
 int main() {
 
-  ///*/// main()
-
   struct Vector_int values;
   Vector_int__init__(&values, 8);
   Vector_intpush(&values, 1);
@@ -255,7 +250,6 @@ int main() {
   Vector_intpush_unchecked(&values, 80);
 
   Vector_int__del__(&values);
-  ///*///
 
   return 0;
 }

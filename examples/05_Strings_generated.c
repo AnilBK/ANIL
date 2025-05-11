@@ -1,19 +1,12 @@
-///*///
 
 #include <string.h>
 
 ///////////////////////////////////////////
 
-///*///
-
-///*///
-
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-
-///*///
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -548,8 +541,6 @@ void Vector_Stringprint(struct Vector_String *this) {
 
 int main() {
 
-  ///*/// main()
-
   char c_str1[18] = "C Style Strings\n";
   // Such strings are very limited in functionality and only looping as below is
   // supported.
@@ -645,8 +636,6 @@ int main() {
   String__del__(&str3);
   String__del__(&str2);
   String__del__(&str);
-
-  ///*///
 
   return 0;
 }

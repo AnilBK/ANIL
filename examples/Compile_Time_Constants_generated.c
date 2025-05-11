@@ -11,8 +11,6 @@ int main() {
 
   // Currently we Support {"String" : int} dictionary only.
 
-  ///*/// main()
-
   // Compile time dictionaries.
   // These acts as contants, and the individual values of these constants
   // will be placed in code at compile time.
@@ -22,8 +20,6 @@ int main() {
 
   int age1 = 22;
   int age2 = 10000;
-
-  ///*///
 
   return 0;
 }

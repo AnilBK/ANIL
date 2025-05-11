@@ -1,19 +1,12 @@
-///*///
 
 #include <string.h>
 
 ///////////////////////////////////////////
 
-///*///
-
-///*///
-
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-
-///*///
 
 #include <ctype.h>
 #include <stdbool.h>
@@ -416,19 +409,10 @@ bool HTTPServerInternal_ParseHttpRequest(const char *buffer, int buffer_len,
   return true;
 }
 
-///*///
-
-///*///#include <stdio.h>
 #include "cJSON.h"
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
-
-///*///
-
-///*///
-///*///
-
-///*///
 
 // Run this file and then open Todos.html in a browser to see the UI.
 
@@ -1563,8 +1547,6 @@ void Vector_Stringprint(struct Vector_String *this) {
   printf("]\n");
 }
 
-///*///
-
 struct Vector_String LoadTodosFromFile() {
   struct String str;
   String__init__OVDstrint(&str, "", 0);
@@ -1661,11 +1643,7 @@ void HandleSaveTodos(struct Response res, struct Request request) {
   JSON__del__(&jsonParser);
 }
 
-///*///
-
 int main() {
-
-  ///*///  main()
 
   struct HTTPServer server;
   HTTPServer__init__(&server);
@@ -1684,7 +1662,6 @@ int main() {
   HTTPServerlisten(&server, 8080);
 
   HTTPServer__del__(&server);
-  ///*///
 
   return 0;
 }

@@ -14,10 +14,6 @@ unsigned int hash(char *str) {
   return hash % TABLE_SIZE;
 }
 
-///*///
-
-///*///
-
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -111,8 +107,6 @@ void Dictionary_intprint(struct Dictionary_int *this) {
 
 int main() {
 
-  ///*///  main()
-
   // Compile time dictionary. See constexpr_dict.c
   // Also See, Bootstrap/lexer_test.c.
 
@@ -127,7 +121,6 @@ int main() {
   Dictionary_intprint(&dict);
 
   Dictionary_int__del__(&dict);
-  ///*///
 
   return 0;
 }

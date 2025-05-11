@@ -1,19 +1,12 @@
-///*///
 
 #include <string.h>
 
 ///////////////////////////////////////////
 
-///*///
-
-///*///
-
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-
-///*///
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -30,10 +23,6 @@ unsigned int hash(char *str) {
   return hash % TABLE_SIZE;
 }
 
-///*///
-
-///*///
-
 #include <stdlib.h>
 #include <string.h>
 
@@ -48,10 +37,6 @@ typedef struct Variant {
 
 typedef struct Variant Variant;
 typedef struct ListObject *ListObjectptr;
-
-///*///
-
-///*///
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -1279,13 +1264,7 @@ void CustomPrint(int data) {
 #undef token_case
 }
 
-///*///
-
-///*///
-
 int main() {
-
-  ///*/// main()
 
   struct Lexer lexer;
   struct List tokens = Lexerget_tokens(&lexer);
@@ -1293,7 +1272,6 @@ int main() {
   Listprint_hooked_custom_integer_printer(&tokens, CustomPrint);
 
   List__del__(&tokens);
-  ///*///
 
   return 0;
 }

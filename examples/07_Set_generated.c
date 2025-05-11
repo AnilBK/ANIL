@@ -1,25 +1,14 @@
-///*///
 
 #include <string.h>
 
 ///////////////////////////////////////////
-
-///*///
-
-///*///
 
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
-///*///
-
-///*///
-
 ///////////////////////////////////////////
-
-///*///
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -604,8 +593,6 @@ void Vector_Stringprint(struct Vector_String *this) {
 
 int main() {
 
-  ///*/// main()
-
   struct String s1;
   String__init__OVDstrint(&s1, "apple", 5);
   struct String s2;
@@ -632,7 +619,6 @@ int main() {
   String__del__(&s3);
   String__del__(&s2);
   String__del__(&s1);
-  ///*///
 
   return 0;
 }

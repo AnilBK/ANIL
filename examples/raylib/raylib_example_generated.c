@@ -1,4 +1,3 @@
-///*///
 
 // This provides bindings for raylib.h.
 // https://github.com/raysan5/raylib/blob/master/LICENSE
@@ -7,7 +6,6 @@
 
 typedef unsigned char u8;
 
-///*///
 #include <stdio.h>
 
 // Partial Reimplementation of
@@ -256,8 +254,6 @@ void raylibDrawText(struct raylib *this, char *text, int x, int y,
 
 int main() {
 
-  ///*///  main()
-
   struct rlColor rlGOLD;
   rlColor__init__(&rlGOLD, 255, 203, 0, 255);
   struct rlColor rlORANGE;
@@ -311,8 +307,6 @@ int main() {
   }
 
   raylibCloseWindow(&rl);
-
-  ///*///
 
   return 0;
 }

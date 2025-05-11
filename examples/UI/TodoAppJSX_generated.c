@@ -1,26 +1,19 @@
-///*///
 
 #include <string.h>
 
 ///////////////////////////////////////////
-
-///*///
-
-///*///
 
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
-///*///
-
+#include <commctrl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <windows.h>
-#include <commctrl.h>
 
 #define UIElement__MAX_CHILDREN 10
 #define UIElement__MAX_TEXT_LENGTH 256
@@ -526,14 +519,8 @@ void RedirectIOToConsole() {
   SetConsoleTitle(TEXT("Console Window"));
 }
 
-///*///
-
 // Initializes the main window, creates the root UI element, and sets up the
 // WinUIAppCoreData structure.
-
-///*//////*///
-
-///*///
 
 #include <commctrl.h>
 #include <stdbool.h>
@@ -1591,8 +1578,6 @@ void Vector_Stringprint(struct Vector_String *this) {
   printf("]\n");
 }
 
-///*///
-
 void SaveTodos(struct UIWidget todoList) {
   struct File file;
   File__init__(&file, "todos.txt");
@@ -1665,14 +1650,10 @@ void DeleteSelectedTodo(voidPtr userData) {
   }
 }
 
-///*///
-
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                    LPSTR lpCmdLine, int nCmdShow) {
 
   // RedirectIOToConsole();
-
-  ///*///  main()
 
   // hInstance and nCmdShow are C types above and not registered in ANIL yet,
   // so we use a struct to pass them.
@@ -1732,7 +1713,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
   int exitCode = WinUIAppRun(&App);
 
   WinUIApp__del__(&App);
-  ///*///
 
   return 0;
 }

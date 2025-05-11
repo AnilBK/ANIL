@@ -1,25 +1,14 @@
-///*///
 
 #include <string.h>
 
 ///////////////////////////////////////////
-
-///*///
-
-///*///
 
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
-///*///
-
-///*///
-
 ///////////////////////////////////////////
-
-///*///
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -36,10 +25,6 @@ unsigned int hash(char *str) {
   return hash % TABLE_SIZE;
 }
 
-///*///
-
-///*///
-
 #include <stdlib.h>
 #include <string.h>
 
@@ -55,38 +40,17 @@ typedef struct Variant {
 typedef struct Variant Variant;
 typedef struct ListObject *ListObjectptr;
 
-///*///
-
-///*///
-
-///*///
 ///////////////////////////////////////////
 #include <stdlib.h>
 #include <time.h>
 
-///*///
-
-///*///
 // Dictionary of <int, list<String>>
 // This is just for Symbol Table in preprocess_test as we dont have
 // Dictionary<int, String> as of now.
 
 // Ordered Dictionary of key(int) and value(list of string).
 
-///*///
-
 #include <stdlib.h>
-
-///*///
-
-///*///
-///*///
-
-///*///
-
-///*///
-
-///*///
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -2430,8 +2394,6 @@ void Optional_Stringset_value(struct Optional_String *this,
   String__reassign__OVDstructString(&this->_value, p_value);
 }
 
-///*///
-
 // Insert a string at a given index in another string.
 struct String insert_string(struct String original_string, int p_index,
                             struct String string_to_insert) {
@@ -2628,11 +2590,8 @@ bool is_variable_size_t_type(struct String p_var_name) {
   return return_value;
 }
 
-///*///
-
 int main() {
 
-  ///*/// main()
   // Global Variables Initialization.
   Set__init__(&structs_with_constructors, 5);
   Random__init__(&random);
@@ -2730,7 +2689,6 @@ int main() {
   String__del__(&source_file);
   SymbolTable__del__(&symbol_table);
   Set__del__(&structs_with_constructors);
-  ///*///
 
   return 0;
 }

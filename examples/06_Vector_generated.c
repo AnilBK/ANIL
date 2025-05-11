@@ -1,19 +1,12 @@
-///*///
 
 #include <string.h>
 
 ///////////////////////////////////////////
 
-///*///
-
-///*///
-
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-
-///*///
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -1201,8 +1194,6 @@ void Vector_charprint(struct Vector_char *this) {
 
 int main() {
 
-  ///*/// main()
-
   struct Vector_int a;
   Vector_int__init__(&a, 10);
   Vector_intpush(&a, 10);
@@ -1283,7 +1274,6 @@ int main() {
   Vector_char__del__(&string);
   Vector_float__del__(&b);
   Vector_int__del__(&a);
-  ///*///
 
   return 0;
 }

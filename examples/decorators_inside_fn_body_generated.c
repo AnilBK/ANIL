@@ -30,17 +30,11 @@ void Nodeprint_hooked_custom_integer_printer(
   p_custom_integer_printer(data);
 }
 
-///*///
-
-///*///
-
 void CustomIntPrint(int data) {
   printf("[CustomIntegerPrinter] Int = %d \n", data);
 }
 
 int main() {
-
-  ///*/// main()
 
   struct Node node;
   Node__init__(&node, 10);
@@ -48,8 +42,6 @@ int main() {
   Nodeprint(&node);
 
   Nodeprint_hooked_custom_integer_printer(&node, CustomIntPrint);
-
-  ///*///
 
   return 0;
 }

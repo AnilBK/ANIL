@@ -1,10 +1,7 @@
-///*///
 
 #include <string.h>
 
 ///////////////////////////////////////////
-
-///*///
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -232,8 +229,6 @@ void Vector_charprint(struct Vector_char *this) {
 
 int main() {
 
-  ///*/// main()
-
   struct Vector_char a;
   Vector_char__init__(&a, 10);
   Vector_charpush(&a, '1');
@@ -279,7 +274,6 @@ int main() {
   }
 
   Vector_char__del__(&a);
-  ///*///
 
   return 0;
 }

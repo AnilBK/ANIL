@@ -1403,7 +1403,6 @@ while index < len(Lines):
                 RAISE_ERROR("Main function already declared. Can't declare another main function.")
             else:
                 main_fn_found = True
-                LinesCache.append(Line)
                 if len(global_variables_initialization_code) > 0:
                     LinesCache.append("//Global Variables Initialization.\n")
                     for g_code in global_variables_initialization_code:
@@ -1411,6 +1410,8 @@ while index < len(Lines):
                     global_variables_initialization_code = []
                     LinesCache.append("\n")
                 continue
+        else:
+            continue
     elif Line.startswith("<form>"):
         if is_inside_form:
             RAISE_ERROR("Form within a form, not allowed.")

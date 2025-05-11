@@ -1,26 +1,19 @@
-///*///
 
 #include <string.h>
 
 ///////////////////////////////////////////
-
-///*///
-
-///*///
 
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
-///*///
-
+#include <commctrl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <windows.h>
-#include <commctrl.h>
 
 #define UIElement__MAX_CHILDREN 10
 #define UIElement__MAX_TEXT_LENGTH 256
@@ -526,12 +519,9 @@ void RedirectIOToConsole() {
   SetConsoleTitle(TEXT("Console Window"));
 }
 
-///*///
-
 // Initializes the main window, creates the root UI element, and sets up the
 // WinUIAppCoreData structure.
 
-///*///
 // Very Basic Version of Todo App.
 // Doesn't use JSX like syntax to create UI elements.
 // No todo saving/loading functionality.
@@ -1561,8 +1551,6 @@ void Vector_Stringprint(struct Vector_String *this) {
   printf("]\n");
 }
 
-///*///
-
 void AddTodo(voidPtr userData) {
   // 'userData' has UIElement* to the root element.
   // Convert it to UIWidget for easier access to UIWidget methods,
@@ -1584,14 +1572,10 @@ void AddTodo(voidPtr userData) {
   }
 }
 
-///*///
-
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                    LPSTR lpCmdLine, int nCmdShow) {
 
   // RedirectIOToConsole();
-
-  ///*///  main()
 
   // hInstance and nCmdShow are C types above and not registered in ANIL yet,
   // so we use a struct to pass them.
@@ -1646,7 +1630,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
   int exitCode = WinUIAppRun(&App);
 
   WinUIApp__del__(&App);
-  ///*///
 
   return 0;
 }

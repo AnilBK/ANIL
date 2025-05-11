@@ -5,8 +5,8 @@
 
 // IMPORTS //
 
-HWND hcar_ageLabel, hcar_ageDropdown, hcar_mileageLabel, hcar_mileageInput,
-    his_electricCheckboxLabel, his_electricCheckbox, hSubmitButton;
+HWND hSubmitButton, hcar_ageLabel, hcar_ageDropdown, hcar_mileageLabel,
+    hcar_mileageInput, his_electricCheckboxLabel, his_electricCheckbox;
 struct Form1Output {
   int car_age;
   int car_mileage;
@@ -118,8 +118,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args,
   // Redirect console I/O
   RedirectIOToConsole();
 
-  ///*///  main()
-
   int car_age = 5;
   int car_mileage = 200;
   bool is_electric = true;
@@ -135,8 +133,9 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args,
     return -1;
   }
 
-  CreateWindowW(L"FormWindow", L"Form", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 100,
-                100, 400, 230, NULL, NULL, NULL, NULL);
+  CreateWindowW(L"FormWindow", L"Form", WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+                //    100, 100, 400, 230, NULL, NULL, NULL, NULL);
+                100, 100, 400, 600, NULL, NULL, NULL, NULL);
 
   MSG msg = {0};
   while (GetMessage(&msg, NULL, 0, 0)) {
@@ -151,8 +150,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args,
   printf("Car age is %d years.\n", car_age);
   printf("Car mileage is %d miles.\n", car_mileage);
   printf("Is the car electric? %d.\n", is_electric);
-
-  ///*///
 
   return 0;
 }

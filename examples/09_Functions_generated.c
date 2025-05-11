@@ -1,19 +1,12 @@
-///*///
 
 #include <string.h>
 
 ///////////////////////////////////////////
 
-///*///
-
-///*///
-
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-
-///*///
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -554,8 +547,6 @@ void Vector_Stringprint(struct Vector_String *this) {
   printf("]\n");
 }
 
-///*///
-
 // Global functions.
 void my_first_ANIL_function() { printf("Hello World from function. \n"); }
 
@@ -596,11 +587,8 @@ get_templated_mangled_fn_name(struct String p_struct_type1,
   return s1;
 }
 
-///*///
-
 int main() {
 
-  ///*/// main()
   struct String string;
   String__init__OVDstrint(&string, "Hello World from String.\n", 25);
   Stringprint(&string);
@@ -623,7 +611,6 @@ int main() {
   String__del__(&class_name);
   String__del__(&s5);
   String__del__(&string);
-  ///*///
 
   return 0;
 }

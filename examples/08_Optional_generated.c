@@ -1,6 +1,4 @@
-///*///
 
-///*///
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -55,8 +53,6 @@ void Optional_intset_value(struct Optional_int *this, int p_value) {
 
 int main() {
 
-  ///*///  main()
-
   struct Test test;
 
   struct Optional_int optional_int = Testreturn_val(&test);
@@ -69,8 +65,6 @@ int main() {
   struct Optional_int opt;
   Optional_int__init__(&opt);
   Optional_intset_value(&opt, 5);
-
-  ///*///
 
   return 0;
 }

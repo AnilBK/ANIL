@@ -399,9 +399,7 @@ bool HTTPServerInternal_ParseHttpRequest(const char *buffer, int buffer_len,
   return true;
 }
 
-///*///
-
-///*/////gcc -o .\WebServer .\WebServer_generated.c -lws2_32
+// gcc -o .\WebServer .\WebServer_generated.c -lws2_32
 #include <stdio.h>
 
 // IMPORTS //
@@ -852,8 +850,6 @@ void HTTPServer__del__(struct HTTPServer *this) {
   WSACleanup();
 }
 
-///*///
-
 void Handle404(struct Response res, struct Request req) {
   char html[58] = "<html><body><h1>404 Page Not Found</h1></body></html>\r\n";
   Responsesend(&res, html, 404);
@@ -869,11 +865,8 @@ void HandleHome(struct Response res, struct Request req) {
       "<html><body><h1>Welcome to Home Page!</h1></body></html>\r\n";
   Responsesend(&res, html, 200);
 }
-///*///
 
 int main() {
-
-  ///*///  main()
 
   struct HTTPServer server;
   HTTPServer__init__(&server);
@@ -891,7 +884,6 @@ int main() {
   HTTPServerlisten(&server, 8080);
 
   HTTPServer__del__(&server);
-  ///*///
 
   return 0;
 }

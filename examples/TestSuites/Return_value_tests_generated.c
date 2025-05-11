@@ -1,23 +1,12 @@
-///*///
 
 #include <string.h>
 
 ///////////////////////////////////////////
 
-///*///
-
-///*///
-
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-
-///*///
-
-///*///
-
-///*///
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -557,8 +546,6 @@ void Vector_Stringprint(struct Vector_String *this) {
   printf("]\n");
 }
 
-///*///
-
 bool return_test_bool(struct String p_str) {
   struct String a;
   String__init__OVDstrint(&a, "Test String", 11);
@@ -639,16 +626,10 @@ bool return_test_array2() {
   return arr__contains__value_1;
 }
 
-///*///
-
 int main() {
-
-  ///*/// main()
 
   printf("Code Generation Tests for return expressions, Just check if the code "
          "generated is valid.");
-
-  ///*///
 
   return 0;
 }

@@ -1,23 +1,12 @@
-///*///
 
 #include <string.h>
 
 ///////////////////////////////////////////
 
-///*///
-
-///*///
-
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-
-///*///
-
-///*///
-
-///*///
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -574,8 +563,6 @@ void Vector_Stringprint(struct Vector_String *this) {
 
 int main() {
 
-  ///*/// main()
-
   printf("Writing to file hello.txt:\n");
   struct File outputFile;
   File__init__(&outputFile, "hello.txt");
@@ -589,7 +576,6 @@ int main() {
 
   String__del__(&input_str);
   File__del__(&outputFile);
-  ///*///
 
   return 0;
 }

@@ -45,8 +45,6 @@ void Pointshout(struct Point *this) {
 
 int main() {
 
-  ///*///  main()
-
   struct Point p1;
   p1.x = 20;
   p1.y = 50;
@@ -69,8 +67,6 @@ int main() {
   vec3.arr = NULL;
   vec3.size = 10;
   vec3.capacity = 20;
-
-  ///*///
 
   return 0;
 }

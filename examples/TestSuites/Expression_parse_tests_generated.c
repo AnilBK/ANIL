@@ -1,19 +1,12 @@
-///*///
 
 #include <string.h>
 
 ///////////////////////////////////////////
 
-///*///
-
-///*///
-
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-
-///*///
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -764,8 +757,6 @@ void Vector_intprint(struct Vector_int *this) {
 
 int main() {
 
-  ///*/// main()
-
   int p_index = 5;
 
   struct String s1;
@@ -803,7 +794,6 @@ int main() {
   String__del__(&left_part);
   String__del__(&string_to_insert);
   String__del__(&s1);
-  ///*///
 
   return 0;
 }

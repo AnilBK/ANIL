@@ -6,8 +6,6 @@
 
 int main() {
 
-  ///*///  main()
-
   int x = 69420;
   printf("The magic number is %d.\n", x);
 
@@ -62,8 +60,6 @@ int main() {
   for (size_t i = 10; i >= 1; i += -2) {
     printf("%llu\n", i);
   }
-
-  ///*///
 
   return 0;
 }

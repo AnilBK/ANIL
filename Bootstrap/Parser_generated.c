@@ -1,19 +1,12 @@
-///*///
 
 #include <string.h>
 
 ///////////////////////////////////////////
 
-///*///
-
-///*///
-
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-
-///*///
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -30,10 +23,6 @@ unsigned int hash(char *str) {
   return hash % TABLE_SIZE;
 }
 
-///*///
-
-///*///
-
 #include <stdlib.h>
 #include <string.h>
 
@@ -48,14 +37,6 @@ typedef struct Variant {
 
 typedef struct Variant Variant;
 typedef struct ListObject *ListObjectptr;
-
-///*///
-
-///*///
-
-///*///
-
-///*///
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -127,9 +108,6 @@ void CustomPrint(int data) {
 #undef token_case
 }
 
-///*///
-
-///*///
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1415,13 +1393,7 @@ void Dictionary_intprint(struct Dictionary_int *this) {
   printf("}\n");
 }
 
-///*///
-
-///*///
-
 int main() {
-
-  ///*/// main()
 
   struct String Line;
   String__init__OVDstrint(&Line, "print(", 6);
@@ -1474,7 +1446,6 @@ int main() {
   List__del__(&GeneratedLines);
   Parser__del__(&parser);
   String__del__(&Line);
-  ///*///
 
   return 0;
 }
