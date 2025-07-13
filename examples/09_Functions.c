@@ -33,14 +33,12 @@ function get_format_specifier(p_type: String) -> String:
 endfunction
 
 function get_mangled_fn_name(p_struct_type: String, p_fn_name: String) -> String:
-  let s = p_struct_type
-  s += p_fn_name
+  let s = p_struct_type + p_fn_name
   return s
 endfunction
 
 function get_templated_mangled_fn_name(p_struct_type1: String, p_fn_name1: String, p_templated_data_type1: String) -> String:
-  let s1 = p_struct_type1
-  s1 += "_" + p_templated_data_type1 + p_fn_name1
+  let s1 = p_struct_type1 + "_" + p_templated_data_type1 + p_fn_name1
   return s1
 endfunction
 

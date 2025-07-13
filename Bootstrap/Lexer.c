@@ -128,9 +128,7 @@ function get_tokens(p_line : String) -> List:
   KEYWORD_TOKENS["hook_begin"] = Token["HOOK_BEGIN"]
   KEYWORD_TOKENS["hook_end"] = Token["HOOK_END"]
 
-  let line_org = ""
-  line_org = p_line
-  let line = line_org.strip()
+  let line = p_line.strip()
   let length = line.len()
 
   let token = ""

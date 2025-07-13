@@ -895,10 +895,7 @@ struct List Lexerget_tokens(struct Lexer *this, struct String p_line) {
   Dictionary_int__setitem__(&KEYWORD_TOKENS, "hook_begin", 39);
   Dictionary_int__setitem__(&KEYWORD_TOKENS, "hook_end", 40);
 
-  struct String line_org;
-  String__init__OVDstrint(&line_org, "", 0);
-  String__reassign__OVDstructString(&line_org, p_line);
-  struct String line = Stringstrip(&line_org);
+  struct String line = Stringstrip(&p_line);
   size_t length = Stringlen(&line);
 
   struct String token;
@@ -995,9 +992,9 @@ struct List Lexerget_tokens(struct Lexer *this, struct String p_line) {
             Listappend_str(&tokens, Stringc_str(&token));
           }
         }
-        char Char_promoted_4[2] = {Char, '\0'};
+        char Char_promoted_5[2] = {Char, '\0'};
         ListappendOVDint(&tokens, Dictionary_int__getitem__(&CHARACTER_TOKENS,
-                                                            Char_promoted_4));
+                                                            Char_promoted_5));
         String__reassign__OVDstr(&token, "");
         continue;
       }
@@ -1009,8 +1006,8 @@ struct List Lexerget_tokens(struct Lexer *this, struct String p_line) {
         continue;
       }
 
-      char Char_promoted_5[2] = {Char, '\0'};
-      String__add__(&token, Char_promoted_5);
+      char Char_promoted_6[2] = {Char, '\0'};
+      String__add__(&token, Char_promoted_6);
     }
   }
 
@@ -1032,7 +1029,6 @@ struct List Lexerget_tokens(struct Lexer *this, struct String p_line) {
 
   String__del__(&token);
   String__del__(&line);
-  String__del__(&line_org);
   Dictionary_int__del__(&KEYWORD_TOKENS);
   Dictionary_int__del__(&CHARACTER_TOKENS);
   return tokens;
@@ -1435,6 +1431,7 @@ int main() {
 
     struct String str_to_write;
     String__init__OVDstrint(&str_to_write, "printf(", 7);
+    String_allocate_more(&str_to_write, 2 + Stringlen(&actual_str) + 4);
     String__add__(&str_to_write, "\"");
     String__add__(&str_to_write, Stringc_str(&actual_str));
     String__add__(&str_to_write, "\");");

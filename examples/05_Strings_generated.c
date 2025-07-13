@@ -603,6 +603,7 @@ int main() {
     puts("Str is Hello World.");
   }
 
+  String_allocate_more(&str, 28 + 4);
   String__add__(&str, "New message appended at the ");
   String__add__(&str, "end.");
   StringprintLn(&str);

@@ -2417,11 +2417,16 @@ void Optional_Stringset_value(struct Optional_String *this,
 struct String insert_string(struct String original_string, int p_index,
                             struct String string_to_insert) {
   // return original_string[:index] + string_to_insert + original_string[index:]
-  struct String left_part = Stringsubstr(&original_string, 0, p_index);
-  struct String tmp_string_0 = Stringsubstr(
+  struct String tmp_string_0 = Stringsubstr(&original_string, 0, p_index);
+  struct String tmp_string_1 = Stringsubstr(
       &original_string, p_index, Stringlen(&original_string) - p_index);
+  struct String left_part;
+  String__init__OVDstructString(&left_part, tmp_string_0);
+  String_allocate_more(&left_part,
+                       Stringlen(&string_to_insert) + Stringlen(&tmp_string_1));
   String__add__(&left_part, Stringc_str(&string_to_insert));
-  String__add__(&left_part, Stringc_str(&tmp_string_0));
+  String__add__(&left_part, Stringc_str(&tmp_string_1));
+  String__del__(&tmp_string_1);
   String__del__(&tmp_string_0);
   return left_part;
 }
@@ -2483,6 +2488,8 @@ get_templated_mangled_fn_name(struct String p_struct_type,
                               struct String p_templated_data_type) {
   struct String s;
   String__init__OVDstructString(&s, p_struct_type);
+  String_allocate_more(&s, 1 + Stringlen(&p_templated_data_type) +
+                               Stringlen(&p_fn_name));
   String__add__(&s, "_");
   String__add__(&s, Stringc_str(&p_templated_data_type));
   String__add__(&s, Stringc_str(&p_fn_name));
@@ -2557,31 +2564,31 @@ bool is_variable(struct String p_var_name) {
 }
 
 bool is_variable_char_type(struct String p_var_name) {
-  struct String tmp_string_1;
-  Stringinit__STATIC__(&tmp_string_1, "char", 4);
-  bool return_value = is_variable_of_type(p_var_name, tmp_string_1);
+  struct String tmp_string_3;
+  Stringinit__STATIC__(&tmp_string_3, "char", 4);
+  bool return_value = is_variable_of_type(p_var_name, tmp_string_3);
   return return_value;
 }
 
 bool is_variable_const_char_ptr(struct String p_var_name) {
-  struct String tmp_string_2;
-  Stringinit__STATIC__(&tmp_string_2, "c_str", 5);
-  bool return_value = is_variable_of_type(p_var_name, tmp_string_2);
+  struct String tmp_string_5;
+  Stringinit__STATIC__(&tmp_string_5, "c_str", 5);
+  bool return_value = is_variable_of_type(p_var_name, tmp_string_5);
   return return_value;
 }
 
 bool is_variable_str_type(struct String p_var_name) {
-  struct String tmp_string_3;
-  Stringinit__STATIC__(&tmp_string_3, "str", 3);
+  struct String tmp_string_7;
+  Stringinit__STATIC__(&tmp_string_7, "str", 3);
 
-  if (is_variable_of_type(p_var_name, tmp_string_3)) {
+  if (is_variable_of_type(p_var_name, tmp_string_7)) {
     return true;
   }
 
-  struct String tmp_string_4;
-  Stringinit__STATIC__(&tmp_string_4, "char*", 5);
+  struct String tmp_string_9;
+  Stringinit__STATIC__(&tmp_string_9, "char*", 5);
 
-  if (is_variable_of_type(p_var_name, tmp_string_4)) {
+  if (is_variable_of_type(p_var_name, tmp_string_9)) {
     return true;
   }
 
@@ -2589,23 +2596,23 @@ bool is_variable_str_type(struct String p_var_name) {
 }
 
 bool is_variable_boolean_type(struct String p_var_name) {
-  struct String tmp_string_5;
-  Stringinit__STATIC__(&tmp_string_5, "bool", 4);
-  bool return_value = is_variable_of_type(p_var_name, tmp_string_5);
+  struct String tmp_string_11;
+  Stringinit__STATIC__(&tmp_string_11, "bool", 4);
+  bool return_value = is_variable_of_type(p_var_name, tmp_string_11);
   return return_value;
 }
 
 bool is_variable_int_type(struct String p_var_name) {
-  struct String tmp_string_6;
-  Stringinit__STATIC__(&tmp_string_6, "int", 3);
-  bool return_value = is_variable_of_type(p_var_name, tmp_string_6);
+  struct String tmp_string_13;
+  Stringinit__STATIC__(&tmp_string_13, "int", 3);
+  bool return_value = is_variable_of_type(p_var_name, tmp_string_13);
   return return_value;
 }
 
 bool is_variable_size_t_type(struct String p_var_name) {
-  struct String tmp_string_7;
-  Stringinit__STATIC__(&tmp_string_7, "size_t", 6);
-  bool return_value = is_variable_of_type(p_var_name, tmp_string_7);
+  struct String tmp_string_15;
+  Stringinit__STATIC__(&tmp_string_15, "size_t", 6);
+  bool return_value = is_variable_of_type(p_var_name, tmp_string_15);
   return return_value;
 }
 
@@ -2666,6 +2673,7 @@ int main() {
           Vector_String__getitem__(&imported_modules, i);
       struct String relative_path;
       String__init__OVDstrint(&relative_path, "../Lib/", 7);
+      String_allocate_more(&relative_path, Stringlen(&module_name) + 2);
       String__add__(&relative_path, Stringc_str(&module_name));
       String__add__(&relative_path, ".c");
 

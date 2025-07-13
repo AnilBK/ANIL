@@ -791,6 +791,8 @@ int main() {
   struct String left_part = Stringsubstr(&s1, 0, p_index);
   struct String tmp_string_0 =
       Stringsubstr(&s1, p_index, Stringlen(&s1) - p_index);
+  String_allocate_more(&left_part,
+                       Stringlen(&string_to_insert) + Stringlen(&tmp_string_0));
   String__add__(&left_part, Stringc_str(&string_to_insert));
   String__add__(&left_part, Stringc_str(&tmp_string_0));
 

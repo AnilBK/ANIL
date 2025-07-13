@@ -1617,6 +1617,7 @@ struct String VectorStringToJSONString(struct Vector_String todos) {
   size_t tmp_len_4 = Vector_Stringlen(&todos);
   for (size_t i = 0; i < tmp_len_4; i++) {
     struct String todo = Vector_String__getitem__(&todos, i);
+    String_allocate_more(&jsonString, 2 + Stringlen(&todo) + 2);
     String__add__(&jsonString, "\"");
     String__add__(&jsonString, Stringc_str(&todo));
     String__add__(&jsonString, "\"");

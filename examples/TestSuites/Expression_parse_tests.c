@@ -25,7 +25,7 @@ int main() {
 
   let string_to_insert = "*****"
 
-  let left_part = s1.substr(0, p_index);
+  let left_part = s1.substr(0, p_index)
   left_part += string_to_insert + s1.substr(p_index, s1.len() - p_index)
 
   let vec = Vector<int>{10};

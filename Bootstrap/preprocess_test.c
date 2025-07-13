@@ -20,8 +20,7 @@ import OrderedDict
 // Insert a string at a given index in another string.
 function insert_string(original_string : String, p_index: int, string_to_insert: String) -> String:
   //return original_string[:index] + string_to_insert + original_string[index:]
-  let left_part = original_string.substr(0, p_index);
-  left_part += string_to_insert + original_string.substr(p_index, original_string.len() - p_index)
+  let left_part = original_string.substr(0, p_index) + string_to_insert + original_string.substr(p_index, original_string.len() - p_index)
   return left_part
 endfunction
 
@@ -63,14 +62,12 @@ function get_format_specifier(p_type: String) -> String:
 endfunction
 
 function get_mangled_fn_name(p_struct_type: String, p_fn_name: String) -> String:
-  let s = p_struct_type
-  s += p_fn_name
+  let s = p_struct_type + p_fn_name
   return s
 endfunction
 
 function get_templated_mangled_fn_name(p_struct_type: String, p_fn_name: String, p_templated_data_type: String) -> String:
-  let s = p_struct_type
-  s += "_" + p_templated_data_type + p_fn_name
+  let s = p_struct_type + "_" + p_templated_data_type + p_fn_name
   return s
 endfunction
 
@@ -473,8 +470,7 @@ int main() {
     let ImportedCodeLines = Vector<String>{50};
 
     for module_name in imported_modules{
-      let relative_path = "../Lib/"
-      relative_path += module_name + ".c"
+      let relative_path = "../Lib/" + module_name + ".c"
 
       relative_path.printLn()
 

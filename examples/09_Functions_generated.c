@@ -600,6 +600,8 @@ get_templated_mangled_fn_name(struct String p_struct_type1,
                               struct String p_templated_data_type1) {
   struct String s1;
   String__init__OVDstructString(&s1, p_struct_type1);
+  String_allocate_more(&s1, 1 + Stringlen(&p_templated_data_type1) +
+                                Stringlen(&p_fn_name1));
   String__add__(&s1, "_");
   String__add__(&s1, Stringc_str(&p_templated_data_type1));
   String__add__(&s1, Stringc_str(&p_fn_name1));

@@ -101,8 +101,7 @@ int main() {
 
   ///*/// main()
 
-  let Line = "print("
-  Line += "\"Hello World!\");"
+  let Line = "print(" + "\"Hello World!\");"
 
   let parser = Parser{Line};
 
@@ -117,8 +116,7 @@ int main() {
     let actual_str = parser.extract_string_literal()
     parser.consume_token(Token["RIGHT_ROUND_BRACKET"])
 
-    let str_to_write = "printf("
-    str_to_write += "\"" + actual_str + "\");"
+    let str_to_write = "printf(" + "\"" + actual_str + "\");"
     let cstr = str_to_write.c_str()
     GeneratedLines.append(cstr)
   }

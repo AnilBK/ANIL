@@ -8,6 +8,8 @@ from collections import OrderedDict
 from enum import Enum
 from typing import Callable, Dict, Optional
 
+from contextlib import contextmanager
+
 import lexer
 import Parser
 from ErrorHandler import ErrorHandler
@@ -109,6 +111,55 @@ if len(imported_modules) > 0:
 
 
 LinesCache = []
+
+# This is like Git but for generated codes.
+# While speculative parsing of functions, we may generate some intermediate codes.
+# If speculative parsing fails, we need to undo these changes.
+# These changes are marked using these trackers.
+LinesCacheCheckPoints = []
+
+def _LinesCacheAddNewTracker():
+    global LinesCache
+    LinesCacheCheckPoints.append(len(LinesCache))
+
+def _CommitLinesCache():
+    # No need to do anything with the LinesCache,
+    # Just remove the recent tracker.
+    if LinesCacheCheckPoints:
+        del LinesCacheCheckPoints[-1]
+    else:
+        # Shouldn't happen.
+        print("LinesCache wasn't tracking.")
+
+def _RevertLinesCache():
+    global LinesCache
+
+    if not LinesCacheCheckPoints:
+        # Shouldn't happen.
+        print("LinesCache was not tracking. Cant revert.")
+        return
+
+    previous_check_point = LinesCacheCheckPoints[-1]
+    current_check_point = len(LinesCache)
+
+    if current_check_point != previous_check_point:
+        del LinesCache[previous_check_point:]
+        del LinesCacheCheckPoints[-1]
+
+class RollbackTemporaryGeneratedCodes(Exception):
+    pass
+
+@contextmanager
+def SpeculativeFunctionParse():
+    # TODO: Undo Variables as well maybe.
+    # TODO: Maybe it should handle checkpointing as well.
+    _LinesCacheAddNewTracker()
+    try:
+        yield
+        _CommitLinesCache()
+    except RollbackTemporaryGeneratedCodes:
+        _RevertLinesCache()
+
 
 struct_definations = []
 instanced_struct_names = []
@@ -2096,6 +2147,22 @@ while index < len(Lines):
         VARIABLE = 5
         BOOLEAN_CONSTANT = 6 # True or False
         FUNCTION_POINTER = 7
+        STRING_EXPRESSION = 8
+
+    class SimpleAst:
+        def __init__(self):
+            self.params = []
+
+        def add_param(self, param_name, param_type):
+            param = (param_name, param_type)
+            self.params.append(param)
+
+        def update_param(self, idx, new_param_name, new_param_type):
+            param = (new_param_name, new_param_type)
+            self.params[idx] = param
+    
+        def remove_param(self, index):
+            del self.params[index]
 
     class Parameter:
         def __init__(self, p_param, p_param_type: ParameterType) -> None:
@@ -2103,57 +2170,83 @@ while index < len(Lines):
             self.param_type = p_param_type
             self.struct_instance = None # For a.b, we may need instance info of b later, for e.g in boolean_expression()
             
+            self.fn_call_parse_info = None
+            self.ast = SimpleAst()
+
     def _read_a_parameter():
         # Parse a number or string..
         # In any case, just a single symbol.
         parameter = None
         parameter_type = ParameterType.UNDEFINED
 
+        parser.save_checkpoint()
+        tokens_tmp = copy.deepcopy(parser.tokens)
+
+        string_expr = speculative_parse_string_expression()
+        if string_expr == None:
+            parser.rollback_checkpoint()
+            parser.tokens = tokens_tmp
+        else:
+            parameter = string_expr.speculative_expression_value
+            parameter_type = ParameterType.STRING_CLASS # Maybe STRING_EXPRESSION.
+
+            ast = string_expr.ast
+
+            if len(ast.params) == 1:
+                ast_param_name, ast_type = ast.params[0]
+                parameter_type = ast_type
+
+            p = Parameter(parameter, parameter_type)
+            for ast_param_name, ast_type in ast.params:
+                p.ast.add_param(ast_param_name, ast_type)
+            return p   
+
         tk = parser.current_token()
 
-        if tk == lexer.Token.QUOTE:
-            parameter = escape_quotes(parser.extract_string_literal())
-            parameter_type = ParameterType.RAW_STRING
-            return Parameter(parameter, parameter_type)
-
         parser.save_checkpoint()
-        fn_call_parse_info = function_call_expression()
-        if fn_call_parse_info == None:
-            parser.rollback_checkpoint()
-            parser.clear_checkpoint()
-        else:
-            parse_result = fn_call_parse_info.function_call_metadata
-            return_type = parse_result["return_type"]
-            value = fn_call_parse_info.get_fn_str()
 
-            parameter = value
-            parameter_type = return_type
-            if return_type == "char*":
-                parameter_type = ParameterType.STR_TYPE
+        with SpeculativeFunctionParse():
+            fn_call_parse_info = function_call_expression()
+            if fn_call_parse_info == None:
+                parser.rollback_checkpoint()
+                parser.clear_checkpoint()
+                raise RollbackTemporaryGeneratedCodes() 
+            else:
+                parse_result = fn_call_parse_info.function_call_metadata
+                return_type = parse_result["return_type"]
+                value = fn_call_parse_info.get_fn_str()
 
-            is_arithmatic_operation = False
-            if parser.has_tokens_remaining():
-                symbols = {
-                    lexer.Token.PLUS : "+",
-                    lexer.Token.MINUS : "-",
-                    lexer.Token.ASTERISK : "*",
-                    lexer.Token.FRONT_SLASH : "/"
-                }
+                parameter = value
+                parameter_type = return_type
+                fn_call_info = fn_call_parse_info
+                if return_type == "char*":
+                    parameter_type = ParameterType.STR_TYPE
 
-                current_tk = parser.current_token()
-                if current_tk in symbols:
-                    # This is an arithmatic expression. So, revert it and handle it below.
-                    parser.rollback_checkpoint()
-                    # parser.clear_checkpoint()
-                    is_arithmatic_operation = True
+                is_arithmatic_operation = False
+                if parser.has_tokens_remaining():
+                    symbols = {
+                        lexer.Token.PLUS : "+",
+                        lexer.Token.MINUS : "-",
+                        lexer.Token.ASTERISK : "*",
+                        lexer.Token.FRONT_SLASH : "/"
+                    }
 
-            if not is_arithmatic_operation:
-                m_parameter = Parameter(parameter, parameter_type)
+                    current_tk = parser.current_token()
+                    if current_tk in symbols:
+                        # This is an arithmatic expression. So, revert it and handle it below.
+                        parser.rollback_checkpoint()
+                        # parser.clear_checkpoint()
+                        is_arithmatic_operation = True
 
-                if "struct_instance" in parse_result:
-                    m_parameter.struct_instance = parse_result["struct_instance"]
+                if not is_arithmatic_operation:
+                    m_parameter = Parameter(parameter, parameter_type)
 
-                return m_parameter
+                    if "struct_instance" in parse_result:
+                        m_parameter.struct_instance = parse_result["struct_instance"]
+
+                    m_parameter.fn_call_parse_info = fn_call_info
+
+                    return m_parameter
         
         parser.save_checkpoint()
         # string_expression = speculative_parse_string_expression()
@@ -2200,6 +2293,11 @@ while index < len(Lines):
                 parameter = tk
                 parameter_type = ParameterType.FUNCTION_POINTER
                 parser.next_token()
+            else:
+                pass
+                # Debug
+                # parser.rollback_checkpoint()
+                # parser.clear_checkpoint()
 
         return Parameter(parameter, parameter_type)
 
@@ -2240,7 +2338,7 @@ while index < len(Lines):
                 strs.append("char*")
             elif param.param_type == ParameterType.VARIABLE:
                 strs.append(get_type_of_variable(param.param))
-            elif param.param_type == ParameterType.STRING_CLASS or param.param_type == "struct String" or param.param_type == "String":
+            elif param.param_type == ParameterType.STRING_CLASS or param.param_type == ParameterType.STRING_EXPRESSION or param.param_type == "struct String" or param.param_type == "String":
                 strs.append("struct String")
             elif param.param_type == ParameterType.FUNCTION_POINTER:
                 strs.append("fn_ptr")
@@ -2306,6 +2404,68 @@ while index < len(Lines):
             pointer_access = "."
         return base_struct_info, child_struct_info, member_access_string, pointer_access, struct_instance
 
+    def generate_add_string_expression_code_For_simple_AST(target_variable_name, ast):
+		# let a = b + c + d
+		#			^^^^^^^
+		# Convert this to:
+		# a.__add__(c)
+		# a.__add__(d)
+		# Parse the string expression to extract components
+        
+        if not ast.params:
+            return []
+        
+        add_method = "__add__"
+        allocate_memory_method = "_allocate_more"
+        
+        generated_code_lines = []
+        memory_allocation_lines = []
+        length_expressions = []
+
+        global temp_string_object_variable_count
+        global instanced_struct_names
+
+        for i, (string_value, string_type) in enumerate(ast.params):
+            if string_type == ParameterType.RAW_STRING:
+                # "string"
+                generated_code_lines.append(f"{target_variable_name}.{add_method}(\"{string_value}\")")
+                length_expressions.append(str(len(string_value)))
+            elif string_type == ParameterType.STRING_EXPRESSION:
+                temp_string_var_name = f"tmp_string_{temp_string_object_variable_count}"
+                temp_string_object_variable_count += 1
+                instance = StructInstance("String", f"{temp_string_var_name}", get_current_scope())
+                # instance.is_pointer_type = True
+                # instance.should_be_freed = False
+                instanced_struct_names.append(instance)
+
+                LinesCache.append(f"struct String {temp_string_var_name} = {string_value};\n")
+                REGISTER_VARIABLE(f"{temp_string_var_name}", f"String")
+                
+                ast.update_param(i, temp_string_var_name, ParameterType.STRING_CLASS)
+                
+                # Write the new temporary instead.
+                generated_code_lines.append(f"{target_variable_name}.{add_method}({temp_string_var_name})")
+                length_expressions.append(f"{temp_string_var_name}.len()")
+            else:
+				# String objects.
+                generated_code_lines.append(f"{target_variable_name}.{add_method}({string_value})")
+                length_expressions.append(f"{string_value}.len()")
+
+		# Compute total extra memory required if more than one component,
+        # i.e if only one String object is added, than that add will perform reallocation itself.
+        if len(length_expressions) > 1:
+            total_length_expression = " + ".join(length_expressions)
+
+            memory_allocation_lines = [
+				f"{target_variable_name}.{allocate_memory_method}({total_length_expression})"
+			]
+
+		# Combine allocation and string addition code
+        all_generated_lines = []
+        all_generated_lines.extend(memory_allocation_lines)
+        all_generated_lines.extend(generated_code_lines)
+        return all_generated_lines
+
     def parse_access_struct_member(var_name):
         # let str = str2[0]
         #     ^^^   ^^^^ ^
@@ -2313,18 +2473,152 @@ while index < len(Lines):
         #     |     |    .________ parameters
         #     |     ._____________ target
         #     .___________________ varname
-        fn_call_parse_info = function_call_expression()
+
+        tk_copy_tmp = copy.deepcopy(parser.tokens)
+
+        term = parse_term()
+        term_parameters = term["parameter"]
+
+        global instanced_struct_names
+        global LinesCache
+        global temp_string_object_variable_count    
+
+        term_type = term['type']
+
+        fn_call_parse_info = term_parameters.fn_call_parse_info
+        if fn_call_parse_info != None:
+            parse_result = fn_call_parse_info.function_call_metadata
+            fn_name = parse_result["fn_name"]
+            return_type = parse_result["return_type"]
+            is_return_type_ref_type = parse_result["is_return_type_ref_type"]
+            has_parameters = parse_result["has_parameters"]
+            parsed_fn_call_type = parse_result["function_call_type"]
+            member_access_string = parse_result["member_access_string"]
+
+            if return_type.startswith("struct ") or is_data_type_struct_object(return_type):
+                raw_return_type = return_type
+                if return_type.startswith("struct "):
+                    #              "struct Vector__String"
+                    # return type   ^^^^^^^^^^^^^^^^^^^^^
+                    # raw_return_type      ^^^^^^^^^^^^^^
+                    raw_return_type = return_type[len("struct "):]
+
+                instance = StructInstance(raw_return_type, var_name, get_current_scope())
+
+                if is_return_type_ref_type or parsed_fn_call_type == ParsedFunctionCallType.MEMBER_ACCESS_CALL:
+                    instance.should_be_freed = False
+                
+                instanced_struct_names.append(instance)
+
+            REGISTER_VARIABLE(var_name, return_type)
+
+            assignment_code = ""
+            if parsed_fn_call_type == ParsedFunctionCallType.MEMBER_ACCESS_CALL:
+                assignment_code = f"{format_struct_data_type(return_type)} {var_name} = {member_access_string};"
+            else:
+                assignment_code = f"{return_type} {var_name} = {fn_name}("
+
+                if parsed_fn_call_type == ParsedFunctionCallType.STRUCT_FUNCTION_CALL:
+                    assignment_code += f"{member_access_string}"
+                    if has_parameters:
+                        assignment_code += ","
+
+                if has_parameters:
+                    parameters_str = parse_result["parameters_str"]
+                    assignment_code += f"{parameters_str}"
+                assignment_code += ");"
+
+            LinesCache.append(f"{assignment_code}\n")
+            return
+        elif term_type == ParameterType.STRING_CLASS:
+            # Creation of a string variable from another string variable.
+            # let str1 = str2
+            src_var_name = term["value"]
+
+            ANIL_code = [f"let {var_name} = String{{{src_var_name}}};\n"]
+
+            parameters = term["parameter"]
+
+            ast = parameters.ast
+            if ast.params:
+                # Initialize the string using the first string in the AST.
+                first_string_param_name, first_string_param_type = ast.params[0]
+                ANIL_code = [f"let {var_name} = String{{{first_string_param_name}}};\n"]
+
+                str_temporarires = []
+                new_ast = []
+                for i, (ast_p_name, ast_p_type) in enumerate(parameters.ast.params):
+                    if ast_p_type == ParameterType.STRING_EXPRESSION:
+                        temp_string_var_name = f"tmp_string_{temp_string_object_variable_count}"
+                        temp_string_object_variable_count += 1
+                        instance = StructInstance("String", f"{temp_string_var_name}", get_current_scope())
+                        # instance.is_pointer_type = True
+                        # instance.should_be_freed = False
+                        instanced_struct_names.append(instance)
+
+                        LinesCache.append(f"struct String {temp_string_var_name} = {ast_p_name};\n")
+                        REGISTER_VARIABLE(f"{temp_string_var_name}", f"String")
+                        str_temporarires.append(temp_string_var_name)
+                        new_ast.append((temp_string_var_name ,ParameterType.STRING_CLASS))
+                    elif ast_p_type == ParameterType.RAW_STRING:
+                        new_ast.append((ast_p_name, ParameterType.RAW_STRING))
+                    else:
+                        str_temporarires.append(ast_p_name)
+                        new_ast.append((ast_p_name ,ParameterType.STRING_CLASS))
+                joined = "+".join(str_temporarires)
+
+                first_string_param_name, _type = new_ast[0]
+                ANIL_code = [f"let {var_name} = String{{{first_string_param_name}}};\n"]
+                del new_ast[0]
+
+                new_simple_ast = SimpleAst()
+                for name, _type in new_ast:
+                    new_simple_ast.add_param(name, _type)
+
+                # We used the first string to initialize already existing string,
+                # so, remaining strings generate add expressions.
+                parameters.ast.remove_param(0)
+
+                ANIL_code.extend(generate_add_string_expression_code_For_simple_AST(var_name, new_simple_ast))
+
+            insert_intermediate_lines(index, ANIL_code)
+            return            
+
+        parser.tokens = tk_copy_tmp
+
+        fn_call_parse_info = None
+        with SpeculativeFunctionParse():
+            fn_call_parse_info = function_call_expression()
+            if fn_call_parse_info == None:
+                raise RollbackTemporaryGeneratedCodes()
+            
         if fn_call_parse_info == None:
             # If it wasn't a function call assignment,
             # then, try to parse a variable assignment.
             term = parse_term()
             term_type = term['type']
+
             if term_type == ParameterType.STRING_CLASS:
                 # Creation of a string variable from another string variable.
                 # let str1 = str2
                 src_var_name = term["value"]
 
                 ANIL_code = [f"let {var_name} = String{{{src_var_name}}};\n"]
+
+                parameters = term["parameter"]
+
+                ast = parameters.ast
+                if ast.params:
+                    # Initialize the string using the first string in the AST.
+                    first_string_param_name, first_string_param_type = ast.params[0]
+                    ANIL_code = [f"let {var_name} = String{{{first_string_param_name}}};\n"]
+
+                    # We used the first string to initialize already existing string,
+                    # so, remaining strings generate add expressions.
+                    parameters.ast.remove_param(0)
+
+                    ANIL_code.extend(generate_add_string_expression_code_For_simple_AST(var_name, parameters.ast))
+
                 insert_intermediate_lines(index, ANIL_code)
                 return
             elif term_type != ParameterType.UNDEFINED:
@@ -2353,7 +2647,6 @@ while index < len(Lines):
             if is_return_type_ref_type or parsed_fn_call_type == ParsedFunctionCallType.MEMBER_ACCESS_CALL:
                 instance.should_be_freed = False
             
-            global instanced_struct_names
             instanced_struct_names.append(instance)
 
         REGISTER_VARIABLE(var_name, return_type)
@@ -2374,7 +2667,6 @@ while index < len(Lines):
                 assignment_code += f"{parameters_str}"
             assignment_code += ");"
 
-        global LinesCache
         LinesCache.append(f"{assignment_code}\n")
 
     def parse_macro(parsed_member, p_macro_type, p_macro_fn_name=""):
@@ -2899,6 +3191,28 @@ while index < len(Lines):
         CHAR_TYPE = 6
         STRING_EXPRESSION = 7 # "StringStrip(&s1, 1, 5)"
 
+
+    # Maybe Use ParameterType instead of SpeculativeTokenType.
+    def SpeculativeTokenTypeToParameterType(tk_type):
+        if tk_type == SpeculativeTokenType.NONE:
+            return ParameterType.UNDEFINED
+        if tk_type == SpeculativeTokenType.NUMERIC_CONSTANT:
+            return ParameterType.NUMBER
+        if tk_type == SpeculativeTokenType.NUMERIC_VARIABLE:
+            return ParameterType.VARIABLE
+        if tk_type == SpeculativeTokenType.STRING_LITERAL:
+            return ParameterType.RAW_STRING
+        if tk_type == SpeculativeTokenType.STR_TYPE:
+            return ParameterType.STR_TYPE 
+        if tk_type == SpeculativeTokenType.STRING_CLASS:
+            return ParameterType.STRING_CLASS 
+        if tk_type == SpeculativeTokenType.CHAR_TYPE:
+            return ParameterType.CHAR_TYPE
+        if tk_type == SpeculativeTokenType.STRING_EXPRESSION:
+            return ParameterType.STRING_EXPRESSION
+        RAISE_ERROR(f"{tk_type} conversion error.")
+
+
     class SpeculativeParseInfo:
         def __init__(self):
             self.speculative_token_type = SpeculativeTokenType.NONE
@@ -2948,18 +3262,22 @@ while index < len(Lines):
         if return_value == None:
             # Nothing is number as of now.
             parser.save_checkpoint()
-            fn_call_parse_info = function_call_expression()
-            if fn_call_parse_info == None:
-                parser.rollback_checkpoint()
-                parser.clear_checkpoint()
-            else:
-                parse_result = fn_call_parse_info.function_call_metadata
-                return_type = parse_result["return_type"]
-                if return_type == "int" or return_type == "size_t":
-                    return_value = fn_call_parse_info.get_fn_str()
-                else:
+
+            with SpeculativeFunctionParse():
+                fn_call_parse_info = function_call_expression()
+                if fn_call_parse_info == None:
                     parser.rollback_checkpoint()
-                    parser.clear_checkpoint()
+                    # parser.clear_checkpoint()
+                    raise RollbackTemporaryGeneratedCodes()
+                else:
+                    parse_result = fn_call_parse_info.function_call_metadata
+                    return_type = parse_result["return_type"]
+                    if return_type == "int" or return_type == "size_t":
+                        return_value = fn_call_parse_info.get_fn_str()
+                    else:
+                        parser.rollback_checkpoint()
+                        # parser.clear_checkpoint()
+                        raise RollbackTemporaryGeneratedCodes()
 
         if is_negative:
             if return_value == None:
@@ -2982,12 +3300,14 @@ while index < len(Lines):
         token_type = SpeculativeTokenType.NONE
         exact_type = ""
 
+        parser.save_checkpoint()
+
         current_token = parser.current_token()
         if current_token == lexer.Token.QUOTE:
             # str = "Hello World"
             string = escape_quotes(parser.extract_string_literal())
 
-            return_value = f"\"{string}\""
+            return_value = f"{string}"
             exact_type = "c_str"
             token_type = SpeculativeTokenType.STRING_LITERAL
         elif is_variable_char_type(current_token):
@@ -3003,27 +3323,48 @@ while index < len(Lines):
 
         if return_value == None:
             # Nothing is string as of now.
-            parser.save_checkpoint()
-            fn_call_parse_info = function_call_expression()
-            if fn_call_parse_info == None:
-                parser.rollback_checkpoint()
-                parser.clear_checkpoint()
-            else:
-                parse_result = fn_call_parse_info.function_call_metadata
-                return_type = parse_result["return_type"]
-                if return_type in {"struct String", "String", "str"}:
-                    return_value = fn_call_parse_info.get_fn_str()
-                    token_type = SpeculativeTokenType.STRING_EXPRESSION
-                else:
+            # parser.rollback_checkpoint()
+            tokens_tmp = copy.deepcopy(parser.tokens)
+
+            with SpeculativeFunctionParse():
+                fn_call_parse_info = function_call_expression()
+
+                if fn_call_parse_info == None:
                     parser.rollback_checkpoint()
-                    parser.clear_checkpoint()
+                    if is_variable_string_class(current_token):
+                        return_value = current_token
+                        exact_type = "struct String"
+                        token_type = SpeculativeTokenType.STRING_CLASS
+                        parser.next_token()
+                    else:
+                        parser.tokens.clear()
+                        #parser.clear_checkpoint()
+                    raise RollbackTemporaryGeneratedCodes()
+                else:
+                    parse_result = fn_call_parse_info.function_call_metadata
+                    return_type = parse_result["return_type"]
+                    # if return_type in {"struct String", "String", "str", "char*"}:
+                    if return_type in {"struct String", "String"}:
+                        return_value = fn_call_parse_info.get_fn_str()
+                        token_type = SpeculativeTokenType.STRING_EXPRESSION
+                        # TODO: immediately create a new var here onlyy maybe??
+                    elif return_type in {"str", "char*"}:
+                        return_value = fn_call_parse_info.get_fn_str()
+                        token_type = SpeculativeTokenType.STR_TYPE
+                    else:
+                        parser.rollback_checkpoint()
+                        # parser.tokens.clear()
+                        parser.tokens = tokens_tmp
+                        raise RollbackTemporaryGeneratedCodes()
+                        # parser.clear_checkpoint()
 
             if return_value is None:
                 if is_variable_string_class(current_token):
-                    return_value = current_token
-                    exact_type = "struct String"
-                    token_type = SpeculativeTokenType.STRING_CLASS
-                    parser.next_token()
+                    pass
+                #     return_value = current_token
+                #     exact_type = "struct String"
+                #     token_type = SpeculativeTokenType.STRING_CLASS
+                #     parser.next_token()
                     
         if return_value is not None:
             parse_info = SpeculativeParseInfo()
@@ -3032,6 +3373,47 @@ while index < len(Lines):
             parse_info.speculative_token_value = return_value
             return parse_info
         return None
+
+    def speculative_parse_string_expression():
+        expr = ""
+
+        ast_params = []
+
+        while parser.has_tokens_remaining():
+            parse_info = speculative_parse_string()
+            if parse_info == None:
+                break
+
+            # a = 1
+            tk = parse_info.speculative_token_value
+
+            ast_param_name = tk
+            ast_type = SpeculativeTokenTypeToParameterType(parse_info.speculative_token_type)
+            ast_param = (ast_param_name, ast_type)
+            ast_params.append(ast_param)
+
+            expr += tk
+
+            if parser.has_tokens_remaining():
+                if parser.current_token() == lexer.Token.PLUS:
+                    parser.consume_token(lexer.Token.PLUS)
+                    expr += " + "
+                    continue
+            break
+        
+        if expr == "" and len(ast_params) == 0:
+            # expr might be "" for "" string.
+            # So, we add this ast_params == 0 check.
+            return None
+        else:
+            expression_info = SpeculativeExpressionInfo()
+            expression_info.speculative_expression_type = SpeculativeExpressionType.STRING_EXPRESSION
+            expression_info.speculative_expression_value = expr
+            
+            for ast_param_name, ast_type in ast_params:
+                expression_info.ast.add_param(ast_param_name, ast_type)
+            
+            return expression_info
 
     class SpeculativeExpressionType(Enum):
         NONE = 0
@@ -3044,6 +3426,8 @@ while index < len(Lines):
             self.speculative_expression_type = SpeculativeExpressionType.NONE
             self.speculative_expression_value = ""
             self.function_call_metadata = {} # For Function Call expression to return stuffs.
+
+            self.ast = SimpleAst() # Individual members of a string expression "Hello" + "World" are stored in this ast.
 
         def get_fn_str(self) -> str:
             # Returns the parsed expression in code form.
@@ -3143,27 +3527,6 @@ while index < len(Lines):
                 RAISE_ERROR("Expected integer expression.")
         return integer_expression.speculative_expression_value
 
-    def speculative_parse_string_expression():
-        expr = ""
-
-        while parser.has_tokens_remaining():
-            parse_info = speculative_parse_string()
-            if parse_info == None:
-                break
-
-            # a = 1
-            tk = parse_info.speculative_token_value
-            expr += tk
-            break
-        
-        if expr == "":
-            return None
-        else:
-            expression_info = SpeculativeExpressionInfo()
-            expression_info.speculative_expression_type = SpeculativeExpressionType.STRING_EXPRESSION
-            expression_info.speculative_expression_value = expr
-            return expression_info
-
     def _quote_string_params(actual_fn_args, provided_parameters):
         parameters_quoted = []
         for arg, parameter in zip(actual_fn_args, provided_parameters):
@@ -3171,7 +3534,7 @@ while index < len(Lines):
             param_type = parameter.param_type
 
             if param_type == ParameterType.RAW_STRING:
-                if (arg == "char*") or (arg == "str") or (arg == "struct String") or (arg == "String"):
+                if (arg == "char*") or (arg == "str") or (arg == "c_str") or (arg == "struct String") or (arg == "String"):
                     param = f'"{param}"'
                 else:
                     param = f"'{param}'"
@@ -3260,7 +3623,9 @@ while index < len(Lines):
                 "struct_instance": struct_instance,
             }
 
-            parser.clear_checkpoint()
+            # parser.clear_checkpoint()
+            # parser.tokens.clear()
+
             # FIXME: Lost Parser Tokens for speculative_parse_string().
             # Due to parser.clear_checkpoint() above,
             # the entire parser contents is removed, and we don't restore previous parser tokens.
@@ -3429,12 +3794,20 @@ while index < len(Lines):
                     parameters[i].param = promote_char_to_string(param)
                 elif param_type == ParameterType.STRING_CLASS:
                     param_struct_info = get_instanced_struct(param)
-                    c_str_fn_name = param_struct_info.get_mangled_function_name("c_str")
-                    # A function expects a string, & we provided a String class object.
-                    # So, we perform getting string from String Class object.
-                    # var -> Stringc_str(&var)
-                    # ^^^ String Object.
-                    parameters[i].param = f"{c_str_fn_name}(&{parameters[i].param})"
+                    # Our Expression parser said this is STRING_CLASS,
+                    # doesn't mean we got String object, we might have char* as well.
+                    if param_struct_info is None:
+                        if is_variable_str_type(param):
+                            pass
+                        else:
+                            RAISE_ERROR("Error in conversion between strings for function parameters.")
+                    else:
+                        c_str_fn_name = param_struct_info.get_mangled_function_name("c_str")
+                        # A function expects a string, & we provided a String class object.
+                        # So, we perform getting string from String Class object.
+                        # var -> Stringc_str(&var)
+                        # ^^^ String Object.
+                        parameters[i].param = f"{c_str_fn_name}(&{parameters[i].param})"
 
             # Automatic String literal to String Object conversion for function parameters which expect String object.
             if arg == "struct String" and param_type == ParameterType.RAW_STRING:
@@ -3456,7 +3829,6 @@ while index < len(Lines):
                 # TODO: By using String Object above, we could get the mangled function name instead of hardcoding
                 # the mangled function.
                 REGISTER_VARIABLE(f"{temp_string_var_name}", f"String")
-
                 parameter.param = temp_string_var_name
                 parameter.param_type = ParameterType.STRING_CLASS
 
@@ -3501,7 +3873,8 @@ while index < len(Lines):
         return {
             "value": parameter,
             "type": parameter_type,
-            "struct_instance": struct_instance
+            "struct_instance": struct_instance,
+            "parameter": parameter_info
         }
 
     def get_comparision_operator():
@@ -3838,17 +4211,19 @@ while index < len(Lines):
                     # ctok.push(10)
 
                     parser.rollback_checkpoint()
-                    fn_call_parse_info = function_call_expression()
-                    if fn_call_parse_info == None:
-                        RAISE_ERROR("Parsing function expression failed.")
 
-                    code = fn_call_parse_info.get_fn_str()
+                    with SpeculativeFunctionParse():
+                        fn_call_parse_info = function_call_expression()
+                        if fn_call_parse_info == None:
+                            RAISE_ERROR("Parsing function expression failed.")
 
-                    if tk == "__init__" and (not main_fn_found) and (not is_inside_user_defined_function):
-                        # Found a constructor function in global scope.
-                        global_variables_initialization_code.append(f"{code};\n")
-                    else:
-                        LinesCache.append(f"{code};\n")
+                        code = fn_call_parse_info.get_fn_str()
+
+                        if tk == "__init__" and (not main_fn_found) and (not is_inside_user_defined_function):
+                            # Found a constructor function in global scope.
+                            global_variables_initialization_code.append(f"{code};\n")
+                        else:
+                            LinesCache.append(f"{code};\n")
                 elif StructInfo.has_macro(tk):
                     # macro type functinons
                     struct_name = StructInfo.name
@@ -3871,62 +4246,27 @@ while index < len(Lines):
                 #      ^
                 parser.consume_token(lexer.Token.EQUALS)
 
-                add_fn = "__add__"
-                lines = []
+                term = parse_term()
 
-                while parser.has_tokens_remaining():
-                    gen_code = ""
+                # String expressions have an ast.
+                parameters = term["parameter"]
+                ast = parameters.ast
 
-                    term = parse_term()
-
-                    if term["type"] in {ParameterType.VARIABLE, ParameterType.STRING_CLASS, ParameterType.CHAR_TYPE} or term["struct_instance"] is not None:
-                        tk = term["value"]
-                        gen_code = f"{parsed_member}.{add_fn}({tk})\n"
-                    elif term["type"] == ParameterType.RAW_STRING:
-                        string_tk = term["value"]
-                        gen_code = f"{parsed_member}.{add_fn}(\"{string_tk}\")\n"
-                    elif term["type"] == "struct String":
-                        string_tk = term["value"]
-                        #left_part += string_to_insert + s1.substr(p_index, s1.len() - p_index)
-                        #                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ This will return C expression.
-                        # i.e string_tk = Stringsubstr(&s1, p_index, Stringlen(&s1) - p_index).
-                        # This can't be passed to {parsed_member}.{add_fn}({string_tk}), as
-                        # string_tk is C Expression.
-                        # In this case we directly generate the appropriate C expression.
-                        temp_string_var_name = f"tmp_string_{temp_string_object_variable_count}"
-                        temp_string_object_variable_count += 1
-                        instance = StructInstance("String", f"{temp_string_var_name}", get_current_scope())
-                        # instance.is_pointer_type = True
-                        # instance.should_be_freed = False
-                        instanced_struct_names.append(instance)
-
-                        LinesCache.append(f"struct String {temp_string_var_name} = {string_tk};\n")
-                        REGISTER_VARIABLE(f"{temp_string_var_name}", f"String")
-                        string_tk = f"{temp_string_var_name}"
-                        gen_code = f"{parsed_member}.{add_fn}({string_tk})\n"
-                    else:
-                        RAISE_ERROR(f"Unimplemented + operator for parsed object {term}.")
-                        
-                    # Emit ANIL code to perform addition.
-                    # This line will be parsed by the compiler in next line.
-                    # The conversion of String class to char*, char to char*,
-                    # all these are handled by the compiler during function call parse.
-                    lines.append(gen_code)
-
-                    if not parser.has_tokens_remaining():
-                        # token += Char
-                        #              ^
-                        break
-
-                    #str += "World" + str2 + "str3" + str4
-                    #               ^
-                    parser.consume_token(lexer.Token.PLUS)
-                    if not parser.has_tokens_remaining():
-                        #str += "World" + 
-                        #                 ^
-                        RAISE_ERROR("Expected string literal or String object after + operator.")
-
-                insert_intermediate_lines(index, lines)
+                if ast.params:
+                    # String expression parameters have ast values.
+                    ANIL_code = generate_add_string_expression_code_For_simple_AST(parsed_member, ast)
+                    insert_intermediate_lines(index, ANIL_code)
+                    continue
+                else:
+                    add_method = "__add__"
+                    data_type = struct_instance.struct_type
+                    # TODO: Check if we have __add__ method for this object.
+                    value_to_add = parameters.param
+                    if member_access_string[0] == "&":
+                        member_access_string = member_access_string[1:]
+                    ANIL_code = [f"{member_access_string}.{add_method}({value_to_add});\n"]
+                    insert_intermediate_lines(index, ANIL_code)
+                    # RAISE_ERROR("Expected String expression and .") 
                 continue                                
             elif expression_type == ExpressionType.SUBTRACT:
                 # this.size -= 1
@@ -3960,12 +4300,13 @@ while index < len(Lines):
                     parser.tokens = reassign_expr_tokens + parser.tokens + [lexer.Token.RIGHT_ROUND_BRACKET]
                     
                     # Parse the newly formed expression.
-                    fn_call_parse_info = function_call_expression()
-                    if fn_call_parse_info == None:
-                        RAISE_ERROR(f"For \"{reassign_ANIL_code}\", expression fn call parsing failed.")
-                    else:
-                        return_code = fn_call_parse_info.get_fn_str()
-                        LinesCache.append(f"{return_code};\n")
+                    with SpeculativeFunctionParse():
+                        fn_call_parse_info = function_call_expression()
+                        if fn_call_parse_info == None:
+                            RAISE_ERROR(f"For \"{reassign_ANIL_code}\", expression fn call parsing failed.")
+                        else:
+                            return_code = fn_call_parse_info.get_fn_str()
+                            LinesCache.append(f"{return_code};\n")
                 continue
             elif expression_type == ExpressionType.INDEXED_MEMBER_ACCESS:
                 # This should parse
@@ -4281,7 +4622,21 @@ while index < len(Lines):
                         f'Parsing POD Type "{POD_type}" not Implemented as of now.'
                     )
             if parser.check_token(lexer.Token.QUOTE):
-                string = parser.extract_string_literal()
+                term = parse_term()
+                term_type = term['type']
+
+                string = ""
+
+                if term_type == ParameterType.RAW_STRING:
+                    string = term["value"]
+                elif term_type == ParameterType.STRING_CLASS:
+                    # First param is RAW_STRING because of Token.QUOTE.
+                    params = term["parameter"].ast.params
+                    p_name, p_type = params[0]
+                    string = p_name
+                else:
+                    RAISE_ERROR("Expected some kind of string expression.")
+
                 # let str = "Hello World";
                 #           ^
                 # ^^^^^^^^^^^^^^^^^^^^^^^ this line will generate the required C Code.
@@ -4294,10 +4649,22 @@ while index < len(Lines):
                 # Same as the above commented line, 
                 # but this optimization removes a strlen() at runtime.
                 escaped_length = lexer.get_escaped_length(string)
-                ANIL_code = f"let {array_name} = String{{\"{string}\", {escaped_length}}};\n"
+                ANIL_code = [f"let {array_name} = String{{\"{string}\", {escaped_length}}};\n"]
 
-                index_to_insert_at = index
-                Lines.insert(index_to_insert_at, ANIL_code)
+                parameters = term["parameter"]
+
+                if parameters.ast.params:
+                    # String expression parameters have ast values.
+                    ast = parameters.ast
+
+                    if len(ast.params) > 1:
+                        # Remove the first string, as we have already initialized the string with the first string.
+                        # The remaining parameters are used to generate add expression code.
+                        parameters.ast.remove_param(0)
+                        ast = parameters.ast
+
+                        ANIL_code.extend(generate_add_string_expression_code_For_simple_AST(array_name, ast))
+                insert_intermediate_lines(index, ANIL_code)
                 continue
             elif parser.check_token(lexer.Token.TRUE) or parser.check_token(
                 lexer.Token.FALSE
@@ -5310,6 +5677,9 @@ while index < len(Lines):
             if result.returns_single_value:
                 if return_type == ParameterType.VARIABLE:
                     return_type = get_type_of_variable(result.structs_involved[0])
+                elif return_type == ParameterType.STRING_EXPRESSION:
+                    return_type = "struct String"
+
             LinesCache.append(f"{return_type} return_value = {result.return_value};\n")
 
         # Write destructors.
