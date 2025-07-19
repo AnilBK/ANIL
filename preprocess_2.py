@@ -149,16 +149,47 @@ def _RevertLinesCache():
 class RollbackTemporaryGeneratedCodes(Exception):
     pass
 
+class VariablesCheckpoint:
+    # TODO: Just track what was added during speculative parsing.
+    def __init__(self):
+        # Save global speculative counters and variables.
+        self.temp_string_object_variable_count = temp_string_object_variable_count
+        self.temp_arr_length_variable_count = temp_arr_length_variable_count
+        self.temp_c_str_iterator_variable_count = temp_c_str_iterator_variable_count
+        self.temp_arr_search_variable_count = temp_arr_search_variable_count
+        self.temp_char_promoted_to_string_variable_count = temp_char_promoted_to_string_variable_count
+        self.for_loop_depth = for_loop_depth
+
+        # These maybe mutated, so we perform deepcopy.
+        self.instanced_struct_names = copy.deepcopy(instanced_struct_names)
+        self.symbol_table = copy.deepcopy(symbol_table)
+
+    def restore(self):
+        global temp_string_object_variable_count,temp_arr_length_variable_count,temp_c_str_iterator_variable_count,temp_arr_search_variable_count,temp_char_promoted_to_string_variable_count,for_loop_depth,instanced_struct_names,symbol_table
+
+        # Restore all variables to their checkpointed values.
+        temp_string_object_variable_count = self.temp_string_object_variable_count
+        temp_arr_length_variable_count = self.temp_arr_length_variable_count
+        temp_c_str_iterator_variable_count = self.temp_c_str_iterator_variable_count
+        temp_arr_search_variable_count = self.temp_arr_search_variable_count
+        temp_char_promoted_to_string_variable_count = self.temp_char_promoted_to_string_variable_count
+        for_loop_depth = self.for_loop_depth
+
+        instanced_struct_names = self.instanced_struct_names
+        symbol_table = self.symbol_table
+
 @contextmanager
 def SpeculativeFunctionParse():
-    # TODO: Undo Variables as well maybe.
     # TODO: Maybe it should handle checkpointing as well.
     _LinesCacheAddNewTracker()
+    variables_checkpoint = VariablesCheckpoint()
+
     try:
         yield
         _CommitLinesCache()
     except RollbackTemporaryGeneratedCodes:
         _RevertLinesCache()
+        variables_checkpoint.restore()
 
 
 struct_definations = []

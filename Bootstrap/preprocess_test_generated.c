@@ -2564,31 +2564,31 @@ bool is_variable(struct String p_var_name) {
 }
 
 bool is_variable_char_type(struct String p_var_name) {
-  struct String tmp_string_3;
-  Stringinit__STATIC__(&tmp_string_3, "char", 4);
-  bool return_value = is_variable_of_type(p_var_name, tmp_string_3);
+  struct String tmp_string_2;
+  Stringinit__STATIC__(&tmp_string_2, "char", 4);
+  bool return_value = is_variable_of_type(p_var_name, tmp_string_2);
   return return_value;
 }
 
 bool is_variable_const_char_ptr(struct String p_var_name) {
-  struct String tmp_string_5;
-  Stringinit__STATIC__(&tmp_string_5, "c_str", 5);
-  bool return_value = is_variable_of_type(p_var_name, tmp_string_5);
+  struct String tmp_string_3;
+  Stringinit__STATIC__(&tmp_string_3, "c_str", 5);
+  bool return_value = is_variable_of_type(p_var_name, tmp_string_3);
   return return_value;
 }
 
 bool is_variable_str_type(struct String p_var_name) {
-  struct String tmp_string_7;
-  Stringinit__STATIC__(&tmp_string_7, "str", 3);
+  struct String tmp_string_4;
+  Stringinit__STATIC__(&tmp_string_4, "str", 3);
 
-  if (is_variable_of_type(p_var_name, tmp_string_7)) {
+  if (is_variable_of_type(p_var_name, tmp_string_4)) {
     return true;
   }
 
-  struct String tmp_string_9;
-  Stringinit__STATIC__(&tmp_string_9, "char*", 5);
+  struct String tmp_string_5;
+  Stringinit__STATIC__(&tmp_string_5, "char*", 5);
 
-  if (is_variable_of_type(p_var_name, tmp_string_9)) {
+  if (is_variable_of_type(p_var_name, tmp_string_5)) {
     return true;
   }
 
@@ -2596,23 +2596,23 @@ bool is_variable_str_type(struct String p_var_name) {
 }
 
 bool is_variable_boolean_type(struct String p_var_name) {
-  struct String tmp_string_11;
-  Stringinit__STATIC__(&tmp_string_11, "bool", 4);
-  bool return_value = is_variable_of_type(p_var_name, tmp_string_11);
+  struct String tmp_string_6;
+  Stringinit__STATIC__(&tmp_string_6, "bool", 4);
+  bool return_value = is_variable_of_type(p_var_name, tmp_string_6);
   return return_value;
 }
 
 bool is_variable_int_type(struct String p_var_name) {
-  struct String tmp_string_13;
-  Stringinit__STATIC__(&tmp_string_13, "int", 3);
-  bool return_value = is_variable_of_type(p_var_name, tmp_string_13);
+  struct String tmp_string_7;
+  Stringinit__STATIC__(&tmp_string_7, "int", 3);
+  bool return_value = is_variable_of_type(p_var_name, tmp_string_7);
   return return_value;
 }
 
 bool is_variable_size_t_type(struct String p_var_name) {
-  struct String tmp_string_15;
-  Stringinit__STATIC__(&tmp_string_15, "size_t", 6);
-  bool return_value = is_variable_of_type(p_var_name, tmp_string_15);
+  struct String tmp_string_8;
+  Stringinit__STATIC__(&tmp_string_8, "size_t", 6);
+  bool return_value = is_variable_of_type(p_var_name, tmp_string_8);
   return return_value;
 }
 

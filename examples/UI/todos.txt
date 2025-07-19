@@ -6,4 +6,3 @@ Add Copy constructors for Vectors. See Json.c
 Optimize Comma in Vector Print
 Token.LET Rename array_name to var_name
 Move more stuffs to AST based parsing
-Speculative parsing should undo temporary created variables as well.

@@ -992,9 +992,9 @@ struct List Lexerget_tokens(struct Lexer *this, struct String p_line) {
             Listappend_str(&tokens, Stringc_str(&token));
           }
         }
-        char Char_promoted_5[2] = {Char, '\0'};
+        char Char_promoted_4[2] = {Char, '\0'};
         ListappendOVDint(&tokens, Dictionary_int__getitem__(&CHARACTER_TOKENS,
-                                                            Char_promoted_5));
+                                                            Char_promoted_4));
         String__reassign__OVDstr(&token, "");
         continue;
       }
@@ -1006,8 +1006,8 @@ struct List Lexerget_tokens(struct Lexer *this, struct String p_line) {
         continue;
       }
 
-      char Char_promoted_6[2] = {Char, '\0'};
-      String__add__(&token, Char_promoted_6);
+      char Char_promoted_5[2] = {Char, '\0'};
+      String__add__(&token, Char_promoted_5);
     }
   }
 
