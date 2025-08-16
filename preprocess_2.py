@@ -23,17 +23,21 @@ args = filename_parser.parse_args()
 
 # Basics.
 source_file = "examples\\00_Hello_World.c"
+# source_file = "examples\\00_Hello_World.anil"
 # source_file = "examples\\01_variables.c"
 # source_file = "examples\\02_List.c"
 # source_file = "examples\\03_Dictionary.c"
 # source_file = "examples\\04_Classes.c"
+# source_file = "examples\\04_Classes.anil"
 # source_file = "examples\\04_b_Classes.c"
 # source_file = "examples\\05_Strings.c"
 # source_file = "examples\\06_Vector.c"
 # source_file = "examples\\07_Set.c"
 # source_file = "examples\\08_Optional.c"
+# source_file = "examples\\08_Optional.anil"
 # source_file = "examples\\09_Functions.c"
 # source_file = "examples\\10_FileIO.c"
+# source_file = "examples\\10_FileIO.anil"
 
 # Compile Time related.
 # source_file = "examples\\Annotations.c"
@@ -67,6 +71,7 @@ source_file = "examples\\00_Hello_World.c"
 # source_file = "Bootstrap\\lexer_test.c"
 # source_file = "Bootstrap\\Parser.c"
 # source_file = "Bootstrap\\preprocess_test.c"
+# source_file = "Bootstrap\\preprocess_test.anil"
 
 if args.filename:
     source_file = args.filename
@@ -77,6 +82,33 @@ output_file_name = os.path.join(os.path.dirname(source_file), base_name + "_gene
 Lines = []
 with open(source_file, "r") as file:
     Lines = file.readlines()
+
+is_anil_file = ext == ".anil"
+
+if is_anil_file:
+    # Modify contents of .anil file to like a .c file, because struct definations are emitted to "// STRUCT_DEFINATIONS //" line.
+    # We cant just directly call the function which writes the global struct definations, as while importing c library
+    # files we need to copy those global functions in those libraries serially as well.
+    # If we emit the global struct definations directly, then we miss the order of the global c functions defined 
+    # in those libraries.
+    header = [
+        "\n",
+        "// STRUCT_DEFINATIONS // \n",
+        "///*///",
+        "\n",
+    ]
+
+    footer = [
+        "\n",
+        "// DESTRUCTOR_CODE //",
+        "\n",
+        "///*///",
+        "\n",
+    ]
+
+    Lines = header + Lines + footer
+
+    output_file_name = output_file_name.replace(".anil", "_anil.c")
 
 imported_modules = []
 
@@ -194,6 +226,8 @@ def SpeculativeFunctionParse():
 
 struct_definations = []
 instanced_struct_names = []
+
+IncludeLines = [] # ["#include<stdio.h>", ...]
 
 GlobalStructInitCode = ""
 
@@ -1531,7 +1565,8 @@ while index < len(Lines):
 
         # Destroy all variables, then emit the code to be parsed later.
         # Now the code to be parsed later has fresh symbol table to work with.
-        LinesCache.append(symbol_table.destructor_code_for_all_remaining_variables())
+        if not is_anil_file:
+            LinesCache.append(symbol_table.destructor_code_for_all_remaining_variables())
 
         templated_fn_codes = []
 
@@ -4500,7 +4535,10 @@ while index < len(Lines):
 
         if check_token(lexer.Token.INCLUDE):
             # this has to handle #include<string.h> as well.
-            LinesCache.append(Line)
+            if is_anil_file:
+                IncludeLines.append(Line)
+            else:
+                LinesCache.append(Line)
         else:
             parts = Line.split("#", 1)
             line_without_hash = parts[1]
@@ -5506,6 +5544,16 @@ while index < len(Lines):
         code += f") {{\n"
 
         LinesCache.append(code)
+
+        if is_anil_file and function_name == "main":
+            # Normal .c file has identifiers which indicates where the global variables constructors is placed in main.
+            # .anil files doesn't have that, so, the first line for main function is the global variables constructors
+            # initialization code.
+            if len(global_variables_initialization_code) > 0:
+                LinesCache.append("//Global Variables Initialization.\n")
+                LinesCache.extend(global_variables_initialization_code)
+                LinesCache.append("\n")
+                global_variables_initialization_code = []
         
         fn = MemberFunction(function_name, parameters, return_type)
         fn.is_overloaded_function = is_overloaded_fn
@@ -5520,6 +5568,7 @@ while index < len(Lines):
         else:
             GlobalFunctions.append(fn)
             class_fn_defination["function_destination"] = "global"
+            class_fn_defination["function_name"] = function_name
 
         is_inside_user_defined_function = True
 
@@ -5720,6 +5769,10 @@ while index < len(Lines):
                 if destructor_code != "":
                     LinesCache.append(destructor_code)
 
+        if class_fn_defination["function_name"] == "main":
+            if is_anil_file:
+                LinesCache.append("\n// GLOBAL_VARIABLES_DESTRUCTOR_CODE //\n")
+
         return_encountered_in_fn = True
         scopes_with_return_stmnt.append(current_scope)
 
@@ -5897,9 +5950,32 @@ if len(global_variables_initialization_code) > 0 and not main_fn_found:
         print(g_code)
     RAISE_ERROR("Couldn't find main function to place global variable initialization code.")
 
+def get_initial_global_definations():
+    combined_global_definitions = []
+    if is_anil_file:
+        # [ 
+        #   "#include<stdio.h>",
+        #   "#include<stdlib.h>",
+        #   "#include<stdio.h>",
+        # ]
+        UniqueIncludeLines = []
+        for line in IncludeLines:
+            line = line.strip().replace(" ", "")
+            if line not in UniqueIncludeLines:
+                UniqueIncludeLines.append(line + "\n")
+
+        combined_global_definitions += UniqueIncludeLines + ["\n\n"]
+    combined_global_definitions += GlobalGeneratedStructDefinations + GlobalGeneratedFunctionDeclarations + "\n\n" + GlobalGeneratedStructDestructors + GlobalStructInitCode
+    return combined_global_definitions
+
+# A main function can have multiple return values.
+# Every return needs to call destructors.
+# TODO?? But does this work with actual multiple returns ??
+destructor_for_all_global_variables = symbol_table.destructor_code_for_all_remaining_variables()
+
 for i in range(len(LinesCache)):
     if "// STRUCT_DEFINATIONS //" in LinesCache[i]:
-        LinesCache[i] = GlobalGeneratedStructDefinations + GlobalGeneratedFunctionDeclarations + "\n\n" + GlobalGeneratedStructDestructors + GlobalStructInitCode
+        LinesCache[i] = get_initial_global_definations()
     elif "// DESTRUCTOR_CODE //" in LinesCache[i]:
         LinesCache[i] = ""
     elif "// HWND_VARIABLE_DECLARATIONS //" in LinesCache[i]:
@@ -5910,6 +5986,8 @@ for i in range(len(LinesCache)):
         LinesCache[i] = gui_manager.get_gui_assignment_code()
     elif "// INPUT_FIELD_AUTO_BIND_TO_STRING //"  in LinesCache[i]:
         LinesCache[i] = gui_manager.get_all_input_field_update_code()
+    elif "// GLOBAL_VARIABLES_DESTRUCTOR_CODE //" in LinesCache[i]:
+        LinesCache[i] = "\n" + destructor_for_all_global_variables
 
 
 with open(output_file_name, "w") as outputFile:

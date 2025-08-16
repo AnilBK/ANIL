@@ -1,0 +1,27 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+struct Rectangle{int length, int breadth};
+
+namespace Rectangle
+function __init__(l : int, b : int)
+  this.length = l
+  this.breadth = b
+endfunction
+
+function area()
+  let area : int = 20
+  print("Area of the rectangle is {area}.\n")
+endfunction
+endnamespace
+
+function print_param(param : int) for Rectangle
+  print("Parameter provided to the rectangle is {param}.\n")
+endfunction
+
+function main() -> int:
+  let rect = Rectangle{10, 20};
+  rect.area()
+  rect.print_param(10)
+  return 0
+endfunction

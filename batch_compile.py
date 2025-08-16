@@ -1,16 +1,20 @@
 file_names = [
     "examples\\00_Hello_World.c",
+    "examples\\00_Hello_World.anil",
     "examples\\01_variables.c",
     "examples\\02_List.c",
     "examples\\03_Dictionary.c",
     "examples\\04_Classes.c",
+    "examples\\04_Classes.anil",
     "examples\\04_b_Classes.c",
     "examples\\05_Strings.c",
     "examples\\06_Vector.c",
     "examples\\07_Set.c",
     "examples\\08_Optional.c",
+    "examples\\08_Optional.anil",
     "examples\\09_Functions.c",
     "examples\\10_FileIO.c",
+    "examples\\10_FileIO.anil",
     "examples\\Annotations.c",
     "examples\\Compile_Time_Constants.c",
     "examples\\Macro_With_Variadic_Arguments.c",
@@ -32,6 +36,7 @@ file_names = [
     "Bootstrap\\lexer_test.c",
     "Bootstrap\\Parser.c",
     "Bootstrap\\preprocess_test.c",
+    "Bootstrap\\preprocess_test.anil",
 ]
 
 import subprocess

@@ -1,0 +1,35 @@
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+import Optional
+
+struct Test{char dummy};
+  
+namespace Test
+  function return_val() -> Optional<int>:
+    let opt = Optional<int>{};
+    opt.set_value(5)
+    return opt
+  endfunction
+  
+  function return_none() -> Optional<int>:
+    let opt = Optional<int>{};
+    return opt
+  endfunction
+  endnamespace
+
+function main() -> int:
+  let test = Test{};
+
+  let optional_int = test.return_val()
+  if optional_int.has_value(){
+    let val = optional_int.get_value()
+    print("Value is {val}")
+  }
+
+  let opt = Optional<int>{};
+  opt.set_value(5)
+
+  return 0
+endfunction

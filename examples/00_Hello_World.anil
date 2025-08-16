@@ -1,0 +1,11 @@
+#include <stdio.h>
+
+function print_hello_world_in_ANIL()
+  print("Hello World from ANIL function.\n")
+endfunction
+
+function main() -> int:
+  print("Hello World.\n")
+  print_hello_world_in_ANIL()
+  return 0
+endfunction
