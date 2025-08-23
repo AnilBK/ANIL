@@ -10,8 +10,9 @@
 #define UIElement__MAX_TEXT_LENGTH 256
 #define UIElement__DEFAULT_ITEM_HEIGHT 20 // Default height for list items
 #define UIElement__MIN_LIST_HEIGHT 50     // Minimum height for the listbox
+#define UIElement__MIN_TEXTAREA_HEIGHT 50 // Minimum height for the editor
 
-typedef enum { LABEL, BUTTON, LIST, EDIT, HORIZONTAL, VERTICAL } UIType;
+typedef enum { LABEL, BUTTON, LIST, EDIT, TEXTAREA, HORIZONTAL, VERTICAL } UIType;
 
 struct UIElement;
 
@@ -174,6 +175,11 @@ bool CreateElementHwnd(UIElement *element, HWND ownerHwnd,
     style |= ES_AUTOHSCROLL | ES_LEFT | WS_BORDER;
     exStyle |= WS_EX_CLIENTEDGE; // Optional, WS_BORDER often enough
     break;
+  case TEXTAREA:
+    className = WC_EDIT;
+    style |= ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN | WS_VSCROLL | WS_BORDER;
+    exStyle |= WS_EX_CLIENTEDGE;
+    break;
   default:
     fprintf(stderr,
             "Error: Unknown element type %d for HWND creation (ID: '%s').\n",
@@ -273,6 +279,8 @@ int CalculatePreferredHeight(UIElement *element) {
     return element->height > 0 ? element->height : 25;
   case EDIT:
     return element->height > 0 ? element->height : 25;
+  case TEXTAREA:
+    return element->height > 0 ? element->height : 150;
   default:
     return element->height;
   }
@@ -294,7 +302,7 @@ void SetEventHandler(UIElement *element, EventHandler handler, void *userData) {
 }
 
 char *GetEditText(UIElement *edit) {
-  if (edit == NULL || edit->type != EDIT || edit->hwnd == NULL)
+  if (edit == NULL || (edit->type != EDIT && edit->type != TEXTAREA) || edit->hwnd == NULL)
     return NULL;
   int length = GetWindowTextLength(edit->hwnd);
   if (length == 0) {
@@ -315,7 +323,7 @@ char *GetEditText(UIElement *edit) {
 }
 
 void ClearEditText(UIElement *edit) {
-  if (edit && edit->type == EDIT && edit->hwnd) {
+  if (edit && (edit->type == EDIT || edit->type == TEXTAREA) && edit->hwnd) {
     SetWindowText(edit->hwnd, "");
   }
 }
@@ -413,29 +421,67 @@ void LayoutChildren(UIElement *container) {
       }
     }
   } else if (container->type == VERTICAL) {
+    // Step 1: Discovery Pass.
+    // Go through children to sum up the height of all fixed-size elements
+    // and count the number of flexible elements.
+    int fixedHeightSum = 0;
+    int flexibleChildCount = 0;
+    for (int i = 0; i < container->childCount; i++) {
+        UIElement* child = container->children[i];
+        if (child) {
+            // Define which types are flexible. For now, just the text area.
+            // We could expand this to a flag like `child->isFlexible` later.
+            if (child->type == TEXTAREA) {
+                flexibleChildCount++;
+            } else {
+                fixedHeightSum += CalculatePreferredHeight(child);
+            }
+        }
+    }
+
+    // Step 2: Calculation.
+    // Determine the space remaining for flexible children.
+    int remainingHeight = container->height - fixedHeightSum;
+    if (remainingHeight < 0) {
+        // Prevent negative heights if fixed items overflow.
+        remainingHeight = 0;
+    }
+
+    int heightPerFlexibleChild = (flexibleChildCount > 0) ? (remainingHeight / flexibleChildCount) : 0;
+    
+    // Enforce a minimum height for flexible children.
+    if (heightPerFlexibleChild < UIElement__MIN_TEXTAREA_HEIGHT) {
+        heightPerFlexibleChild = UIElement__MIN_TEXTAREA_HEIGHT;
+    }
+
+    // Step 3: Application Pass.
+    // Go through children again to set their final position and size.
     int currentY = container->y;
     int containerInnerX = container->x;
     int containerWidth = container->width;
 
     for (int i = 0; i < container->childCount; i++) {
       UIElement *child = container->children[i];
-      if (!child)
-        continue;
+      if (!child)continue;
 
-      int childPrefHeight = CalculatePreferredHeight(child);
+      int childHeight;
+      if (child->type == TEXTAREA) {
+          childHeight = heightPerFlexibleChild;
+      } else {
+          childHeight = CalculatePreferredHeight(child);
+      }
 
       child->x = containerInnerX;
       child->y = currentY;
       child->width = containerWidth;
-      child->height = childPrefHeight; // Use preferred height
+      child->height = childHeight;
 
-      // Position the actual HWND *if it exists*
       if (child->hwnd) {
-        SetWindowPos(child->hwnd, NULL, child->x, child->y, child->width,
-                     child->height,
-                     SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
+        SetWindowPos(child->hwnd, NULL, child->x, child->y, child->width, child->height,
+                      SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
       }
-      currentY += childPrefHeight;
+
+      currentY += childHeight; // Move to the next position for the next child
       if (child->type == HORIZONTAL || child->type == VERTICAL) {
         LayoutChildren(child);
       }
@@ -634,6 +680,12 @@ endc_function
 c_function CreateHBox(x:int, y:int, width:int, height:int, id:str) -> UIWidget:
   struct UIWidget w;
   w.uiElement = CreateUIElement(HORIZONTAL, x, y, width, height, (LPCSTR)"", (LPCSTR)id);
+  return w;
+endc_function
+
+c_function CreateTextArea(x:int, y:int, width:int, height:int, id:str) -> UIWidget:
+  struct UIWidget w;
+  w.uiElement = CreateUIElement(TEXTAREA, x, y, width, height, (LPCSTR)"", (LPCSTR)id);
   return w;
 endc_function
 

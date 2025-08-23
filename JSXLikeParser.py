@@ -122,6 +122,7 @@ class UIElementTree:
             "Input": lambda e: f'let {e.id} = {app_ui_var}.CreateLineInput(0, 0, 0, 0, "{e.id}")',
             "List": lambda e: f'let {e.id} = {app_ui_var}.CreateList(0, 0, 100, 25, "{e.id}")',
             "HBox": lambda e: f'let {e.id} = {app_ui_var}.CreateHBox(0, 0, 0, 30, "{e.id}")',
+            "TextArea": lambda e: f'let {e.id} = {app_ui_var}.CreateTextArea(0, 0, 0, 30, "{e.id}")',
         }
 
         # See 'UI_TODO_App.c' to see how code should be generated for UI elements.
