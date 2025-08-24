@@ -5429,6 +5429,9 @@ while index < len(Lines):
             class_fn_defination["class_name"] = namespace_name
             class_fn_defination["function_name"] = function_name
             class_fn_defination["start_index"] = len(LinesCache)
+
+            if function_name == "WinMain":
+                RAISE_ERROR(f"WinMain is a global entry point. It can't be a member function of \"{namespace_name}\".")
         
         if parser.has_tokens_remaining():
             # function my_first_ANIL_function() for String
@@ -5439,6 +5442,9 @@ while index < len(Lines):
 
                 if is_inside_name_space:
                     RAISE_ERROR(f"Is already inside a namespace \"{namespace_name}\". Doesn't need to define target class(\"{target_class}\") for the provided function using the FOR keyword.")
+
+                if function_name == "WinMain":
+                    RAISE_ERROR(f"WinMain is a global entry point. It can't be a member function of \"{namespace_name}\".")
 
                 defining_fn_for_custom_class = True
                 class_fn_defination["class_name"] = target_class
@@ -5528,6 +5534,11 @@ while index < len(Lines):
         has_parameters = len(parameters) > 0
 
         code = f"{return_type} {func_name}("
+        if function_name == "WinMain":
+            # We dont need to use func_name, as we have validated that function_name is a global function,
+            # and not a mangled name.
+            code = f"{return_type} WINAPI {function_name}("
+
         if defining_fn_for_custom_class:
             struct_name = class_fn_defination["class_name"]
             code += f"struct {struct_name} *this"
@@ -5545,7 +5556,7 @@ while index < len(Lines):
 
         LinesCache.append(code)
 
-        if is_anil_file and function_name == "main":
+        if is_anil_file and function_name in ("main", "WinMain"):
             # Normal .c file has identifiers which indicates where the global variables constructors is placed in main.
             # .anil files doesn't have that, so, the first line for main function is the global variables constructors
             # initialization code.
@@ -5769,8 +5780,8 @@ while index < len(Lines):
                 if destructor_code != "":
                     LinesCache.append(destructor_code)
 
-        if class_fn_defination["function_name"] == "main":
-            if is_anil_file:
+        if class_fn_defination["function_name"] in ("main", "WinMain"):
+            if True or is_anil_file:
                 LinesCache.append("\n// GLOBAL_VARIABLES_DESTRUCTOR_CODE //\n")
 
         return_encountered_in_fn = True
