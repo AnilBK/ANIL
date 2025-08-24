@@ -1,0 +1,82 @@
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <windows.h>
+#include <commctrl.h>
+
+import Vector
+import String
+import UI
+import File
+
+function CreateUIWidgetFromVoidPtr(ptr: voidPtr) -> UIWidget:
+  let w = UIWidget{};
+  let widget = w.CreateUIWidgetFromVoidPtr(ptr)
+  return widget
+endfunction
+
+function Compile(userData: voidPtr)
+  let root = CreateUIWidgetFromVoidPtr(userData)
+endfunction
+
+function Execute(userData: voidPtr)
+  let root = CreateUIWidgetFromVoidPtr(userData)
+endfunction
+
+function OpenFileAndLoadToEditor(userData: voidPtr)
+  let root = CreateUIWidgetFromVoidPtr(userData)
+
+  let editor = root.FindElementById("codeEditor")
+  if editor.isValid(){
+    let fileContents = editor.OpenFilePickerAndReadContents()
+    editor.SetEditText(fileContents)
+  }
+endfunction
+
+function SaveEditorContentsToFile(userData: voidPtr)
+  let root = CreateUIWidgetFromVoidPtr(userData)
+
+  let editor = root.FindElementById("codeEditor")
+  if editor.isValid(){
+    let fileContents = editor.GetEditText()
+
+    let outputFile = File{"out.c"};
+    outputFile.write(fileContents)
+  }
+endfunction
+
+function WinMain(hInstance: HINSTANCE, hPrevInstance: HINSTANCE, lpCmdLine: LPSTR, nCmdShow: int) -> int:
+  let AppConfig = WinUIAppConfig{hInstance, nCmdShow};
+
+  let App = WinUIApp{};
+  let result_code : int = App.Create(AppConfig, "ANIL IDE")
+  
+  if result_code == -1 {
+    // Initialization failed
+    return -1; 
+  }
+
+  <UI>
+    <App id="_" name="App" rootElement="root_elem"></App>
+    <Label id="headerLabel">"My Own IDE"</Label>
+    <TextArea id="codeEditor"></TextArea>
+    <HBox id="actionRow">
+      <Button id="filePickerButton" onclick="OpenFileAndLoadToEditor(root_elem)">"Open File"</Button>
+      <Button id="saveButton" onclick="SaveEditorContentsToFile(root_elem)">"Save File"</Button>
+      <Button id="compileButton" onclick="Compile(root_elem)">"Compile"</Button>
+      <Button id="executeButton" onclick="Execute(root_elem)">"Execute"</Button>
+    </HBox>
+  </UI>
+
+  // Create Windows Controls (HWNDs) for Children of Root.
+  let create_status = App.CreateControls()
+  if create_status == false {
+    fprintf(stderr, "Failed to create HWND tree starting from child '%s'.\n", root_elem.uiElement->id);
+    App.CleanUp()
+    return -1
+  }
+
+  let exitCode = App.Run()
+
+  return 0
+endfunction

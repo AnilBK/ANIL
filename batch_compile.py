@@ -26,6 +26,7 @@ file_names = [
     "examples\\UI\\TodoAppBasic.c",
     "examples\\UI\\TodoAppJSX.c",
     "examples\\UI\\TodoAppWebServer.c",
+    "examples\\UI\\IDE\\IDE.anil",
     "examples\\Variables_GUI_Input_Win.c",
     "examples\\WebServer.c",
     "examples\\TestSuites\\Expression_parse_tests.c",
