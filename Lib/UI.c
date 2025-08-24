@@ -301,6 +301,12 @@ void SetEventHandler(UIElement *element, EventHandler handler, void *userData) {
   element->userData = userData;
 }
 
+void SetEditText(UIElement *edit, char *text) {
+  if (edit && (edit->type == EDIT || edit->type == TEXTAREA) && edit->hwnd) {
+    SetWindowText(edit->hwnd, text);
+  }
+}
+
 char *GetEditText(UIElement *edit) {
   if (edit == NULL || (edit->type != EDIT && edit->type != TEXTAREA) || edit->hwnd == NULL)
     return NULL;
@@ -715,10 +721,18 @@ c_function ClearEditText()
   ClearEditText(this->uiElement);
 endc_function
 
+c_function SetEditText(text:String)
+  if (this->uiElement && (this->uiElement->type == EDIT || this->uiElement->type == TEXTAREA)) {
+    SetEditText(this->uiElement, Stringc_str(&text));
+  } else {
+    fprintf(stderr, "Error: SetEditText called on non-edit/text_editor element.\n");
+  }
+endc_function
+
 c_function GetEditText() -> String:
   struct String EditText;
 
-  if (this->uiElement->type != EDIT) {
+  if (this->uiElement && (this->uiElement->type != EDIT && this->uiElement->type != TEXTAREA)) {
     fprintf(stderr, "Error: GetEditText called on non-edit element.\n");
 
     // Just return an empty string.
@@ -813,6 +827,70 @@ function GetAllItemsInList() -> Vector<String>:
   }
   return result
 endfunction
+
+c_function OpenFilePickerAndReadContents() -> String:
+  struct String fileContents;
+  String__init__OVDstr(&fileContents, "");
+
+  HWND hwndOwner = this->uiElement->hwnd; // The main window owns the dialog
+  char szFile[MAX_PATH] = {0};
+
+  OPENFILENAMEA ofn;
+  ZeroMemory(&ofn, sizeof(ofn));
+  ofn.lStructSize = sizeof(ofn);
+  ofn.hwndOwner = hwndOwner;
+  ofn.lpstrFile = szFile;
+  ofn.nMaxFile = sizeof(szFile);
+  ofn.lpstrFilter = "ANIL & C Files (*.anil;*.c)\0*.anil;*.c\0"
+                    "ANIL Files (*.anil)\0*.anil\0"
+                    "C Source Files (*.c)\0*.c\0";
+  ofn.nFilterIndex = 1;
+  ofn.lpstrFileTitle = NULL;
+  ofn.nMaxFileTitle = 0;
+  ofn.lpstrInitialDir = NULL;
+  ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+  if (GetOpenFileNameA(&ofn) == TRUE) {
+    HANDLE hFile =
+        CreateFileA(ofn.lpstrFile, GENERIC_READ, FILE_SHARE_READ, NULL,
+                    OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+    if (hFile != INVALID_HANDLE_VALUE) {
+      DWORD dwFileSize = GetFileSize(hFile, NULL);
+      if (dwFileSize != INVALID_FILE_SIZE) {
+        char *buffer = (char *)malloc(dwFileSize + 1);
+        if (buffer) {
+          DWORD dwBytesRead = 0;
+          if (ReadFile(hFile, buffer, dwFileSize, &dwBytesRead, NULL) &&
+              dwBytesRead == dwFileSize) {
+            buffer[dwFileSize] = '\0';
+            Stringreassign_internal(&fileContents, buffer, dwFileSize);
+          } else {
+            MessageBox(hwndOwner, "Error reading file content.", "File Error",
+                       MB_OK | MB_ICONERROR);
+            String__init__OVDstr(&fileContents, "");
+          }
+          free(buffer);
+        } else {
+          MessageBox(hwndOwner, "Memory allocation failed.", "Error",
+                     MB_OK | MB_ICONERROR);
+          Stringclear(&fileContents);
+        }
+      } else {
+        MessageBox(hwndOwner, "Could not get file size.", "File Error",
+                   MB_OK | MB_ICONERROR);
+        Stringclear(&fileContents);
+      }
+      CloseHandle(hFile);
+    } else {
+      MessageBox(hwndOwner, "Could not open selected file.", "File Error",
+                 MB_OK | MB_ICONERROR);
+      Stringclear(&fileContents);
+    }
+  }
+
+  return fileContents;
+endc_function
 
 endnamespace
 
