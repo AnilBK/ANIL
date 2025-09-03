@@ -23,6 +23,23 @@ function Execute(userData: voidPtr)
   let root = CreateUIWidgetFromVoidPtr(userData)
 endfunction
 
+function Load(userData: voidPtr)
+  let root = CreateUIWidgetFromVoidPtr(userData)
+
+  let editor = root.FindElementById("filePickerButton")
+  if editor.isValid(){
+    let fileName = editor.getFilePath()
+
+    let fileContents = ""
+    fileContents.set_to_file_contents(fileName)
+
+    let codeEditor = root.FindElementById("codeEditor")
+    if codeEditor.isValid(){
+      codeEditor.SetEditText(fileContents)
+    }
+  }
+endfunction
+
 function OpenFileAndLoadToEditor(userData: voidPtr)
   let root = CreateUIWidgetFromVoidPtr(userData)
 
@@ -61,7 +78,8 @@ function WinMain(hInstance: HINSTANCE, hPrevInstance: HINSTANCE, lpCmdLine: LPST
     <Label id="headerLabel">"My Own IDE"</Label>
     <TextArea id="codeEditor"></TextArea>
     <HBox id="actionRow">
-      <Button id="filePickerButton" onclick="OpenFileAndLoadToEditor(root_elem)">"Open File"</Button>
+      <Input type="file" id="filePickerButton" onclick="Load(root_elem)"></Input>
+      <Button id="loadButton" onclick="Load(root_elem)">"Load File"</Button>
       <Button id="saveButton" onclick="SaveEditorContentsToFile(root_elem)">"Save File"</Button>
       <Button id="compileButton" onclick="Compile(root_elem)">"Compile"</Button>
       <Button id="executeButton" onclick="Execute(root_elem)">"Execute"</Button>

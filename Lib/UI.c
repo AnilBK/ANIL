@@ -32,6 +32,8 @@ typedef struct UIElement {
   EventHandler onClick;       // Event handler for button clicks
   void *userData;             // Custom data for event handlers
   int itemCount;              // For list elements - track number of items
+  char filePath[MAX_PATH];    // For file picker button - store selected file path
+  bool isFilePicker;
 } UIElement;
 
 typedef struct WinUIAppCoreData {
@@ -46,6 +48,8 @@ typedef void *voidPtr;
 
 // Global root element for traversal
 UIElement *g_rootElement = NULL;
+
+HWND g_MainWindowHWND = NULL;
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 void RefreshUILayout();
@@ -501,6 +505,36 @@ void LayoutChildren(UIElement *container) {
   }
 }
 
+
+void OpenFilePickerDialog(void *filePickerElement) {
+  struct UIElement *element = (struct UIElement *)(filePickerElement);
+  if (element == NULL) {
+    fprintf(stderr, "Error: Creating Widget failed.\n");
+    return;
+  }
+
+  OPENFILENAME ofn;       // Common dialog box structure
+  char szFile[260] = {0}; // Buffer for file name
+
+  // Initialize OPENFILENAME
+  ZeroMemory(&ofn, sizeof(ofn));
+  ofn.lStructSize = sizeof(ofn);
+  ofn.hwndOwner = g_MainWindowHWND; // Use the main window handle
+  ofn.lpstrFile = szFile;
+  ofn.nMaxFile = sizeof(szFile);
+  ofn.lpstrFilter = "ANIL & C Files (*.anil;*.c)\0*.anil;*.c\0"
+                    "ANIL Files (*.anil)\0*.anil\0"
+                    "C Source Files (*.c)\0*.c\0";
+  ofn.nFilterIndex = 1;
+  ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+
+  if (GetOpenFileName(&ofn) == TRUE) {
+    strncpy(element->filePath, szFile, sizeof(element->filePath) - 1);
+    element->filePath[sizeof(element->filePath) - 1] = '\0';
+  }
+}
+
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
   switch (msg) {
   case WM_DESTROY:
@@ -511,8 +545,20 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
       HWND controlHwnd = (HWND)lParam;
       UIElement *element =
           (UIElement *)GetWindowLongPtr(controlHwnd, GWLP_USERDATA);
-      if (element && element->onClick) {
-        element->onClick(element->userData);
+      
+      if(element){
+        // For file pickers, open the dialog.
+        if(element->type == BUTTON && element->isFilePicker){
+          OpenFilePickerDialog(element);
+          fprintf(stderr, "Opened File Picker.\n");
+        }
+        
+        // Filepickers also have onClick handlers.
+        // i.e they trigger after a file is picked.
+        if(element->onClick){
+          fprintf(stderr, "Normal Button OnClick handler.\n");
+          element->onClick(element->userData);
+        }
       }
     } else if (HIWORD(wParam) == LBN_SELCHANGE) {
       HWND controlHwnd = (HWND)lParam;
@@ -566,7 +612,7 @@ void RedirectIOToConsole() {
 
 struct VoidPointer{void* ptr};
 
-struct UIWidget { UIElement *uiElement };
+struct UIWidget { UIElement *uiElement};
 
 namespace VoidPointer
 c_function __init__(payload:UIWidget)
@@ -577,6 +623,19 @@ endc_function
 endnamespace
 
 namespace UIWidget
+
+c_function getFilePath() -> String:
+  struct String path;
+  if (this->uiElement){// && this->uiElement->type == BUTTON) {
+    // Use the new field in UIElement to get the file path.
+    String__init__from_charptr(&path, this->uiElement->filePath, strlen(this->uiElement->filePath));
+    return path;
+  } else {
+    fprintf(stderr, "Error: getFilePath called on non-file-picker button element.\n");
+    String__init__OVDstr(&path, "");
+    return path;
+  }
+endc_function
 
 c_function CreateUIWidgetFromVoidPtr(ptr: voidPtr) -> UIWidget:
   // FIXME: This is like a static function.
@@ -668,6 +727,13 @@ endc_function
 c_function CreateLineInput(x:int, y:int, width:int, height:int, id:str) -> UIWidget:
   struct UIWidget w;
   w.uiElement = CreateUIElement(EDIT, x, y, width, height, (LPCSTR)"", (LPCSTR)id);
+  return w;
+endc_function
+
+c_function CreateFilePicker(x:int, y:int, width:int, height:int, id:str) -> UIWidget:
+  struct UIWidget w;
+  w.uiElement = CreateUIElement(BUTTON, x, y, width, height, (LPCSTR)"Open File", (LPCSTR)id);
+  w.uiElement->isFilePicker = true;
   return w;
 endc_function
 
@@ -894,7 +960,6 @@ endc_function
 
 endnamespace
 
-
 struct WinUIAppConfig{HINSTANCE hInstance, int nCmdShow};
 
 struct WinUIApp{WinUIAppConfig winConfig, WinUIAppCoreData* appCoreData};
@@ -962,6 +1027,8 @@ c_function _InitializeMainWindow(p_title:str, width:int, height:int) -> WinUIApp
 
   appCoreData->hInstance = hInstance;
   appCoreData->mainHwnd = hwnd;
+
+  g_MainWindowHWND = hwnd;
 
   // Create the root UI element (typically a vertical container)
   // Its x,y are 0,0 relative to the client area. Width/height will be set by

@@ -40,9 +40,11 @@ typedef struct UIElement {
   char text[UIElement__MAX_TEXT_LENGTH]; // Store element text (label, button
                                          // text, initial
   // edit text)
-  EventHandler onClick; // Event handler for button clicks
-  void *userData;       // Custom data for event handlers
-  int itemCount;        // For list elements - track number of items
+  EventHandler onClick;    // Event handler for button clicks
+  void *userData;          // Custom data for event handlers
+  int itemCount;           // For list elements - track number of items
+  char filePath[MAX_PATH]; // For file picker button - store selected file path
+  bool isFilePicker;
 } UIElement;
 
 typedef struct WinUIAppCoreData {
@@ -57,6 +59,8 @@ typedef void *voidPtr;
 
 // Global root element for traversal
 UIElement *g_rootElement = NULL;
+
+HWND g_MainWindowHWND = NULL;
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 void RefreshUILayout();
@@ -516,6 +520,34 @@ void LayoutChildren(UIElement *container) {
   }
 }
 
+void OpenFilePickerDialog(void *filePickerElement) {
+  struct UIElement *element = (struct UIElement *)(filePickerElement);
+  if (element == NULL) {
+    fprintf(stderr, "Error: Creating Widget failed.\n");
+    return;
+  }
+
+  OPENFILENAME ofn;       // Common dialog box structure
+  char szFile[260] = {0}; // Buffer for file name
+
+  // Initialize OPENFILENAME
+  ZeroMemory(&ofn, sizeof(ofn));
+  ofn.lStructSize = sizeof(ofn);
+  ofn.hwndOwner = g_MainWindowHWND; // Use the main window handle
+  ofn.lpstrFile = szFile;
+  ofn.nMaxFile = sizeof(szFile);
+  ofn.lpstrFilter = "ANIL & C Files (*.anil;*.c)\0*.anil;*.c\0"
+                    "ANIL Files (*.anil)\0*.anil\0"
+                    "C Source Files (*.c)\0*.c\0";
+  ofn.nFilterIndex = 1;
+  ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+
+  if (GetOpenFileName(&ofn) == TRUE) {
+    strncpy(element->filePath, szFile, sizeof(element->filePath) - 1);
+    element->filePath[sizeof(element->filePath) - 1] = '\0';
+  }
+}
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
   switch (msg) {
   case WM_DESTROY:
@@ -526,8 +558,20 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
       HWND controlHwnd = (HWND)lParam;
       UIElement *element =
           (UIElement *)GetWindowLongPtr(controlHwnd, GWLP_USERDATA);
-      if (element && element->onClick) {
-        element->onClick(element->userData);
+
+      if (element) {
+        // For file pickers, open the dialog.
+        if (element->type == BUTTON && element->isFilePicker) {
+          OpenFilePickerDialog(element);
+          fprintf(stderr, "Opened File Picker.\n");
+        }
+
+        // Filepickers also have onClick handlers.
+        // i.e they trigger after a file is picked.
+        if (element->onClick) {
+          fprintf(stderr, "Normal Button OnClick handler.\n");
+          element->onClick(element->userData);
+        }
       }
     } else if (HIWORD(wParam) == LBN_SELCHANGE) {
       HWND controlHwnd = (HWND)lParam;
@@ -656,6 +700,7 @@ struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename);
 
 void VoidPointer__init__(struct VoidPointer *this, struct UIWidget payload);
 
+struct String UIWidgetgetFilePath(struct UIWidget *this);
 struct UIWidget UIWidgetCreateUIWidgetFromVoidPtr(struct UIWidget *this,
                                                   voidPtr ptr);
 bool UIWidgetisValid(struct UIWidget *this);
@@ -671,6 +716,8 @@ struct UIWidget UIWidgetCreateList(struct UIWidget *this, int x, int y,
                                    int width, int height, char *id);
 struct UIWidget UIWidgetCreateLineInput(struct UIWidget *this, int x, int y,
                                         int width, int height, char *id);
+struct UIWidget UIWidgetCreateFilePicker(struct UIWidget *this, int x, int y,
+                                         int width, int height, char *id);
 struct UIWidget UIWidgetCreateButton(struct UIWidget *this, int x, int y,
                                      int width, int height, char *initialText,
                                      char *id);
@@ -710,6 +757,7 @@ void File__del__(struct File *this);
 struct UIWidget CreateUIWidgetFromVoidPtr(voidPtr ptr);
 void Compile(voidPtr userData);
 void Execute(voidPtr userData);
+void Load(voidPtr userData);
 void OpenFileAndLoadToEditor(voidPtr userData);
 void SaveEditorContentsToFile(voidPtr userData);
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
@@ -1001,6 +1049,21 @@ void VoidPointer__init__(struct VoidPointer *this, struct UIWidget payload) {
   this->ptr = (void *)payload.uiElement;
 }
 
+struct String UIWidgetgetFilePath(struct UIWidget *this) {
+  struct String path;
+  if (this->uiElement) { // && this->uiElement->type == BUTTON) {
+    // Use the new field in UIElement to get the file path.
+    String__init__from_charptr(&path, this->uiElement->filePath,
+                               strlen(this->uiElement->filePath));
+    return path;
+  } else {
+    fprintf(stderr,
+            "Error: getFilePath called on non-file-picker button element.\n");
+    String__init__OVDstr(&path, "");
+    return path;
+  }
+}
+
 struct UIWidget UIWidgetCreateUIWidgetFromVoidPtr(struct UIWidget *this,
                                                   voidPtr ptr) {
   // FIXME: This is like a static function.
@@ -1102,6 +1165,15 @@ struct UIWidget UIWidgetCreateLineInput(struct UIWidget *this, int x, int y,
   struct UIWidget w;
   w.uiElement =
       CreateUIElement(EDIT, x, y, width, height, (LPCSTR) "", (LPCSTR)id);
+  return w;
+}
+
+struct UIWidget UIWidgetCreateFilePicker(struct UIWidget *this, int x, int y,
+                                         int width, int height, char *id) {
+  struct UIWidget w;
+  w.uiElement = CreateUIElement(BUTTON, x, y, width, height,
+                                (LPCSTR) "Open File", (LPCSTR)id);
+  w.uiElement->isFilePicker = true;
   return w;
 }
 
@@ -1403,6 +1475,8 @@ WinUIAppCoreDataPtr WinUIApp_InitializeMainWindow(struct WinUIApp *this,
 
   appCoreData->hInstance = hInstance;
   appCoreData->mainHwnd = hwnd;
+
+  g_MainWindowHWND = hwnd;
 
   // Create the root UI element (typically a vertical container)
   // Its x,y are 0,0 relative to the client area. Width/height will be set by
@@ -1765,6 +1839,28 @@ void Execute(voidPtr userData) {
   struct UIWidget root = CreateUIWidgetFromVoidPtr(userData);
 }
 
+void Load(voidPtr userData) {
+  struct UIWidget root = CreateUIWidgetFromVoidPtr(userData);
+
+  struct UIWidget editor = UIWidgetFindElementById(&root, "filePickerButton");
+
+  if (UIWidgetisValid(&editor)) {
+    struct String fileName = UIWidgetgetFilePath(&editor);
+
+    struct String fileContents;
+    String__init__OVDstrint(&fileContents, "", 0);
+    Stringset_to_file_contents(&fileContents, Stringc_str(&fileName));
+
+    struct UIWidget codeEditor = UIWidgetFindElementById(&root, "codeEditor");
+
+    if (UIWidgetisValid(&codeEditor)) {
+      UIWidgetSetEditText(&codeEditor, fileContents);
+    }
+    String__del__(&fileContents);
+    String__del__(&fileName);
+  }
+}
+
 void OpenFileAndLoadToEditor(voidPtr userData) {
   struct UIWidget root = CreateUIWidgetFromVoidPtr(userData);
 
@@ -1817,8 +1913,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
       UIWidgetCreateTextArea(&App__ui, 0, 0, 0, 30, "codeEditor");
   struct UIWidget actionRow =
       UIWidgetCreateHBox(&App__ui, 0, 0, 0, 30, "actionRow");
-  struct UIWidget filePickerButton = UIWidgetCreateButton(
-      &App__ui, 0, 0, 60, 0, "Open File", "filePickerButton");
+  struct UIWidget filePickerButton =
+      UIWidgetCreateFilePicker(&App__ui, 0, 0, 0, 30, "filePickerButton");
+  struct UIWidget loadButton =
+      UIWidgetCreateButton(&App__ui, 0, 0, 60, 0, "Load File", "loadButton");
   struct UIWidget saveButton =
       UIWidgetCreateButton(&App__ui, 0, 0, 60, 0, "Save File", "saveButton");
   struct UIWidget compileButton =
@@ -1829,6 +1927,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
   UIWidgetAddChild(&root_elem, codeEditor);
   UIWidgetAddChild(&root_elem, actionRow);
   UIWidgetAddChild(&actionRow, filePickerButton);
+  UIWidgetAddChild(&actionRow, loadButton);
   UIWidgetAddChild(&actionRow, saveButton);
   UIWidgetAddChild(&actionRow, compileButton);
   UIWidgetAddChild(&actionRow, executeButton);
@@ -1836,18 +1935,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
   // OnClick Callbacks.
   struct VoidPointer __payload_0;
   VoidPointer__init__(&__payload_0, root_elem);
-  UIWidgetSetOnClickCallback(&filePickerButton, OpenFileAndLoadToEditor,
-                             __payload_0);
+  UIWidgetSetOnClickCallback(&filePickerButton, Load, __payload_0);
   struct VoidPointer __payload_1;
   VoidPointer__init__(&__payload_1, root_elem);
-  UIWidgetSetOnClickCallback(&saveButton, SaveEditorContentsToFile,
-                             __payload_1);
+  UIWidgetSetOnClickCallback(&loadButton, Load, __payload_1);
   struct VoidPointer __payload_2;
   VoidPointer__init__(&__payload_2, root_elem);
-  UIWidgetSetOnClickCallback(&compileButton, Compile, __payload_2);
+  UIWidgetSetOnClickCallback(&saveButton, SaveEditorContentsToFile,
+                             __payload_2);
   struct VoidPointer __payload_3;
   VoidPointer__init__(&__payload_3, root_elem);
-  UIWidgetSetOnClickCallback(&executeButton, Execute, __payload_3);
+  UIWidgetSetOnClickCallback(&compileButton, Compile, __payload_3);
+  struct VoidPointer __payload_4;
+  VoidPointer__init__(&__payload_4, root_elem);
+  UIWidgetSetOnClickCallback(&executeButton, Execute, __payload_4);
 
   // Create Windows Controls (HWNDs) for Children of Root.
   bool create_status = WinUIAppCreateControls(&App);

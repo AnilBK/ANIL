@@ -33,6 +33,16 @@ class UIElement:
         attrs = ", ".join(f"{attr.name}: {attr.value}" for attr in self.attributes)
         return f"{self.name}({attrs})"
 
+    def is_file_picker_element(self):
+        if self.name == "Input":
+            try:
+                input_type_attribute = self.get_attribute_value("type")
+                if input_type_attribute == "file":
+                    return True
+            except ValueError:
+                return False
+        return False
+
 
 ROOT_ELEMENT_NAME = "@root@"
 
@@ -123,6 +133,7 @@ class UIElementTree:
             "List": lambda e: f'let {e.id} = {app_ui_var}.CreateList(0, 0, 100, 25, "{e.id}")',
             "HBox": lambda e: f'let {e.id} = {app_ui_var}.CreateHBox(0, 0, 0, 30, "{e.id}")',
             "TextArea": lambda e: f'let {e.id} = {app_ui_var}.CreateTextArea(0, 0, 0, 30, "{e.id}")',
+            "FilePicker": lambda e: f'let {e.id} = {app_ui_var}.CreateFilePicker(0, 0, 0, 30, "{e.id}")',
         }
 
         # See 'UI_TODO_App.c' to see how code should be generated for UI elements.
@@ -134,7 +145,10 @@ class UIElementTree:
         for element in all_elements:
             if element.name in CODEGEN_EXCEPTIONS or is_root_element(element):
                 continue
-            if element.name in creation_map:
+            if element.is_file_picker_element():
+                #                        VVVVVVVVVVV the element.name is Input, so we pass "FilePicker" directly. 
+                code.append(creation_map["FilePicker"](element))
+            elif element.name in creation_map:
                 code.append(creation_map[element.name](element))
             else:
                 raise ValueError(
@@ -158,6 +172,19 @@ class UIElementTree:
                         # // Pass the root element as userData so the handler can find other elements
                         # let payload = VoidPointer{root_elem};
                         # addButton.SetOnClickCallback(AddTodo, payload)
+
+                        payload_var_name =  f"__payload_{self.payload_var_count}"
+                        self.payload_var_count += 1
+
+                        payload_code = f"let {payload_var_name} = VoidPointer{{ {fn_param} }}; \n"
+                        code.append(payload_code)
+                        code.append(f"{element.id}.SetOnClickCallback({fn_name}, {payload_var_name}) \n")
+                elif element.is_file_picker_element():
+                    onclick = element.get_attribute_value("onclick")
+                    if onclick:
+                        # onclick can be "f()" or "f(payload)"
+                        fn_name = onclick.split("(")[0]
+                        fn_param = onclick.split("(")[1].split(")")[0]
 
                         payload_var_name =  f"__payload_{self.payload_var_count}"
                         self.payload_var_count += 1
