@@ -3,6 +3,25 @@ class UIAttribute:
         self.name = name
         self.value = value
 
+"""
+Input:
+ANIL & C Files|*.anil;*.c|Anil Files|*.anil|C Source Files|*.c|
+
+Output:
+[
+    ("ANIL & C Files (*.anil;*.c)", "*.anil;*.c"),
+    ("Anil Files (*.anil)", "*.anil"),
+    ("C Source Files (*.c)", "*.c")
+]
+"""
+def parse_filter_string(filter_str: str):
+    parts = [p for p in filter_str.split("|") if p]
+    pairs = []
+    for desc, pattern in zip(parts[::2], parts[1::2]):
+        desc_with_pattern = f"{desc} ({pattern})"
+        pairs.append((desc_with_pattern, pattern))
+    return pairs
+
 
 class UIElement:
     def __init__(self, name):
@@ -157,6 +176,20 @@ class UIElementTree:
 
         # root_elem.AddChild(headerLabel)
         code.extend(generate_add_child_code(self.root))
+
+        def generate_accept_for_file_picker_code(self):
+            code = []
+            for element in all_elements:
+                if element.is_file_picker_element():
+                    if element.has_attribute("accept"):
+                        accept_filter = element.get_attribute_value("accept")
+                        if accept_filter:
+                            pairs = parse_filter_string(accept_filter)
+                            for description, file_ext in pairs:
+                                code.append(f'{element.id}.AddFileFilter("{description}", "{file_ext}");\n')
+            return code
+
+        code.extend(generate_accept_for_file_picker_code(self))
 
         def generate_onclick_code(self):
             code = []

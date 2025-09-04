@@ -78,7 +78,7 @@ function WinMain(hInstance: HINSTANCE, hPrevInstance: HINSTANCE, lpCmdLine: LPST
     <Label id="headerLabel">"My Own IDE"</Label>
     <TextArea id="codeEditor"></TextArea>
     <HBox id="actionRow">
-      <Input type="file" id="filePickerButton" onclick="Load(root_elem)"></Input>
+      <Input type="file" id="filePickerButton" onclick="Load(root_elem)" accept="ANIL & C Files|*.anil;*.c|Anil Files|*.anil|C Source Files|*.c|"></Input>
       <Button id="loadButton" onclick="Load(root_elem)">"Load File"</Button>
       <Button id="saveButton" onclick="SaveEditorContentsToFile(root_elem)">"Save File"</Button>
       <Button id="compileButton" onclick="Compile(root_elem)">"Compile"</Button>

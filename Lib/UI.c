@@ -11,6 +11,7 @@
 #define UIElement__DEFAULT_ITEM_HEIGHT 20 // Default height for list items
 #define UIElement__MIN_LIST_HEIGHT 50     // Minimum height for the listbox
 #define UIElement__MIN_TEXTAREA_HEIGHT 50 // Minimum height for the editor
+#define UIElement__MAX_FILTER_LENGTH 512  // Max length for file dialog filters
 
 typedef enum { LABEL, BUTTON, LIST, EDIT, TEXTAREA, HORIZONTAL, VERTICAL } UIType;
 
@@ -34,6 +35,8 @@ typedef struct UIElement {
   int itemCount;              // For list elements - track number of items
   char filePath[MAX_PATH];    // For file picker button - store selected file path
   bool isFilePicker;
+  char filterString[UIElement__MAX_FILTER_LENGTH];       // File filter for file picker dialogs
+  int filterStringLength; // Current length of the filter string
 } UIElement;
 
 typedef struct WinUIAppCoreData {
@@ -77,6 +80,10 @@ UIElement *CreateUIElement(UIType type, int x, int y, int width, int height,
   element->onClick = NULL;
   element->userData = NULL;
   element->itemCount = 0;
+  element->filterStringLength = 0;
+  // Ensure the filter string is double-null-terminated initially.
+  element->filterString[0] = '\0';
+  element->filterString[1] = '\0';
 
   if (id) {
     strncpy(element->id, id, sizeof(element->id) - 1);
@@ -505,6 +512,31 @@ void LayoutChildren(UIElement *container) {
   }
 }
 
+void UIElement_AddFileFilter(UIElement *element, const char* description, const char* pattern) {
+    if (!element || !element->isFilePicker) return;
+
+    size_t desc_len = strlen(description);
+    size_t patt_len = strlen(pattern);
+
+    // Check if there is enough space: desc + null + pattern + null + final extra null.
+    if (element->filterStringLength + desc_len + 1 + patt_len + 1 + 1 > UIElement__MAX_FILTER_LENGTH) {
+      fprintf(stderr, "Error: Not enough space to add new file filter.\n");
+      return;
+    }
+
+    // Append description.
+    memcpy(element->filterString + element->filterStringLength, description, desc_len);
+    element->filterStringLength += desc_len;
+    element->filterString[element->filterStringLength++] = '\0';
+
+    // Append pattern.
+    memcpy(element->filterString + element->filterStringLength, pattern, patt_len);
+    element->filterStringLength += patt_len;
+    element->filterString[element->filterStringLength++] = '\0';
+
+    // Add the final double null terminator for the whole list.
+    element->filterString[element->filterStringLength] = '\0';
+}
 
 void OpenFilePickerDialog(void *filePickerElement) {
   struct UIElement *element = (struct UIElement *)(filePickerElement);
@@ -522,9 +554,7 @@ void OpenFilePickerDialog(void *filePickerElement) {
   ofn.hwndOwner = g_MainWindowHWND; // Use the main window handle
   ofn.lpstrFile = szFile;
   ofn.nMaxFile = sizeof(szFile);
-  ofn.lpstrFilter = "ANIL & C Files (*.anil;*.c)\0*.anil;*.c\0"
-                    "ANIL Files (*.anil)\0*.anil\0"
-                    "C Source Files (*.c)\0*.c\0";
+  ofn.lpstrFilter = element->filterStringLength > 0 ? element->filterString : "All Files\0*.*\0\0";
   ofn.nFilterIndex = 1;
   ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 
@@ -737,6 +767,12 @@ c_function CreateFilePicker(x:int, y:int, width:int, height:int, id:str) -> UIWi
   return w;
 endc_function
 
+c_function AddFileFilter(description: str, pattern: str)
+  if (this->uiElement) {
+    UIElement_AddFileFilter(this->uiElement, description, pattern);
+  }
+endc_function
+
 c_function CreateButton(x:int, y:int, width:int, height:int, initialText:str, id:str) -> UIWidget:
   struct UIWidget w;
   w.uiElement = CreateUIElement(BUTTON, x, y, width, height, (LPCSTR)initialText, (LPCSTR)id);
@@ -907,9 +943,7 @@ c_function OpenFilePickerAndReadContents() -> String:
   ofn.hwndOwner = hwndOwner;
   ofn.lpstrFile = szFile;
   ofn.nMaxFile = sizeof(szFile);
-  ofn.lpstrFilter = "ANIL & C Files (*.anil;*.c)\0*.anil;*.c\0"
-                    "ANIL Files (*.anil)\0*.anil\0"
-                    "C Source Files (*.c)\0*.c\0";
+  ofn.lpstrFilter = this->uiElement->filterStringLength > 0 ? this->uiElement->filterString : "All Files\0*.*\0\0";
   ofn.nFilterIndex = 1;
   ofn.lpstrFileTitle = NULL;
   ofn.nMaxFileTitle = 0;
