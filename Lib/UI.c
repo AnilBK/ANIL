@@ -195,7 +195,7 @@ bool CreateElementHwnd(UIElement *element, HWND ownerHwnd,
     break;
   case TEXTAREA:
     className = WC_EDIT;
-    style |= ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN | WS_VSCROLL | WS_BORDER;
+    style |= ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN | WS_VSCROLL | WS_HSCROLL | WS_BORDER;
     exStyle |= WS_EX_CLIENTEDGE;
     break;
   default:
