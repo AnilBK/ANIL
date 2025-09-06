@@ -622,22 +622,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
   return 0;
 }
 
-void RedirectIOToConsole() {
-  // Allocate a console for the current process
-  AllocConsole();
-
-  // Redirect the STDOUT to the console
-  FILE* fp;
-  freopen_s(&fp, "CONOUT$", "w", stdout);
-  freopen_s(&fp, "CONOUT$", "w", stderr);
-
-  // Redirect STDIN to the console
-  freopen_s(&fp, "CONIN$", "r", stdin);
-
-  // Optional: You can set the console title if you like
-  SetConsoleTitle(TEXT("Console Window"));
-} 
-
 ///*///
 
 struct VoidPointer{void* ptr};
@@ -1003,6 +987,21 @@ c_function GetRootWidget() -> UIWidget:
   struct UIWidget w;
   w.uiElement = this->appCoreData->rootElement;
   return w;
+endc_function
+
+c_function ShowConsoleWindow()
+  // Allocate a console for the current process.
+  AllocConsole();
+
+  // Redirect the STDOUT to the console.
+  FILE* fp;
+  freopen_s(&fp, "CONOUT$", "w", stdout);
+  freopen_s(&fp, "CONOUT$", "w", stderr);
+
+  // Redirect STDIN to the console.
+  freopen_s(&fp, "CONIN$", "r", stdin);
+
+  SetConsoleTitle(TEXT("Console Window"));
 endc_function
 
 // Initializes the main window, creates the root UI element, and sets up the
