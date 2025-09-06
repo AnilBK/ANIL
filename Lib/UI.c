@@ -37,6 +37,10 @@ typedef struct UIElement {
   bool isFilePicker;
   char filterString[UIElement__MAX_FILTER_LENGTH];       // File filter for file picker dialogs
   int filterStringLength; // Current length of the filter string
+
+  HFONT hFont;              // Handle to a custom font, if any. NULL by default.
+  char fontName[64];        // Custom font name
+  int fontSize;             // Custom font size
 } UIElement;
 
 typedef struct WinUIAppCoreData {
@@ -84,6 +88,9 @@ UIElement *CreateUIElement(UIType type, int x, int y, int width, int height,
   // Ensure the filter string is double-null-terminated initially.
   element->filterString[0] = '\0';
   element->filterString[1] = '\0';
+  element->hFont = NULL;
+  element->fontSize = 14;
+  element->fontName[0] = '\0';
 
   if (id) {
     strncpy(element->id, id, sizeof(element->id) - 1);
@@ -211,14 +218,45 @@ bool CreateElementHwnd(UIElement *element, HWND ownerHwnd,
   );
 
   if (element->hwnd) {
-    // Store the UIElement pointer in the control window's user data
+    // Store the UIElement pointer in the control window's user data.
     SetWindowLongPtr(element->hwnd, GWLP_USERDATA, (LONG_PTR)element);
 
-    // Apply a standard GUI font
-    HFONT hFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
-    if (hFont) {
-      SendMessage(element->hwnd, WM_SETFONT, (WPARAM)hFont,
-                  MAKELPARAM(true, 0));
+    HFONT hFontToApply = NULL;
+
+    if (element->fontSize > 0 && element->fontName[0] != '\0') {
+      // If a font handle hasn't been created yet for this element, create it
+      // now.
+      if (element->hFont == NULL) {
+        HDC hdc = GetDC(NULL);
+        int nHeight = -MulDiv(element->fontSize, GetDeviceCaps(hdc, LOGPIXELSY), 72);
+        ReleaseDC(NULL, hdc);
+
+        HFONT hNewFont = CreateFont(
+          nHeight, 0, 0, 0, FW_NORMAL, FALSE, FALSE, 0, DEFAULT_CHARSET,
+          OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
+          DEFAULT_PITCH | FF_MODERN, element->fontName
+        );
+
+        if (hNewFont) {
+          element->hFont = hNewFont;
+        } else {
+          fprintf(
+            stderr,
+            "Warning: Failed to create font '%s' for element '%s'. "
+            "Falling back to default.\n",
+            element->fontName, element->id
+          );
+        }
+      }
+      hFontToApply = element->hFont;
+    }
+
+    if (hFontToApply == NULL) {
+      hFontToApply = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+    }
+
+    if (hFontToApply) {
+      SendMessage(element->hwnd, WM_SETFONT, (WPARAM)hFontToApply, MAKELPARAM(true, 0));
     }
     return true;
   } else {
@@ -366,6 +404,11 @@ void FreeUIElementTree(UIElement *element) {
     FreeUIElementTree(element->children[i]);
     element->children[i] = NULL;
   }
+
+  if (element->hFont) {
+    DeleteObject(element->hFont);
+  }
+
   // We only free the struct memory. HWNDs are destroyed by the OS when the
   // top-level window closes.
   free(element);
@@ -510,6 +553,18 @@ void LayoutChildren(UIElement *container) {
         LayoutChildren(container->children[i]);
     }
   }
+}
+
+void UIElement_SetFont(UIElement *element, const char *fontName, int fontSize) {
+  if (!element || !fontName || fontSize <= 0) {
+    return;
+  }
+  strncpy(element->fontName, fontName, sizeof(element->fontName) - 1);
+  element->fontName[sizeof(element->fontName) - 1] = '\0';
+  element->fontSize = fontSize;
+
+  // If HWND already exists, we could re-create the font and apply it,
+  // but for simplicity, we assume SetFont is called before HWND creation.
 }
 
 void UIElement_AddFileFilter(UIElement *element, const char* description, const char* pattern) {
@@ -974,6 +1029,16 @@ c_function OpenFilePickerAndReadContents() -> String:
   }
 
   return fileContents;
+endc_function
+
+c_function setFont(fontName:str)
+  if (this->uiElement) {
+    if (this->uiElement->type != TEXTAREA && this->uiElement->type != EDIT && this->uiElement->type != LABEL && this->uiElement->type != BUTTON) {
+      fprintf(stderr, "Error: SetFont called on unsupported element type.\n");
+      return;
+    }
+    UIElement_SetFont(this->uiElement, fontName, 14);
+  }
 endc_function
 
 endnamespace

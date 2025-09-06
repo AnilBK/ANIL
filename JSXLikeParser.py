@@ -191,6 +191,17 @@ class UIElementTree:
 
         code.extend(generate_accept_for_file_picker_code(self))
 
+        def generate_font_related_code(self):
+            code = []
+            for element in all_elements:
+                if element.has_attribute("font"):
+                    font = element.get_attribute_value("font")
+                    if font:
+                        code.append(f'{element.id}.setFont("{font}");\n')
+            return code
+
+        code.extend(generate_font_related_code(self))
+
         def generate_onclick_code(self):
             code = []
             for element in all_elements:
