@@ -49,6 +49,10 @@ typedef struct UIElement {
   char filterString[UIElement__MAX_FILTER_LENGTH]; // File filter for file
                                                    // picker dialogs
   int filterStringLength; // Current length of the filter string
+
+  HFONT hFont;       // Handle to a custom font, if any. NULL by default.
+  char fontName[64]; // Custom font name
+  int fontSize;      // Custom font size
 } UIElement;
 
 typedef struct WinUIAppCoreData {
@@ -96,6 +100,9 @@ UIElement *CreateUIElement(UIType type, int x, int y, int width, int height,
   // Ensure the filter string is double-null-terminated initially.
   element->filterString[0] = '\0';
   element->filterString[1] = '\0';
+  element->hFont = NULL;
+  element->fontSize = 14;
+  element->fontName[0] = '\0';
 
   if (id) {
     strncpy(element->id, id, sizeof(element->id) - 1);
@@ -199,8 +206,8 @@ bool CreateElementHwnd(UIElement *element, HWND ownerHwnd,
     break;
   case TEXTAREA:
     className = WC_EDIT;
-    style |=
-        ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN | WS_VSCROLL | WS_BORDER;
+    style |= ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN | WS_VSCROLL |
+             WS_HSCROLL | WS_BORDER;
     exStyle |= WS_EX_CLIENTEDGE;
     break;
   default:
@@ -223,13 +230,43 @@ bool CreateElementHwnd(UIElement *element, HWND ownerHwnd,
   );
 
   if (element->hwnd) {
-    // Store the UIElement pointer in the control window's user data
+    // Store the UIElement pointer in the control window's user data.
     SetWindowLongPtr(element->hwnd, GWLP_USERDATA, (LONG_PTR)element);
 
-    // Apply a standard GUI font
-    HFONT hFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
-    if (hFont) {
-      SendMessage(element->hwnd, WM_SETFONT, (WPARAM)hFont,
+    HFONT hFontToApply = NULL;
+
+    if (element->fontSize > 0 && element->fontName[0] != '\0') {
+      // If a font handle hasn't been created yet for this element, create it
+      // now.
+      if (element->hFont == NULL) {
+        HDC hdc = GetDC(NULL);
+        int nHeight =
+            -MulDiv(element->fontSize, GetDeviceCaps(hdc, LOGPIXELSY), 72);
+        ReleaseDC(NULL, hdc);
+
+        HFONT hNewFont = CreateFont(
+            nHeight, 0, 0, 0, FW_NORMAL, FALSE, FALSE, 0, DEFAULT_CHARSET,
+            OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
+            DEFAULT_PITCH | FF_MODERN, element->fontName);
+
+        if (hNewFont) {
+          element->hFont = hNewFont;
+        } else {
+          fprintf(stderr,
+                  "Warning: Failed to create font '%s' for element '%s'. "
+                  "Falling back to default.\n",
+                  element->fontName, element->id);
+        }
+      }
+      hFontToApply = element->hFont;
+    }
+
+    if (hFontToApply == NULL) {
+      hFontToApply = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+    }
+
+    if (hFontToApply) {
+      SendMessage(element->hwnd, WM_SETFONT, (WPARAM)hFontToApply,
                   MAKELPARAM(true, 0));
     }
     return true;
@@ -379,6 +416,11 @@ void FreeUIElementTree(UIElement *element) {
     FreeUIElementTree(element->children[i]);
     element->children[i] = NULL;
   }
+
+  if (element->hFont) {
+    DeleteObject(element->hFont);
+  }
+
   // We only free the struct memory. HWNDs are destroyed by the OS when the
   // top-level window closes.
   free(element);
@@ -528,6 +570,18 @@ void LayoutChildren(UIElement *container) {
   }
 }
 
+void UIElement_SetFont(UIElement *element, const char *fontName, int fontSize) {
+  if (!element || !fontName || fontSize <= 0) {
+    return;
+  }
+  strncpy(element->fontName, fontName, sizeof(element->fontName) - 1);
+  element->fontName[sizeof(element->fontName) - 1] = '\0';
+  element->fontSize = fontSize;
+
+  // If HWND already exists, we could re-create the font and apply it,
+  // but for simplicity, we assume SetFont is called before HWND creation.
+}
+
 void UIElement_AddFileFilter(UIElement *element, const char *description,
                              const char *pattern) {
   if (!element || !element->isFilePicker)
@@ -644,22 +698,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
   return 0;
 }
 
-void RedirectIOToConsole() {
-  // Allocate a console for the current process
-  AllocConsole();
-
-  // Redirect the STDOUT to the console
-  FILE *fp;
-  freopen_s(&fp, "CONOUT$", "w", stdout);
-  freopen_s(&fp, "CONOUT$", "w", stderr);
-
-  // Redirect STDIN to the console
-  freopen_s(&fp, "CONIN$", "r", stdin);
-
-  // Optional: You can set the console title if you like
-  SetConsoleTitle(TEXT("Console Window"));
-}
-
 // Initializes the main window, creates the root UI element, and sets up the
 // WinUIAppCoreData structure.
 
@@ -704,6 +742,11 @@ struct WinUIApp {
 
 struct File {
   FILE *file_ptr;
+};
+
+struct Subprocess {
+  struct String commandLine;
+  PROCESS_INFORMATION pi;
 };
 
 char *Stringc_str(struct String *this);
@@ -777,7 +820,10 @@ int UIWidgetGetTotalItemsInList(struct UIWidget *this);
 struct String UIWidgetGetListItemAtIndex(struct UIWidget *this, int index);
 struct Vector_String UIWidgetGetAllItemsInList(struct UIWidget *this);
 struct String UIWidgetOpenFilePickerAndReadContents(struct UIWidget *this);
+void UIWidgetsetFont(struct UIWidget *this, char *fontName);
+
 struct UIWidget WinUIAppGetRootWidget(struct WinUIApp *this);
+void WinUIAppShowConsoleWindow(struct WinUIApp *this);
 WinUIAppCoreDataPtr WinUIApp_InitializeMainWindow(struct WinUIApp *this,
                                                   char *p_title, int width,
                                                   int height);
@@ -795,7 +841,14 @@ void File__init__(struct File *this, char *p_file_name);
 void Filewrite(struct File *this, char *p_content);
 void Filewriteline(struct File *this, char *p_content);
 void File__del__(struct File *this);
+void Subprocess_clear_pi(struct Subprocess *this);
+void Subprocess__init__(struct Subprocess *this, char *commandLine);
+int Subprocessrun(struct Subprocess *this);
+int Subprocesswait(struct Subprocess *this);
+int Subprocessrun_and_detach(struct Subprocess *this);
 struct UIWidget CreateUIWidgetFromVoidPtr(voidPtr ptr);
+void PythonPreprocess();
+void GCCCompile();
 void Compile(voidPtr userData);
 void Execute(voidPtr userData);
 void Load(voidPtr userData);
@@ -833,6 +886,10 @@ void Vector_String_clear(struct Vector_String *this);
 void Vector_Stringclear(struct Vector_String *this);
 bool Vector_String__contains__(struct Vector_String *this, struct String value);
 void Vector_Stringprint(struct Vector_String *this);
+
+void Subprocess__del__(struct Subprocess *this) {
+  String__del__(&this->commandLine);
+}
 
 char *Stringc_str(struct String *this) { return this->arr; }
 
@@ -1050,32 +1107,63 @@ void String__reassign__OVDstr(struct String *this, char *pstring) {
 }
 
 void Stringset_to_file_contents(struct String *this, char *pfilename) {
-  // Read from the file & store the contents to this string.
+  if (this->is_constexpr) {
+    // Probably not necessary, as constexpr strings are compiler generated, but
+    // just in case.
+    fprintf(stderr, "Error: Attempt to modify a constexpr String object.\n");
+    exit(EXIT_FAILURE);
+  }
 
-  // TODO: Implement this function in ANIL itself, because the function below is
-  // a mangled function name.
-  Stringclear(this);
-
-  FILE *ptr = fopen(pfilename, "r");
+  // Use fopen in binary read mode ("rb") to prevent newline translation.
+  FILE *ptr = fopen(pfilename, "rb");
   if (ptr == NULL) {
-    printf("File \"%s\" couldn't be opened.\n", pfilename);
+    fprintf(stderr, "File \"%s\" couldn't be opened.\n", pfilename);
+    Stringclear(this);
     return;
   }
 
-  char myString[256];
-  bool has_data = false;
-
-  while (fgets(myString, sizeof(myString), ptr)) {
-    String__add__(this, myString);
-    has_data = true;
+  fseek(ptr, 0, SEEK_END);
+  long fileSize = ftell(ptr);
+  if (fileSize < 0) {
+    fprintf(stderr, "Failed to get file size");
+    fclose(ptr);
+    Stringclear(this);
+    return;
   }
 
+  fseek(ptr, 0, SEEK_SET);
+
+  int buffer_capacity = fileSize + 1;
+  char *buffer = (char *)malloc(buffer_capacity);
+  if (buffer == NULL) {
+    fprintf(stderr, "Memory allocation failed for file content.\n");
+    fclose(ptr);
+    Stringclear(this);
+    return;
+  }
+
+  size_t bytesRead = fread(buffer, 1, fileSize, ptr);
   fclose(ptr);
 
-  if (!has_data) {
-    // Double-clear just in case
+  if (bytesRead != (size_t)fileSize) {
+    fprintf(stderr, "Error reading file \"%s\". Expected %ld bytes, got %zu.\n",
+            pfilename, fileSize, bytesRead);
+    free(buffer);
     Stringclear(this);
+    return;
   }
+
+  buffer[fileSize] = '\0';
+
+  if (this->arr != NULL) {
+    free(this->arr);
+  }
+
+  // Take ownership of the buffer.
+  // The buffer should not be freed after this point.
+  this->arr = buffer;
+  this->length = fileSize;
+  this->capacity = buffer_capacity;
 }
 
 struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename) {
@@ -1462,10 +1550,36 @@ struct String UIWidgetOpenFilePickerAndReadContents(struct UIWidget *this) {
   return fileContents;
 }
 
+void UIWidgetsetFont(struct UIWidget *this, char *fontName) {
+  if (this->uiElement) {
+    if (this->uiElement->type != TEXTAREA && this->uiElement->type != EDIT &&
+        this->uiElement->type != LABEL && this->uiElement->type != BUTTON) {
+      fprintf(stderr, "Error: SetFont called on unsupported element type.\n");
+      return;
+    }
+    UIElement_SetFont(this->uiElement, fontName, 14);
+  }
+}
+
 struct UIWidget WinUIAppGetRootWidget(struct WinUIApp *this) {
   struct UIWidget w;
   w.uiElement = this->appCoreData->rootElement;
   return w;
+}
+
+void WinUIAppShowConsoleWindow(struct WinUIApp *this) {
+  // Allocate a console for the current process.
+  AllocConsole();
+
+  // Redirect the STDOUT to the console.
+  FILE *fp;
+  freopen_s(&fp, "CONOUT$", "w", stdout);
+  freopen_s(&fp, "CONOUT$", "w", stderr);
+
+  // Redirect STDIN to the console.
+  freopen_s(&fp, "CONIN$", "r", stdin);
+
+  SetConsoleTitle(TEXT("Console Window"));
 }
 
 WinUIAppCoreDataPtr WinUIApp_InitializeMainWindow(struct WinUIApp *this,
@@ -1653,6 +1767,98 @@ void Filewriteline(struct File *this, char *p_content) {
 }
 
 void File__del__(struct File *this) { fclose(this->file_ptr); }
+
+void Subprocess_clear_pi(struct Subprocess *this) {
+  ZeroMemory(&this->pi, sizeof(this->pi));
+}
+
+void Subprocess__init__(struct Subprocess *this, char *commandLine) {
+  String__init__OVDstr(&this->commandLine, commandLine);
+  Subprocess_clear_pi(this);
+}
+
+int Subprocessrun(struct Subprocess *this) {
+  // Start subprocess (non-blocking)
+  STARTUPINFOA si;
+  ZeroMemory(&si, sizeof(si));
+  si.cb = sizeof(si);
+
+  if (!CreateProcessA(NULL, // No module name (use command line)
+                      this->commandLine.arr, // Command line
+                      NULL,                  // Process handle not inheritable
+                      NULL,                  // Thread handle not inheritable
+                      FALSE,                 // Set handle inheritance to FALSE
+                      CREATE_NEW_CONSOLE,    // Create in new console window
+                      NULL,                  // Use parent's environment block
+                      NULL,                  // Use parent's starting directory
+                      &si,                   // Pointer to STARTUPINFO structure
+                      &this->pi)) // Pointer to PROCESS_INFORMATION structure
+  {
+    fprintf(stderr, "CreateProcess failed (%lu).\n", GetLastError());
+    return -1;
+  }
+
+  // success, running in background
+  return 0;
+}
+
+int Subprocesswait(struct Subprocess *this) {
+  if (this->pi.hProcess == NULL) {
+    fprintf(stderr, "No process to wait for.\n");
+    return -1;
+  }
+
+  // Wait until child process exits
+  WaitForSingleObject(this->pi.hProcess, INFINITE);
+
+  DWORD exitCode;
+  if (!GetExitCodeProcess(this->pi.hProcess, &exitCode)) {
+    fprintf(stderr, "GetExitCodeProcess failed (%lu).\n", GetLastError());
+    exitCode = (DWORD)-1;
+  }
+
+  CloseHandle(this->pi.hProcess);
+  CloseHandle(this->pi.hThread);
+
+  this->pi.hProcess = NULL;
+  this->pi.hThread = NULL;
+
+  return (int)exitCode;
+}
+
+int Subprocessrun_and_detach(struct Subprocess *this) {
+  STARTUPINFOA si;
+  ZeroMemory(&si, sizeof(si));
+  si.cb = sizeof(si);
+
+  // Clear any old process information before creating a new one.
+  Subprocess_clear_pi(this);
+
+  if (!CreateProcessA(NULL, // No module name (use command line)
+                      this->commandLine.arr, // Command line
+                      NULL,                  // Process handle not inheritable
+                      NULL,                  // Thread handle not inheritable
+                      FALSE,                 // Set handle inheritance to FALSE
+                      CREATE_NEW_CONSOLE,    // Create in new console window
+                      NULL,                  // Use parent's environment block
+                      NULL,                  // Use parent's starting directory
+                      &si,                   // Pointer to STARTUPINFO structure
+                      &this->pi)) {
+    fprintf(stderr, "CreateProcess failed (%lu).\n", GetLastError());
+    return -1;
+  }
+
+  // Immediately close the handles. The child process will continue to run.
+  // This prevents handle leaks and detaches the child from the parent.
+  CloseHandle(this->pi.hProcess);
+  CloseHandle(this->pi.hThread);
+
+  // Clear the PI structure again so a subsequent call to wait() will fail
+  // gracefully.
+  Subprocess_clear_pi(this);
+
+  return 0;
+}
 
 size_t Vector_Stringlen(struct Vector_String *this) { return this->size; }
 
@@ -1879,12 +2085,70 @@ struct UIWidget CreateUIWidgetFromVoidPtr(voidPtr ptr) {
   return widget;
 }
 
+void PythonPreprocess() {
+  struct Subprocess subprocess;
+  Subprocess__init__(&subprocess,
+                     "python E:\\ANIL\\preprocess_2.py --filename "
+                     "E:\\ANIL\\examples\\UI\\IDE\\out.anil --no-clang-format");
+  int result = Subprocessrun(&subprocess);
+
+  if (result == 0) {
+    printf("Python preprocessing started...\n");
+    int exit_code = Subprocesswait(&subprocess);
+
+    if (exit_code == 0) {
+      printf("Preprocessing succeeded.\n");
+    } else {
+      printf("Preprocessing failed with exit code: %d", exit_code);
+    }
+  } else {
+    printf("Failed to start Preprocessing process.\n");
+  }
+  Subprocess__del__(&subprocess);
+}
+
+void GCCCompile() {
+  struct Subprocess subprocess;
+  Subprocess__init__(
+      &subprocess, "gcc -O2 E:\\ANIL\\examples\\UI\\IDE\\out_generated_anil.c "
+                   "-o out -lgdi32 -lcomctl32 -mwindows");
+  int result = Subprocessrun(&subprocess);
+
+  if (result == 0) {
+    printf("Compilation started...\n");
+    int exit_code = Subprocesswait(&subprocess);
+
+    if (exit_code == 0) {
+      printf("Compilation succeeded.\n");
+    } else {
+      printf("Compilation failed with exit code: %d", exit_code);
+    }
+  } else {
+    printf("Failed to start compilation process.\n");
+  }
+  Subprocess__del__(&subprocess);
+}
+
 void Compile(voidPtr userData) {
   struct UIWidget root = CreateUIWidgetFromVoidPtr(userData);
+
+  PythonPreprocess();
+  GCCCompile();
 }
 
 void Execute(voidPtr userData) {
   struct UIWidget root = CreateUIWidgetFromVoidPtr(userData);
+
+  struct Subprocess subprocess;
+  Subprocess__init__(&subprocess, "out");
+  int result = Subprocessrun_and_detach(&subprocess);
+
+  if (result == 0) {
+    printf("Launched application out.exe.\n");
+  } else {
+    printf("Failed to Launch application out.exe.\n");
+  }
+  Subprocess__del__(&subprocess);
 }
 
 void Load(voidPtr userData) {
@@ -1930,7 +2194,7 @@ void SaveEditorContentsToFile(voidPtr userData) {
     struct String fileContents = UIWidgetGetEditText(&editor);
 
     struct File outputFile;
-    File__init__(&outputFile, "out.c");
+    File__init__(&outputFile, "out.anil");
     Filewrite(&outputFile, Stringc_str(&fileContents));
     File__del__(&outputFile);
     String__del__(&fileContents);
@@ -1952,6 +2216,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     return -1;
   }
+
+  WinUIAppShowConsoleWindow(&App);
 
   struct UIWidget root_elem = WinUIAppGetRootWidget(&App);
   struct UIWidget App__ui;
@@ -1983,6 +2249,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                         "*.anil;*.c");
   UIWidgetAddFileFilter(&filePickerButton, "Anil Files (*.anil)", "*.anil");
   UIWidgetAddFileFilter(&filePickerButton, "C Source Files (*.c)", "*.c");
+  UIWidgetsetFont(&codeEditor, "JetBrains Mono");
 
   // OnClick Callbacks.
   struct VoidPointer __payload_0;

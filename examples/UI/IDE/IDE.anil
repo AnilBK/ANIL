@@ -8,6 +8,7 @@ import Vector
 import String
 import UI
 import File
+import Subprocess
 
 function CreateUIWidgetFromVoidPtr(ptr: voidPtr) -> UIWidget:
   let w = UIWidget{};
@@ -15,12 +16,55 @@ function CreateUIWidgetFromVoidPtr(ptr: voidPtr) -> UIWidget:
   return widget
 endfunction
 
+function PythonPreprocess()
+  let subprocess = Subprocess{"python E:\\ANIL\\preprocess_2.py --filename E:\\ANIL\\examples\\UI\\IDE\\out.anil --no-clang-format"};
+  let result = subprocess.run()
+  if result == 0{
+    print("Python preprocessing started...\n")
+    let exit_code = subprocess.wait()
+    if exit_code == 0{
+      print("Preprocessing succeeded.\n")
+    } else {
+      print("Preprocessing failed with exit code: {exit_code}")
+    }
+  } else {
+    print("Failed to start Preprocessing process.\n")
+  }
+endfunction
+
+function GCCCompile()
+  let subprocess = Subprocess{"gcc -O2 E:\\ANIL\\examples\\UI\\IDE\\out_generated_anil.c -o out -lgdi32 -lcomctl32 -mwindows"};
+  let result = subprocess.run()
+  if result == 0{
+    print("Compilation started...\n")
+    let exit_code = subprocess.wait()
+    if exit_code == 0{
+      print("Compilation succeeded.\n")
+    } else {
+      print("Compilation failed with exit code: {exit_code}")
+    }
+  } else {
+    print("Failed to start compilation process.\n")
+  }
+endfunction
+
 function Compile(userData: voidPtr)
   let root = CreateUIWidgetFromVoidPtr(userData)
+
+  PythonPreprocess()
+  GCCCompile()
 endfunction
 
 function Execute(userData: voidPtr)
   let root = CreateUIWidgetFromVoidPtr(userData)
+
+  let subprocess = Subprocess{"out"};
+  let result = subprocess.run_and_detach()
+  if result == 0{
+    print("Launched application out.exe.\n")
+  } else {
+    print("Failed to Launch application out.exe.\n")
+  }
 endfunction
 
 function Load(userData: voidPtr)

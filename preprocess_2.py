@@ -19,6 +19,8 @@ from JSXLikeParser import UIAttribute, UIElement, UIElementTree
 # We don't typically pass filenames through command line, this is mostly for batch compile operations.
 filename_parser = argparse.ArgumentParser()
 filename_parser.add_argument("--filename", help="Name of source file to be compiled.")
+filename_parser.add_argument("--no-clang-format", action="store_true", help="Disable code formatting with clang-format.")
+
 args = filename_parser.parse_args()
 
 # Basics.
@@ -125,11 +127,12 @@ for Line in Lines:
 if len(imported_modules) > 0:
     ImportedCodeLines = []
 
+    script_dir = os.path.dirname(os.path.abspath(__file__))
     source_dir = os.path.dirname(os.path.abspath(source_file)) 
 
     for module_name in imported_modules:
-        relative_path = os.path.join("Lib", module_name + ".c")
-        module_file_path = os.path.join(os.getcwd(), relative_path)
+        lib_dir = os.path.join(script_dir, "Lib")
+        module_file_path = os.path.join(lib_dir, module_name + ".c")
 
         if not os.path.exists(module_file_path):
             module_file_path = os.path.join(source_dir, module_name + ".c")
@@ -138,7 +141,7 @@ if len(imported_modules) > 0:
             with open(module_file_path, "r") as module_file:
                 ImportedCodeLines.extend(module_file.readlines())
         else:
-            raise FileNotFoundError(f"Module {module_name}.c not found in Lib or source file directory.")
+            raise FileNotFoundError(f"Module {module_name}.c not found in script's Lib folder ({lib_dir}) or source file directory ({source_dir}).")
     
     Lines = ImportedCodeLines + Lines
 
@@ -6008,8 +6011,13 @@ with open(output_file_name, "w") as outputFile:
 
 import subprocess
 
-try:
-    subprocess.run(["clang-format", "-i", output_file_name], check=True)
-    print(f"Successfully compiled {output_file_name} & formatted using clang-format.")
-except subprocess.CalledProcessError as e:
-    print(f"Successfully compiled {output_file_name} but error running clang-format: {e}")
+use_clang_format = True
+if args.no_clang_format:
+    use_clang_format = False
+
+if use_clang_format:
+    try:
+        subprocess.run(["clang-format", "-i", output_file_name], check=True)
+        print(f"Successfully compiled {output_file_name} & formatted using clang-format.")
+    except subprocess.CalledProcessError as e:
+        print(f"Successfully compiled {output_file_name} but error running clang-format: {e}")
