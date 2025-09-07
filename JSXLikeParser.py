@@ -52,6 +52,9 @@ class UIElement:
         attrs = ", ".join(f"{attr.name}: {attr.value}" for attr in self.attributes)
         return f"{self.name}({attrs})"
 
+    def is_dropdown_element(self):
+        return self.name == "Select"
+
     def is_file_picker_element(self):
         if self.name == "Input":
             try:
@@ -153,6 +156,7 @@ class UIElementTree:
             "HBox": lambda e: f'let {e.id} = {app_ui_var}.CreateHBox(0, 0, 0, 30, "{e.id}")',
             "TextArea": lambda e: f'let {e.id} = {app_ui_var}.CreateTextArea(0, 0, 0, 30, "{e.id}")',
             "FilePicker": lambda e: f'let {e.id} = {app_ui_var}.CreateFilePicker(0, 0, 0, 30, "{e.id}")',
+            "Select": lambda e: f'let {e.id} = {app_ui_var}.CreateDropDown(0, 0, 0, 30, "{e.id}")',
         }
 
         # See 'UI_TODO_App.c' to see how code should be generated for UI elements.
@@ -176,6 +180,33 @@ class UIElementTree:
 
         # root_elem.AddChild(headerLabel)
         code.extend(generate_add_child_code(self.root))
+
+        def generate_drop_down_related_code(self):
+            code = []
+            for element in all_elements:
+                if element.is_dropdown_element():
+                    if element.has_attribute("options"):
+                        options = element.get_attribute_value("options")
+                        if options:
+                            options_list = [opt.strip() for opt in options.split(",")] 
+                            for option in options_list:
+                                code.append(f'{element.id}.AddOptionToDropDown("{option}")\n')
+                        else:
+                            raise ValueError("Dropdowns options is empty.")
+                    else:
+                        raise ValueError("Dropdowns should have options attribute.")
+                    
+                    if element.has_attribute("default"):
+                        default = element.get_attribute_value("default")
+                        if default:
+                            code.append(f'{element.id}.SelectOption("{default}")\n')
+                        else:
+                            raise ValueError("Dropdowns default value is empty.")
+                    else:
+                        raise ValueError("Dropdown should have a default(selected) value as well.")
+            return code
+
+        code.extend(generate_drop_down_related_code(self))
 
         def generate_accept_for_file_picker_code(self):
             code = []

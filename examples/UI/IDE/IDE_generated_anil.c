@@ -1,7 +1,6 @@
-
-
 ///////////////////////////////////////////
 #include <windows.h>
+
 #include <commctrl.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -10,10 +9,11 @@
 
 #define UIElement__MAX_CHILDREN 10
 #define UIElement__MAX_TEXT_LENGTH 256
-#define UIElement__DEFAULT_ITEM_HEIGHT 20 // Default height for list items
+#define UIElement__DEFAULT_ITEM_HEIGHT 20 // Default height for list items & radio buttons
 #define UIElement__MIN_LIST_HEIGHT 50     // Minimum height for the listbox
 #define UIElement__MIN_TEXTAREA_HEIGHT 50 // Minimum height for the editor
 #define UIElement__MAX_FILTER_LENGTH 512  // Max length for file dialog filters
+#define UIElement__MAX_OPTIONS 10 // A reasonable limit for dropdown options
 
 typedef enum {
   LABEL,
@@ -21,6 +21,7 @@ typedef enum {
   LIST,
   EDIT,
   TEXTAREA,
+  DROPDOWN,
   HORIZONTAL,
   VERTICAL
 } UIType;
@@ -53,6 +54,13 @@ typedef struct UIElement {
   HFONT hFont;       // Handle to a custom font, if any. NULL by default.
   char fontName[64]; // Custom font name
   int fontSize;      // Custom font size
+
+  char *dropdownOptions[UIElement__MAX_OPTIONS]; // Array of string pointers for
+                                                 // dropdown options
+  int dropdownOptionCount;                       // Number of options stored
+  char initialSelection[UIElement__MAX_TEXT_LENGTH]; // Store the text of the
+                                                     // initially selected item
+
 } UIElement;
 
 typedef struct WinUIAppCoreData {
@@ -75,6 +83,9 @@ void RefreshUILayout();
 void LayoutChildren(UIElement *);
 int CalculatePreferredHeight(UIElement *element);
 void FreeUIElementTree(UIElement *element);
+void AddOptionToDropDown(UIElement *dropdown, LPCSTR itemText);
+char *GetSelectedValueFromDropDown(UIElement *dropdown);
+void SelectDropDownOptionByText(UIElement *dropdown, char *p_optionText);
 
 UIElement *CreateUIElement(UIType type, int x, int y, int width, int height,
                            LPCSTR initialText, LPCSTR id) {
@@ -127,7 +138,7 @@ void AddChild(UIElement *parent, UIElement *child) {
     fprintf(stderr, "Error: AddChild called with NULL parent or child.\n");
     return;
   }
-  if (parent->type != HORIZONTAL && parent->type != VERTICAL) {
+  if (parent->type != HORIZONTAL && parent->type != VERTICAL && parent->type != DROPDOWN) {
     // This is okay for the root element, but maybe warn for others
     if (parent->parent != NULL) { // Don't warn for root
       fprintf(
@@ -191,6 +202,8 @@ bool CreateElementHwnd(UIElement *element, HWND ownerHwnd,
     break;
   case BUTTON:
     className = WC_BUTTON;
+    // NOTE: This now handles regular buttons, file pickers, AND radio buttons
+    // The style BS_AUTORADIOBUTTON is applied in the DROPDOWN case below
     style |= BS_PUSHBUTTON;
     break;
   case LIST:
@@ -210,6 +223,62 @@ bool CreateElementHwnd(UIElement *element, HWND ownerHwnd,
              WS_HSCROLL | WS_BORDER;
     exStyle |= WS_EX_CLIENTEDGE;
     break;
+  case DROPDOWN: {
+    // A dropdown is a container of radio buttons. It doesn't get its own HWND.
+    // Instead, we create its children and their HWNDs here.
+    if (element->childCount > 0) { // Already created
+        return true;
+    }
+
+    for (int i = 0; i < element->dropdownOptionCount; i++) {
+        char radioId[64];
+        snprintf(radioId, sizeof(radioId), "%s_opt%d", element->id, i);
+        LPCSTR radioText = element->dropdownOptions[i];
+
+        // Create the child UIElement struct for the radio button
+        UIElement* radioChild = CreateUIElement(BUTTON, 0, 0, 0, UIElement__DEFAULT_ITEM_HEIGHT, radioText, radioId);
+        if (!radioChild) continue;
+
+        // Add to parent's hierarchy
+        AddChild(element, radioChild);
+
+        // Now, create the HWND for this new child. It is a BUTTON, but with a radio style.
+        DWORD radioStyle = WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON;
+        if (i == 0) {
+            radioStyle |= WS_GROUP; // First button starts the radio group
+        }
+
+        radioChild->hwnd = CreateWindowEx(
+            0, WC_BUTTON, radioText, radioStyle,
+            0, 0, 0, 0, // Positioned by LayoutChildren later
+            ownerHwnd,
+            NULL, hInstance, NULL
+        );
+
+        if (!radioChild->hwnd) {
+            fprintf(stderr, "Error: CreateWindowEx failed for radio button '%s'.\n", radioId);
+            return false; // Fail the whole group creation
+        }
+        // Associate UIElement with HWND
+        SetWindowLongPtr(radioChild->hwnd, GWLP_USERDATA, (LONG_PTR)radioChild);
+        
+        // Apply font to the new radio button child
+        HFONT hFontToApply = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+        SendMessage(radioChild->hwnd, WM_SETFONT, (WPARAM)hFontToApply, TRUE);
+    }
+    
+    element->itemCount = element->dropdownOptionCount;
+
+    // After all radio buttons are created, set the initial selection
+    if (element->initialSelection[0] != '\0') {
+        SelectDropDownOptionByText(element, element->initialSelection);
+    } else if (element->childCount > 0) {
+        // Default to checking the first radio button
+        SendMessage(element->children[0]->hwnd, BM_SETCHECK, BST_CHECKED, 0);
+    }
+
+    return true; // Return true as the container and its children were created successfully.
+  }
   default:
     fprintf(stderr,
             "Error: Unknown element type %d for HWND creation (ID: '%s').\n",
@@ -287,6 +356,7 @@ bool CreateElementHwndRecursive(UIElement *element, HWND ownerHwnd,
     return false;
 
   // Create HWND for the current element (if applicable)
+  // For DROPDOWN, this will now create all the child radio button HWNDs.
   if (!CreateElementHwnd(element, ownerHwnd, hInstance)) {
     // CreateElementHwnd prints errors, check if HWND was actually required
     if (element->type != HORIZONTAL && element->type != VERTICAL) {
@@ -306,6 +376,43 @@ bool CreateElementHwndRecursive(UIElement *element, HWND ownerHwnd,
   }
 
   return true;
+}
+
+// New helper function to calculate width based on text length
+int CalculatePreferredWidth(UIElement *element) {
+    if (element == NULL || element->hwnd == NULL) {
+        return 50; // A reasonable default if HWND doesn't exist yet
+    }
+    if (element->text[0] == '\0') {
+        return 20; // Width for just the radio circle
+    }
+
+    HDC hdc = GetDC(element->hwnd);
+    if (!hdc) {
+        return 50;
+    }
+
+    // Get the font of the control to measure text accurately
+    HFONT hFont = (HFONT)SendMessage(element->hwnd, WM_GETFONT, 0, 0);
+    if (!hFont) {
+        hFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+    }
+
+    HFONT hOldFont = (HFONT)SelectObject(hdc, hFont);
+
+    SIZE textSize;
+    // Calculate the width of the text string
+    if (GetTextExtentPoint32(hdc, element->text, strlen(element->text), &textSize)) {
+        SelectObject(hdc, hOldFont);
+        ReleaseDC(element->hwnd, hdc);
+        // Add padding: ~20px for the radio button circle + ~10px for margins
+        return textSize.cx + 30;
+    }
+
+    // Fallback if measurement fails
+    SelectObject(hdc, hOldFont);
+    ReleaseDC(element->hwnd, hdc);
+    return 100;
 }
 
 int CalculatePreferredHeight(UIElement *element) {
@@ -341,6 +448,11 @@ int CalculatePreferredHeight(UIElement *element) {
     return element->height > 0 ? element->height : 25;
   case TEXTAREA:
     return element->height > 0 ? element->height : 150;
+  // MODIFICATION START: Dropdown height is now calculated as a single-row element
+  case DROPDOWN:
+    // A horizontal group of radio buttons should have the height of a single button.
+    return element->height > 0 ? element->height : 25; // Height of one button
+  // MODIFICATION END
   default:
     return element->height;
   }
@@ -395,6 +507,97 @@ void ClearEditText(UIElement *edit) {
   }
 }
 
+void AddOptionToDropDown(UIElement *dropdown, LPCSTR itemText) {
+  if (dropdown == NULL || dropdown->type != DROPDOWN)
+    return;
+
+  // The logic for dropdowns is now uniform: we always store the option data
+  // in the UIElement struct. The HWNDs for radio buttons are created all at
+  // once later in CreateElementHwnd.
+  if (dropdown->hwnd != NULL) {
+      fprintf(stderr, "Warning: Cannot add options to a dropdown after it has been created.\n");
+      return;
+  }
+
+  if (dropdown->dropdownOptionCount >= UIElement__MAX_OPTIONS) {
+    fprintf(stderr, "Error: Exceeded max options for dropdown '%s'.\n",
+            dropdown->id);
+    return;
+  }
+  // strdup allocates memory and copies the string. We MUST free this later.
+  dropdown->dropdownOptions[dropdown->dropdownOptionCount] = strdup(itemText);
+  if (dropdown->dropdownOptions[dropdown->dropdownOptionCount] == NULL) {
+    fprintf(stderr,
+            "Error: Failed to allocate memory for dropdown option.\n");
+    return;
+  }
+  dropdown->dropdownOptionCount++;
+}
+
+char *GetSelectedValueFromDropDown(UIElement *dropdown) {
+  if (dropdown == NULL || dropdown->type != DROPDOWN)
+    return NULL;
+
+  // If the radio button children haven't been created, we can't get a value.
+  if (dropdown->childCount == 0) {
+      return NULL;
+  }
+
+  // Iterate through the children (radio buttons) to find the checked one.
+  for (int i = 0; i < dropdown->childCount; i++) {
+    UIElement* radioChild = dropdown->children[i];
+    if (radioChild && radioChild->hwnd) {
+      if (SendMessage(radioChild->hwnd, BM_GETCHECK, 0, 0) == BST_CHECKED) {
+        // Found the selected radio button, return its text.
+        // We must allocate a new string for the caller to own.
+        char* value = strdup(radioChild->text);
+        return value;
+      }
+    }
+  }
+
+  // If no button is checked, return an empty, allocated string for consistency.
+  char *buffer = (char *)malloc(1);
+  if (buffer)
+    buffer[0] = '\0';
+  return buffer;
+}
+
+void SelectDropDownOptionByText(UIElement *dropdown, char *p_optionText) {
+  LPCSTR optionText = (LPCSTR)p_optionText;
+  if (dropdown == NULL || dropdown->type != DROPDOWN || optionText == NULL) {
+    return;
+  }
+
+  // Behavior 1: Controls do NOT exist yet. Store the desired initial selection.
+  // We check this by seeing if the dropdown has any children yet.
+  if (dropdown->childCount == 0) {
+    strncpy(dropdown->initialSelection, optionText,
+            sizeof(dropdown->initialSelection) - 1);
+    dropdown->initialSelection[sizeof(dropdown->initialSelection) - 1] = '\0';
+  }
+  // Behavior 2: Controls exist. Find and check the correct radio button.
+  else {
+    bool found = false;
+    for (int i = 0; i < dropdown->childCount; i++) {
+        UIElement* radioChild = dropdown->children[i];
+        if (radioChild && radioChild->hwnd) {
+            if (strcmp(radioChild->text, optionText) == 0) {
+                // This is the one to select. The WS_GROUP logic will handle
+                // deselecting the others automatically.
+                SendMessage(radioChild->hwnd, BM_SETCHECK, BST_CHECKED, 0);
+                found = true;
+                break; // Found it, no need to continue loop
+            }
+        }
+    }
+    if (!found) {
+         fprintf(stderr, "Warning: Option '%s' not found in dropdown '%s'.\n",
+              optionText, dropdown->id);
+    }
+  }
+}
+
 UIElement *FindElementById(UIElement *root, const char *id) {
   if (root == NULL || id == NULL)
     return NULL;
@@ -415,6 +618,12 @@ void FreeUIElementTree(UIElement *element) {
   for (int i = 0; i < element->childCount; ++i) {
     FreeUIElementTree(element->children[i]);
     element->children[i] = NULL;
+  }
+
+  if (element->type == DROPDOWN) {
+    for (int i = 0; i < element->dropdownOptionCount; i++) {
+      free(element->dropdownOptions[i]);
+    }
   }
 
   if (element->hFont) {
@@ -449,7 +658,6 @@ void RefreshUILayout() {
     }
   }
 }
-
 void LayoutChildren(UIElement *container) {
   if (container == NULL || container->childCount <= 0) {
     return;
@@ -473,36 +681,62 @@ void LayoutChildren(UIElement *container) {
         continue;
 
       int currentChildWidth = perChildWidth + (i < remainingWidth ? 1 : 0);
-      int childPrefHeight =
-          CalculatePreferredHeight(child); // Still useful for vertical layout
 
       child->x = currentX;
       child->y = containerInnerY;
       child->width = currentChildWidth;
-      child->height = containerHeight; // Use container's height
+      child->height = containerHeight;
 
-      // Position the actual HWND *if it exists*
       if (child->hwnd) {
         SetWindowPos(child->hwnd, NULL, child->x, child->y, child->width,
                      child->height,
                      SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
       }
       currentX += currentChildWidth;
-      if (child->type == HORIZONTAL || child->type == VERTICAL) {
+      if (child->type == HORIZONTAL || child->type == VERTICAL || child->type == DROPDOWN) {
         LayoutChildren(child);
       }
     }
-  } else if (container->type == VERTICAL) {
-    // Step 1: Discovery Pass.
-    // Go through children to sum up the height of all fixed-size elements
-    // and count the number of flexible elements.
+  } 
+  // MODIFICATION START: Added a specific layout for DROPDOWN
+  else if (container->type == DROPDOWN) {
+    int currentX = container->x;
+    int containerInnerY = container->y;
+    int containerHeight = container->height;
+    const int padding = 10; // Space between radio buttons
+
+    for (int i = 0; i < container->childCount; i++) {
+        UIElement *child = container->children[i]; // This will be a radio button
+        if (!child) continue;
+
+        int childPrefWidth = CalculatePreferredWidth(child);
+
+        // Prevent layout from overflowing the parent container
+        if (currentX + childPrefWidth > container->x + container->width) {
+            break; // Stop laying out controls if there's no more space
+        }
+
+        child->x = currentX;
+        child->y = containerInnerY;
+        child->width = childPrefWidth;
+        child->height = containerHeight;
+
+        if (child->hwnd) {
+            SetWindowPos(child->hwnd, NULL, child->x, child->y, child->width, child->height,
+                         SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
+        }
+
+        currentX += childPrefWidth + padding;
+    }
+  }
+  // MODIFICATION END
+  else if (container->type == VERTICAL) {
+    // ... (This section remains unchanged)
     int fixedHeightSum = 0;
     int flexibleChildCount = 0;
     for (int i = 0; i < container->childCount; i++) {
       UIElement *child = container->children[i];
       if (child) {
-        // Define which types are flexible. For now, just the text area.
-        // We could expand this to a flag like `child->isFlexible` later.
         if (child->type == TEXTAREA) {
           flexibleChildCount++;
         } else {
@@ -511,24 +745,18 @@ void LayoutChildren(UIElement *container) {
       }
     }
 
-    // Step 2: Calculation.
-    // Determine the space remaining for flexible children.
     int remainingHeight = container->height - fixedHeightSum;
     if (remainingHeight < 0) {
-      // Prevent negative heights if fixed items overflow.
       remainingHeight = 0;
     }
 
     int heightPerFlexibleChild =
         (flexibleChildCount > 0) ? (remainingHeight / flexibleChildCount) : 0;
 
-    // Enforce a minimum height for flexible children.
     if (heightPerFlexibleChild < UIElement__MIN_TEXTAREA_HEIGHT) {
       heightPerFlexibleChild = UIElement__MIN_TEXTAREA_HEIGHT;
     }
 
-    // Step 3: Application Pass.
-    // Go through children again to set their final position and size.
     int currentY = container->y;
     int containerInnerX = container->x;
     int containerWidth = container->width;
@@ -556,13 +784,12 @@ void LayoutChildren(UIElement *container) {
                      SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
       }
 
-      currentY += childHeight; // Move to the next position for the next child
-      if (child->type == HORIZONTAL || child->type == VERTICAL) {
+      currentY += childHeight;
+      if (child->type == HORIZONTAL || child->type == VERTICAL || child->type == DROPDOWN) {
         LayoutChildren(child);
       }
     }
   } else {
-    // Handle non-container parents with children if necessary
     for (int i = 0; i < container->childCount; i++) {
       if (container->children[i])
         LayoutChildren(container->children[i]);
@@ -811,6 +1038,8 @@ struct UIWidget UIWidgetCreateHBox(struct UIWidget *this, int x, int y,
                                    int width, int height, char *id);
 struct UIWidget UIWidgetCreateTextArea(struct UIWidget *this, int x, int y,
                                        int width, int height, char *id);
+struct UIWidget UIWidgetCreateDropDown(struct UIWidget *this, int x, int y,
+                                       int width, int height, char *id);
 void UIWidgetAddItemToList(struct UIWidget *this, char *itemText);
 void UIWidgetClearEditText(struct UIWidget *this);
 void UIWidgetSetEditText(struct UIWidget *this, struct String text);
@@ -819,6 +1048,9 @@ void UIWidgetRemoveSelectedListItem(struct UIWidget *this);
 int UIWidgetGetTotalItemsInList(struct UIWidget *this);
 struct String UIWidgetGetListItemAtIndex(struct UIWidget *this, int index);
 struct Vector_String UIWidgetGetAllItemsInList(struct UIWidget *this);
+void UIWidgetAddOptionToDropDown(struct UIWidget *this, char *optionText);
+struct String UIWidgetGetSelectedValueFromDropDown(struct UIWidget *this);
+void UIWidgetSelectOption(struct UIWidget *this, char *optionText);
 struct String UIWidgetOpenFilePickerAndReadContents(struct UIWidget *this);
 void UIWidgetsetFont(struct UIWidget *this, char *fontName);
 
@@ -1251,7 +1483,7 @@ void UIWidgetAddChild(struct UIWidget *this, struct UIWidget p_child) {
     return;
   }
 
-  if (parent->type != HORIZONTAL && parent->type != VERTICAL) {
+  if (parent->type != HORIZONTAL && parent->type != VERTICAL && parent->type != DROPDOWN) {
     // This is okay for the root element, but maybe warn for others
     if (parent->parent != NULL) { // Don't warn for root
       fprintf(
@@ -1343,6 +1575,14 @@ struct UIWidget UIWidgetCreateTextArea(struct UIWidget *this, int x, int y,
   struct UIWidget w;
   w.uiElement =
       CreateUIElement(TEXTAREA, x, y, width, height, (LPCSTR) "", (LPCSTR)id);
+  return w;
+}
+
+struct UIWidget UIWidgetCreateDropDown(struct UIWidget *this, int x, int y,
+                                       int width, int height, char *id) {
+  struct UIWidget w;
+  w.uiElement =
+      CreateUIElement(DROPDOWN, x, y, width, height, (LPCSTR) "", (LPCSTR)id);
   return w;
 }
 
@@ -1486,11 +1726,58 @@ struct Vector_String UIWidgetGetAllItemsInList(struct UIWidget *this) {
   return result;
 }
 
+void UIWidgetAddOptionToDropDown(struct UIWidget *this, char *optionText) {
+  if (this->uiElement == NULL || this->uiElement->type != DROPDOWN) {
+    fprintf(stderr,
+            "Error: AddOptionToDropDown called on non-dropdown element.\n");
+    return;
+  }
+  if (!optionText) {
+    fprintf(stderr,
+            "Error: AddOptionToDropDown called with NULL optionText.\n");
+    return;
+  }
+  AddOptionToDropDown(this->uiElement, optionText);
+}
+
+struct String UIWidgetGetSelectedValueFromDropDown(struct UIWidget *this) {
+  struct String selectedValue;
+
+  if (this->uiElement == NULL || this->uiElement->type != DROPDOWN) {
+    fprintf(stderr, "Error: GetSelectedValueFromDropDown called on "
+                    "non-dropdown element.\n");
+    String__init__OVDstr(&selectedValue, "");
+    return selectedValue;
+  }
+
+  char *text = GetSelectedValueFromDropDown(this->uiElement);
+  if (text) {
+    String__init__from_charptr(&selectedValue, text, strlen(text));
+    free(text); // The C-level function allocates memory that must be freed.
+  } else {
+    String__init__OVDstr(&selectedValue, "");
+  }
+
+  return selectedValue;
+}
+
+void UIWidgetSelectOption(struct UIWidget *this, char *optionText) {
+  if (this->uiElement == NULL || this->uiElement->type != DROPDOWN) {
+    fprintf(stderr, "Error: SelectOption called on a non-dropdown element.\n");
+    return;
+  }
+  if (optionText == NULL) {
+    fprintf(stderr, "Error: SelectOption called with NULL optionText.\n");
+    return;
+  }
+  SelectDropDownOptionByText(this->uiElement, optionText);
+}
+
 struct String UIWidgetOpenFilePickerAndReadContents(struct UIWidget *this) {
   struct String fileContents;
   String__init__OVDstr(&fileContents, "");
 
-  HWND hwndOwner = this->uiElement->hwnd; // The main window owns the dialog
+  HWND hwndOwner = g_MainWindowHWND; // Use global main window handle
   char szFile[MAX_PATH] = {0};
 
   OPENFILENAMEA ofn;
@@ -2223,6 +2510,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
   struct UIWidget App__ui;
   struct UIWidget headerLabel =
       UIWidgetCreateLabel(&App__ui, 0, 0, 100, 25, "My Own IDE", "headerLabel");
+  struct UIWidget buildType =
+      UIWidgetCreateDropDown(&App__ui, 0, 0, 0, 30, "buildType");
   struct UIWidget codeEditor =
       UIWidgetCreateTextArea(&App__ui, 0, 0, 0, 30, "codeEditor");
   struct UIWidget actionRow =
@@ -2238,6 +2527,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
   struct UIWidget executeButton =
       UIWidgetCreateButton(&App__ui, 0, 0, 60, 0, "Execute", "executeButton");
   UIWidgetAddChild(&root_elem, headerLabel);
+  UIWidgetAddChild(&root_elem, buildType);
   UIWidgetAddChild(&root_elem, codeEditor);
   UIWidgetAddChild(&root_elem, actionRow);
   UIWidgetAddChild(&actionRow, filePickerButton);
@@ -2245,6 +2535,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
   UIWidgetAddChild(&actionRow, saveButton);
   UIWidgetAddChild(&actionRow, compileButton);
   UIWidgetAddChild(&actionRow, executeButton);
+  UIWidgetAddOptionToDropDown(&buildType, "Win32");
+  UIWidgetAddOptionToDropDown(&buildType, "Console");
+  UIWidgetAddOptionToDropDown(&buildType, "Raylib");
+  UIWidgetSelectOption(&buildType, "Win32");
   UIWidgetAddFileFilter(&filePickerButton, "ANIL & C Files (*.anil;*.c)",
                         "*.anil;*.c");
   UIWidgetAddFileFilter(&filePickerButton, "Anil Files (*.anil)", "*.anil");

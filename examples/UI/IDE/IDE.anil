@@ -122,6 +122,7 @@ function WinMain(hInstance: HINSTANCE, hPrevInstance: HINSTANCE, lpCmdLine: LPST
   <UI>
     <App id="_" name="App" rootElement="root_elem"></App>
     <Label id="headerLabel">"My Own IDE"</Label>
+    <Select id="buildType" options="Win32, Console, Raylib" default="Win32"></Select>
     <TextArea id="codeEditor" font="JetBrains Mono"></TextArea>
     <HBox id="actionRow">
       <Input type="file" id="filePickerButton" onclick="Load(root_elem)" accept="ANIL & C Files|*.anil;*.c|Anil Files|*.anil|C Source Files|*.c|"></Input>

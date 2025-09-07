@@ -12,8 +12,9 @@
 #define UIElement__MIN_LIST_HEIGHT 50     // Minimum height for the listbox
 #define UIElement__MIN_TEXTAREA_HEIGHT 50 // Minimum height for the editor
 #define UIElement__MAX_FILTER_LENGTH 512  // Max length for file dialog filters
+#define UIElement__MAX_OPTIONS 10 // A reasonable limit for dropdown options
 
-typedef enum { LABEL, BUTTON, LIST, EDIT, TEXTAREA, HORIZONTAL, VERTICAL } UIType;
+typedef enum { LABEL, BUTTON, LIST, EDIT, TEXTAREA,DROPDOWN, HORIZONTAL, VERTICAL } UIType;
 
 struct UIElement;
 
@@ -41,6 +42,11 @@ typedef struct UIElement {
   HFONT hFont;              // Handle to a custom font, if any. NULL by default.
   char fontName[64];        // Custom font name
   int fontSize;             // Custom font size
+
+  char* dropdownOptions[UIElement__MAX_OPTIONS]; // Array of string pointers for dropdown options
+  int dropdownOptionCount; // Number of options stored
+  char initialSelection[UIElement__MAX_TEXT_LENGTH]; // Store the text of the initially selected item
+
 } UIElement;
 
 typedef struct WinUIAppCoreData {
@@ -63,6 +69,9 @@ void RefreshUILayout();
 void LayoutChildren(UIElement *);
 int CalculatePreferredHeight(UIElement *element);
 void FreeUIElementTree(UIElement *element);
+void AddOptionToDropDown(UIElement *dropdown, LPCSTR itemText);
+char *GetSelectedValueFromDropDown(UIElement *dropdown);
+void SelectDropDownOptionByText(UIElement *dropdown, char* p_optionText);
 
 UIElement *CreateUIElement(UIType type, int x, int y, int width, int height,
                            LPCSTR initialText, LPCSTR id) {
@@ -198,6 +207,11 @@ bool CreateElementHwnd(UIElement *element, HWND ownerHwnd,
     style |= ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN | WS_VSCROLL | WS_HSCROLL | WS_BORDER;
     exStyle |= WS_EX_CLIENTEDGE;
     break;
+  case DROPDOWN:
+    className = WC_COMBOBOX;
+    style |= CBS_DROPDOWNLIST | CBS_HASSTRINGS | WS_VSCROLL;
+    windowText = ""; // Dropdown text is items, not window text
+    break;
   default:
     fprintf(stderr,
             "Error: Unknown element type %d for HWND creation (ID: '%s').\n",
@@ -258,6 +272,24 @@ bool CreateElementHwnd(UIElement *element, HWND ownerHwnd,
     if (hFontToApply) {
       SendMessage(element->hwnd, WM_SETFONT, (WPARAM)hFontToApply, MAKELPARAM(true, 0));
     }
+
+    if (element->type == DROPDOWN) {
+        for (int i = 0; i < element->dropdownOptionCount; i++) {
+            SendMessage(element->hwnd, CB_ADDSTRING, 0, (LPARAM)element->dropdownOptions[i]);
+        }
+        element->itemCount = element->dropdownOptionCount; // Sync item count
+
+        // Now, set the initial selection
+        if (element->initialSelection[0] != '\0') {
+            // This call will now use the "Post-HWND" path inside the function
+            SelectDropDownOptionByText(element, element->initialSelection);
+        } else if (element->itemCount > 0) {
+            // If no specific selection was set, default to the first item
+            SendMessage(element->hwnd, CB_SETCURSEL, 0, 0);
+        }
+    }
+
+
     return true;
   } else {
     DWORD error = GetLastError();
@@ -330,6 +362,8 @@ int CalculatePreferredHeight(UIElement *element) {
     return element->height > 0 ? element->height : 25;
   case TEXTAREA:
     return element->height > 0 ? element->height : 150;
+  case DROPDOWN:
+    return element->height > 0 ? element->height : 25;
   default:
     return element->height;
   }
@@ -383,6 +417,87 @@ void ClearEditText(UIElement *edit) {
   }
 }
 
+void AddOptionToDropDown(UIElement *dropdown, LPCSTR itemText) {
+  if (dropdown == NULL || dropdown->type != DROPDOWN) return;
+
+  // Behavior 1: HWND does NOT exist yet. Store the option data.
+  if (dropdown->hwnd == NULL) {
+    if (dropdown->dropdownOptionCount >= UIElement__MAX_OPTIONS) {
+      fprintf(stderr, "Error: Exceeded max options for dropdown '%s'.\n", dropdown->id);
+      return;
+    }
+    // strdup allocates memory and copies the string. We MUST free this later.
+    dropdown->dropdownOptions[dropdown->dropdownOptionCount] = strdup(itemText);
+    if (dropdown->dropdownOptions[dropdown->dropdownOptionCount] == NULL) {
+        fprintf(stderr, "Error: Failed to allocate memory for dropdown option.\n");
+        return;
+    }
+    dropdown->dropdownOptionCount++;
+  } 
+  // Behavior 2: HWND exists. Modify the live control.
+  else {
+    SendMessage(dropdown->hwnd, CB_ADDSTRING, 0, (LPARAM)itemText);
+    dropdown->itemCount++; // Keep itemCount in sync for live updates
+  }
+}
+
+char *GetSelectedValueFromDropDown(UIElement *dropdown) {
+  if (dropdown == NULL || dropdown->type != DROPDOWN || dropdown->hwnd == NULL)
+    return NULL;
+
+  int selectedIndex = SendMessage(dropdown->hwnd, CB_GETCURSEL, 0, 0);
+  if (selectedIndex == CB_ERR) {
+    // If nothing is selected, return an empty, allocated string.
+    char *buffer = (char *)malloc(1);
+    if (buffer)
+      buffer[0] = '\0';
+    return buffer;
+  }
+
+  int length = SendMessage(dropdown->hwnd, CB_GETLBTEXTLEN, selectedIndex, 0);
+  if (length == CB_ERR || length == 0) {
+    // If text length is 0 or there's an error, return an empty, allocated string.
+    char *buffer = (char *)malloc(1);
+    if (buffer)
+      buffer[0] = '\0';
+    return buffer;
+  }
+
+  char *buffer = (char *)malloc(length + 1);
+  if (!buffer)
+    return NULL;
+
+  if (SendMessage(dropdown->hwnd, CB_GETLBTEXT, selectedIndex,
+                  (LPARAM)buffer) != CB_ERR) {
+    return buffer;
+  } else {
+    free(buffer);
+    return NULL;
+  }
+}
+
+void SelectDropDownOptionByText(UIElement *dropdown, char* p_optionText) {
+  LPCSTR optionText = (LPCSTR)p_optionText;
+  if (dropdown == NULL || dropdown->type != DROPDOWN || optionText == NULL) {
+      return;
+  }
+
+  // Behavior 1: HWND does NOT exist. Store the desired initial selection.
+  if (dropdown->hwnd == NULL) {
+      strncpy(dropdown->initialSelection, optionText, sizeof(dropdown->initialSelection) - 1);
+      dropdown->initialSelection[sizeof(dropdown->initialSelection) - 1] = '\0';
+  } 
+  // Behavior 2: HWND exists. Find and select in the live control.
+  else {
+      LRESULT index = SendMessage(dropdown->hwnd, CB_FINDSTRINGEXACT, -1, (LPARAM)optionText);
+      if (index != CB_ERR) {
+          SendMessage(dropdown->hwnd, CB_SETCURSEL, (WPARAM)index, 0);
+      } else {
+          fprintf(stderr, "Warning: Option '%s' not found in dropdown '%s'.\n", optionText, dropdown->id);
+      }
+  }
+}
+
 UIElement *FindElementById(UIElement *root, const char *id) {
   if (root == NULL || id == NULL)
     return NULL;
@@ -403,6 +518,12 @@ void FreeUIElementTree(UIElement *element) {
   for (int i = 0; i < element->childCount; ++i) {
     FreeUIElementTree(element->children[i]);
     element->children[i] = NULL;
+  }
+
+  if (element->type == DROPDOWN) {
+      for (int i = 0; i < element->dropdownOptionCount; i++) {
+          free(element->dropdownOptions[i]);
+      }
   }
 
   if (element->hFont) {
@@ -836,6 +957,12 @@ c_function CreateTextArea(x:int, y:int, width:int, height:int, id:str) -> UIWidg
   return w;
 endc_function
 
+c_function CreateDropDown(x:int, y:int, width:int, height:int, id:str) -> UIWidget:
+  struct UIWidget w;
+  w.uiElement = CreateUIElement(DROPDOWN, x, y, width, height, (LPCSTR) "", (LPCSTR)id);
+  return w;
+endc_function
+
 c_function AddItemToList(itemText:str)
   if (this->uiElement->type != LIST) {
     fprintf(stderr, "Error: AddItemToList called on non-list element.\n");
@@ -968,6 +1095,53 @@ function GetAllItemsInList() -> Vector<String>:
   }
   return result
 endfunction
+
+
+c_function AddOptionToDropDown(optionText: str)
+  if (this->uiElement == NULL || this->uiElement->type != DROPDOWN) {
+    fprintf(stderr,
+            "Error: AddOptionToDropDown called on non-dropdown element.\n");
+    return;
+  }
+  if (!optionText) {
+    fprintf(stderr, "Error: AddOptionToDropDown called with NULL optionText.\n");
+    return;
+  }
+  AddOptionToDropDown(this->uiElement, optionText);
+endc_function
+
+c_function GetSelectedValueFromDropDown() -> String:
+  struct String selectedValue;
+
+  if (this->uiElement == NULL || this->uiElement->type != DROPDOWN) {
+    fprintf(stderr, "Error: GetSelectedValueFromDropDown called on "
+                    "non-dropdown element.\n");
+    String__init__OVDstr(&selectedValue, "");
+    return selectedValue;
+  }
+
+  char *text = GetSelectedValueFromDropDown(this->uiElement);
+  if (text) {
+    String__init__from_charptr(&selectedValue, text, strlen(text));
+    free(text); // The C-level function allocates memory that must be freed.
+  } else {
+    String__init__OVDstr(&selectedValue, "");
+  }
+
+  return selectedValue;
+endc_function
+
+c_function SelectOption(optionText: str)
+  if (this->uiElement == NULL || this->uiElement->type != DROPDOWN) {
+    fprintf(stderr, "Error: SelectOption called on a non-dropdown element.\n");
+    return;
+  }
+  if (optionText == NULL) {
+    fprintf(stderr, "Error: SelectOption called with NULL optionText.\n");
+    return;
+  }
+  SelectDropDownOptionByText(this->uiElement, optionText);
+endc_function
 
 c_function OpenFilePickerAndReadContents() -> String:
   struct String fileContents;
