@@ -32,8 +32,36 @@ function PythonPreprocess()
   }
 endfunction
 
-function GCCCompile()
-  let subprocess = Subprocess{"gcc -O2 E:\\ANIL\\examples\\UI\\IDE\\out_generated_anil.c -o out -lgdi32 -lcomctl32 -mwindows"};
+function GetBuildType(userData: voidPtr) -> String:
+  let root = CreateUIWidgetFromVoidPtr(userData)
+
+  let build_type = "Console"
+
+  let build_type_select = root.FindElementById("buildType")
+  if build_type_select.isValid(){
+    build_type = build_type_select.GetSelectedValue()
+  }
+
+  return build_type
+endfunction
+
+function GCCCompile(userData: voidPtr)
+  let compile_flags = ""
+
+  let build_type = GetBuildType(userData)
+
+  if build_type == "Win32"{
+    compile_flags = "-mwindows -lgdi32 -lcomctl32"
+  } else if build_type == "Raylib"{
+    compile_flags = "-lraylib -lopengl32 -lgdi32 -lwinmm -lshell32 -luser32 -lkernel32"
+  }
+
+  let gcc_compile_command = "gcc -O2 E:\\ANIL\\examples\\UI\\IDE\\out_generated_anil.c -o out"
+  gcc_compile_command += " " + compile_flags
+
+  print("GCC Compile Command: {gcc_compile_command}\n")
+
+  let subprocess = Subprocess{gcc_compile_command};
   let result = subprocess.run()
   if result == 0{
     print("Compilation started...\n")
@@ -52,7 +80,7 @@ function Compile(userData: voidPtr)
   let root = CreateUIWidgetFromVoidPtr(userData)
 
   PythonPreprocess()
-  GCCCompile()
+  GCCCompile(userData)
 endfunction
 
 function Execute(userData: voidPtr)
@@ -122,7 +150,7 @@ function WinMain(hInstance: HINSTANCE, hPrevInstance: HINSTANCE, lpCmdLine: LPST
   <UI>
     <App id="_" name="App" rootElement="root_elem"></App>
     <Label id="headerLabel">"My Own IDE"</Label>
-    <Select id="buildType" options="Win32, Console, Raylib" default="Win32"></Select>
+    <Select id="buildType" options="Win32, Console, Raylib" default="Win32">"Build Type"</Select>
     <TextArea id="codeEditor" font="JetBrains Mono"></TextArea>
     <HBox id="actionRow">
       <Input type="file" id="filePickerButton" onclick="Load(root_elem)" accept="ANIL & C Files|*.anil;*.c|Anil Files|*.anil|C Source Files|*.c|"></Input>

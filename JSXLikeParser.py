@@ -156,7 +156,7 @@ class UIElementTree:
             "HBox": lambda e: f'let {e.id} = {app_ui_var}.CreateHBox(0, 0, 0, 30, "{e.id}")',
             "TextArea": lambda e: f'let {e.id} = {app_ui_var}.CreateTextArea(0, 0, 0, 30, "{e.id}")',
             "FilePicker": lambda e: f'let {e.id} = {app_ui_var}.CreateFilePicker(0, 0, 0, 30, "{e.id}")',
-            "Select": lambda e: f'let {e.id} = {app_ui_var}.CreateDropDown(0, 0, 0, 30, "{e.id}")',
+            "Select": lambda e: f"",
         }
 
         # See 'UI_TODO_App.c' to see how code should be generated for UI elements.
@@ -171,6 +171,26 @@ class UIElementTree:
             if element.is_file_picker_element():
                 #                        VVVVVVVVVVV the element.name is Input, so we pass "FilePicker" directly. 
                 code.append(creation_map["FilePicker"](element))
+            elif element.is_dropdown_element():
+                if element.has_attribute("options"):
+                    options = element.get_attribute_value("options")
+                    if options:
+                        radio_group = element.id
+                        code.append(f"let {radio_group} = {app_ui_var}.CreateHBox(0, 0, 0, 30, \"{radio_group}\");\n")
+                        code.append(f"let {radio_group}__label = {app_ui_var}.CreateLabel(0, 0, 0, 30, \"{element.content}\", \"{radio_group}__label__id\");\n")
+
+                        options_list = [opt.strip() for opt in options.split(",")] 
+                        radio_var_names = []
+                        for option in options_list:
+                            radio_var_name = f"{radio_group}_{option}__radio"
+                            if radio_var_name in radio_var_names:
+                                raise ValueError(f"Radio id {radio_var_name} already registered.")
+                            radio_var_names.append(radio_var_name)
+                            code.append(f'let {radio_var_name} = {app_ui_var}.CreateRadioButton("{option}", "{radio_var_name}");\n')
+                    else:
+                        raise ValueError("Dropdowns options is empty.")
+                else:
+                    raise ValueError("Dropdowns should have options attribute.")
             elif element.name in creation_map:
                 code.append(creation_map[element.name](element))
             else:
@@ -188,9 +208,17 @@ class UIElementTree:
                     if element.has_attribute("options"):
                         options = element.get_attribute_value("options")
                         if options:
+                            radio_group = element.id
+
+                            code.append(f"{radio_group}.AddChild({radio_group}__label);\n")
+
                             options_list = [opt.strip() for opt in options.split(",")] 
+                            radio_var_names = []
                             for option in options_list:
-                                code.append(f'{element.id}.AddOptionToDropDown("{option}")\n')
+                                radio_var_name = f"{radio_group}_{option}__radio"
+                                radio_var_names.append(radio_var_name)
+                                code.append(f"{radio_group}.AddChild({radio_var_name});\n")
+                            
                         else:
                             raise ValueError("Dropdowns options is empty.")
                     else:
@@ -199,7 +227,7 @@ class UIElementTree:
                     if element.has_attribute("default"):
                         default = element.get_attribute_value("default")
                         if default:
-                            code.append(f'{element.id}.SelectOption("{default}")\n')
+                            code.append(f'{element.id}.SelectOptionByText("{default}")\n')
                         else:
                             raise ValueError("Dropdowns default value is empty.")
                     else:
