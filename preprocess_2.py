@@ -312,7 +312,7 @@ def escape_quotes(s):
 
 
 def get_format_specifier(p_type: str) -> str:
-    db = {"char": "c", "int": "d", "float": "f", "size_t": "llu"}
+    db = {"char": "c", "int": "d", "float": "f", "size_t": "llu", "String": "s"}
 
     is_array_type = p_type[0] == "[" and p_type[-1] == "]"
     if is_array_type:
@@ -4570,7 +4570,11 @@ while index < len(Lines):
                 if return_type != None:
                     format_specifier = get_format_specifier(return_type)
                 str_text += f"%{format_specifier}"
-                extracted_var_name_list.append(extracted_var_name)
+
+                if return_type == "String":
+                    extracted_var_name_list.append(f"Stringc_str(&{extracted_var_name})")
+                else:
+                    extracted_var_name_list.append(extracted_var_name)
             elif braces_open:
                 extracted_var_name += char
             else:
