@@ -46,15 +46,10 @@ function GetBuildType(userData: voidPtr) -> String:
 endfunction
 
 function GCCCompile(userData: voidPtr)
-  let compile_flags = ""
-
   let build_type = GetBuildType(userData)
 
-  if build_type == "Win32"{
-    compile_flags = "-mwindows -lgdi32 -lcomctl32"
-  } else if build_type == "Raylib"{
-    compile_flags = "-lraylib -lopengl32 -lgdi32 -lwinmm -lshell32 -luser32 -lkernel32"
-  }
+  constexpr COMPILE_FLAGS = {"Win32" : "-mwindows -lgdi32 -lcomctl32", "Raylib" : "-lraylib -lopengl32 -lgdi32 -lwinmm -lshell32 -luser32 -lkernel32", default : ""}
+  let compile_flags = COMPILE_FLAGS[build_type]
 
   let gcc_compile_command = "gcc -O2 E:\\ANIL\\examples\\UI\\IDE\\out_generated_anil.c -o out"
   gcc_compile_command += " " + compile_flags

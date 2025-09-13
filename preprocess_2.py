@@ -254,6 +254,14 @@ GlobalGeneratedStructDestructors = ""
 #           struct String { ... };
 GlobalGeneratedStructDefinations = ""
 
+# Constexpr dictionary lookups which couldnt be resolved at compile time, say we provided a variable name
+# to index constexpr dict, then we should resolve it at run time.
+# The functions to resolve such looksups are stored here.
+GlobalGeneratedConstexprLookupFnDefinations = ""
+# The function names are stored here, just to check if we need to emit the function call.
+constexpr_lookup_functions_generated = []
+
+
 # Write __init__ code of structs defined in global scope.
 # This code will be written at the start of main function marked by ///*/// main()
 global_variables_initialization_code = []
@@ -1442,6 +1450,44 @@ class ConstexprDictionaryType:
     def __init__(self, p_dict_name: str, p_dictionary: dict) -> None:
         self.dict_name = p_dict_name
         self.dictionary = p_dictionary
+        self.default_key_value = None
+        self.dict_type = "number" # numbers or strings.
+
+def generate_contexpr_dict_runtime_lookup_code(func_name, contexpr_dict):
+    param_name = "p_string"
+    if contexpr_dict.dict_type == "number":
+        raise ValueError("Cant generate function for Constexpr Dictionary of type number.")
+    if contexpr_dict.default_key_value is None:
+        raise ValueError("Need a default value for Constexpr Dictionary.")
+
+    fn_declaration = f"struct String {func_name}(struct String *{param_name})"
+
+    lines = []
+    lines.append(f"{fn_declaration}{{")
+
+    first = True
+    for key, value in contexpr_dict.dictionary.items():
+        if first:
+            lines.append(f' if (String__eq__({param_name}, "{key}")) {{')
+            first = False
+        else:
+            lines.append(f' else if (String__eq__({param_name}, "{key}")) {{')
+        
+        lines.append(f'     struct String result;')
+        lines.append(f'     String__init__from_charptr(&result, "{value}", {len(value)});')
+        lines.append(f'     return result;')
+        lines.append(f' }}')
+
+    # Default return
+    default_value = contexpr_dict.default_key_value
+    lines.append(f'        struct String result;')
+    lines.append(f'        String__init__from_charptr(&result, "{default_value}", {len(default_value)});')
+    lines.append(f'        return result;')
+    lines.append("}")
+    fn_body = "\n".join(lines)
+
+    return fn_declaration, fn_body
+
 
 
 constexpr_dictionaries = []
@@ -1449,6 +1495,18 @@ constexpr_dictionaries = []
 
 def is_constexpr_dictionary(p_dict_name) -> bool:
     return any(m_dict.dict_name == p_dict_name for m_dict in constexpr_dictionaries)
+
+def is_numeric_constexpr_dictionary(p_dict_name) -> bool:
+    for m_dict in constexpr_dictionaries:
+        if m_dict.dict_name == p_dict_name and m_dict.dict_type == "number":
+            return True
+    return False
+
+def is_string_constexpr_dictionary(p_dict_name) -> bool:
+    for m_dict in constexpr_dictionaries:
+        if m_dict.dict_name == p_dict_name and m_dict.dict_type == "string":
+            return True
+    return False
 
 
 class Annotation:
@@ -2997,7 +3055,74 @@ while index < len(Lines):
         for dict in constexpr_dictionaries:
             if dict.dict_name == p_dict_name:
                 try:
-                    return dict.dictionary[key]
+                    if dict.dict_type == "number":
+                        return dict.dictionary[key]
+                    else:
+                        RAISE_ERROR(f"TODO: To be implemented: Constexpr dictionary {p_dict_name} string lookups. String lookups are only allowed for Let statements.")
+                except KeyError:
+                    print(
+                        f'[Error] Key "{key}" wasn\'t found in the constexpr dictionary {p_dict_name}.'
+                    )
+        # Shouldn't happen as the caller functions have already verified the presence of the dictionaries.
+        RAISE_ERROR(f"Constexpr dictionary {p_dict_name} is undefined.")
+
+    def parse_string_constexpr_dictionary(p_dict_name):
+        parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)
+
+        # a["key"]
+        key = None
+        is_raw_string = False
+        if parser.check_token(lexer.Token.QUOTE):
+            key = parser.extract_string_literal()
+            is_raw_string = True
+        else:
+            key = parser.get_token()
+
+        parser.consume_token(lexer.Token.RIGHT_SQUARE_BRACKET)
+
+        fn_name = f"Constexpr__Lookup__{p_dict_name}"
+        if fn_name not in constexpr_lookup_functions_generated:
+            constexpr_lookup_functions_generated.append(fn_name)
+            m_dict = get_constexpr_dictionary(target)
+            fn_declaration, fn_body = generate_contexpr_dict_runtime_lookup_code(fn_name, m_dict)
+
+            global GlobalGeneratedFunctionDeclarations
+            GlobalGeneratedFunctionDeclarations += f"{fn_declaration};\n"
+
+            global GlobalGeneratedConstexprLookupFnDefinations
+            GlobalGeneratedConstexprLookupFnDefinations += fn_body
+
+        for d in constexpr_dictionaries:
+            if d.dict_name != p_dict_name:
+                continue
+
+            if key in d.dictionary:
+                value = d.dictionary[key]
+            else:
+                value = d.default_key_value
+
+            if is_raw_string:
+                return True, value
+                #      ^^^^   we have constexpr string.
+            else:
+                return False, f"{fn_name}(&{key})"
+                #      ^^^^^  we need to perform runtime lookup.
+
+        # Shouldn't happen as the caller functions have already verified the presence of the dictionaries.
+        RAISE_ERROR(f"Constexpr dictionary {p_dict_name} is undefined.")
+
+    def get_constexpr_dictionary(p_dict_name):
+        for dict in constexpr_dictionaries:
+            if dict.dict_name == p_dict_name:
+                return dict
+        # Shouldn't happen as the caller functions have already verified the presence of the dictionaries.
+        RAISE_ERROR(f"Constexpr dictionary {p_dict_name} is undefined.")
+
+    def get_constexpr_dictionary_type(p_dict_name):
+        for dict in constexpr_dictionaries:
+            if dict.dict_name == p_dict_name:
+                try:
+                    return dict.dict_type
                 except KeyError:
                     print(
                         f'[Error] Key "{key}" wasn\'t found in the constexpr dictionary {p_dict_name}.'
@@ -3303,7 +3428,7 @@ while index < len(Lines):
         token_type = SpeculativeTokenType.NONE
         exact_type = ""
 
-        if is_constexpr_dictionary(current_token):
+        if is_numeric_constexpr_dictionary(current_token):
             parser.next_token()
             return_value = parse_constexpr_dictionary(current_token)
             exact_type = "int"
@@ -4812,8 +4937,31 @@ while index < len(Lines):
                         #  let color = Color["Red"]
                         #                   ^
                         parser.next_token()
-                        actual_value = parse_constexpr_dictionary(target)
-                        LinesCache.append(f"int {var_name} = {actual_value};\n")
+
+                        if is_string_constexpr_dictionary(target):
+                            found_raw_string_during_lookup, actual_value = parse_string_constexpr_dictionary(target)
+
+                            if found_raw_string_during_lookup:
+                                # We are performing direct lookup on string dict with a string literal,
+                                # so we write the string initialization code directly.
+                                LinesCache.append(f"struct String {var_name}; \n")
+                                LinesCache.append(f'String__init__from_charptr(&{var_name}, "{actual_value}", {len(actual_value)}); \n')
+                            else:
+                                # We passed variable to constexpr dict lookup.
+                                # So, we write a function call instead.
+                                LinesCache.append(f"struct String {var_name} = {actual_value};\n")
+
+                            instance = StructInstance("String", f"{var_name}", get_current_scope())
+                            instanced_struct_names.append(instance)
+                            REGISTER_VARIABLE(f"{var_name}", "String")
+                        else:
+                            actual_value = parse_constexpr_dictionary(target)
+                            dict_type = get_constexpr_dictionary_type(target)
+                            if dict_type == "number":
+                                LinesCache.append(f"int {var_name} = {actual_value};\n")
+                                REGISTER_VARIABLE(f"{var_name}", "int")
+                            else:
+                                RAISE_ERROR(f"Dict type {dict_type} undefined.")
                     else:
                         parse_access_struct_member(var_name)
     elif check_token(lexer.Token.IF):
@@ -5341,15 +5489,38 @@ while index < len(Lines):
         parser.consume_token(lexer.Token.LEFT_CURLY)
 
         dict = {}
+        default_key_value = None
+        dict_type = "number"
 
         while True:
-            key = parser.extract_string_literal()
+            # default : ""}
+            # ^^^^^^^
+            key = None
+            if parser.check_token(lexer.Token.QUOTE):
+                key = parser.extract_string_literal()
+            else:
+                key = parser.get_token()
+                if key == "default":
+                    if default_key_value is not None:
+                        RAISE_ERROR("Ther can be only one default value")
+                else:
+                    RAISE_ERROR("Only default word except strings can be Constexpr Dictionary key format.")
 
             parser.consume_token(lexer.Token.COLON)
 
-            value = parser.get_token()
+            #constexpr COMPILE_FLAGS = {"Win32" : "-mwindows -lgdi32 -lcomctl32", 
+            #                                     ^
+            value = None
+            if parser.check_token(lexer.Token.QUOTE):
+                value = parser.extract_string_literal()
+                dict_type = "string"
+            else:
+                value = parser.get_token()
 
-            dict[key] = value
+            if key == "default":
+                default_key_value = value
+            else:
+                dict[key] = value
 
             if parser.check_token(lexer.Token.RIGHT_CURLY):
                 parser.next_token()
@@ -5362,6 +5533,8 @@ while index < len(Lines):
         if is_constexpr_dictionary(dict_name):
             RAISE_ERROR(f'Constexpr dictionary "{dict_name}" already defined.')
         m_dict = ConstexprDictionaryType(dict_name, dict)
+        m_dict.default_key_value = default_key_value
+        m_dict.dict_type = dict_type
         constexpr_dictionaries.append(m_dict)
     elif check_token(lexer.Token.AT):
         # @apply_hook("custom_integer_printer", CustomPrint)
@@ -5984,7 +6157,7 @@ def get_initial_global_definations():
                 UniqueIncludeLines.append(line + "\n")
 
         combined_global_definitions += UniqueIncludeLines + ["\n\n"]
-    combined_global_definitions += GlobalGeneratedStructDefinations + GlobalGeneratedFunctionDeclarations + "\n\n" + GlobalGeneratedStructDestructors + GlobalStructInitCode
+    combined_global_definitions += GlobalGeneratedStructDefinations + GlobalGeneratedFunctionDeclarations + "\n\n" + GlobalGeneratedConstexprLookupFnDefinations + "\n\n" + GlobalGeneratedStructDestructors + GlobalStructInitCode
     return combined_global_definitions
 
 # A main function can have multiple return values.

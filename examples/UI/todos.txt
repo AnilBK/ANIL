@@ -6,3 +6,5 @@ Add Copy constructors for Vectors. See Json.c
 Optimize Comma in Vector Print
 Token.LET Rename array_name to var_name
 Move more stuffs to AST based parsing
+Add syntax highlighting to IDE.
+Add a edit button for constexpr lines so the dict can be edited graphically.

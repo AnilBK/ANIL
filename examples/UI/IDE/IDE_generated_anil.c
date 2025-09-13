@@ -966,6 +966,7 @@ struct UIWidget CreateUIWidgetFromVoidPtr(voidPtr ptr);
 void PythonPreprocess();
 struct String GetBuildType(voidPtr userData);
 void GCCCompile(voidPtr userData);
+struct String Constexpr__Lookup__COMPILE_FLAGS(struct String *p_string);
 void Compile(voidPtr userData);
 void Execute(voidPtr userData);
 void Load(voidPtr userData);
@@ -1003,6 +1004,24 @@ void Vector_String_clear(struct Vector_String *this);
 void Vector_Stringclear(struct Vector_String *this);
 bool Vector_String__contains__(struct Vector_String *this, struct String value);
 void Vector_Stringprint(struct Vector_String *this);
+
+struct String Constexpr__Lookup__COMPILE_FLAGS(struct String *p_string) {
+  if (String__eq__(p_string, "Win32")) {
+    struct String result;
+    String__init__from_charptr(&result, "-mwindows -lgdi32 -lcomctl32", 28);
+    return result;
+  } else if (String__eq__(p_string, "Raylib")) {
+    struct String result;
+    String__init__from_charptr(
+        &result,
+        "-lraylib -lopengl32 -lgdi32 -lwinmm -lshell32 -luser32 -lkernel32",
+        65);
+    return result;
+  }
+  struct String result;
+  String__init__from_charptr(&result, "", 0);
+  return result;
+}
 
 void Subprocess__del__(struct Subprocess *this) {
   String__del__(&this->commandLine);
@@ -2288,18 +2307,9 @@ struct String GetBuildType(voidPtr userData) {
 }
 
 void GCCCompile(voidPtr userData) {
-  struct String compile_flags;
-  String__init__OVDstrint(&compile_flags, "", 0);
-
   struct String build_type = GetBuildType(userData);
 
-  if (String__eq__(&build_type, "Win32")) {
-    String__reassign__OVDstr(&compile_flags, "-mwindows -lgdi32 -lcomctl32");
-  } else if (String__eq__(&build_type, "Raylib")) {
-    String__reassign__OVDstr(
-        &compile_flags,
-        "-lraylib -lopengl32 -lgdi32 -lwinmm -lshell32 -luser32 -lkernel32");
-  }
+  struct String compile_flags = Constexpr__Lookup__COMPILE_FLAGS(&build_type);
 
   struct String gcc_compile_command;
   String__init__OVDstrint(
@@ -2329,8 +2339,8 @@ void GCCCompile(voidPtr userData) {
   }
   Subprocess__del__(&subprocess);
   String__del__(&gcc_compile_command);
-  String__del__(&build_type);
   String__del__(&compile_flags);
+  String__del__(&build_type);
 }
 
 void Compile(voidPtr userData) {
