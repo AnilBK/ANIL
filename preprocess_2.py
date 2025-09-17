@@ -1429,6 +1429,7 @@ currently_reading_def_body = ""
 
 is_inside_new_code = False
 is_inside_struct_c_function = False
+is_inside_global_c_function = False
 
 namespace_name = ""
 is_inside_name_space = False
@@ -1555,6 +1556,145 @@ def parse_hook_info(p_hook_body) -> HookInfo:
 
 ##############################################################################################
 
+def parse_global_c_function():
+    global temporary_annotations_list, GlobalGeneratedFunctionDeclarations, LinesCache, should_write_fn_body
+    global GlobalStructInitCode, global_variables_initialization_code, is_inside_global_c_function
+
+    should_write_fn_body = True
+
+    function_declaration = parse_function_declaration()
+
+    function_name = function_declaration["fn_name"]
+    return_type = function_declaration["return_type"]
+    is_return_type_ref_type = function_declaration["is_return_type_ref_type"]
+    parameters = function_declaration["parameters"]
+    parameters_combined_list = function_declaration["parameters_combined_list"]
+    is_overloaded = function_declaration["is_overloaded"]
+    is_overloaded_fn = function_declaration["is_overloaded_fn"]
+    overload_for_type = function_declaration["overload_for_type"]
+
+    # if this function is a struct member function, it needs to be mangled below.
+    func_name = function_name
+
+    defining_fn_for_custom_class = False
+    
+    if parser.has_tokens_remaining():
+        # function my_first_ANIL_function() for String
+        if parser.check_token(lexer.Token.FOR):
+            parser.consume_token(lexer.Token.FOR)
+
+            target_class = parser.get_token()
+
+            if function_name == "WinMain":
+                RAISE_ERROR(f"WinMain is a global entry point. It can't be a member function of \"{namespace_name}\".")
+
+            defining_fn_for_custom_class = True
+            class_fn_defination["class_name"] = target_class
+            class_fn_defination["function_name"] = function_name
+            class_fn_defination["start_index"] = len(LinesCache)
+        else:
+            RAISE_ERROR('Expected for after function declaration like "function A() for namespace_name".')
+
+    struct_def = None
+    if defining_fn_for_custom_class:
+        struct_name = class_fn_defination["class_name"]
+        struct_def = get_struct_defination_of_type(struct_name)
+
+    # TODO: This need not be performed as the template types should be resolved at template instantiation time.
+    # This could be performed by updating 'unparsed_function' during template instantiation.
+    def resolve_template_data_type(p_type):
+        if struct_def != None:
+            if p_type == struct_def.template_defination_variable:
+                if struct_def.templated_data_type:
+                    return struct_def.templated_data_type
+        return p_type
+
+    if defining_fn_for_custom_class:
+        if is_overloaded:
+            # Get datatype from MemberDataType,
+            # as get_overloaded_mangled_fn_name requires list of strings(data_type).
+            data_types_str_list = [p.data_type for p in parameters]
+            func_name = get_overloaded_mangled_fn_name(class_fn_defination["class_name"], function_name, data_types_str_list)
+        else:
+            func_name = get_mangled_fn_name(class_fn_defination["class_name"], function_name)
+    
+        if temporary_annotations_list:
+            RAISE_ERROR("Annotations are not supported for class functions.")
+    else:
+        # Annotations are implemented for global functions only as of now.
+        if temporary_annotations_list:
+            # PATCH_ANNOTATION
+            # Patch stored (stacked) temporary annotations, which didn't have fn_name.
+            for i in range(len(temporary_annotations_list)):
+                temporary_annotations_list[i].annotated_fn_name = function_name
+            annotations_list.extend(temporary_annotations_list)
+            temporary_annotations_list = []
+
+    if defining_fn_for_custom_class:
+        if struct_def != None:
+            if struct_def.is_templated():
+                should_write_fn_body = False
+
+    code = ""
+
+    return_type = format_struct_data_type(resolve_template_data_type(return_type))
+
+    has_parameters = len(parameters) > 0
+
+    code = f"{return_type} {func_name}("
+    if function_name == "WinMain":
+        # We dont need to use func_name, as we have validated that function_name is a global function,
+        # and not a mangled name.
+        code = f"{return_type} WINAPI {function_name}("
+
+    if defining_fn_for_custom_class:
+        struct_name = class_fn_defination["class_name"]
+        code += f"struct {struct_name} *this"
+        if has_parameters:
+            code += ","
+            
+    if has_parameters:
+        params = [f"{format_struct_data_type(p.data_type)} {p.member}" for p in parameters]
+        parameters_str = ",".join(params)
+        code += f"{parameters_str}"
+
+    GlobalGeneratedFunctionDeclarations += code + ");\n"
+    
+    code += f") {{\n"
+
+    LinesCache.append(code)
+
+    if is_anil_file and function_name in ("main", "WinMain"):
+        # Normal .c file has identifiers which indicates where the global variables constructors is placed in main.
+        # .anil files doesn't have that, so, the first line for main function is the global variables constructors
+        # initialization code.
+        if len(global_variables_initialization_code) > 0:
+            LinesCache.append("//Global Variables Initialization.\n")
+            LinesCache.extend(global_variables_initialization_code)
+            LinesCache.append("\n")
+            global_variables_initialization_code = []
+    
+    fn = MemberFunction(function_name, parameters, return_type)
+    fn.is_overloaded_function = is_overloaded_fn
+    fn.overload_for_template_type = overload_for_type
+    fn.is_return_type_ref_type = is_return_type_ref_type
+    
+    if defining_fn_for_custom_class:
+        if should_write_fn_body:
+            GlobalStructInitCode += code
+        add_fn_member_to_struct(class_fn_defination["class_name"], fn)
+        class_fn_defination["function_destination"] = "class"
+    else:
+        GlobalFunctions.append(fn)
+        class_fn_defination["function_destination"] = "global"
+        class_fn_defination["function_name"] = function_name
+
+    is_inside_global_c_function = True
+
+
+##############################################################################################
+
+
 Error_Handler = ErrorHandler()
 Error_Handler.register_source_file(source_file)
 
@@ -1669,7 +1809,10 @@ while index < len(Lines):
         LinesCache.append(Line)
         continue
 
-    if is_inside_struct_c_function and not "endc_function" in Line:
+    if is_inside_global_c_function and not "endc_function" in Line:
+        currently_reading_fn_body += Line
+        continue
+    elif is_inside_struct_c_function and not "endc_function" in Line:
         currently_reading_fn_body += Line
         if should_write_fn_body:
             GlobalStructInitCode += Line
@@ -5182,7 +5325,9 @@ while index < len(Lines):
         parser.consume_token(lexer.Token.CFUNCTION)
 
         if not is_inside_name_space:
-            RAISE_ERROR("c_function blocks are only allowed inside a namespace. Namespaces denote that the current function being defined belongs to that namespace(i.e class).")
+            parse_global_c_function()
+            continue
+        
         struct_name = namespace_name
 
         should_write_fn_body = True
@@ -5271,8 +5416,8 @@ while index < len(Lines):
         if is_inside_user_defined_function:
             RAISE_ERROR("Use \"endfunction\" to close a function and not \"endc_function\".")
 
-        if is_inside_struct_c_function:
-            if should_write_fn_body:
+        if is_inside_struct_c_function or is_inside_global_c_function:
+            if is_inside_struct_c_function and should_write_fn_body:
                 GlobalStructInitCode += "}\n\n"
 
             currently_reading_fn_body_dup = currently_reading_fn_body
@@ -5404,14 +5549,22 @@ while index < len(Lines):
             for param in registered_function_parameters:
                 remove_struct_instance(param)
 
-            add_fnbody_to_member_to_struct(
-                currently_reading_fn_parent_struct,
-                currently_reading_fn_name,
-                currently_reading_fn_body_dup,
-            )
+            if is_inside_global_c_function:
+                if should_write_fn_body:
+                    LinesCache.append(currently_reading_fn_body)
+                    code = "}\n"
+                    LinesCache.append(code)
+            else:
+                add_fnbody_to_member_to_struct(
+                    currently_reading_fn_parent_struct,
+                    currently_reading_fn_name,
+                    currently_reading_fn_body_dup,
+                )
+
             currently_reading_fn_body = ""
             should_write_fn_body = True
             is_inside_struct_c_function = False
+            is_inside_global_c_function = False
             registered_function_parameters = []
         else:
             RAISE_ERROR("End c_function without being in c_function block.")
