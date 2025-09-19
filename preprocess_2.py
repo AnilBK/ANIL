@@ -40,6 +40,7 @@ source_file = "examples\\00_Hello_World.c"
 # source_file = "examples\\09_Functions.c"
 # source_file = "examples\\10_FileIO.c"
 # source_file = "examples\\10_FileIO.anil"
+# source_file = "examples\\11_Threads_And_Channels.anil"
 
 # Compile Time related.
 # source_file = "examples\\Annotations.c"
@@ -57,7 +58,7 @@ source_file = "examples\\00_Hello_World.c"
 # source_file = "examples\\UI\\TodoAppBasic.c"
 # source_file = "examples\\UI\\TodoAppJSX.c"
 # source_file = "examples\\UI\\TodoAppWebServer.c"
-source_file = "examples\\UI\\IDE\\IDE.anil"
+# source_file = "examples\\UI\\IDE\\IDE.anil"
 # source_file = "examples\\Variables_GUI_Input_Win.c"
 # source_file = "examples\\WebServer.c"
 

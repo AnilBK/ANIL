@@ -15,6 +15,7 @@ file_names = [
     "examples\\09_Functions.c",
     "examples\\10_FileIO.c",
     "examples\\10_FileIO.anil",
+    "examples\\11_Threads_And_Channels.anil",
     "examples\\Annotations.c",
     "examples\\Compile_Time_Constants.c",
     "examples\\Macro_With_Variadic_Arguments.c",

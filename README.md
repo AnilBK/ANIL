@@ -41,6 +41,7 @@ python preprocess_2.py --filename examples\FILE_NAME*.c
 - Windows UI App using JSX like syntax: See [Todo App JSX like Syntax Example](examples/UI/TodoAppJSX.c)
 - Windows Web Server: See [Todo App Web Server Example](examples/UI/TodoAppWebServer.c)
 - Function Pointers: See [Example](examples/FunctionPointer.c)
+- Threads & Channel: See [Example](examples/11_Threads_And_Channels.anil)
 - Dunder methods:
     - `__init__` : To implement constructors.
     - `__del__` : To implement destructors. For automatic destructor call for a struct member(if it has a destructor), use the ~ operator. Lookup `_call_destructor_for_element()` in [Vector](Lib/Vector.c)

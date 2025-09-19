@@ -1,0 +1,57 @@
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+import Threads
+
+let ch = Channel{10};
+
+function Task()
+  while true{
+    let res = ch.receive_int()
+    if res.is_ok(){
+      let value = res.get_value()
+      print("Worker: Received {value} \n")
+    } else{
+      print("Worker: Channel is closed and empty. Exiting. \n")
+      break;
+    }
+  }
+endfunction
+
+c_function WorkerThread(arg : ThreadInternalVoidPointer) -> ThreadInternalVoidPointer:
+  Task();
+  return NULL;
+endc_function
+
+function main() -> int:
+  print("Main: Created a channel with capacity 10. \n")
+
+  print("Main: Starting worker thread. \n")
+
+  let channelAsVoidPointer = ch.ToThreadVoidPointer()
+  // the above void* casting can be done by Thread itself.
+  let worker = Thread{WorkerThread, channelAsVoidPointer};
+
+  for i in range(1..50){
+    print("Main: Sending {i} \n")
+
+    let res = ch.send(i)
+
+    if res == false{
+      print("Main: Failed to send data, channel is closed.\n")
+      break;
+    }
+
+  }
+
+  print("Main: All items sent. Closing channel.\n")
+  ch.close()
+
+  print("Main: Waiting for worker to finish...\n")
+  worker.join()
+
+  print("Main: Program finished successfully.\n")
+
+  return 0
+endfunction
