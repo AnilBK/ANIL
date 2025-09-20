@@ -12,7 +12,7 @@ int main() {
   ///*///  main()
   import Dictionary
 
-  // Compile time dictionary. See constexpr_dict.c
+  // Compile time dictionary. See Compile_Time_Constants.c
   // Also See, Bootstrap/lexer_test.c.
   constexpr NUMBERS = {"ONE" : 1, "TWO" : 2}
 
