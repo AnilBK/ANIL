@@ -1491,7 +1491,6 @@ def generate_contexpr_dict_runtime_lookup_code(func_name, contexpr_dict):
     return fn_declaration, fn_body
 
 
-
 constexpr_dictionaries = []
 
 
@@ -1721,6 +1720,20 @@ def create_const_charptr_iterator(array_name, current_array_value_variable):
     temp_c_str_iterator_variable_count += 1
 
 
+def create_array_enumerator(
+    array_name, ranged_index_item_variable, current_array_value_variable
+):
+    global LinesCache
+    LinesCache.append(
+        f"Iterator {array_name}_iter = create_iterator_from_array({array_name}, {array_name}_array_size); \n"
+        f"Enumerator {array_name}_enumerator;\n"
+        f"{array_name}_enumerator.index = -1;\n\n"
+        f"while (enumerate(&{array_name}_iter, &{array_name}_enumerator)) {{\n"
+        f"int {ranged_index_item_variable} = {array_name}_enumerator.index;\n"
+        f"int {current_array_value_variable} = {array_name}_enumerator.val;\n"
+    )
+
+
 def create_normal_array_iterator(array_name, current_array_value_variable):
     global LinesCache
 
@@ -1748,6 +1761,263 @@ def promote_char_to_string(var_to_check):
     REGISTER_VARIABLE(f"{promoted_char_var_name}", "str")
 
     return promoted_char_var_name
+
+
+def handle_array_in_operator(var_to_check, var_to_check_against):
+    global temp_arr_search_variable_count
+
+    search_variable = f"{var_to_check_against}__contains__{var_to_check}_{temp_arr_search_variable_count}"
+    temp_arr_search_variable_count += 1
+
+    LinesCache.append(
+        f"bool {search_variable} = false;\n"
+        f"for (unsigned int i = 0; i < {var_to_check_against}_array_size; i++){{\n"
+        f"  if ({var_to_check_against}[i] == {var_to_check}){{\n"
+        f"      {search_variable} = true;\n"
+        f"      break;\n"
+        f"  }}\n"
+        f" }}\n"
+    )
+
+    REGISTER_VARIABLE(search_variable, f"bool")
+    return search_variable
+
+
+class ParameterType(Enum):
+    UNDEFINED = -1
+    RAW_STRING = 0
+    CHAR_TYPE = 1
+    STR_TYPE = 2
+    STRING_CLASS = 3
+    NUMBER = 4
+    VARIABLE = 5
+    BOOLEAN_CONSTANT = 6 # True or False
+    FUNCTION_POINTER = 7
+    STRING_EXPRESSION = 8
+
+
+def _parameters_to_types_str_list(parameters : list) -> list:
+    strs = []
+    for param in parameters:
+        if param.param_type == ParameterType.NUMBER or param.param_type == "int":
+            strs.append("int")
+        elif param.param_type == ParameterType.CHAR_TYPE:
+            strs.append("char")
+        elif param.param_type == ParameterType.RAW_STRING or param.param_type == ParameterType.STR_TYPE:
+            strs.append("char*")
+        elif param.param_type == ParameterType.STRING_CLASS or param.param_type == ParameterType.STRING_EXPRESSION or param.param_type == "struct String" or param.param_type == "String":
+            strs.append("struct String")
+        elif param.param_type == ParameterType.FUNCTION_POINTER:
+            strs.append("fn_ptr")
+        elif param.param_type == ParameterType.VARIABLE:
+            strs.append(get_type_of_variable(param.param))
+        elif is_data_type_struct_object(data_type_with_struct_stripped(param.param_type)):
+            strs.append(data_type_with_struct_stripped(param.param_type))
+        else:
+            RAISE_ERROR(f"Unimplemented for {param.param_type}.")
+    return strs
+
+
+class SimpleAst:
+    def __init__(self):
+        self.params = []
+
+    def add_param(self, param_name, param_type):
+        param = (param_name, param_type)
+        self.params.append(param)
+
+    def update_param(self, idx, new_param_name, new_param_type):
+        param = (new_param_name, new_param_type)
+        self.params[idx] = param
+
+    def remove_param(self, index):
+        del self.params[index]
+
+
+class Parameter:
+    def __init__(self, p_param, p_param_type: ParameterType) -> None:
+        self.param = p_param
+        self.param_type = p_param_type
+        self.struct_instance = None # For a.b, we may need instance info of b later, for e.g in boolean_expression()
+        
+        self.fn_call_parse_info = None
+        self.ast = SimpleAst()
+
+
+def handle_raw_string_equality(var_to_check_against, var_to_check, l_type, struct_info, is_struct, negation):
+    if is_struct:
+        fn_name = struct_info.get_mangled_function_name("__eq__")
+        code = f'{fn_name}(&{var_to_check_against}, "{var_to_check}")'
+    else:
+        if l_type == ParameterType.CHAR_TYPE or l_type == "char":
+            code = f"{var_to_check_against} == '{var_to_check}'"
+        else:
+            code = f'{var_to_check_against} == "{var_to_check}"'
+
+    return f"!({code})" if negation else code
+
+
+def handle_struct_equality(var_to_check_against, var_to_check, r_type, struct_info, negation):
+    code = ""
+
+    # Create a function expression and merge the tokens to the current parser.
+    # Parse the function expression using the recently merged tokens.
+    ANIL_code = f"{var_to_check_against}.__eq__({var_to_check})".replace("->",".").replace("&","")
+    fn_parser = Parser.Parser(ANIL_code)
+    parser.tokens = fn_parser.tokens + parser.tokens
+    fn_call_parse_info = function_call_expression()
+    if fn_call_parse_info == None:
+        RAISE_ERROR(f"For \"{ANIL_code}\", Struct equality fn call parsing failed.")
+    else:
+        code = fn_call_parse_info.get_fn_str()
+
+    if negation:
+        code = f"!{code}"
+
+    if struct_info.struct_type == "String" and r_type == ParameterType.STRING_CLASS:
+        return code
+
+    return {"code": code, "return_type": return_type}
+
+
+def handle_char_equality(var_to_check_against, var_to_check, l_type, negation):
+    code = f"{var_to_check_against} == '{var_to_check}'"
+    return f"!({code})" if negation else code
+
+
+class ParsedFunctionCallType(Enum):
+    # To denote x = A.fn();
+    STRUCT_FUNCTION_CALL = 0
+    # To denote x = fn();
+    GLOBAL_FUNCTION_CALL = 1
+    # To denote x = A.B;
+    MEMBER_ACCESS_CALL =  2
+
+
+class ParseErrorException(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
+
+
+class SpeculativeTokenType(Enum):
+    NONE = 0
+    NUMERIC_CONSTANT = 1 # 42
+    NUMERIC_VARIABLE = 2 # a = 45
+    STRING_LITERAL = 3 # a = "Hello World"
+    STR_TYPE = 4
+    STRING_CLASS = 5 # a = String{"Hello World"}
+    CHAR_TYPE = 6
+    STRING_EXPRESSION = 7 # "StringStrip(&s1, 1, 5)"
+
+
+# Maybe Use ParameterType instead of SpeculativeTokenType.
+def SpeculativeTokenTypeToParameterType(tk_type):
+    mapping = {
+        SpeculativeTokenType.NONE: ParameterType.UNDEFINED,
+        SpeculativeTokenType.NUMERIC_CONSTANT: ParameterType.NUMBER,
+        SpeculativeTokenType.NUMERIC_VARIABLE: ParameterType.VARIABLE,
+        SpeculativeTokenType.STRING_LITERAL: ParameterType.RAW_STRING,
+        SpeculativeTokenType.STR_TYPE: ParameterType.STR_TYPE,
+        SpeculativeTokenType.STRING_CLASS: ParameterType.STRING_CLASS,
+        SpeculativeTokenType.CHAR_TYPE: ParameterType.CHAR_TYPE,
+        SpeculativeTokenType.STRING_EXPRESSION: ParameterType.STRING_EXPRESSION,
+    }
+
+    if tk_type in mapping:
+        return mapping[tk_type]
+
+    RAISE_ERROR(f"{tk_type} conversion error.")
+
+
+class SpeculativeParseInfo:
+    def __init__(self):
+        self.speculative_token_type = SpeculativeTokenType.NONE
+        self.speculative_token_value = ""
+        self.speculative_exact_type = ""
+
+
+class SpeculativeExpressionType(Enum):
+    NONE = 0
+    NUMERIC_EXPRESSION = 1 # 1 + 2 + 3
+    STRING_EXPRESSION = 2 # a = 45
+    FUNCTION_CALL_EXPRESSION = 3 # a.f()
+
+
+class SpeculativeExpressionInfo:
+    def __init__(self):
+        self.speculative_expression_type = SpeculativeExpressionType.NONE
+        self.speculative_expression_value = ""
+        self.function_call_metadata = {} # For Function Call expression to return stuffs.
+
+        self.ast = SimpleAst() # Individual members of a string expression "Hello" + "World" are stored in this ast.
+
+    def get_fn_str(self) -> str:
+        # Returns the parsed expression in code form.
+        # For e.g: "Stringlen(&TestString)"
+        parse_result = self.function_call_metadata
+        parsed_fn_call_type = parse_result["function_call_type"]
+        # return_type = parse_result["return_type"]
+        member_access_string = parse_result["member_access_string"]
+
+        code = ""
+
+        if parsed_fn_call_type == ParsedFunctionCallType.MEMBER_ACCESS_CALL:
+            code = member_access_string
+        else:
+            fn_name = parse_result["fn_name"]
+            has_parameters = parse_result["has_parameters"]
+
+            if has_parameters:
+                parameters_str = parse_result["parameters_str"]
+                # For global fn, member_access_string is empty.
+                if member_access_string != "":
+                    code = f"{fn_name}({member_access_string}, {parameters_str})"
+                else:
+                    code = f"{fn_name}({parameters_str})"
+            else:
+                # Function hooks take no parameters.
+                global HOOKS_hook_fn_name
+                if HOOKS_hook_fn_name != "":
+                    global hook_fn_name
+                    global HOOKS_target_fn
+                    code = f"{fn_name}_hooked_{hook_fn_name}({member_access_string},{HOOKS_target_fn})"
+                    HOOKS_hook_fn_name = ""
+                    HOOKS_target_fn = ""
+                else:
+                    code = f"{fn_name}({member_access_string})"
+        return code
+
+
+def _quote_string_params(actual_fn_args, provided_parameters):
+    parameters_quoted = []
+    for arg, parameter in zip(actual_fn_args, provided_parameters):
+        param = parameter.param
+        param_type = parameter.param_type
+
+        if param_type == ParameterType.RAW_STRING:
+            if (arg == "char*") or (arg == "str") or (arg == "c_str") or (arg == "struct String") or (arg == "String"):
+                param = f'"{param}"'
+            else:
+                param = f"'{param}'"
+            parameters_quoted.append(Parameter(param, param_type))
+        else:
+            parameters_quoted.append(parameter)
+    return parameters_quoted    
+
+
+class BooleanExpressionType:
+    def __init__(self):
+        self.return_type = ""
+        self.return_value = ""
+
+        # For 'return a == b'
+        # The structs involved are 'a' and 'b'
+        self.structs_involved = []
+
+        self.returns_single_value = False
+        #    ^^^^^^^^^^^^^^^^^^^^ if we properly fetched all 'structs_involved' then this can be removed.
+
 
 
 index = 0
@@ -1881,10 +2151,6 @@ while index < len(Lines):
     def check_token(token: lexer.Token):
         return parser.check_token(token)
 
-
-
-
-
     def parse_slice(parser):
         start_index, step_size, end_index = None, None, None
         
@@ -1918,7 +2184,6 @@ while index < len(Lines):
             parser.consume_token(lexer.Token.RIGHT_SQUARE_BRACKET)
         
         return start_index, end_index, step_size
-
 
     def create_array_iterator_from_struct(array_name, current_array_value_variable):
         global temp_arr_length_variable_count
@@ -1971,19 +2236,6 @@ while index < len(Lines):
         insert_intermediate_lines(index, code)
 
         temp_arr_length_variable_count += 1
-
-    def create_array_enumerator(
-        array_name, ranged_index_item_variable, current_array_value_variable
-    ):
-        global LinesCache
-        LinesCache.append(
-            f"Iterator {array_name}_iter = create_iterator_from_array({array_name}, {array_name}_array_size); \n"
-            f"Enumerator {array_name}_enumerator;\n"
-            f"{array_name}_enumerator.index = -1;\n\n"
-            f"while (enumerate(&{array_name}_iter, &{array_name}_enumerator)) {{\n"
-            f"int {ranged_index_item_variable} = {array_name}_enumerator.index;\n"
-            f"int {current_array_value_variable} = {array_name}_enumerator.val;\n"
-        )
 
     def create_range_iterator(current_array_value_variable):
         # for i in range(1..10){    -> 0 >= i < 10
@@ -2426,42 +2678,6 @@ while index < len(Lines):
 
         LinesCache.append(code)
 
-    class ParameterType(Enum):
-        UNDEFINED = -1
-        RAW_STRING = 0
-        CHAR_TYPE = 1
-        STR_TYPE = 2
-        STRING_CLASS = 3
-        NUMBER = 4
-        VARIABLE = 5
-        BOOLEAN_CONSTANT = 6 # True or False
-        FUNCTION_POINTER = 7
-        STRING_EXPRESSION = 8
-
-    class SimpleAst:
-        def __init__(self):
-            self.params = []
-
-        def add_param(self, param_name, param_type):
-            param = (param_name, param_type)
-            self.params.append(param)
-
-        def update_param(self, idx, new_param_name, new_param_type):
-            param = (new_param_name, new_param_type)
-            self.params[idx] = param
-    
-        def remove_param(self, index):
-            del self.params[index]
-
-    class Parameter:
-        def __init__(self, p_param, p_param_type: ParameterType) -> None:
-            self.param = p_param
-            self.param_type = p_param_type
-            self.struct_instance = None # For a.b, we may need instance info of b later, for e.g in boolean_expression()
-            
-            self.fn_call_parse_info = None
-            self.ast = SimpleAst()
-
     def _read_a_parameter():
         # Parse a number or string..
         # In any case, just a single symbol.
@@ -2616,41 +2832,6 @@ while index < len(Lines):
 
         return parameters
     
-    def _parameters_to_types_str_list(parameters : list) -> list:
-        strs = []
-        for param in parameters:
-            if param.param_type == ParameterType.NUMBER or param.param_type == "int":
-                strs.append("int")
-            elif param.param_type == ParameterType.CHAR_TYPE:
-                strs.append("char")
-            elif param.param_type == ParameterType.RAW_STRING or param.param_type == ParameterType.STR_TYPE:
-                strs.append("char*")
-            elif param.param_type == ParameterType.VARIABLE:
-                strs.append(get_type_of_variable(param.param))
-            elif param.param_type == ParameterType.STRING_CLASS or param.param_type == ParameterType.STRING_EXPRESSION or param.param_type == "struct String" or param.param_type == "String":
-                strs.append("struct String")
-            elif param.param_type == ParameterType.FUNCTION_POINTER:
-                strs.append("fn_ptr")
-            elif is_data_type_struct_object(data_type_with_struct_stripped(param.param_type)):
-               strs.append(data_type_with_struct_stripped(param.param_type))
-            else:
-                RAISE_ERROR(f"Unimplemented for {param.param_type}.")
-        return strs
-
-
-    class ParsedFunctionCallType(Enum):
-        # To denote x = A.fn();
-        STRUCT_FUNCTION_CALL = 0
-        # To denote x = fn();
-        GLOBAL_FUNCTION_CALL = 1
-        # To denote x = A.B;
-        MEMBER_ACCESS_CALL =  2
-
-    class ParseErrorException(Exception):
-        def __init__(self, message):
-            self.message = message
-            super().__init__(self.message)
-
     def Speculative_parse_struct_member_access(tk, base_struct_info, child_struct_info, member_access_string, pointer_access):
         struct_instance = None
 
@@ -3501,7 +3682,6 @@ while index < len(Lines):
                 JSXlike_element_tree.close_tag(closing_tag_name)
         else:
             RAISE_ERROR(f"Expected '<' i.e JSX like UI Syntax but got {Line}.")
-        
 
     if is_inside_def and "enddef" in Line:
         if check_token(lexer.Token.ENDDEF):
@@ -3536,44 +3716,6 @@ while index < len(Lines):
             currently_reading_def_paramter_initializer_list = False
             currently_reading_def_body = ""
         continue
-    
-    class SpeculativeTokenType(Enum):
-        NONE = 0
-        NUMERIC_CONSTANT = 1 # 42
-        NUMERIC_VARIABLE = 2 # a = 45
-        STRING_LITERAL = 3 # a = "Hello World"
-        STR_TYPE = 4
-        STRING_CLASS = 5 # a = String{"Hello World"}
-        CHAR_TYPE = 6
-        STRING_EXPRESSION = 7 # "StringStrip(&s1, 1, 5)"
-
-
-    # Maybe Use ParameterType instead of SpeculativeTokenType.
-    def SpeculativeTokenTypeToParameterType(tk_type):
-        if tk_type == SpeculativeTokenType.NONE:
-            return ParameterType.UNDEFINED
-        if tk_type == SpeculativeTokenType.NUMERIC_CONSTANT:
-            return ParameterType.NUMBER
-        if tk_type == SpeculativeTokenType.NUMERIC_VARIABLE:
-            return ParameterType.VARIABLE
-        if tk_type == SpeculativeTokenType.STRING_LITERAL:
-            return ParameterType.RAW_STRING
-        if tk_type == SpeculativeTokenType.STR_TYPE:
-            return ParameterType.STR_TYPE 
-        if tk_type == SpeculativeTokenType.STRING_CLASS:
-            return ParameterType.STRING_CLASS 
-        if tk_type == SpeculativeTokenType.CHAR_TYPE:
-            return ParameterType.CHAR_TYPE
-        if tk_type == SpeculativeTokenType.STRING_EXPRESSION:
-            return ParameterType.STRING_EXPRESSION
-        RAISE_ERROR(f"{tk_type} conversion error.")
-
-
-    class SpeculativeParseInfo:
-        def __init__(self):
-            self.speculative_token_type = SpeculativeTokenType.NONE
-            self.speculative_token_value = ""
-            self.speculative_exact_type = ""
     
     def speculative_parse_number():
         current_token = parser.current_token()
@@ -3771,56 +3913,6 @@ while index < len(Lines):
             
             return expression_info
 
-    class SpeculativeExpressionType(Enum):
-        NONE = 0
-        NUMERIC_EXPRESSION = 1 # 1 + 2 + 3
-        STRING_EXPRESSION = 2 # a = 45
-        FUNCTION_CALL_EXPRESSION = 3 # a.f()
-
-    class SpeculativeExpressionInfo:
-        def __init__(self):
-            self.speculative_expression_type = SpeculativeExpressionType.NONE
-            self.speculative_expression_value = ""
-            self.function_call_metadata = {} # For Function Call expression to return stuffs.
-
-            self.ast = SimpleAst() # Individual members of a string expression "Hello" + "World" are stored in this ast.
-
-        def get_fn_str(self) -> str:
-            # Returns the parsed expression in code form.
-            # For e.g: "Stringlen(&TestString)"
-            parse_result = self.function_call_metadata
-            parsed_fn_call_type = parse_result["function_call_type"]
-            # return_type = parse_result["return_type"]
-            member_access_string = parse_result["member_access_string"]
-
-            code = ""
-
-            if parsed_fn_call_type == ParsedFunctionCallType.MEMBER_ACCESS_CALL:
-                code = member_access_string
-            else:
-                fn_name = parse_result["fn_name"]
-                has_parameters = parse_result["has_parameters"]
-
-                if has_parameters:
-                    parameters_str = parse_result["parameters_str"]
-                    # For global fn, member_access_string is empty.
-                    if member_access_string != "":
-                        code = f"{fn_name}({member_access_string}, {parameters_str})"
-                    else:
-                        code = f"{fn_name}({parameters_str})"
-                else:
-                    # Function hooks take no parameters.
-                    global HOOKS_hook_fn_name
-                    if HOOKS_hook_fn_name != "":
-                        global hook_fn_name
-                        global HOOKS_target_fn
-                        code = f"{fn_name}_hooked_{hook_fn_name}({member_access_string},{HOOKS_target_fn})"
-                        HOOKS_hook_fn_name = ""
-                        HOOKS_target_fn = ""
-                    else:
-                        code = f"{fn_name}({member_access_string})"
-            return code
-
     def speculative_parse_integer_expression():
         expr = ""
 
@@ -3882,22 +3974,6 @@ while index < len(Lines):
             else:
                 RAISE_ERROR("Expected integer expression.")
         return integer_expression.speculative_expression_value
-
-    def _quote_string_params(actual_fn_args, provided_parameters):
-        parameters_quoted = []
-        for arg, parameter in zip(actual_fn_args, provided_parameters):
-            param = parameter.param
-            param_type = parameter.param_type
-
-            if param_type == ParameterType.RAW_STRING:
-                if (arg == "char*") or (arg == "str") or (arg == "c_str") or (arg == "struct String") or (arg == "String"):
-                    param = f'"{param}"'
-                else:
-                    param = f"'{param}'"
-                parameters_quoted.append(Parameter(param, param_type))
-            else:
-                parameters_quoted.append(parameter)
-        return parameters_quoted
 
     def function_call_expression():
         expr = ""
@@ -4308,75 +4384,6 @@ while index < len(Lines):
                 f'{var_to_check_against} == {var_to_check}'
             )
             return f"!({comparision_code})" if negation else comparision_code
-
-    def handle_raw_string_equality(var_to_check_against, var_to_check, l_type, struct_info, is_struct, negation):
-        if is_struct:
-            fn_name = struct_info.get_mangled_function_name("__eq__")
-            code = f'{fn_name}(&{var_to_check_against}, "{var_to_check}")'
-        else:
-            if l_type == ParameterType.CHAR_TYPE or l_type == "char":
-                code = f"{var_to_check_against} == '{var_to_check}'"
-            else:
-                code = f'{var_to_check_against} == "{var_to_check}"'
-
-        return f"!({code})" if negation else code
-
-    def handle_struct_equality(var_to_check_against, var_to_check, r_type, struct_info, negation):
-        code = ""
-
-        # Create a function expression and merge the tokens to the current parser.
-        # Parse the function expression using the recently merged tokens.
-        ANIL_code = f"{var_to_check_against}.__eq__({var_to_check})".replace("->",".").replace("&","")
-        fn_parser = Parser.Parser(ANIL_code)
-        parser.tokens = fn_parser.tokens + parser.tokens
-        fn_call_parse_info = function_call_expression()
-        if fn_call_parse_info == None:
-            RAISE_ERROR(f"For \"{ANIL_code}\", Struct equality fn call parsing failed.")
-        else:
-            code = fn_call_parse_info.get_fn_str()
-
-        if negation:
-            code = f"!{code}"
-
-        if struct_info.struct_type == "String" and r_type == ParameterType.STRING_CLASS:
-            return code
-
-        return {"code": code, "return_type": return_type}
-
-    def handle_char_equality(var_to_check_against, var_to_check, l_type, negation):
-        code = f"{var_to_check_against} == '{var_to_check}'"
-        return f"!({code})" if negation else code
-
-    def handle_array_in_operator(var_to_check, var_to_check_against):
-        global temp_arr_search_variable_count
-
-        search_variable = f"{var_to_check_against}__contains__{var_to_check}_{temp_arr_search_variable_count}"
-        temp_arr_search_variable_count += 1
-
-        LinesCache.append(
-            f"bool {search_variable} = false;\n"
-            f"for (unsigned int i = 0; i < {var_to_check_against}_array_size; i++){{\n"
-            f"  if ({var_to_check_against}[i] == {var_to_check}){{\n"
-            f"      {search_variable} = true;\n"
-            f"      break;\n"
-            f"  }}\n"
-            f" }}\n"
-        )
-
-        REGISTER_VARIABLE(search_variable, f"bool")
-        return search_variable
-
-    class BooleanExpressionType:
-        def __init__(self):
-            self.return_type = ""
-            self.return_value = ""
-
-            # For 'return a == b'
-            # The structs involved are 'a' and 'b'
-            self.structs_involved = []
-
-            self.returns_single_value = False
-            #    ^^^^^^^^^^^^^^^^^^^^ if we properly fetched all 'structs_involved' then this can be removed.
 
     def boolean_expression() -> BooleanExpressionType:
         expr = BooleanExpressionType()
