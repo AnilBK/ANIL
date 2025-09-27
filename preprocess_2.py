@@ -1702,6 +1702,54 @@ Error_Handler.register_source_file(source_file)
 def RAISE_ERROR(error_msg):
     Error_Handler.raise_error(error_msg)
 
+
+def create_const_charptr_iterator(array_name, current_array_value_variable):
+    global LinesCache
+    global temp_c_str_iterator_variable_count
+
+    iterator_var_name = f"{array_name}_iterator_{temp_c_str_iterator_variable_count}"
+
+    LinesCache.append(
+        f"char *{iterator_var_name} = {array_name};"
+        f"while (*{iterator_var_name} != '\\0') {{"
+        f"char {current_array_value_variable} = *{iterator_var_name};"
+        f"{iterator_var_name}++;"
+    )
+
+    REGISTER_VARIABLE(current_array_value_variable, "char")
+
+    temp_c_str_iterator_variable_count += 1
+
+
+def create_normal_array_iterator(array_name, current_array_value_variable):
+    global LinesCache
+
+    # The variable type is in format '[int]'.
+    array_type = get_type_of_variable(array_name)
+    if array_type == None:
+        RAISE_ERROR(f"{array_type} isn't a registered array type.")
+
+    array_type = array_type[1:-1]
+
+    LinesCache.append(
+        f"for (unsigned int i = 0; i < {array_name}_array_size; i++){{\n"
+        f"{array_type} {current_array_value_variable} = {array_name}[i];\n"
+    )
+
+    REGISTER_VARIABLE(current_array_value_variable, array_type)
+
+def promote_char_to_string(var_to_check):                             
+    global temp_char_promoted_to_string_variable_count
+    
+    promoted_char_var_name = f"{var_to_check}_promoted_{temp_char_promoted_to_string_variable_count}"
+    temp_char_promoted_to_string_variable_count += 1
+
+    LinesCache.append(f"char {promoted_char_var_name}[2] = {{ {var_to_check}, '\\0'}};\n")
+    REGISTER_VARIABLE(f"{promoted_char_var_name}", "str")
+
+    return promoted_char_var_name
+
+
 index = 0
 
 while index < len(Lines):
@@ -1833,39 +1881,8 @@ while index < len(Lines):
     def check_token(token: lexer.Token):
         return parser.check_token(token)
 
-    def create_const_charptr_iterator(array_name, current_array_value_variable):
-        global LinesCache
-        global temp_c_str_iterator_variable_count
 
-        iterator_var_name = f"{array_name}_iterator_{temp_c_str_iterator_variable_count}"
 
-        LinesCache.append(
-            f"char *{iterator_var_name} = {array_name};"
-            f"while (*{iterator_var_name} != '\\0') {{"
-            f"char {current_array_value_variable} = *{iterator_var_name};"
-            f"{iterator_var_name}++;"
-        )
-
-        REGISTER_VARIABLE(current_array_value_variable, "char")
-
-        temp_c_str_iterator_variable_count += 1
-
-    def create_normal_array_iterator(array_name, current_array_value_variable):
-        global LinesCache
-
-        # The variable type is in format '[int]'.
-        array_type = get_type_of_variable(array_name)
-        if array_type == None:
-            RAISE_ERROR(f"{array_type} isn't a registered array type.")
-
-        array_type = array_type[1:-1]
-
-        LinesCache.append(
-            f"for (unsigned int i = 0; i < {array_name}_array_size; i++){{\n"
-            f"{array_type} {current_array_value_variable} = {array_name}[i];\n"
-        )
-
-        REGISTER_VARIABLE(current_array_value_variable, array_type)
 
 
     def parse_slice(parser):
@@ -4262,17 +4279,6 @@ while index < len(Lines):
             "has_comparision_operator": has_comparision_operator,
             "operators_as_str": operators_as_str,
         }
-
-    def promote_char_to_string(var_to_check):                             
-        global temp_char_promoted_to_string_variable_count
-        
-        promoted_char_var_name = f"{var_to_check}_promoted_{temp_char_promoted_to_string_variable_count}"
-        temp_char_promoted_to_string_variable_count += 1
-
-        LinesCache.append(f"char {promoted_char_var_name}[2] = {{ {var_to_check}, '\\0'}};\n")
-        REGISTER_VARIABLE(f"{promoted_char_var_name}", "str")
-
-        return promoted_char_var_name
 
     def handle_equality(var_to_check_against, var_to_check, l_type, r_type, left_struct_info, is_lhs_struct, negation):
         operator = "!=" if negation else "=="
