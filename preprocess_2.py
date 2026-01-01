@@ -16,6 +16,8 @@ from ErrorHandler import ErrorHandler
 from input_variables_gui_manager import InputVariablesGUI
 from JSXLikeParser import UIAttribute, UIElement, UIElementTree 
 
+from ASTNodes import *
+
 # We don't typically pass filenames through command line, this is mostly for batch compile operations.
 filename_parser = argparse.ArgumentParser()
 filename_parser.add_argument("--filename", help="Name of source file to be compiled.")
@@ -4930,56 +4932,52 @@ while index < len(Lines):
 
             if parsing_POD_type:
                 if POD_type == "int":
-                    integer_expression = speculative_parse_integer_expression()
-                    if integer_expression == None:
+                    integer_expr = speculative_parse_integer_expression()
+                    if integer_expr is None:
                         RAISE_ERROR(f"Expected integer expression for {array_name}.")
-                    integer_value = integer_expression.speculative_expression_value
-                    LinesCache.append(f"{POD_type} {array_name} = {integer_value};\n")
+                    integer_value = integer_expr.speculative_expression_value
 
-                    # <form>
-                    # let age : int = 10 ## 10, 20, 30
-                    #                    ^^^
-                    if is_inside_form:
-                        gui_manager.register_default_value(integer_value)
-                        if parser.has_tokens_remaining():
-                            if parser.current_token() == lexer.Token.HASH:
-                                parser.next_token()
-
-                                if parser.has_tokens_remaining():
-                                    if parser.current_token() == lexer.Token.HASH:
-                                        parser.next_token()
-
-                                        options = Line[Line.rfind("#") + 1:]
-                                        options = [option.strip() for option in options.split(",")]
-                                        gui_manager.add_gui_item_option(options)
-
-                    REGISTER_VARIABLE(array_name, f"{POD_type}")
-                    continue
+                    value_node = LiteralNode(integer_value, "int")
+                    stmt_node = VariableDeclarationNode(array_name, "int", value_node)
                 elif POD_type == "char":
                     parser.consume_token(lexer.Token.QUOTE)
                     char_value = parser.get_token()
                     if len(char_value) != 1:
-                        RAISE_ERROR(f"Char value should be of length 1 but got \"{char_value}\" of length {len(char_value)}.")
+                        RAISE_ERROR(f'Char value should be length 1 but got "{char_value}" of length {len(char_value)}.')
                     parser.consume_token(lexer.Token.QUOTE)
-                    LinesCache.append(f"{POD_type} {array_name} = \'{char_value}\';\n")
-                    REGISTER_VARIABLE(array_name, f"{POD_type}")
-                    continue
+
+                    value_node = LiteralNode(char_value, "char")
+                    stmt_node = VariableDeclarationNode(array_name, "char", value_node)
                 elif POD_type == "bool":
-                    boolean_expr = boolean_expression()
-                    boolean_expr_code = boolean_expr.return_value
+                    boolean_expr_code = boolean_expression().return_value
+                    value_node = LiteralNode(boolean_expr_code == "true", "bool")
+                    stmt_node = VariableDeclarationNode(array_name, "bool", value_node)
+                else:
+                    RAISE_ERROR(f'Parsing POD Type "{POD_type}" not implemented yet.')
 
-                    LinesCache.append(f"{POD_type} {array_name} = {boolean_expr_code};\n")
+                REGISTER_VARIABLE(array_name, POD_type)
 
-                    if is_inside_form:
+                if is_inside_form:
+                    if POD_type == "int":
+                        gui_manager.register_default_value(integer_value)
+
+                        # <form>
+                        # let age : int = 10 ## 10, 20, 30
+                        if parser.has_tokens_remaining() and parser.current_token() == lexer.Token.HASH:
+                            parser.next_token()
+                            if parser.has_tokens_remaining() and parser.current_token() == lexer.Token.HASH:
+                                parser.next_token()
+                                options = Line[Line.rfind("#") + 1:]
+                                options = [option.strip() for option in options.split(",")]
+                                gui_manager.add_gui_item_option(options)
+                    elif POD_type == "char":
+                        gui_manager.register_default_value(char_value)
+                    elif POD_type == "bool":
                         if boolean_expr_code == "true":
                             gui_manager.register_default_value("true")
-                    
-                    REGISTER_VARIABLE(array_name, f"{POD_type}")
-                    continue
-                else:
-                    RAISE_ERROR(
-                        f'Parsing POD Type "{POD_type}" not Implemented as of now.'
-                    )
+
+                LinesCache.append(stmt_node.codegen() + "\n")
+ 
             if parser.check_token(lexer.Token.QUOTE):
                 term = parse_term()
                 term_type = term['type']
@@ -5031,10 +5029,10 @@ while index < len(Lines):
                 # let inside_string = False
                 #                     ^
                 REGISTER_VARIABLE(array_name, "bool")
-                if parser.check_token(lexer.Token.TRUE):
-                    LinesCache.append(f"bool {array_name} = true;\n")
-                else:
-                    LinesCache.append(f"bool {array_name} = false;\n")
+
+                value_node = LiteralNode(parser.current_token() == lexer.Token.TRUE, "bool")
+                stmt_node = VariableDeclarationNode(array_name, "bool", value_node)
+                LinesCache.append(stmt_node.codegen() + "\n")
             elif parser.check_token(lexer.Token.LEFT_SQUARE_BRACKET):
                 #let test_list = [];
                 parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)
