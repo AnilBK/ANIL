@@ -628,32 +628,63 @@ void String__reassign__OVDstr(struct String *this, char *pstring) {
 }
 
 void Stringset_to_file_contents(struct String *this, char *pfilename) {
-  // Read from the file & store the contents to this string.
+  if (this->is_constexpr) {
+    // Probably not necessary, as constexpr strings are compiler generated, but
+    // just in case.
+    fprintf(stderr, "Error: Attempt to modify a constexpr String object.\n");
+    exit(EXIT_FAILURE);
+  }
 
-  // TODO: Implement this function in ANIL itself, because the function below is
-  // a mangled function name.
-  Stringclear(this);
-
-  FILE *ptr = fopen(pfilename, "r");
+  // Use fopen in binary read mode ("rb") to prevent newline translation.
+  FILE *ptr = fopen(pfilename, "rb");
   if (ptr == NULL) {
-    printf("File \"%s\" couldn't be opened.\n", pfilename);
+    fprintf(stderr, "File \"%s\" couldn't be opened.\n", pfilename);
+    Stringclear(this);
     return;
   }
 
-  char myString[256];
-  bool has_data = false;
-
-  while (fgets(myString, sizeof(myString), ptr)) {
-    String__add__(this, myString);
-    has_data = true;
+  fseek(ptr, 0, SEEK_END);
+  long fileSize = ftell(ptr);
+  if (fileSize < 0) {
+    fprintf(stderr, "Failed to get file size");
+    fclose(ptr);
+    Stringclear(this);
+    return;
   }
 
+  fseek(ptr, 0, SEEK_SET);
+
+  int buffer_capacity = fileSize + 1;
+  char *buffer = (char *)malloc(buffer_capacity);
+  if (buffer == NULL) {
+    fprintf(stderr, "Memory allocation failed for file content.\n");
+    fclose(ptr);
+    Stringclear(this);
+    return;
+  }
+
+  size_t bytesRead = fread(buffer, 1, fileSize, ptr);
   fclose(ptr);
 
-  if (!has_data) {
-    // Double-clear just in case
+  if (bytesRead != (size_t)fileSize) {
+    fprintf(stderr, "Error reading file \"%s\". Expected %ld bytes, got %zu.\n",
+            pfilename, fileSize, bytesRead);
+    free(buffer);
     Stringclear(this);
+    return;
   }
+
+  buffer[fileSize] = '\0';
+
+  if (this->arr != NULL) {
+    free(this->arr);
+  }
+
+  // Take ownership of the buffer.
+  // The buffer should not be freed after this point.
+  this->arr = buffer;
+  this->length = fileSize;
+  this->capacity = buffer_capacity;
 }
 
 struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename) {
