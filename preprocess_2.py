@@ -5719,21 +5719,25 @@ while index < len(Lines):
             # function Home():
             #          ^^^^ annotated_fn_name
             annotation_name = parser.get_token()
-            parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
 
             annotation_argument_values = []
-            
-            # @route("GET", "/get_todos")
-            while True:
-                annotation_argument_value = parser.extract_string_literal()
-                annotation_argument_values.append(annotation_argument_value)
 
-                if parser.check_token(lexer.Token.COMMA):
-                    parser.consume_token(lexer.Token.COMMA)
-                elif parser.check_token(lexer.Token.RIGHT_ROUND_BRACKET):
-                    break
+            # @static
+            # annotation without arguments is also valid.
+            if parser.has_tokens_remaining():
+                parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
+                
+                # @route("GET", "/get_todos")
+                while True:
+                    annotation_argument_value = parser.extract_string_literal()
+                    annotation_argument_values.append(annotation_argument_value)
 
-            parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
+                    if parser.check_token(lexer.Token.COMMA):
+                        parser.consume_token(lexer.Token.COMMA)
+                    elif parser.check_token(lexer.Token.RIGHT_ROUND_BRACKET):
+                        break
+
+                parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
 
             annotated_item = Annotation(annotation_name, annotation_argument_values, "")
             # Leave annotated_fn_name empty. Patch it later. 
