@@ -217,6 +217,31 @@ function __reassign__<>(pstring: str)
   this.reassign_internal(pstring, p_text_length)
 endfunction
 
+c_function format(format: str, value: int)
+  if (this->is_constexpr) {
+    fprintf(stderr, "Cannot modify constexpr string.\n");
+    return;
+  }
+
+  int needed = snprintf(NULL, 0, format, value);
+  if (needed < 0) return;
+
+  if (needed + 1 > this->capacity) {
+    size_t new_capacity =
+        (needed + 1 > this->capacity * 2) ? needed + 1 : this->capacity * 2;
+    char *new_arr = realloc(this->arr, new_capacity);
+    if (!new_arr) {
+      fprintf(stderr, "Memory reallocation failed in String::format.\n");
+      exit(EXIT_FAILURE);
+    }
+    this->arr = new_arr;
+    this->capacity = new_capacity;
+  }
+
+  snprintf(this->arr, this->capacity, format, value);
+  this->length = needed;
+endc_function
+
 c_function set_to_file_contents(pfilename: str)
   if(this->is_constexpr){
     // Probably not necessary, as constexpr strings are compiler generated, but just in case.

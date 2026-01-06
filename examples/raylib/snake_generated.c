@@ -169,6 +169,8 @@ void Stringreassign_internal(struct String *this, char *pstring,
 void String__reassign__OVDstructString(struct String *this,
                                        struct String pstring);
 void String__reassign__OVDstr(struct String *this, char *pstring);
+struct String Stringfrom(int number);
+void Stringformat(struct String *this, char *format, int value);
 void Stringset_to_file_contents(struct String *this, char *pfilename);
 struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename);
 
@@ -213,6 +215,7 @@ void Vector_String_clear(struct Vector_String *this);
 void Vector_Stringclear(struct Vector_String *this);
 bool Vector_String__contains__(struct Vector_String *this, struct String value);
 void Vector_Stringprint(struct Vector_String *this);
+
 size_t Vector_rlVector2len(struct Vector_rlVector2 *this);
 void Vector_rlVector2__init__(struct Vector_rlVector2 *this, int capacity);
 void Vector_rlVector2_call_destructor_for_element(struct Vector_rlVector2 *this,
@@ -625,6 +628,53 @@ void String__reassign__OVDstructString(struct String *this,
 void String__reassign__OVDstr(struct String *this, char *pstring) {
   size_t p_text_length = Stringlength_of_charptr(this, pstring);
   Stringreassign_internal(this, pstring, p_text_length);
+}
+
+struct String Stringfrom(int number) {
+  char buf[32];
+  int len = snprintf(buf, sizeof(buf), "%d", number);
+
+  struct String text;
+  if (len < 0) {
+    String__init__from_charptr(&text, "", 0);
+    return text;
+  }
+
+  if ((size_t)len >= sizeof(buf)) {
+    // truncated output
+    // either treat as error or clamp
+    String__init__from_charptr(&text, buf, sizeof(buf) - 1);
+    return text;
+  }
+
+  String__init__from_charptr(&text, buf, len);
+  return text;
+}
+
+void Stringformat(struct String *this, char *format, int value) {
+  if (this->is_constexpr) {
+    fprintf(stderr, "Cannot modify constexpr string.\n");
+    return;
+  }
+
+  int needed = snprintf(NULL, 0, format, value);
+  if (needed < 0)
+    return;
+
+  if (needed + 1 > this->capacity) {
+    size_t new_capacity =
+        (needed + 1 > this->capacity * 2) ? needed + 1 : this->capacity * 2;
+    char *new_arr = realloc(this->arr, new_capacity);
+    if (!new_arr) {
+      fprintf(stderr, "Memory reallocation failed in String::format.\n");
+      exit(EXIT_FAILURE);
+    }
+    this->arr = new_arr;
+    this->capacity = new_capacity;
+  }
+
+  snprintf(this->arr, this->capacity, format, value);
+  this->length = needed;
 }
 
 void Stringset_to_file_contents(struct String *this, char *pfilename) {
@@ -1227,9 +1277,7 @@ int main() {
 
   int score = 0;
   struct String scoreText;
-  String__init__OVDstrint(&scoreText, "Score: 0        ", 16);
-  //                       ^^^^^^^^^ These spaces act as a buffer where sprintf
-  //                                 can write the score digits.
+  String__init__OVDstrint(&scoreText, "Score: 0", 8);
 
   struct raylib rl;
   raylibInitWindow(&rl, w_x, w_y, "Snake Game");
@@ -1255,8 +1303,7 @@ int main() {
                               new_food_spawn(snake, GRID_WIDTH, GRID_HEIGHT));
 
         score = 0;
-        char *score_ptr = Stringc_str(&scoreText);
-        sprintf(score_ptr, "Score: %d", score);
+        String__reassign__OVDstr(&scoreText, "Score: 0");
       }
     } else {
       raylibClearBackground(&rl, rlBLACK);
@@ -1318,8 +1365,7 @@ int main() {
                               new_food_spawn(snake, GRID_WIDTH, GRID_HEIGHT));
 
         score = score + 1;
-        char *score_ptr = Stringc_str(&scoreText);
-        sprintf(score_ptr, "Score: %d", score);
+        Stringformat(&scoreText, "Score: %d", score);
       }
 
       // Draw food.

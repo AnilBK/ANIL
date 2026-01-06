@@ -126,9 +126,7 @@ int main() {
   let gameOver : bool = false
 
   let score : int = 0
-  let scoreText = "Score: 0        "
-  //                       ^^^^^^^^^ These spaces act as a buffer where sprintf 
-  //                                 can write the score digits.
+  let scoreText = "Score: 0"
 
   let rl = raylib{};
   rl.InitWindow(w_x, w_y, "Snake Game")
@@ -152,8 +150,7 @@ int main() {
             food.position = new_food_spawn(snake, GRID_WIDTH, GRID_HEIGHT)
 
             score = 0
-            let score_ptr = scoreText.c_str()
-            sprintf(score_ptr, "Score: %d", score);
+            scoreText = "Score: 0"
         }
     }else{
         rl.ClearBackground(rlBLACK)
@@ -204,8 +201,7 @@ int main() {
             food.position = new_food_spawn(snake, GRID_WIDTH, GRID_HEIGHT)
 
             score = score + 1
-            let score_ptr = scoreText.c_str()
-            sprintf(score_ptr, "Score: %d", score);
+            scoreText.format("Score: %d", score)
         }
 
         // Draw food.
