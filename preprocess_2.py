@@ -16,7 +16,100 @@ from ErrorHandler import ErrorHandler
 from input_variables_gui_manager import InputVariablesGUI
 from JSXLikeParser import UIAttribute, UIElement, UIElementTree 
 
-from ASTNodes import *
+# from ASTNodes import *
+
+from abc import ABC, abstractmethod
+
+
+class ASTNode(ABC):
+    @abstractmethod
+    def codegen(self):
+        pass
+
+
+class StatementNode(ASTNode):
+    pass
+
+
+class ExpressionNode(ASTNode):
+    pass
+
+
+class VariableDeclarationNode(StatementNode):
+    def __init__(self, var_name, var_type, initializer: ExpressionNode):
+        self.var_name = var_name
+        self.var_type = var_type
+        self.initializer = initializer
+
+    def codegen(self):
+        # Generate the C code: "int x = 10;"
+        code = f"{self.var_type} {self.var_name}"
+        if self.initializer:
+            code += f" = {self.initializer.codegen()}"
+        code += ";"
+        return code
+
+
+class LiteralNode(ExpressionNode):
+    def __init__(self, value, value_type):
+        self.value = value
+        self.value_type = value_type
+
+    def codegen(self) -> str:
+        if self.value_type == "char":
+            return f"'{self.value}'"
+        if self.value_type == "str":
+            return f'"{self.value}"'
+        return (
+            str(self.value).lower() if isinstance(self.value, bool) else str(self.value)
+        )
+
+class PrintNode(StatementNode):
+    def __init__(self, raw_template_string: str):
+        self.raw_template_string = raw_template_string
+
+    def codegen(self) -> str:
+        # This logic is lifted directly from your existing parser loop
+        braces_open = False
+        str_text = ""
+        extracted_var_name_list = []
+        extracted_var_name = ""
+        
+        for char in self.raw_template_string:
+            if char == "{":
+                braces_open = True
+                extracted_var_name = ""
+            elif char == "}":
+                braces_open = False
+                
+                # Logic to determine C format specifier (%d, %s, etc.)
+                format_specifier = "d" 
+                return_type = get_type_of_variable(extracted_var_name)
+                
+                if return_type is not None:
+                    format_specifier = get_format_specifier(return_type)
+                
+                str_text += f"%{format_specifier}"
+
+                # Logic to handle specific C conversions (String -> c_str)
+                if return_type == "String":
+                    # Assuming Stringc_str is the mangled name available globally
+                    extracted_var_name_list.append(f"Stringc_str(&{extracted_var_name})")
+                else:
+                    extracted_var_name_list.append(extracted_var_name)
+                    
+            elif braces_open:
+                extracted_var_name += char
+            else:
+                str_text += char
+
+        # Construct the final C printf string
+        args_code = ""
+        if len(extracted_var_name_list) > 0:
+            args_code = "," + ",".join(extracted_var_name_list)
+            
+        return f'printf("{str_text}"{args_code});\n'
+
 
 # We don't typically pass filenames through command line, this is mostly for batch compile operations.
 filename_parser = argparse.ArgumentParser()
@@ -4839,36 +4932,8 @@ while index < len(Lines):
         actual_str = parser.extract_string_literal()
         parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
 
-        braces_open = False
-        str_text = ""
-        extracted_var_name_list = []
-        extracted_var_name = ""
-        for char in actual_str:
-            if char == "{":
-                braces_open = True
-                extracted_var_name = ""
-            elif char == "}":
-                braces_open = False
-                format_specifier = "d"
-                return_type = get_type_of_variable(extracted_var_name)
-                if return_type != None:
-                    format_specifier = get_format_specifier(return_type)
-                str_text += f"%{format_specifier}"
-
-                if return_type == "String":
-                    extracted_var_name_list.append(f"Stringc_str(&{extracted_var_name})")
-                else:
-                    extracted_var_name_list.append(extracted_var_name)
-            elif braces_open:
-                extracted_var_name += char
-            else:
-                str_text += char
-
-        str_to_write = f'printf("{str_text}"'
-        if len(extracted_var_name_list) != 0:
-            str_to_write += "," + ",".join(extracted_var_name_list)
-        str_to_write += ");\n"
-        LinesCache.append(str_to_write)
+        print_node = PrintNode(actual_str)
+        LinesCache.append(print_node.codegen())
     elif check_token(lexer.Token.CONST):
         parser.consume_token(lexer.Token.CONST)
 
