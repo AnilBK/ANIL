@@ -217,6 +217,28 @@ function __reassign__<>(pstring: str)
   this.reassign_internal(pstring, p_text_length)
 endfunction
 
+@static
+c_function from(number: int) -> String:
+  char buf[32];
+  int len = snprintf(buf, sizeof(buf), "%d", number);
+
+  struct String text;
+  if (len < 0) {
+    String__init__from_charptr(&text, "", 0);
+    return text;
+  }
+
+  if ((size_t)len >= sizeof(buf)) {
+    // truncated output
+    // either treat as error or clamp
+    String__init__from_charptr(&text, buf, sizeof(buf) - 1);
+    return text;
+  }
+
+  String__init__from_charptr(&text, buf, len);
+  return text;
+endc_function
+
 c_function format(format: str, value: int)
   if (this->is_constexpr) {
     fprintf(stderr, "Cannot modify constexpr string.\n");

@@ -35,6 +35,9 @@ class Parser:
                 error_msg += "\n" + p_custom_msg
             ErrorHandler().raise_error(error_msg)
         return self.current_token() == token
+    
+    def check_n_tokens(self, tokens: list) -> bool:
+        return self.tokens[:len(tokens)] == tokens
 
     def match_token(self, token: lexer.Token, p_custom_msg=None):
         if self.check_token(token, p_custom_msg):

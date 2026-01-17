@@ -55,6 +55,8 @@ void Stringreassign_internal(struct String *this, char *pstring,
 void String__reassign__OVDstructString(struct String *this,
                                        struct String pstring);
 void String__reassign__OVDstr(struct String *this, char *pstring);
+struct String Stringfrom(int number);
+void Stringformat(struct String *this, char *format, int value);
 void Stringset_to_file_contents(struct String *this, char *pfilename);
 struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename);
 
@@ -304,6 +306,53 @@ void String__reassign__OVDstr(struct String *this, char *pstring) {
   Stringreassign_internal(this, pstring, p_text_length);
 }
 
+struct String Stringfrom(int number) {
+  char buf[32];
+  int len = snprintf(buf, sizeof(buf), "%d", number);
+
+  struct String text;
+  if (len < 0) {
+    String__init__from_charptr(&text, "", 0);
+    return text;
+  }
+
+  if ((size_t)len >= sizeof(buf)) {
+    // truncated output
+    // either treat as error or clamp
+    String__init__from_charptr(&text, buf, sizeof(buf) - 1);
+    return text;
+  }
+
+  String__init__from_charptr(&text, buf, len);
+  return text;
+}
+
+void Stringformat(struct String *this, char *format, int value) {
+  if (this->is_constexpr) {
+    fprintf(stderr, "Cannot modify constexpr string.\n");
+    return;
+  }
+
+  int needed = snprintf(NULL, 0, format, value);
+  if (needed < 0)
+    return;
+
+  if (needed + 1 > this->capacity) {
+    size_t new_capacity =
+        (needed + 1 > this->capacity * 2) ? needed + 1 : this->capacity * 2;
+    char *new_arr = realloc(this->arr, new_capacity);
+    if (!new_arr) {
+      fprintf(stderr, "Memory reallocation failed in String::format.\n");
+      exit(EXIT_FAILURE);
+    }
+    this->arr = new_arr;
+    this->capacity = new_capacity;
+  }
+
+  snprintf(this->arr, this->capacity, format, value);
+  this->length = needed;
+}
+
 void Stringset_to_file_contents(struct String *this, char *pfilename) {
   if (this->is_constexpr) {
     // Probably not necessary, as constexpr strings are compiler generated, but
@@ -315,8 +364,8 @@ void Stringset_to_file_contents(struct String *this, char *pfilename) {
   // Use fopen in binary read mode ("rb") to prevent newline translation.
   FILE *ptr = fopen(pfilename, "rb");
   if (ptr == NULL) {
-fprintf(stderr, "File \"%s\" couldn't be opened.\n", pfilename);
-Stringclear(this);
+    fprintf(stderr, "File \"%s\" couldn't be opened.\n", pfilename);
+    Stringclear(this);
     return;
   }
 
@@ -340,7 +389,7 @@ Stringclear(this);
     return;
   }
 
-size_t bytesRead = fread(buffer, 1, fileSize, ptr);
+  size_t bytesRead = fread(buffer, 1, fileSize, ptr);
   fclose(ptr);
 
   if (bytesRead != (size_t)fileSize) {
@@ -348,7 +397,7 @@ size_t bytesRead = fread(buffer, 1, fileSize, ptr);
             pfilename, fileSize, bytesRead);
     free(buffer);
     Stringclear(this);
-  return;
+    return;
   }
 
   buffer[fileSize] = '\0';
@@ -675,6 +724,15 @@ int main() {
   struct Vector_String space_split = Stringsplit(&split_str2, ' ');
   Vector_Stringprint(&space_split);
 
+  int score = 69420;
+  struct String tmp_string_0 = Stringfrom(score);
+  struct String scoreText;
+  String__init__OVDstrint(&scoreText, "Score: ", 7);
+  String__add__(&scoreText, Stringc_str(&tmp_string_0));
+  StringprintLn(&scoreText);
+
+  String__del__(&scoreText);
+  String__del__(&tmp_string_0);
   Vector_String__del__(&space_split);
   String__del__(&split_str2);
   Vector_String__del__(&dot_split);

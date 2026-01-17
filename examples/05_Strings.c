@@ -80,6 +80,10 @@ int main() {
   let space_split = split_str2.split(" ")
   space_split.print()
 
+  let score: int = 69420
+  let scoreText = "Score: " + String::from(score)
+  scoreText.printLn()
+
   // DESTRUCTOR_CODE //
 
   ///*///

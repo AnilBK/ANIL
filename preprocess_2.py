@@ -773,6 +773,11 @@ class MemberFunction:
         
         self.is_overloaded = False
 
+        self.is_static_fn = False
+
+    def is_static(self):
+        return self.is_static_fn
+
     def is_constructor(self):
         return self.fn_name == "__init__"
 
@@ -799,6 +804,18 @@ def get_global_function_by_name(p_fn_name: str):
             return fn
     return None
 
+def is_class_name(p_token: str) -> bool:
+    return any(defined_struct.name == p_token for defined_struct in struct_definations)
+
+def get_class_static_function(class_name: str, p_fn_name: str):
+    for defined_struct in struct_definations:
+        if defined_struct.name == class_name:
+            for fn in defined_struct.member_functions:
+                if fn.fn_name == p_fn_name:
+                    if not fn.is_static():
+                        RAISE_ERROR(f"Function {p_fn_name} of class {class_name} is not static.")
+                    return fn
+    return None
 
 class Struct:
     def __init__(self, p_struct_name: str, p_members: list) -> None:
@@ -1619,6 +1636,16 @@ class Annotation:
 annotations_list = []
 temporary_annotations_list = []
 
+def has_static_annotation():
+    return any(a.annotation_name == "static" for a in temporary_annotations_list)
+
+def consume_annotation(annotation_name):
+    global temporary_annotations_list
+    temporary_annotations_list = [
+        annotation for annotation in temporary_annotations_list if annotation.annotation_name != annotation_name
+    ]
+
+
 
 ##############################################################################################
 class HookInfo:
@@ -1987,6 +2014,8 @@ class ParsedFunctionCallType(Enum):
     GLOBAL_FUNCTION_CALL = 1
     # To denote x = A.B;
     MEMBER_ACCESS_CALL =  2
+    # To denote x = ClassName::fn(); where fn is static function.
+    CLASS_STATIC_FUNCTION_CALL = 3
 
 
 class ParseErrorException(Exception):
@@ -2713,8 +2742,7 @@ while index < len(Lines):
 
             # Immediately instantiate templated class.
             if not class_already_instantiated:
-                instantiate_template(struct_type, templated_data_type)
-
+                instantiate_template(struct_type, templated_data_type)        
         parser.consume_token(lexer.Token.LEFT_CURLY)
 
         values_list = []
@@ -4164,6 +4192,22 @@ while index < len(Lines):
             expression_info.function_call_metadata = additional_data
             return expression_info
     
+        is_class_static_fn_call = False
+        class_name = ""
+        if parser.has_tokens_remaining():
+            tk = parser.current_token()    
+
+            if is_class_name(tk):
+                # Rectangle::test() where test is a static function call.
+                if parser.check_n_tokens([tk, lexer.Token.COLON, lexer.Token.COLON]):
+                    is_class_static_fn_call = True
+
+                    class_name = tk
+
+                    parser.next_token()  # Consume struct name
+                    parser.consume_token(lexer.Token.COLON)
+                    parser.consume_token(lexer.Token.COLON)
+
         while parser.has_tokens_remaining():
             tk = parser.current_token()    
 
@@ -4273,19 +4317,31 @@ while index < len(Lines):
         parsing_fn_call_type = ParsedFunctionCallType.STRUCT_FUNCTION_CALL
 
         if base_struct_info == None:
-            # let expr = Function()
-            #            ^^^^^^^^
-            # Just a global function call.
-            global_fn_name = fn_name_unmangled
-        
-            m_fn = get_global_function_by_name(global_fn_name)
-            if m_fn == None:
-                RAISE_ERROR(f"Symbol {global_fn_name} is not a global function.")
+            if is_class_static_fn_call:
+                fn_name = fn_name_unmangled
 
-            args = m_fn.fn_arguments
-            return_type = m_fn.return_type
-            fn_name_mangled = global_fn_name
-            parsing_fn_call_type = ParsedFunctionCallType.GLOBAL_FUNCTION_CALL
+                m_fn = get_class_static_function(class_name, fn_name)
+                if m_fn == None:
+                    RAISE_ERROR(f"Symbol {fn_name} is not a static function of class {class_name}.")
+
+                args = m_fn.fn_arguments
+                return_type = m_fn.return_type
+                fn_name_mangled = get_mangled_fn_name(class_name, fn_name)
+                parsing_fn_call_type = ParsedFunctionCallType.CLASS_STATIC_FUNCTION_CALL
+            else:
+                # let expr = Function()
+                #            ^^^^^^^^
+                # Just a global function call.
+                global_fn_name = fn_name_unmangled
+            
+                m_fn = get_global_function_by_name(global_fn_name)
+                if m_fn == None:
+                    RAISE_ERROR(f"Symbol {global_fn_name} is not a global function.")
+
+                args = m_fn.fn_arguments
+                return_type = m_fn.return_type
+                fn_name_mangled = global_fn_name
+                parsing_fn_call_type = ParsedFunctionCallType.GLOBAL_FUNCTION_CALL
         else:
             provided_types = _parameters_to_types_str_list(parameters)
             
@@ -4850,9 +4906,32 @@ while index < len(Lines):
             parser.next_token()
 
             parser.consume_token(lexer.Token.EQUALS)
-            value_to_assign = get_integer_expression("Expected integer expression to reassign to existing integer named \"{parsed_member}\".")
+            value_to_assign = get_integer_expression(f"Expected integer expression to reassign to existing integer named \"{parsed_member}\".")
             
             LinesCache.append(f"{parsed_member} = {value_to_assign}; \n")
+            continue
+        elif is_class_name(parsed_member):
+            # ClassName::StaticFunctionCall()
+            # ^^^^^^^^^
+            fn_call_parse_info = function_call_expression()
+            if fn_call_parse_info == None:
+                RAISE_ERROR("Parsing static function call expression failed.")
+
+            parse_result = fn_call_parse_info.function_call_metadata
+            fn_name = parse_result["fn_name"]
+            return_type = parse_result["return_type"]
+            is_return_type_ref_type = parse_result["is_return_type_ref_type"]
+            has_parameters = parse_result["has_parameters"]
+            parsed_fn_call_type = parse_result["function_call_type"]
+
+            if parsed_fn_call_type != ParsedFunctionCallType.CLASS_STATIC_FUNCTION_CALL:
+                RAISE_ERROR("Expected a class static function call after ClassName::FunctionCall() syntax.")
+
+            if return_type != "void":
+                RAISE_ERROR("Class static function calls are supposed to return void as of now.")
+            
+            code = fn_call_parse_info.get_fn_str()
+            LinesCache.append(f"{code};\n")
             continue
     else:
         LinesCache.append("\n")
@@ -5042,6 +5121,7 @@ while index < len(Lines):
                             gui_manager.register_default_value("true")
 
                 LinesCache.append(stmt_node.codegen() + "\n")
+                continue
  
             if parser.check_token(lexer.Token.QUOTE):
                 term = parse_term()
@@ -5142,7 +5222,15 @@ while index < len(Lines):
 
                 StructInfo = get_struct_defination_of_type(struct_type)
                 if StructInfo != None:
+                    # Rectangle::
+                    # ^
+                    if parser.check_n_tokens([struct_type, lexer.Token.COLON, lexer.Token.COLON]):
+                        # This is a static function call/variable access.
+                        parse_access_struct_member(struct_name)
+                        continue
+
                     parser.next_token()
+
                     # We are creating a struct type.
                     parse_create_struct(struct_type, struct_name)
                 else:
@@ -5401,6 +5489,10 @@ while index < len(Lines):
         # Skip "c_function", its not a keyword, just a placeholder to identify a function call.
         parser.consume_token(lexer.Token.CFUNCTION)
 
+        is_static_function = has_static_annotation()
+        if is_static_function:
+            consume_annotation("static")
+
         if not is_inside_name_space:
             parse_global_c_function()
             continue
@@ -5459,18 +5551,26 @@ while index < len(Lines):
                 fn_name = get_mangled_fn_name(struct_name, fn_name)
 
             return_type = format_struct_data_type(return_type)
+
+            has_parameters = len(parameters) > 0
             
-            if len(parameters) > 0:
+            code = f"{return_type} {fn_name}("
+            if not is_static_function:
+                code += f"struct {struct_name} *this"
+                if has_parameters:
+                    code += ", "
+
+            if has_parameters:
                 params = [
                     f"struct {p.data_type} {p.member}" if is_data_type_struct_object(p.data_type) else f"{p.data_type} {p.member}"
                     for p in parameters
                 ]
                 parameters_str = ",".join(params)
-                GlobalGeneratedFunctionDeclarations += f"{return_type} {fn_name}(struct {struct_name} *this, {parameters_str});\n"
-                code = f"{return_type} {fn_name}(struct {struct_name} *this, {parameters_str}) {{\n"
-            else:
-                GlobalGeneratedFunctionDeclarations += f"{return_type} {fn_name}(struct {struct_name} *this);"
-                code = f"{return_type} {fn_name}(struct {struct_name} *this) {{\n"
+                code += f"{parameters_str}"
+            
+            code += ")"
+            GlobalGeneratedFunctionDeclarations += f"{code};\n"
+            code += "{\n"
 
         currently_reading_fn_name = unmangled_name
         currently_reading_fn_parent_struct = struct_name
@@ -5482,6 +5582,7 @@ while index < len(Lines):
         fn.is_overloaded_function = is_overloaded_fn
         fn.overload_for_template_type = overload_for_type
         fn.is_return_type_ref_type = is_return_type_ref_type
+        fn.is_static_fn = is_static_function
 
         add_fn_member_to_struct(struct_name, fn)
 
@@ -5819,6 +5920,14 @@ while index < len(Lines):
         # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN) -> return_type
         parser.consume_token(lexer.Token.FUNCTION)
 
+        # @static
+        # function say()
+        is_static_function = has_static_annotation()
+        if is_static_function:
+            # only static annotation is supported for class functions.
+            # remove static annotation.
+            consume_annotation("static")
+
         should_write_fn_body = True
         scopes_with_return_stmnt = []
         registered_function_parameters = []
@@ -5872,7 +5981,7 @@ while index < len(Lines):
         curr_scope = get_current_scope()
 
         struct_def = None
-        if defining_fn_for_custom_class:
+        if defining_fn_for_custom_class and not is_static_function:
             struct_name = class_fn_defination["class_name"]
             struct_def = get_struct_defination_of_type(struct_name)
             
@@ -5954,7 +6063,7 @@ while index < len(Lines):
             # and not a mangled name.
             code = f"{return_type} WINAPI {function_name}("
 
-        if defining_fn_for_custom_class:
+        if defining_fn_for_custom_class and not is_static_function:
             struct_name = class_fn_defination["class_name"]
             code += f"struct {struct_name} *this"
             if has_parameters:
@@ -5985,6 +6094,7 @@ while index < len(Lines):
         fn.is_overloaded_function = is_overloaded_fn
         fn.overload_for_template_type = overload_for_type
         fn.is_return_type_ref_type = is_return_type_ref_type
+        fn.is_static_fn = is_static_function
         
         if defining_fn_for_custom_class:
             if should_write_fn_body:
