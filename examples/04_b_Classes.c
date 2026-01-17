@@ -24,11 +24,25 @@ int main() {
   c_function shout()
     printf("Shouting Point Values, x = %d.\n", this->x);
   endc_function
+
+  @static
+  function static_fn_test() -> int:
+    return 10
+  endfunction
+
+  @static
+  c_function static_fn()
+    printf("Test.\n");
+  endc_function
   endnamespace
 
   p1.say()
   p1.shout()
   
+  let static_result = Point::static_fn_test();
+  print("{static_result}\n");
+  Point::static_fn();
+
   struct GenericStruct<X>{X a, float b};
 
   let t1 = GenericStruct<float>{10,20};

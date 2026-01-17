@@ -32,6 +32,8 @@ struct Vector_float {
 
 void Pointsay(struct Point *this);
 void Pointshout(struct Point *this);
+int Pointstatic_fn_test();
+void Pointstatic_fn();
 
 void Pointsay(struct Point *this) {
   // We write normal C code inside c_function.
@@ -43,6 +45,10 @@ void Pointshout(struct Point *this) {
   printf("Shouting Point Values, x = %d.\n", this->x);
 }
 
+int Pointstatic_fn_test() { return 10; }
+
+void Pointstatic_fn() { printf("Test.\n"); }
+
 int main() {
 
   struct Point p1;
@@ -51,6 +57,10 @@ int main() {
 
   Pointsay(&p1);
   Pointshout(&p1);
+
+  int static_result = Pointstatic_fn_test();
+  printf("%d\n", static_result);
+  Pointstatic_fn();
 
   struct GenericStruct_float t1;
   t1.a = 10;

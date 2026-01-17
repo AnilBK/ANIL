@@ -1,3 +1,5 @@
+
+
 ///////////////////////////////////////////
 #include <windows.h>
 
@@ -889,14 +891,15 @@ void Stringreassign_internal(struct String *this, char *pstring,
 void String__reassign__OVDstructString(struct String *this,
                                        struct String pstring);
 void String__reassign__OVDstr(struct String *this, char *pstring);
+struct String Stringfrom(int number);
+void Stringformat(struct String *this, char *format, int value);
 void Stringset_to_file_contents(struct String *this, char *pfilename);
 struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename);
 
 void VoidPointer__init__(struct VoidPointer *this, struct UIWidget payload);
 
 struct String UIWidgetgetFilePath(struct UIWidget *this);
-struct UIWidget UIWidgetCreateUIWidgetFromVoidPtr(struct UIWidget *this,
-                                                  voidPtr ptr);
+struct UIWidget UIWidgetCreateUIWidgetFromVoidPtr(voidPtr ptr);
 bool UIWidgetisValid(struct UIWidget *this);
 struct UIWidget UIWidgetFindElementById(struct UIWidget *this, char *id);
 void UIWidgetSetOnClickCallback(struct UIWidget *this,
@@ -957,12 +960,13 @@ void File__init__(struct File *this, char *p_file_name);
 void Filewrite(struct File *this, char *p_content);
 void Filewriteline(struct File *this, char *p_content);
 void File__del__(struct File *this);
+
 void Subprocess_clear_pi(struct Subprocess *this);
 void Subprocess__init__(struct Subprocess *this, char *commandLine);
 int Subprocessrun(struct Subprocess *this);
 int Subprocesswait(struct Subprocess *this);
 int Subprocessrun_and_detach(struct Subprocess *this);
-struct UIWidget CreateUIWidgetFromVoidPtr(voidPtr ptr);
+
 void PythonPreprocess();
 struct String GetBuildType(voidPtr userData);
 void GCCCompile(voidPtr userData);
@@ -1242,6 +1246,51 @@ void String__reassign__OVDstr(struct String *this, char *pstring) {
   Stringreassign_internal(this, pstring, p_text_length);
 }
 
+struct String Stringfrom(int number) {
+  char buf[32];
+  int len = snprintf(buf, sizeof(buf), "%d", number);
+
+  struct String text;
+  if (len < 0) {
+    String__init__from_charptr(&text, "", 0);
+    return text;
+  }
+
+  if ((size_t)len >= sizeof(buf)) {
+    String__init__from_charptr(&text, buf, sizeof(buf) - 1);
+    return text;
+  }
+
+  String__init__from_charptr(&text, buf, len);
+  return text;
+}
+
+void Stringformat(struct String *this, char *format, int value) {
+  if (this->is_constexpr) {
+    fprintf(stderr, "Cannot modify constexpr string.\n");
+    return;
+  }
+
+  int needed = snprintf(NULL, 0, format, value);
+  if (needed < 0)
+    return;
+
+  if (needed + 1 > this->capacity) {
+    size_t new_capacity =
+        (needed + 1 > this->capacity * 2) ? needed + 1 : this->capacity * 2;
+    char *new_arr = realloc(this->arr, new_capacity);
+    if (!new_arr) {
+      fprintf(stderr, "Memory reallocation failed in String::format.\n");
+      exit(EXIT_FAILURE);
+    }
+    this->arr = new_arr;
+    this->capacity = new_capacity;
+  }
+
+  snprintf(this->arr, this->capacity, format, value);
+  this->length = needed;
+}
+
 void Stringset_to_file_contents(struct String *this, char *pfilename) {
   if (this->is_constexpr) {
     // Probably not necessary, as constexpr strings are compiler generated, but
@@ -1329,11 +1378,7 @@ struct String UIWidgetgetFilePath(struct UIWidget *this) {
   }
 }
 
-struct UIWidget UIWidgetCreateUIWidgetFromVoidPtr(struct UIWidget *this,
-                                                  voidPtr ptr) {
-  // FIXME: This is like a static function.
-  // TODO: Have to do this because global c_functions dont have c function
-  // bodies.
+struct UIWidget UIWidgetCreateUIWidgetFromVoidPtr(voidPtr ptr) {
   UIElement *element = (UIElement *)ptr;
   if (element == NULL) {
     fprintf(stderr, "Error: Could not create UIWidget from a void*.\n");
@@ -2261,12 +2306,6 @@ void Vector_Stringprint(struct Vector_String *this) {
   printf("]\n");
 }
 
-struct UIWidget CreateUIWidgetFromVoidPtr(voidPtr ptr) {
-  struct UIWidget w;
-  struct UIWidget widget = UIWidgetCreateUIWidgetFromVoidPtr(&w, ptr);
-  return widget;
-}
-
 void PythonPreprocess() {
   struct Subprocess subprocess;
   Subprocess__init__(&subprocess,
@@ -2290,7 +2329,7 @@ void PythonPreprocess() {
 }
 
 struct String GetBuildType(voidPtr userData) {
-  struct UIWidget root = CreateUIWidgetFromVoidPtr(userData);
+  struct UIWidget root = UIWidgetCreateUIWidgetFromVoidPtr(userData);
 
   struct String build_type;
   String__init__OVDstrint(&build_type, "Console", 7);
@@ -2344,14 +2383,14 @@ void GCCCompile(voidPtr userData) {
 }
 
 void Compile(voidPtr userData) {
-  struct UIWidget root = CreateUIWidgetFromVoidPtr(userData);
+  struct UIWidget root = UIWidgetCreateUIWidgetFromVoidPtr(userData);
 
   PythonPreprocess();
   GCCCompile(userData);
 }
 
 void Execute(voidPtr userData) {
-  struct UIWidget root = CreateUIWidgetFromVoidPtr(userData);
+  struct UIWidget root = UIWidgetCreateUIWidgetFromVoidPtr(userData);
 
   struct Subprocess subprocess;
   Subprocess__init__(&subprocess, "out");
@@ -2366,7 +2405,7 @@ void Execute(voidPtr userData) {
 }
 
 void Load(voidPtr userData) {
-  struct UIWidget root = CreateUIWidgetFromVoidPtr(userData);
+  struct UIWidget root = UIWidgetCreateUIWidgetFromVoidPtr(userData);
 
   struct UIWidget editor = UIWidgetFindElementById(&root, "filePickerButton");
 
@@ -2388,7 +2427,7 @@ void Load(voidPtr userData) {
 }
 
 void OpenFileAndLoadToEditor(voidPtr userData) {
-  struct UIWidget root = CreateUIWidgetFromVoidPtr(userData);
+  struct UIWidget root = UIWidgetCreateUIWidgetFromVoidPtr(userData);
 
   struct UIWidget editor = UIWidgetFindElementById(&root, "codeEditor");
 
@@ -2400,7 +2439,7 @@ void OpenFileAndLoadToEditor(voidPtr userData) {
 }
 
 void SaveEditorContentsToFile(voidPtr userData) {
-  struct UIWidget root = CreateUIWidgetFromVoidPtr(userData);
+  struct UIWidget root = UIWidgetCreateUIWidgetFromVoidPtr(userData);
 
   struct UIWidget editor = UIWidgetFindElementById(&root, "codeEditor");
 

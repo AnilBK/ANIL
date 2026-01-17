@@ -10,12 +10,6 @@ import UI
 import File
 import Subprocess
 
-function CreateUIWidgetFromVoidPtr(ptr: voidPtr) -> UIWidget:
-  let w = UIWidget{};
-  let widget = w.CreateUIWidgetFromVoidPtr(ptr)
-  return widget
-endfunction
-
 function PythonPreprocess()
   let subprocess = Subprocess{"python E:\\ANIL\\preprocess_2.py --filename E:\\ANIL\\examples\\UI\\IDE\\out.anil --no-clang-format"};
   let result = subprocess.run()
@@ -33,7 +27,7 @@ function PythonPreprocess()
 endfunction
 
 function GetBuildType(userData: voidPtr) -> String:
-  let root = CreateUIWidgetFromVoidPtr(userData)
+  let root = UIWidget::CreateUIWidgetFromVoidPtr(userData)
 
   let build_type = "Console"
 
@@ -72,14 +66,14 @@ function GCCCompile(userData: voidPtr)
 endfunction
 
 function Compile(userData: voidPtr)
-  let root = CreateUIWidgetFromVoidPtr(userData)
+  let root = UIWidget::CreateUIWidgetFromVoidPtr(userData)
 
   PythonPreprocess()
   GCCCompile(userData)
 endfunction
 
 function Execute(userData: voidPtr)
-  let root = CreateUIWidgetFromVoidPtr(userData)
+  let root = UIWidget::CreateUIWidgetFromVoidPtr(userData)
 
   let subprocess = Subprocess{"out"};
   let result = subprocess.run_and_detach()
@@ -91,7 +85,7 @@ function Execute(userData: voidPtr)
 endfunction
 
 function Load(userData: voidPtr)
-  let root = CreateUIWidgetFromVoidPtr(userData)
+  let root = UIWidget::CreateUIWidgetFromVoidPtr(userData)
 
   let editor = root.FindElementById("filePickerButton")
   if editor.isValid(){
@@ -108,7 +102,7 @@ function Load(userData: voidPtr)
 endfunction
 
 function OpenFileAndLoadToEditor(userData: voidPtr)
-  let root = CreateUIWidgetFromVoidPtr(userData)
+  let root = UIWidget::CreateUIWidgetFromVoidPtr(userData)
 
   let editor = root.FindElementById("codeEditor")
   if editor.isValid(){
@@ -118,7 +112,7 @@ function OpenFileAndLoadToEditor(userData: voidPtr)
 endfunction
 
 function SaveEditorContentsToFile(userData: voidPtr)
-  let root = CreateUIWidgetFromVoidPtr(userData)
+  let root = UIWidget::CreateUIWidgetFromVoidPtr(userData)
 
   let editor = root.FindElementById("codeEditor")
   if editor.isValid(){

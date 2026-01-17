@@ -39,18 +39,11 @@ function LoadTodos(todoList: UIWidget)
   }
 endfunction
 
-function CreateUIWidgetFromVoidPtr(ptr: voidPtr) -> UIWidget:
-  // We don't have static functions in ANIL yet, so we have to do this.
-  let w = UIWidget{};
-  let widget = w.CreateUIWidgetFromVoidPtr(ptr)
-  return widget
-endfunction
-
 function AddTodo(userData: voidPtr)
   // 'userData' has UIElement* to the root element.
   // Convert it to UIWidget for easier access to UIWidget methods,
   // and tree traversal.
-  let root = CreateUIWidgetFromVoidPtr(userData)
+  let root = UIWidget::CreateUIWidgetFromVoidPtr(userData)
 
   let todoInput = root.FindElementById("todoInput")
   let todoList = root.FindElementById("todoList")
@@ -66,7 +59,7 @@ function AddTodo(userData: voidPtr)
 endfunction
 
 function DeleteSelectedTodo(userData: voidPtr)
-  let root = CreateUIWidgetFromVoidPtr(userData)
+  let root = UIWidget::CreateUIWidgetFromVoidPtr(userData)
 
   let todoList = root.FindElementById("todoList")
 

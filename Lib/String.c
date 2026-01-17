@@ -229,8 +229,6 @@ c_function from(number: int) -> String:
   }
 
   if ((size_t)len >= sizeof(buf)) {
-    // truncated output
-    // either treat as error or clamp
     String__init__from_charptr(&text, buf, sizeof(buf) - 1);
     return text;
   }

@@ -166,8 +166,7 @@ endfunction
 
 function declare_variable(name : String, p_type : String)
   if name in this.symbols{
-    let e = ErrorHandler{};    
-    e.RAISE_ERROR("Variable already declared.")
+    ErrorHandler::RAISE_ERROR("Variable already declared.")
   }
 
   let symbol = Symbol{name, p_type};
@@ -231,8 +230,7 @@ function get_scope_by_id(id : int) -> Scope:
     }
   }
 
-  let e = ErrorHandler{};
-  e.RAISE_ERROR("Didnt find scope of provided id.")
+  ErrorHandler::RAISE_ERROR("Didnt find scope of provided id.")
 endfunction
 
 function new_unique_scope_id() -> int:
@@ -318,16 +316,14 @@ function declare_variable(name : String, p_type : String)
 
   if name in current_scope.symbols{
     this.print_symbol_table()
-    let e = ErrorHandler{};    
-    e.RAISE_ERROR("Variable already declared.")
+    ErrorHandler::RAISE_ERROR("Variable already declared.")
   }
 
   for scope_id in this.scope_stack{
     let scope = this.get_scope_by_id(scope_id)
     if name in scope.symbols{
       this.print_symbol_table()
-      let e = ErrorHandler{};    
-      e.RAISE_ERROR("Variable already declared in previous scopes.")
+      ErrorHandler::RAISE_ERROR("Variable already declared in previous scopes.")
     }
   }
 

@@ -20,8 +20,7 @@ function AddTodo(userData: voidPtr)
   // 'userData' has UIElement* to the root element.
   // Convert it to UIWidget for easier access to UIWidget methods,
   // and tree traversal.
-  let r1 = UIWidget{};
-  let root = r1.CreateUIWidgetFromVoidPtr(userData)
+  let root = UIWidget::CreateUIWidgetFromVoidPtr(userData)
 
   let editElement = root.FindElementById("todoInput")
   let listElement = root.FindElementById("todoList")

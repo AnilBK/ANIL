@@ -203,6 +203,8 @@ void Stringreassign_internal(struct String *this, char *pstring,
 void String__reassign__OVDstructString(struct String *this,
                                        struct String pstring);
 void String__reassign__OVDstr(struct String *this, char *pstring);
+struct String Stringfrom(int number);
+void Stringformat(struct String *this, char *format, int value);
 void Stringset_to_file_contents(struct String *this, char *pfilename);
 struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename);
 
@@ -254,7 +256,7 @@ bool Dict_int_string__contains__(struct Dict_int_string *this, int p_key);
 void Dict_int_stringkey_exists_quit(struct Dict_int_string *this);
 void Dict_int_stringadd_key(struct Dict_int_string *this, int p_key);
 
-void ErrorHandlerRAISE_ERROR(struct ErrorHandler *this, char *p_error_msg);
+void ErrorHandlerRAISE_ERROR(char *p_error_msg);
 
 struct String insert_string(struct String original_string, int p_index,
                             struct String string_to_insert);
@@ -353,6 +355,7 @@ void Vector_String_clear(struct Vector_String *this);
 void Vector_Stringclear(struct Vector_String *this);
 bool Vector_String__contains__(struct Vector_String *this, struct String value);
 void Vector_Stringprint(struct Vector_String *this);
+
 size_t Vector_int_str_listlen(struct Vector_int_str_list *this);
 void Vector_int_str_list__init__(struct Vector_int_str_list *this,
                                  int capacity);
@@ -476,6 +479,7 @@ void Vector_int_clear(struct Vector_int *this);
 void Vector_intclear(struct Vector_int *this);
 bool Vector_int__contains__(struct Vector_int *this, int value);
 void Vector_intprint(struct Vector_int *this);
+
 void Optional_String__init__(struct Optional_String *this);
 bool Optional_Stringhas_value(struct Optional_String *this);
 struct String Optional_Stringget_value(struct Optional_String *this);
@@ -729,33 +733,109 @@ void String__reassign__OVDstr(struct String *this, char *pstring) {
   Stringreassign_internal(this, pstring, p_text_length);
 }
 
-void Stringset_to_file_contents(struct String *this, char *pfilename) {
-  // Read from the file & store the contents to this string.
+struct String Stringfrom(int number) {
+  char buf[32];
+  int len = snprintf(buf, sizeof(buf), "%d", number);
 
-  // TODO: Implement this function in ANIL itself, because the function below is
-  // a mangled function name.
-  Stringclear(this);
+  struct String text;
+  if (len < 0) {
+    String__init__from_charptr(&text, "", 0);
+    return text;
+  }
 
-  FILE *ptr = fopen(pfilename, "r");
-  if (ptr == NULL) {
-    printf("File \"%s\" couldn't be opened.\n", pfilename);
+  if ((size_t)len >= sizeof(buf)) {
+    String__init__from_charptr(&text, buf, sizeof(buf) - 1);
+    return text;
+  }
+
+  String__init__from_charptr(&text, buf, len);
+  return text;
+}
+
+void Stringformat(struct String *this, char *format, int value) {
+  if (this->is_constexpr) {
+    fprintf(stderr, "Cannot modify constexpr string.\n");
     return;
   }
 
-  char myString[256];
-  bool has_data = false;
+  int needed = snprintf(NULL, 0, format, value);
+  if (needed < 0)
+    return;
 
-  while (fgets(myString, sizeof(myString), ptr)) {
-    String__add__(this, myString);
-    has_data = true;
+  if (needed + 1 > this->capacity) {
+    size_t new_capacity =
+        (needed + 1 > this->capacity * 2) ? needed + 1 : this->capacity * 2;
+    char *new_arr = realloc(this->arr, new_capacity);
+    if (!new_arr) {
+      fprintf(stderr, "Memory reallocation failed in String::format.\n");
+      exit(EXIT_FAILURE);
+    }
+    this->arr = new_arr;
+    this->capacity = new_capacity;
   }
 
+  snprintf(this->arr, this->capacity, format, value);
+  this->length = needed;
+}
+
+void Stringset_to_file_contents(struct String *this, char *pfilename) {
+  if (this->is_constexpr) {
+    // Probably not necessary, as constexpr strings are compiler generated, but
+    // just in case.
+    fprintf(stderr, "Error: Attempt to modify a constexpr String object.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  // Use fopen in binary read mode ("rb") to prevent newline translation.
+  FILE *ptr = fopen(pfilename, "rb");
+  if (ptr == NULL) {
+    fprintf(stderr, "File \"%s\" couldn't be opened.\n", pfilename);
+    Stringclear(this);
+    return;
+  }
+
+  fseek(ptr, 0, SEEK_END);
+  long fileSize = ftell(ptr);
+  if (fileSize < 0) {
+    fprintf(stderr, "Failed to get file size");
+    fclose(ptr);
+    Stringclear(this);
+    return;
+  }
+
+  fseek(ptr, 0, SEEK_SET);
+
+  int buffer_capacity = fileSize + 1;
+  char *buffer = (char *)malloc(buffer_capacity);
+  if (buffer == NULL) {
+    fprintf(stderr, "Memory allocation failed for file content.\n");
+    fclose(ptr);
+    Stringclear(this);
+    return;
+  }
+
+  size_t bytesRead = fread(buffer, 1, fileSize, ptr);
   fclose(ptr);
 
-  if (!has_data) {
-    // Double-clear just in case
+  if (bytesRead != (size_t)fileSize) {
+    fprintf(stderr, "Error reading file \"%s\". Expected %ld bytes, got %zu.\n",
+            pfilename, fileSize, bytesRead);
+    free(buffer);
     Stringclear(this);
+    return;
   }
+
+  buffer[fileSize] = '\0';
+
+  if (this->arr != NULL) {
+    free(this->arr);
+  }
+
+  // Take ownership of the buffer.
+  // The buffer should not be freed after this point.
+  this->arr = buffer;
+  this->length = fileSize;
+  this->capacity = buffer_capacity;
 }
 
 struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename) {
@@ -1152,7 +1232,7 @@ void Dict_int_stringadd_key(struct Dict_int_string *this, int p_key) {
   }
 }
 
-void ErrorHandlerRAISE_ERROR(struct ErrorHandler *this, char *p_error_msg) {
+void ErrorHandlerRAISE_ERROR(char *p_error_msg) {
   fprintf(stderr, p_error_msg);
   exit(EXIT_FAILURE);
 }
@@ -1234,8 +1314,7 @@ void Scopedeclare_variable(struct Scope *this, struct String name,
                            struct String p_type) {
 
   if (OrderedDict_Symbol__contains__(&this->symbols, Stringc_str(&name))) {
-    struct ErrorHandler e;
-    ErrorHandlerRAISE_ERROR(&e, "Variable already declared.");
+    ErrorHandlerRAISE_ERROR("Variable already declared.");
   }
 
   struct Symbol symbol;
@@ -1289,8 +1368,7 @@ struct Scope SymbolTableget_scope_by_id(struct SymbolTable *this, int id) {
     ScopeScopeIDPair__del__(&scope);
   }
 
-  struct ErrorHandler e;
-  ErrorHandlerRAISE_ERROR(&e, "Didnt find scope of provided id.");
+  ErrorHandlerRAISE_ERROR("Didnt find scope of provided id.");
 }
 
 int SymbolTablenew_unique_scope_id(struct SymbolTable *this) {
@@ -1404,8 +1482,7 @@ void SymbolTabledeclare_variable(struct SymbolTable *this, struct String name,
   if (OrderedDict_Symbol__contains__(&current_scope.symbols,
                                      Stringc_str(&name))) {
     SymbolTableprint_symbol_table(this);
-    struct ErrorHandler e;
-    ErrorHandlerRAISE_ERROR(&e, "Variable already declared.");
+    ErrorHandlerRAISE_ERROR("Variable already declared.");
   }
 
   size_t tmp_len_7 = Vector_intlen(&this->scope_stack);
@@ -1415,9 +1492,7 @@ void SymbolTabledeclare_variable(struct SymbolTable *this, struct String name,
 
     if (OrderedDict_Symbol__contains__(&scope.symbols, Stringc_str(&name))) {
       SymbolTableprint_symbol_table(this);
-      struct ErrorHandler e;
-      ErrorHandlerRAISE_ERROR(&e,
-                              "Variable already declared in previous scopes.");
+      ErrorHandlerRAISE_ERROR("Variable already declared in previous scopes.");
     }
     Scope__del__(&scope);
   }

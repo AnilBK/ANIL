@@ -19,8 +19,19 @@
 #define UIElement__MAX_TEXT_LENGTH 256
 #define UIElement__DEFAULT_ITEM_HEIGHT 20 // Default height for list items
 #define UIElement__MIN_LIST_HEIGHT 50     // Minimum height for the listbox
+#define UIElement__MIN_TEXTAREA_HEIGHT 50 // Minimum height for the editor
+#define UIElement__MAX_FILTER_LENGTH 512  // Max length for file dialog filters
 
-typedef enum { LABEL, BUTTON, LIST, EDIT, HORIZONTAL, VERTICAL } UIType;
+typedef enum {
+  LABEL,
+  BUTTON,
+  LIST,
+  EDIT,
+  TEXTAREA,
+  RADIO_BUTTON,
+  HORIZONTAL,
+  VERTICAL
+} UIType;
 
 struct UIElement;
 
@@ -38,9 +49,21 @@ typedef struct UIElement {
   char text[UIElement__MAX_TEXT_LENGTH]; // Store element text (label, button
                                          // text, initial
   // edit text)
-  EventHandler onClick; // Event handler for button clicks
-  void *userData;       // Custom data for event handlers
-  int itemCount;        // For list elements - track number of items
+  EventHandler onClick;    // Event handler for button clicks
+  void *userData;          // Custom data for event handlers
+  int itemCount;           // For list elements - track number of items
+  char filePath[MAX_PATH]; // For file picker button - store selected file path
+  bool isFilePicker;
+  char filterString[UIElement__MAX_FILTER_LENGTH]; // File filter for file
+                                                   // picker dialogs
+  int filterStringLength; // Current length of the filter string
+
+  HFONT hFont;       // Handle to a custom font, if any. NULL by default.
+  char fontName[64]; // Custom font name
+  int fontSize;      // Custom font size
+
+  // Store the text of the initially selected item for radio button groups
+  char initialSelection[UIElement__MAX_TEXT_LENGTH];
 } UIElement;
 
 typedef struct WinUIAppCoreData {
@@ -56,11 +79,15 @@ typedef void *voidPtr;
 // Global root element for traversal
 UIElement *g_rootElement = NULL;
 
+HWND g_MainWindowHWND = NULL;
+
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 void RefreshUILayout();
 void LayoutChildren(UIElement *);
 int CalculatePreferredHeight(UIElement *element);
 void FreeUIElementTree(UIElement *element);
+char *GetSelectedRadioValue(UIElement *group);
+void SelectRadioButtonByText(UIElement *group, char *p_optionText);
 
 UIElement *CreateUIElement(UIType type, int x, int y, int width, int height,
                            LPCSTR initialText, LPCSTR id) {
@@ -82,6 +109,13 @@ UIElement *CreateUIElement(UIType type, int x, int y, int width, int height,
   element->onClick = NULL;
   element->userData = NULL;
   element->itemCount = 0;
+  element->filterStringLength = 0;
+  // Ensure the filter string is double-null-terminated initially.
+  element->filterString[0] = '\0';
+  element->filterString[1] = '\0';
+  element->hFont = NULL;
+  element->fontSize = 14;
+  element->fontName[0] = '\0';
 
   if (id) {
     strncpy(element->id, id, sizeof(element->id) - 1);
@@ -183,6 +217,35 @@ bool CreateElementHwnd(UIElement *element, HWND ownerHwnd,
     style |= ES_AUTOHSCROLL | ES_LEFT | WS_BORDER;
     exStyle |= WS_EX_CLIENTEDGE; // Optional, WS_BORDER often enough
     break;
+  case TEXTAREA:
+    className = WC_EDIT;
+    style |= ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN | WS_VSCROLL |
+             WS_HSCROLL | WS_BORDER;
+    exStyle |= WS_EX_CLIENTEDGE;
+    break;
+  case RADIO_BUTTON:
+    className = WC_BUTTON;
+    style |= BS_AUTORADIOBUTTON;
+    // The first radio button in a group needs the WS_GROUP style.
+    if (element->parent) {
+      bool isFirstRadioButtonInGroup = true;
+      for (int i = 0; i < element->parent->childCount; i++) {
+        UIElement *sibling = element->parent->children[i];
+        if (sibling && sibling->type == RADIO_BUTTON) {
+          if (sibling != element) {
+            // Found an earlier radio button, so we are not the first.
+            isFirstRadioButtonInGroup = false;
+          }
+          // If sibling is us, we are the first one we've found. Break.
+          // If sibling is not us, then we're not the first. Break.
+          break;
+        }
+      }
+      if (isFirstRadioButtonInGroup) {
+        style |= WS_GROUP;
+      }
+    }
+    break;
   default:
     fprintf(stderr,
             "Error: Unknown element type %d for HWND creation (ID: '%s').\n",
@@ -203,13 +266,43 @@ bool CreateElementHwnd(UIElement *element, HWND ownerHwnd,
   );
 
   if (element->hwnd) {
-    // Store the UIElement pointer in the control window's user data
+    // Store the UIElement pointer in the control window's user data.
     SetWindowLongPtr(element->hwnd, GWLP_USERDATA, (LONG_PTR)element);
 
-    // Apply a standard GUI font
-    HFONT hFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
-    if (hFont) {
-      SendMessage(element->hwnd, WM_SETFONT, (WPARAM)hFont,
+    HFONT hFontToApply = NULL;
+
+    if (element->fontSize > 0 && element->fontName[0] != '\0') {
+      // If a font handle hasn't been created yet for this element, create it
+      // now.
+      if (element->hFont == NULL) {
+        HDC hdc = GetDC(NULL);
+        int nHeight =
+            -MulDiv(element->fontSize, GetDeviceCaps(hdc, LOGPIXELSY), 72);
+        ReleaseDC(NULL, hdc);
+
+        HFONT hNewFont = CreateFont(
+            nHeight, 0, 0, 0, FW_NORMAL, FALSE, FALSE, 0, DEFAULT_CHARSET,
+            OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
+            DEFAULT_PITCH | FF_MODERN, element->fontName);
+
+        if (hNewFont) {
+          element->hFont = hNewFont;
+        } else {
+          fprintf(stderr,
+                  "Warning: Failed to create font '%s' for element '%s'. "
+                  "Falling back to default.\n",
+                  element->fontName, element->id);
+        }
+      }
+      hFontToApply = element->hFont;
+    }
+
+    if (hFontToApply == NULL) {
+      hFontToApply = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+    }
+
+    if (hFontToApply) {
+      SendMessage(element->hwnd, WM_SETFONT, (WPARAM)hFontToApply,
                   MAKELPARAM(true, 0));
     }
     return true;
@@ -248,6 +341,13 @@ bool CreateElementHwndRecursive(UIElement *element, HWND ownerHwnd,
     }
   }
 
+  // After all children HWNDs are created, apply initial radio button selection
+  // if needed
+  if ((element->type == HORIZONTAL || element->type == VERTICAL) &&
+      element->initialSelection[0] != '\0') {
+    SelectRadioButtonByText(element, element->initialSelection);
+  }
+
   return true;
 }
 
@@ -279,9 +379,12 @@ int CalculatePreferredHeight(UIElement *element) {
   case LABEL:
     return element->height > 0 ? element->height : 20;
   case BUTTON:
+  case RADIO_BUTTON:
     return element->height > 0 ? element->height : 25;
   case EDIT:
     return element->height > 0 ? element->height : 25;
+  case TEXTAREA:
+    return element->height > 0 ? element->height : 150;
   default:
     return element->height;
   }
@@ -302,8 +405,15 @@ void SetEventHandler(UIElement *element, EventHandler handler, void *userData) {
   element->userData = userData;
 }
 
+void SetEditText(UIElement *edit, char *text) {
+  if (edit && (edit->type == EDIT || edit->type == TEXTAREA) && edit->hwnd) {
+    SetWindowText(edit->hwnd, text);
+  }
+}
+
 char *GetEditText(UIElement *edit) {
-  if (edit == NULL || edit->type != EDIT || edit->hwnd == NULL)
+  if (edit == NULL || (edit->type != EDIT && edit->type != TEXTAREA) ||
+      edit->hwnd == NULL)
     return NULL;
   int length = GetWindowTextLength(edit->hwnd);
   if (length == 0) {
@@ -324,8 +434,75 @@ char *GetEditText(UIElement *edit) {
 }
 
 void ClearEditText(UIElement *edit) {
-  if (edit && edit->type == EDIT && edit->hwnd) {
+  if (edit && (edit->type == EDIT || edit->type == TEXTAREA) && edit->hwnd) {
     SetWindowText(edit->hwnd, "");
+  }
+}
+
+char *GetSelectedRadioValue(UIElement *group) {
+  if (group == NULL || (group->type != HORIZONTAL && group->type != VERTICAL)) {
+    return NULL;
+  }
+
+  for (int i = 0; i < group->childCount; i++) {
+    UIElement *child = group->children[i];
+    if (child && child->type == RADIO_BUTTON && child->hwnd) {
+      LRESULT state = SendMessage(child->hwnd, BM_GETCHECK, 0, 0);
+      if (state == BST_CHECKED) {
+        // Found the selected button. Return its text.
+        size_t len = strlen(child->text);
+        char *buffer = (char *)malloc(len + 1);
+        if (buffer) {
+          strcpy(buffer, child->text);
+          return buffer;
+        }
+        return NULL;
+      }
+    }
+  }
+
+  // No button was selected, return an empty allocated string for consistency.
+  char *buffer = (char *)malloc(1);
+  if (buffer)
+    buffer[0] = '\0';
+  return buffer;
+}
+
+void SelectRadioButtonByText(UIElement *group, char *p_optionText) {
+  if (group == NULL || (group->type != HORIZONTAL && group->type != VERTICAL) ||
+      p_optionText == NULL) {
+    return;
+  }
+
+  // Behavior 1: HWNDs do not exist yet. Store the desired initial selection in
+  // the group container.
+  if (group->childCount > 0 && group->children[0]->hwnd == NULL) {
+    strncpy(group->initialSelection, p_optionText,
+            sizeof(group->initialSelection) - 1);
+    group->initialSelection[sizeof(group->initialSelection) - 1] = '\0';
+    return;
+  }
+
+  // Behavior 2: HWNDs exist. Find and select in the live controls.
+  UIElement *buttonToSelect = NULL;
+  for (int i = 0; i < group->childCount; i++) {
+    UIElement *child = group->children[i];
+    if (child && child->type == RADIO_BUTTON) {
+      if (strcmp(child->text, p_optionText) == 0) {
+        buttonToSelect = child;
+        break;
+      }
+    }
+  }
+
+  if (buttonToSelect && buttonToSelect->hwnd) {
+    // Programmatically check the button. Because they are auto radio buttons
+    // in a group, the OS should handle unchecking the others.
+    SendMessage(buttonToSelect->hwnd, BM_SETCHECK, (WPARAM)BST_CHECKED, 0);
+  } else {
+    fprintf(stderr,
+            "Warning: Radio button with text '%s' not found in group '%s'.\n",
+            p_optionText, group->id);
   }
 }
 
@@ -350,6 +527,11 @@ void FreeUIElementTree(UIElement *element) {
     FreeUIElementTree(element->children[i]);
     element->children[i] = NULL;
   }
+
+  if (element->hFont) {
+    DeleteObject(element->hFont);
+  }
+
   // We only free the struct memory. HWNDs are destroyed by the OS when the
   // top-level window closes.
   free(element);
@@ -412,7 +594,16 @@ void LayoutChildren(UIElement *container) {
 
       // Position the actual HWND *if it exists*
       if (child->hwnd) {
-        SetWindowPos(child->hwnd, NULL, child->x, child->y, child->width,
+        int finalY = child->y;
+
+        // Apply a small vertical offset to radio buttons in a horizontal
+        // layout to better align their text baseline with adjacent labels.
+        // This compensates for the radio glyph's effect on text position.
+        if (child->type == RADIO_BUTTON) {
+          finalY -= 7;
+        }
+
+        SetWindowPos(child->hwnd, NULL, child->x, finalY, child->width,
                      child->height,
                      SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
       }
@@ -422,6 +613,42 @@ void LayoutChildren(UIElement *container) {
       }
     }
   } else if (container->type == VERTICAL) {
+    // Step 1: Discovery Pass.
+    // Go through children to sum up the height of all fixed-size elements
+    // and count the number of flexible elements.
+    int fixedHeightSum = 0;
+    int flexibleChildCount = 0;
+    for (int i = 0; i < container->childCount; i++) {
+      UIElement *child = container->children[i];
+      if (child) {
+        // Define which types are flexible. For now, just the text area.
+        // We could expand this to a flag like `child->isFlexible` later.
+        if (child->type == TEXTAREA) {
+          flexibleChildCount++;
+        } else {
+          fixedHeightSum += CalculatePreferredHeight(child);
+        }
+      }
+    }
+
+    // Step 2: Calculation.
+    // Determine the space remaining for flexible children.
+    int remainingHeight = container->height - fixedHeightSum;
+    if (remainingHeight < 0) {
+      // Prevent negative heights if fixed items overflow.
+      remainingHeight = 0;
+    }
+
+    int heightPerFlexibleChild =
+        (flexibleChildCount > 0) ? (remainingHeight / flexibleChildCount) : 0;
+
+    // Enforce a minimum height for flexible children.
+    if (heightPerFlexibleChild < UIElement__MIN_TEXTAREA_HEIGHT) {
+      heightPerFlexibleChild = UIElement__MIN_TEXTAREA_HEIGHT;
+    }
+
+    // Step 3: Application Pass.
+    // Go through children again to set their final position and size.
     int currentY = container->y;
     int containerInnerX = container->x;
     int containerWidth = container->width;
@@ -431,20 +658,25 @@ void LayoutChildren(UIElement *container) {
       if (!child)
         continue;
 
-      int childPrefHeight = CalculatePreferredHeight(child);
+      int childHeight;
+      if (child->type == TEXTAREA) {
+        childHeight = heightPerFlexibleChild;
+      } else {
+        childHeight = CalculatePreferredHeight(child);
+      }
 
       child->x = containerInnerX;
       child->y = currentY;
       child->width = containerWidth;
-      child->height = childPrefHeight; // Use preferred height
+      child->height = childHeight;
 
-      // Position the actual HWND *if it exists*
       if (child->hwnd) {
         SetWindowPos(child->hwnd, NULL, child->x, child->y, child->width,
                      child->height,
                      SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
       }
-      currentY += childPrefHeight;
+
+      currentY += childHeight; // Move to the next position for the next child
       if (child->type == HORIZONTAL || child->type == VERTICAL) {
         LayoutChildren(child);
       }
@@ -458,6 +690,77 @@ void LayoutChildren(UIElement *container) {
   }
 }
 
+void UIElement_SetFont(UIElement *element, const char *fontName, int fontSize) {
+  if (!element || !fontName || fontSize <= 0) {
+    return;
+  }
+  strncpy(element->fontName, fontName, sizeof(element->fontName) - 1);
+  element->fontName[sizeof(element->fontName) - 1] = '\0';
+  element->fontSize = fontSize;
+
+  // If HWND already exists, we could re-create the font and apply it,
+  // but for simplicity, we assume SetFont is called before HWND creation.
+}
+
+void UIElement_AddFileFilter(UIElement *element, const char *description,
+                             const char *pattern) {
+  if (!element || !element->isFilePicker)
+    return;
+
+  size_t desc_len = strlen(description);
+  size_t patt_len = strlen(pattern);
+
+  // Check if there is enough space: desc + null + pattern + null + final extra
+  // null.
+  if (element->filterStringLength + desc_len + 1 + patt_len + 1 + 1 >
+      UIElement__MAX_FILTER_LENGTH) {
+    fprintf(stderr, "Error: Not enough space to add new file filter.\n");
+    return;
+  }
+
+  // Append description.
+  memcpy(element->filterString + element->filterStringLength, description,
+         desc_len);
+  element->filterStringLength += desc_len;
+  element->filterString[element->filterStringLength++] = '\0';
+
+  // Append pattern.
+  memcpy(element->filterString + element->filterStringLength, pattern,
+         patt_len);
+  element->filterStringLength += patt_len;
+  element->filterString[element->filterStringLength++] = '\0';
+
+  // Add the final double null terminator for the whole list.
+  element->filterString[element->filterStringLength] = '\0';
+}
+
+void OpenFilePickerDialog(void *filePickerElement) {
+  struct UIElement *element = (struct UIElement *)(filePickerElement);
+  if (element == NULL) {
+    fprintf(stderr, "Error: Creating Widget failed.\n");
+    return;
+  }
+
+  OPENFILENAME ofn;       // Common dialog box structure
+  char szFile[260] = {0}; // Buffer for file name
+
+  // Initialize OPENFILENAME
+  ZeroMemory(&ofn, sizeof(ofn));
+  ofn.lStructSize = sizeof(ofn);
+  ofn.hwndOwner = g_MainWindowHWND; // Use the main window handle
+  ofn.lpstrFile = szFile;
+  ofn.nMaxFile = sizeof(szFile);
+  ofn.lpstrFilter = element->filterStringLength > 0 ? element->filterString
+                                                    : "All Files\0*.*\0\0";
+  ofn.nFilterIndex = 1;
+  ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+
+  if (GetOpenFileName(&ofn) == TRUE) {
+    strncpy(element->filePath, szFile, sizeof(element->filePath) - 1);
+    element->filePath[sizeof(element->filePath) - 1] = '\0';
+  }
+}
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
   switch (msg) {
   case WM_DESTROY:
@@ -468,8 +771,20 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
       HWND controlHwnd = (HWND)lParam;
       UIElement *element =
           (UIElement *)GetWindowLongPtr(controlHwnd, GWLP_USERDATA);
-      if (element && element->onClick) {
-        element->onClick(element->userData);
+
+      if (element) {
+        // For file pickers, open the dialog.
+        if (element->type == BUTTON && element->isFilePicker) {
+          OpenFilePickerDialog(element);
+          fprintf(stderr, "Opened File Picker.\n");
+        }
+
+        // Filepickers also have onClick handlers.
+        // i.e they trigger after a file is picked.
+        if (element->onClick) {
+          fprintf(stderr, "Normal Button OnClick handler.\n");
+          element->onClick(element->userData);
+        }
       }
     } else if (HIWORD(wParam) == LBN_SELCHANGE) {
       HWND controlHwnd = (HWND)lParam;
@@ -501,22 +816,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     return DefWindowProc(hwnd, msg, wParam, lParam);
   }
   return 0;
-}
-
-void RedirectIOToConsole() {
-  // Allocate a console for the current process
-  AllocConsole();
-
-  // Redirect the STDOUT to the console
-  FILE *fp;
-  freopen_s(&fp, "CONOUT$", "w", stdout);
-  freopen_s(&fp, "CONOUT$", "w", stderr);
-
-  // Redirect STDIN to the console
-  freopen_s(&fp, "CONIN$", "r", stdin);
-
-  // Optional: You can set the console title if you like
-  SetConsoleTitle(TEXT("Console Window"));
 }
 
 // Initializes the main window, creates the root UI element, and sets up the
@@ -595,13 +894,15 @@ void Stringreassign_internal(struct String *this, char *pstring,
 void String__reassign__OVDstructString(struct String *this,
                                        struct String pstring);
 void String__reassign__OVDstr(struct String *this, char *pstring);
+struct String Stringfrom(int number);
+void Stringformat(struct String *this, char *format, int value);
 void Stringset_to_file_contents(struct String *this, char *pfilename);
 struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename);
 
 void VoidPointer__init__(struct VoidPointer *this, struct UIWidget payload);
 
-struct UIWidget UIWidgetCreateUIWidgetFromVoidPtr(struct UIWidget *this,
-                                                  voidPtr ptr);
+struct String UIWidgetgetFilePath(struct UIWidget *this);
+struct UIWidget UIWidgetCreateUIWidgetFromVoidPtr(voidPtr ptr);
 bool UIWidgetisValid(struct UIWidget *this);
 struct UIWidget UIWidgetFindElementById(struct UIWidget *this, char *id);
 void UIWidgetSetOnClickCallback(struct UIWidget *this,
@@ -615,6 +916,10 @@ struct UIWidget UIWidgetCreateList(struct UIWidget *this, int x, int y,
                                    int width, int height, char *id);
 struct UIWidget UIWidgetCreateLineInput(struct UIWidget *this, int x, int y,
                                         int width, int height, char *id);
+struct UIWidget UIWidgetCreateFilePicker(struct UIWidget *this, int x, int y,
+                                         int width, int height, char *id);
+void UIWidgetAddFileFilter(struct UIWidget *this, char *description,
+                           char *pattern);
 struct UIWidget UIWidgetCreateButton(struct UIWidget *this, int x, int y,
                                      int width, int height, char *initialText,
                                      char *id);
@@ -622,15 +927,25 @@ struct UIWidget UIWidgetCreateVBox(struct UIWidget *this, int x, int y,
                                    int width, int height, char *id);
 struct UIWidget UIWidgetCreateHBox(struct UIWidget *this, int x, int y,
                                    int width, int height, char *id);
+struct UIWidget UIWidgetCreateTextArea(struct UIWidget *this, int x, int y,
+                                       int width, int height, char *id);
+struct UIWidget UIWidgetCreateRadioButton(struct UIWidget *this, char *text,
+                                          char *id);
 void UIWidgetAddItemToList(struct UIWidget *this, char *itemText);
 void UIWidgetClearEditText(struct UIWidget *this);
+void UIWidgetSetEditText(struct UIWidget *this, struct String text);
 struct String UIWidgetGetEditText(struct UIWidget *this);
 void UIWidgetRemoveSelectedListItem(struct UIWidget *this);
 int UIWidgetGetTotalItemsInList(struct UIWidget *this);
 struct String UIWidgetGetListItemAtIndex(struct UIWidget *this, int index);
 struct Vector_String UIWidgetGetAllItemsInList(struct UIWidget *this);
+struct String UIWidgetGetSelectedValue(struct UIWidget *this);
+void UIWidgetSelectOptionByText(struct UIWidget *this, char *optionText);
+struct String UIWidgetOpenFilePickerAndReadContents(struct UIWidget *this);
+void UIWidgetsetFont(struct UIWidget *this, char *fontName);
 
 struct UIWidget WinUIAppGetRootWidget(struct WinUIApp *this);
+void WinUIAppShowConsoleWindow(struct WinUIApp *this);
 WinUIAppCoreDataPtr WinUIApp_InitializeMainWindow(struct WinUIApp *this,
                                                   char *p_title, int width,
                                                   int height);
@@ -645,11 +960,12 @@ void WinUIAppCleanUp(struct WinUIApp *this);
 void WinUIApp__del__(struct WinUIApp *this);
 
 void File__init__(struct File *this, char *p_file_name);
+void Filewrite(struct File *this, char *p_content);
 void Filewriteline(struct File *this, char *p_content);
 void File__del__(struct File *this);
+
 void SaveTodos(struct UIWidget todoList);
 void LoadTodos(struct UIWidget todoList);
-struct UIWidget CreateUIWidgetFromVoidPtr(voidPtr ptr);
 void AddTodo(voidPtr userData);
 void DeleteSelectedTodo(voidPtr userData);
 size_t Vector_Stringlen(struct Vector_String *this);
@@ -898,33 +1214,109 @@ void String__reassign__OVDstr(struct String *this, char *pstring) {
   Stringreassign_internal(this, pstring, p_text_length);
 }
 
-void Stringset_to_file_contents(struct String *this, char *pfilename) {
-  // Read from the file & store the contents to this string.
+struct String Stringfrom(int number) {
+  char buf[32];
+  int len = snprintf(buf, sizeof(buf), "%d", number);
 
-  // TODO: Implement this function in ANIL itself, because the function below is
-  // a mangled function name.
-  Stringclear(this);
+  struct String text;
+  if (len < 0) {
+    String__init__from_charptr(&text, "", 0);
+    return text;
+  }
 
-  FILE *ptr = fopen(pfilename, "r");
-  if (ptr == NULL) {
-    printf("File \"%s\" couldn't be opened.\n", pfilename);
+  if ((size_t)len >= sizeof(buf)) {
+    String__init__from_charptr(&text, buf, sizeof(buf) - 1);
+    return text;
+  }
+
+  String__init__from_charptr(&text, buf, len);
+  return text;
+}
+
+void Stringformat(struct String *this, char *format, int value) {
+  if (this->is_constexpr) {
+    fprintf(stderr, "Cannot modify constexpr string.\n");
     return;
   }
 
-  char myString[256];
-  bool has_data = false;
+  int needed = snprintf(NULL, 0, format, value);
+  if (needed < 0)
+    return;
 
-  while (fgets(myString, sizeof(myString), ptr)) {
-    String__add__(this, myString);
-    has_data = true;
+  if (needed + 1 > this->capacity) {
+    size_t new_capacity =
+        (needed + 1 > this->capacity * 2) ? needed + 1 : this->capacity * 2;
+    char *new_arr = realloc(this->arr, new_capacity);
+    if (!new_arr) {
+      fprintf(stderr, "Memory reallocation failed in String::format.\n");
+      exit(EXIT_FAILURE);
+    }
+    this->arr = new_arr;
+    this->capacity = new_capacity;
   }
 
+  snprintf(this->arr, this->capacity, format, value);
+  this->length = needed;
+}
+
+void Stringset_to_file_contents(struct String *this, char *pfilename) {
+  if (this->is_constexpr) {
+    // Probably not necessary, as constexpr strings are compiler generated, but
+    // just in case.
+    fprintf(stderr, "Error: Attempt to modify a constexpr String object.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  // Use fopen in binary read mode ("rb") to prevent newline translation.
+  FILE *ptr = fopen(pfilename, "rb");
+  if (ptr == NULL) {
+    fprintf(stderr, "File \"%s\" couldn't be opened.\n", pfilename);
+    Stringclear(this);
+    return;
+  }
+
+  fseek(ptr, 0, SEEK_END);
+  long fileSize = ftell(ptr);
+  if (fileSize < 0) {
+    fprintf(stderr, "Failed to get file size");
+    fclose(ptr);
+    Stringclear(this);
+    return;
+  }
+
+  fseek(ptr, 0, SEEK_SET);
+
+  int buffer_capacity = fileSize + 1;
+  char *buffer = (char *)malloc(buffer_capacity);
+  if (buffer == NULL) {
+    fprintf(stderr, "Memory allocation failed for file content.\n");
+    fclose(ptr);
+    Stringclear(this);
+    return;
+  }
+
+  size_t bytesRead = fread(buffer, 1, fileSize, ptr);
   fclose(ptr);
 
-  if (!has_data) {
-    // Double-clear just in case
+  if (bytesRead != (size_t)fileSize) {
+    fprintf(stderr, "Error reading file \"%s\". Expected %ld bytes, got %zu.\n",
+            pfilename, fileSize, bytesRead);
+    free(buffer);
     Stringclear(this);
+    return;
   }
+
+  buffer[fileSize] = '\0';
+
+  if (this->arr != NULL) {
+    free(this->arr);
+  }
+
+  // Take ownership of the buffer.
+  // The buffer should not be freed after this point.
+  this->arr = buffer;
+  this->length = fileSize;
+  this->capacity = buffer_capacity;
 }
 
 struct Vector_String StringreadlinesFrom(struct String *this, char *pfilename) {
@@ -939,11 +1331,22 @@ void VoidPointer__init__(struct VoidPointer *this, struct UIWidget payload) {
   this->ptr = (void *)payload.uiElement;
 }
 
-struct UIWidget UIWidgetCreateUIWidgetFromVoidPtr(struct UIWidget *this,
-                                                  voidPtr ptr) {
-  // FIXME: This is like a static function.
-  // TODO: Have to do this because global c_functions dont have c function
-  // bodies.
+struct String UIWidgetgetFilePath(struct UIWidget *this) {
+  struct String path;
+  if (this->uiElement) { // && this->uiElement->type == BUTTON) {
+    // Use the new field in UIElement to get the file path.
+    String__init__from_charptr(&path, this->uiElement->filePath,
+                               strlen(this->uiElement->filePath));
+    return path;
+  } else {
+    fprintf(stderr,
+            "Error: getFilePath called on non-file-picker button element.\n");
+    String__init__OVDstr(&path, "");
+    return path;
+  }
+}
+
+struct UIWidget UIWidgetCreateUIWidgetFromVoidPtr(voidPtr ptr) {
   UIElement *element = (UIElement *)ptr;
   if (element == NULL) {
     fprintf(stderr, "Error: Could not create UIWidget from a void*.\n");
@@ -1043,6 +1446,22 @@ struct UIWidget UIWidgetCreateLineInput(struct UIWidget *this, int x, int y,
   return w;
 }
 
+struct UIWidget UIWidgetCreateFilePicker(struct UIWidget *this, int x, int y,
+                                         int width, int height, char *id) {
+  struct UIWidget w;
+  w.uiElement = CreateUIElement(BUTTON, x, y, width, height,
+                                (LPCSTR) "Open File", (LPCSTR)id);
+  w.uiElement->isFilePicker = true;
+  return w;
+}
+
+void UIWidgetAddFileFilter(struct UIWidget *this, char *description,
+                           char *pattern) {
+  if (this->uiElement) {
+    UIElement_AddFileFilter(this->uiElement, description, pattern);
+  }
+}
+
 struct UIWidget UIWidgetCreateButton(struct UIWidget *this, int x, int y,
                                      int width, int height, char *initialText,
                                      char *id) {
@@ -1065,6 +1484,22 @@ struct UIWidget UIWidgetCreateHBox(struct UIWidget *this, int x, int y,
   struct UIWidget w;
   w.uiElement =
       CreateUIElement(HORIZONTAL, x, y, width, height, (LPCSTR) "", (LPCSTR)id);
+  return w;
+}
+
+struct UIWidget UIWidgetCreateTextArea(struct UIWidget *this, int x, int y,
+                                       int width, int height, char *id) {
+  struct UIWidget w;
+  w.uiElement =
+      CreateUIElement(TEXTAREA, x, y, width, height, (LPCSTR) "", (LPCSTR)id);
+  return w;
+}
+
+struct UIWidget UIWidgetCreateRadioButton(struct UIWidget *this, char *text,
+                                          char *id) {
+  struct UIWidget w;
+  w.uiElement =
+      CreateUIElement(RADIO_BUTTON, 0, 0, 0, 0, (LPCSTR)text, (LPCSTR)id);
   return w;
 }
 
@@ -1094,10 +1529,21 @@ void UIWidgetClearEditText(struct UIWidget *this) {
   ClearEditText(this->uiElement);
 }
 
+void UIWidgetSetEditText(struct UIWidget *this, struct String text) {
+  if (this->uiElement &&
+      (this->uiElement->type == EDIT || this->uiElement->type == TEXTAREA)) {
+    SetEditText(this->uiElement, Stringc_str(&text));
+  } else {
+    fprintf(stderr,
+            "Error: SetEditText called on non-edit/text_editor element.\n");
+  }
+}
+
 struct String UIWidgetGetEditText(struct UIWidget *this) {
   struct String EditText;
 
-  if (this->uiElement->type != EDIT) {
+  if (this->uiElement &&
+      (this->uiElement->type != EDIT && this->uiElement->type != TEXTAREA)) {
     fprintf(stderr, "Error: GetEditText called on non-edit element.\n");
 
     // Just return an empty string.
@@ -1197,10 +1643,138 @@ struct Vector_String UIWidgetGetAllItemsInList(struct UIWidget *this) {
   return result;
 }
 
+struct String UIWidgetGetSelectedValue(struct UIWidget *this) {
+  struct String selectedValue;
+
+  if (this->uiElement == NULL || (this->uiElement->type != HORIZONTAL &&
+                                  this->uiElement->type != VERTICAL)) {
+    fprintf(stderr,
+            "Error: GetSelectedValue called on a non-container element.\n");
+    String__init__OVDstr(&selectedValue, "");
+    return selectedValue;
+  }
+
+  char *text = GetSelectedRadioValue(this->uiElement);
+  if (text) {
+    String__init__from_charptr(&selectedValue, text, strlen(text));
+    free(text);
+  } else {
+    String__init__OVDstr(&selectedValue, "");
+  }
+
+  return selectedValue;
+}
+
+void UIWidgetSelectOptionByText(struct UIWidget *this, char *optionText) {
+  if (this->uiElement == NULL || (this->uiElement->type != HORIZONTAL &&
+                                  this->uiElement->type != VERTICAL)) {
+    fprintf(stderr,
+            "Error: SelectOptionByText called on a non-container element.\n");
+    return;
+  }
+
+  if (optionText == NULL) {
+    fprintf(stderr, "Error: SelectOptionByText called with NULL optionText.\n");
+    return;
+  }
+
+  SelectRadioButtonByText(this->uiElement, optionText);
+}
+
+struct String UIWidgetOpenFilePickerAndReadContents(struct UIWidget *this) {
+  struct String fileContents;
+  String__init__OVDstr(&fileContents, "");
+
+  HWND hwndOwner = this->uiElement->hwnd; // The main window owns the dialog
+  char szFile[MAX_PATH] = {0};
+
+  OPENFILENAMEA ofn;
+  ZeroMemory(&ofn, sizeof(ofn));
+  ofn.lStructSize = sizeof(ofn);
+  ofn.hwndOwner = hwndOwner;
+  ofn.lpstrFile = szFile;
+  ofn.nMaxFile = sizeof(szFile);
+  ofn.lpstrFilter = this->uiElement->filterStringLength > 0
+                        ? this->uiElement->filterString
+                        : "All Files\0*.*\0\0";
+  ofn.nFilterIndex = 1;
+  ofn.lpstrFileTitle = NULL;
+  ofn.nMaxFileTitle = 0;
+  ofn.lpstrInitialDir = NULL;
+  ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+  if (GetOpenFileNameA(&ofn) == TRUE) {
+    HANDLE hFile =
+        CreateFileA(ofn.lpstrFile, GENERIC_READ, FILE_SHARE_READ, NULL,
+                    OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+    if (hFile != INVALID_HANDLE_VALUE) {
+      DWORD dwFileSize = GetFileSize(hFile, NULL);
+      if (dwFileSize != INVALID_FILE_SIZE) {
+        char *buffer = (char *)malloc(dwFileSize + 1);
+        if (buffer) {
+          DWORD dwBytesRead = 0;
+          if (ReadFile(hFile, buffer, dwFileSize, &dwBytesRead, NULL) &&
+              dwBytesRead == dwFileSize) {
+            buffer[dwFileSize] = '\0';
+            Stringreassign_internal(&fileContents, buffer, dwFileSize);
+          } else {
+            MessageBox(hwndOwner, "Error reading file content.", "File Error",
+                       MB_OK | MB_ICONERROR);
+            String__init__OVDstr(&fileContents, "");
+          }
+          free(buffer);
+        } else {
+          MessageBox(hwndOwner, "Memory allocation failed.", "Error",
+                     MB_OK | MB_ICONERROR);
+          Stringclear(&fileContents);
+        }
+      } else {
+        MessageBox(hwndOwner, "Could not get file size.", "File Error",
+                   MB_OK | MB_ICONERROR);
+        Stringclear(&fileContents);
+      }
+      CloseHandle(hFile);
+    } else {
+      MessageBox(hwndOwner, "Could not open selected file.", "File Error",
+                 MB_OK | MB_ICONERROR);
+      Stringclear(&fileContents);
+    }
+  }
+
+  return fileContents;
+}
+
+void UIWidgetsetFont(struct UIWidget *this, char *fontName) {
+  if (this->uiElement) {
+    if (this->uiElement->type != TEXTAREA && this->uiElement->type != EDIT &&
+        this->uiElement->type != LABEL && this->uiElement->type != BUTTON) {
+      fprintf(stderr, "Error: SetFont called on unsupported element type.\n");
+      return;
+    }
+    UIElement_SetFont(this->uiElement, fontName, 14);
+  }
+}
+
 struct UIWidget WinUIAppGetRootWidget(struct WinUIApp *this) {
   struct UIWidget w;
   w.uiElement = this->appCoreData->rootElement;
   return w;
+}
+
+void WinUIAppShowConsoleWindow(struct WinUIApp *this) {
+  // Allocate a console for the current process.
+  AllocConsole();
+
+  // Redirect the STDOUT to the console.
+  FILE *fp;
+  freopen_s(&fp, "CONOUT$", "w", stdout);
+  freopen_s(&fp, "CONOUT$", "w", stderr);
+
+  // Redirect STDIN to the console.
+  freopen_s(&fp, "CONIN$", "r", stdin);
+
+  SetConsoleTitle(TEXT("Console Window"));
 }
 
 WinUIAppCoreDataPtr WinUIApp_InitializeMainWindow(struct WinUIApp *this,
@@ -1258,6 +1832,8 @@ WinUIAppCoreDataPtr WinUIApp_InitializeMainWindow(struct WinUIApp *this,
 
   appCoreData->hInstance = hInstance;
   appCoreData->mainHwnd = hwnd;
+
+  g_MainWindowHWND = hwnd;
 
   // Create the root UI element (typically a vertical container)
   // Its x,y are 0,0 relative to the client area. Width/height will be set by
@@ -1364,11 +1940,20 @@ void WinUIAppCleanUp(struct WinUIApp *this) {
 void WinUIApp__del__(struct WinUIApp *this) { WinUIAppCleanUp(this); }
 
 void File__init__(struct File *this, char *p_file_name) {
-  this->file_ptr = fopen(p_file_name, "w");
+  // Change mode from "w" to "wb".
+  // This prevents the C runtime from translating '\n' to '\r\n',
+  // which was causing double newlines while writing the content of Windows
+  // control, because the input string from the Windows control already
+  // contained '\r\n'.
+  this->file_ptr = fopen(p_file_name, "wb");
   if (this->file_ptr == NULL) {
     printf("Failed to open file %s.\n", p_file_name);
     exit(0);
   }
+}
+
+void Filewrite(struct File *this, char *p_content) {
+  fprintf(this->file_ptr, "%s", p_content);
 }
 
 void Filewriteline(struct File *this, char *p_content) {
@@ -1630,18 +2215,11 @@ void LoadTodos(struct UIWidget todoList) {
   String__del__(&str);
 }
 
-struct UIWidget CreateUIWidgetFromVoidPtr(voidPtr ptr) {
-  // We don't have static functions in ANIL yet, so we have to do this.
-  struct UIWidget w;
-  struct UIWidget widget = UIWidgetCreateUIWidgetFromVoidPtr(&w, ptr);
-  return widget;
-}
-
 void AddTodo(voidPtr userData) {
   // 'userData' has UIElement* to the root element.
   // Convert it to UIWidget for easier access to UIWidget methods,
   // and tree traversal.
-  struct UIWidget root = CreateUIWidgetFromVoidPtr(userData);
+  struct UIWidget root = UIWidgetCreateUIWidgetFromVoidPtr(userData);
 
   struct UIWidget todoInput = UIWidgetFindElementById(&root, "todoInput");
   struct UIWidget todoList = UIWidgetFindElementById(&root, "todoList");
@@ -1659,7 +2237,7 @@ void AddTodo(voidPtr userData) {
 }
 
 void DeleteSelectedTodo(voidPtr userData) {
-  struct UIWidget root = CreateUIWidgetFromVoidPtr(userData);
+  struct UIWidget root = UIWidgetCreateUIWidgetFromVoidPtr(userData);
 
   struct UIWidget todoList = UIWidgetFindElementById(&root, "todoList");
 
