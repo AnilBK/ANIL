@@ -23,26 +23,26 @@ int main() {
   let str = "Hello World"
   // The following line is also valid, as the above syntax is shorthand for the statement below. 
   // let str = String{"Hello World"};
-  str.printLn()
+  print(str)
 
   str = "Reassign"
-  str.printLn()
+  print(str)
  
-  let str2 = "Hi \n"
-  str2.print()
+  let str2 = "Hi"
+  print(str2)
 
   let str3 = str2.strip()
-  str3.printLn()
+  print(str3)
 
   let len = str3.len()
-  print("Length of the string is : {len}. \n")
+  print("Length of the string is : {len}.")
 
   for val in str{
-   print("{val} \n")
+   print("{val}")
   }
 
   if "Wor" in str{
-    print("Wor is in str. \n")
+    print("Wor is in str.")
   }
 
   if str == "Hello World"{
@@ -50,33 +50,35 @@ int main() {
   }
 
   str += "New message appended at the " + "end."
-  str.printLn()
+  print(str)
 
   str = ""
 
   let len4 = str.len()
-  print("Length of the string is : {len4}. \n")
-  str.printLn()
+  print("Length of the string is : {len4}.")
+  print(str)
 
-  let str4 = "String constructed from another string. \n"
+  let str4 = "String constructed from another string."
   let str5 = String{str4};
-  str5.printLn()
+  print(str5)
 
-  let str6 = "String constructed from another string 2.\n"
+  let str6 = "String constructed from another string 2."
   let str7 = str6
-  str7.printLn()
+  print(str7)
 
-  let substr_str = str4.substr(0, 6);
-  substr_str.printLn()
+  let substr_str = str4.substr(0, 6)
+  print(substr_str)
   
-  print("Split Test: \n")
+  print("Split Test:")
   let split_str = "Splitting.with.dots."
-  split_str.printLn()
+  print(split_str)
+
   let dot_split = split_str.split(".")
-  dot_split.print()
+  dot_split.print()  
 
   let split_str2 = "Splitting with Spaces."
-  split_str2.printLn()
+  print(split_str2)
+
   let space_split = split_str2.split(" ")
   space_split.print()
 
@@ -84,7 +86,7 @@ int main() {
   print(score)
   
   let scoreText = "Score: " + String::from(score)
-  scoreText.printLn()
+  print(scoreText)
 
   // DESTRUCTOR_CODE //
 

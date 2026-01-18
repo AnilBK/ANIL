@@ -28,6 +28,7 @@ struct Vector_String {
 };
 
 char *Stringc_str(struct String *this);
+char *String__str__(struct String *this);
 size_t Stringlen(struct String *this);
 char String__getitem__(struct String *this, int index);
 size_t Stringlength_of_charptr(struct String *this, char *p_string);
@@ -92,6 +93,8 @@ bool Vector_String__contains__(struct Vector_String *this, struct String value);
 void Vector_Stringprint(struct Vector_String *this);
 
 char *Stringc_str(struct String *this) { return this->arr; }
+
+char *String__str__(struct String *this) { return this->arr; }
 
 size_t Stringlen(struct String *this) { return this->length; }
 
@@ -645,36 +648,36 @@ int main() {
   while (*c_str1_iterator_0 != '\0') {
     char c = *c_str1_iterator_0;
     c_str1_iterator_0++;
-    printf("%c", c);
+    printf("%c\n", c);
   }
 
   struct String str;
   String__init__OVDstrint(&str, "Hello World", 11);
   // The following line is also valid, as the above syntax is shorthand for the
   // statement below. let str = String{"Hello World"};
-  StringprintLn(&str);
+  printf("%s\n", String__str__(&str));
 
   String__reassign__OVDstr(&str, "Reassign");
-  StringprintLn(&str);
+  printf("%s\n", String__str__(&str));
 
   struct String str2;
-  String__init__OVDstrint(&str2, "Hi \n", 4);
-  Stringprint(&str2);
+  String__init__OVDstrint(&str2, "Hi", 2);
+  printf("%s\n", String__str__(&str2));
 
   struct String str3 = Stringstrip(&str2);
-  StringprintLn(&str3);
+  printf("%s\n", String__str__(&str3));
 
   size_t len = Stringlen(&str3);
-  printf("Length of the string is : %llu. \n", len);
+  printf("Length of the string is : %llu.\n", len);
 
   size_t tmp_len_1 = Stringlen(&str);
   for (size_t i = 0; i < tmp_len_1; i++) {
     char val = String__getitem__(&str, i);
-    printf("%c \n", val);
+    printf("%c\n", val);
   }
 
   if (String__contains__(&str, "Wor")) {
-    printf("Wor is in str. \n");
+    printf("Wor is in str.\n");
   }
 
   if (String__eq__(&str, "Hello World")) {
@@ -684,52 +687,53 @@ int main() {
   String_allocate_more(&str, 28 + 4);
   String__add__(&str, "New message appended at the ");
   String__add__(&str, "end.");
-  StringprintLn(&str);
+  printf("%s\n", String__str__(&str));
 
   String__reassign__OVDstr(&str, "");
 
   size_t len4 = Stringlen(&str);
-  printf("Length of the string is : %llu. \n", len4);
-  StringprintLn(&str);
+  printf("Length of the string is : %llu.\n", len4);
+  printf("%s\n", String__str__(&str));
 
   struct String str4;
-  String__init__OVDstrint(&str4, "String constructed from another string. \n",
-                          41);
+  String__init__OVDstrint(&str4, "String constructed from another string.", 39);
   struct String str5;
   String__init__OVDstructString(&str5, str4);
-  StringprintLn(&str5);
+  printf("%s\n", String__str__(&str5));
 
   struct String str6;
-  String__init__OVDstrint(&str6, "String constructed from another string 2.\n",
-                          42);
+  String__init__OVDstrint(&str6, "String constructed from another string 2.",
+                          41);
   struct String str7;
   String__init__OVDstructString(&str7, str6);
-  StringprintLn(&str7);
+  printf("%s\n", String__str__(&str7));
 
   struct String substr_str = Stringsubstr(&str4, 0, 6);
-  StringprintLn(&substr_str);
+  printf("%s\n", String__str__(&substr_str));
 
-  printf("Split Test: \n");
+  printf("Split Test:\n");
   struct String split_str;
   String__init__OVDstrint(&split_str, "Splitting.with.dots.", 20);
-  StringprintLn(&split_str);
+  printf("%s\n", String__str__(&split_str));
+
   struct Vector_String dot_split = Stringsplit(&split_str, '.');
   Vector_Stringprint(&dot_split);
 
   struct String split_str2;
   String__init__OVDstrint(&split_str2, "Splitting with Spaces.", 22);
-  StringprintLn(&split_str2);
+  printf("%s\n", String__str__(&split_str2));
+
   struct Vector_String space_split = Stringsplit(&split_str2, ' ');
   Vector_Stringprint(&space_split);
 
   int score = 69420;
-  printf("%d", score);
+  printf("%d\n", score);
 
   struct String tmp_string_0 = Stringfrom(score);
   struct String scoreText;
   String__init__OVDstrint(&scoreText, "Score: ", 7);
   String__add__(&scoreText, Stringc_str(&tmp_string_0));
-  StringprintLn(&scoreText);
+  printf("%s\n", String__str__(&scoreText));
 
   String__del__(&scoreText);
   String__del__(&tmp_string_0);

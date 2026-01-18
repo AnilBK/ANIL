@@ -13,6 +13,10 @@ function c_str() -> str:
   return this.arr
 endfunction
 
+c_function __str__() -> str:
+  return this->arr;
+endc_function
+
 function len() -> size_t:
   return this.length
 endfunction

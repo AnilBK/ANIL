@@ -90,10 +90,18 @@ class PrintNode(StatementNode):
                 
                 str_text += f"%{format_specifier}"
 
-                # Logic to handle specific C conversions (String -> c_str)
-                if return_type == "String":
-                    # Assuming Stringc_str is the mangled name available globally
-                    extracted_var_name_list.append(f"Stringc_str(&{extracted_var_name})")
+                struct_type = data_type_with_struct_stripped(return_type or "")
+                struct_def = get_struct_defination_of_type(struct_type)
+                instanced_struct_info = get_instanced_struct(extracted_var_name)
+
+                if struct_def:
+                    if struct_def.has_member_fn("__str__"):
+                        mangled_str_fn_name = get_mangled_fn_name(struct_type, "__str__")
+                        # If it's a pointer (like 'this'), pass directly, else pass address.
+                        prefix = "" if (instanced_struct_info and instanced_struct_info.is_pointer_type) else "&"
+                        extracted_var_name_list.append(f"{mangled_str_fn_name}({prefix}{extracted_var_name})")
+                    else:
+                        RAISE_ERROR(f"Can't print object '{extracted_var_name}' of type '{return_type}' as it does not have a __str__ method.")
                 else:
                     extracted_var_name_list.append(extracted_var_name)
                     
@@ -107,7 +115,7 @@ class PrintNode(StatementNode):
         if len(extracted_var_name_list) > 0:
             args_code = "," + ",".join(extracted_var_name_list)
             
-        return f'printf("{str_text}"{args_code});\n'
+        return f'printf("{str_text}\\n"{args_code});\n'
 
 
 # We don't typically pass filenames through command line, this is mostly for batch compile operations.
@@ -424,6 +432,12 @@ def get_format_specifier(p_type: str) -> str:
     if p_type in db.keys():
         return db[p_type]
     else:
+        # Custom classes can overload __str__ function.
+        struct_type = data_type_with_struct_stripped(p_type)
+        struct_def = get_struct_defination_of_type(struct_type)
+        if struct_def and struct_def.has_member_fn("__str__"):
+            return "s"
+
         return "d"
 
 
