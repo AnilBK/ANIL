@@ -317,8 +317,6 @@ struct String Stringfrom(int number) {
   }
 
   if ((size_t)len >= sizeof(buf)) {
-    // truncated output
-    // either treat as error or clamp
     String__init__from_charptr(&text, buf, sizeof(buf) - 1);
     return text;
   }
@@ -725,6 +723,8 @@ int main() {
   Vector_Stringprint(&space_split);
 
   int score = 69420;
+  printf("%d", score);
+
   struct String tmp_string_0 = Stringfrom(score);
   struct String scoreText;
   String__init__OVDstrint(&scoreText, "Score: ", 7);

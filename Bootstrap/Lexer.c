@@ -155,7 +155,7 @@ function get_tokens(p_line : String) -> List:
   line.printLn()
 
   for Char in line{
-    #print("{Char}")
+    # print(Char)
 
     if escape_back_slash{
       if Char == "\""{

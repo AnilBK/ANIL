@@ -40,7 +40,8 @@ int main() {
   p1.shout()
   
   let static_result = Point::static_fn_test();
-  print("{static_result}\n");
+  print(static_result)
+  print("\n");
   Point::static_fn();
 
   struct GenericStruct<X>{X a, float b};

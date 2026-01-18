@@ -59,7 +59,8 @@ int main() {
   Pointshout(&p1);
 
   int static_result = Pointstatic_fn_test();
-  printf("%d\n", static_result);
+  printf("%d", static_result);
+  printf("\n");
   Pointstatic_fn();
 
   struct GenericStruct_float t1;

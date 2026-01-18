@@ -17,7 +17,7 @@ int main() {
   const c_str1 = "C Style Strings\n"
   // Such strings are very limited in functionality and only looping as below is supported.
   for c in c_str1{
-    print("{c}")
+    print(c)
   }
 
   let str = "Hello World"
@@ -81,6 +81,8 @@ int main() {
   space_split.print()
 
   let score: int = 69420
+  print(score)
+  
   let scoreText = "Score: " + String::from(score)
   scoreText.printLn()
 

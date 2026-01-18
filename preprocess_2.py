@@ -69,7 +69,6 @@ class PrintNode(StatementNode):
         self.raw_template_string = raw_template_string
 
     def codegen(self) -> str:
-        # This logic is lifted directly from your existing parser loop
         braces_open = False
         str_text = ""
         extracted_var_name_list = []
@@ -5004,11 +5003,18 @@ while index < len(Lines):
             line_without_hash = parts[1]
             LinesCache.append(f" //{line_without_hash}")
     elif parser.current_token() == "print":
-        # print("Hello {meaning}")
         parser.next_token()
-
         parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
-        actual_str = parser.extract_string_literal()
+        
+        if parser.check_token(lexer.Token.QUOTE):
+            # print("Value: {x}")
+            actual_str = parser.extract_string_literal()
+        else:
+            # print(x)
+            # We wrap the variable name in braces to reuse the existing PrintNode logic.
+            var_token = parser.get_token()
+            actual_str = "{" + var_token + "}"
+            
         parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
 
         print_node = PrintNode(actual_str)
