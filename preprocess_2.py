@@ -3927,13 +3927,11 @@ while index < len(Lines):
         return None
 
     def speculative_parse_string():
-        # Search for "FIXME: Lost Parser Tokens for speculative_parse_string()".
-        # If parsing for string fails, the entire parser tokens are lost after function_call_expression() below.
-
         return_value = None
         token_type = SpeculativeTokenType.NONE
         exact_type = ""
 
+        # Save the state of tokens before we attempt any matching or consumption.
         parser.save_checkpoint()
 
         current_token = parser.current_token()
@@ -3957,55 +3955,60 @@ while index < len(Lines):
 
         if return_value == None:
             # Nothing is string as of now.
-            # parser.rollback_checkpoint()
-            tokens_tmp = copy.deepcopy(parser.tokens)
-
+            # We assume we might have consumed some tokens checking above (unlikely given logic, but safe),
+            # or we need to start fresh for function call parsing.
+            # However, since we haven't matched anything yet, we are still effectively at the checkpoint.
+            
             with SpeculativeFunctionParse():
                 fn_call_parse_info = function_call_expression()
 
                 if fn_call_parse_info == None:
+                    # Function parsing failed completely. 
+                    # We must restore tokens to the state before we tried parsing the function.
                     parser.rollback_checkpoint()
+                    
                     if is_variable_string_class(current_token):
                         return_value = current_token
                         exact_type = "struct String"
                         token_type = SpeculativeTokenType.STRING_CLASS
                         parser.next_token()
+                        # Success fallback, clear the rollback checkpoint as we consumed successfully.
+                        parser.clear_checkpoint()
                     else:
-                        parser.tokens.clear()
-                        #parser.clear_checkpoint()
-                    raise RollbackTemporaryGeneratedCodes()
+                        # Parsing failed.
+                        # Do NOT clear tokens here. Just raise the exception.
+                        # The context manager handles LineCache cleanup.
+                        # The rollback_checkpoint above handled Token cleanup.
+                        raise RollbackTemporaryGeneratedCodes()
                 else:
                     parse_result = fn_call_parse_info.function_call_metadata
                     return_type = parse_result["return_type"]
-                    # if return_type in {"struct String", "String", "str", "char*"}:
+                    
                     if return_type in {"struct String", "String"}:
                         return_value = fn_call_parse_info.get_fn_str()
                         token_type = SpeculativeTokenType.STRING_EXPRESSION
-                        # TODO: immediately create a new var here onlyy maybe??
+                        parser.clear_checkpoint() # Valid parse, discard checkpoint.
                     elif return_type in {"str", "char*"}:
                         return_value = fn_call_parse_info.get_fn_str()
                         token_type = SpeculativeTokenType.STR_TYPE
+                        parser.clear_checkpoint() # Valid parse, discard checkpoint.
                     else:
+                        # Parsed a function, but it wasn't a string type.
+                        # Revert tokens so something else can try to parse it.
                         parser.rollback_checkpoint()
-                        # parser.tokens.clear()
-                        parser.tokens = tokens_tmp
                         raise RollbackTemporaryGeneratedCodes()
-                        # parser.clear_checkpoint()
+        else:
+            # We matched one of the simple types (Literal, Char var, Str var).
+            # Discard the checkpoint as we want to keep the consumed tokens.
+            parser.clear_checkpoint()
 
-            if return_value is None:
-                if is_variable_string_class(current_token):
-                    pass
-                #     return_value = current_token
-                #     exact_type = "struct String"
-                #     token_type = SpeculativeTokenType.STRING_CLASS
-                #     parser.next_token()
-                    
         if return_value is not None:
             parse_info = SpeculativeParseInfo()
             parse_info.speculative_token_type = token_type
             parse_info.speculative_exact_type = exact_type
             parse_info.speculative_token_value = return_value
             return parse_info
+        
         return None
 
     def speculative_parse_string_expression():
@@ -4190,14 +4193,6 @@ while index < len(Lines):
                 "member_access_string": member_access_string,
                 "struct_instance": struct_instance,
             }
-
-            # parser.clear_checkpoint()
-            # parser.tokens.clear()
-
-            # FIXME: Lost Parser Tokens for speculative_parse_string().
-            # Due to parser.clear_checkpoint() above,
-            # the entire parser contents is removed, and we don't restore previous parser tokens.
-            # Because of which in speculative_parse_string() if parsing string fails, the entire parser tokens are lost.
 
             expression_info = SpeculativeExpressionInfo()
             expression_info.speculative_expression_type = SpeculativeExpressionType.FUNCTION_CALL_EXPRESSION
