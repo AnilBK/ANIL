@@ -1478,7 +1478,7 @@ def is_instanced_struct(p_struct_name: str):
 
 
 def get_instanced_struct(p_struct_name) -> Optional[StructInstance]:
-    for struct in instanced_struct_names:
+    for struct in reversed(instanced_struct_names):
         if struct.struct_name == p_struct_name:
             return struct
     return None
