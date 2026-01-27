@@ -331,7 +331,7 @@ def SpeculativeFunctionParse():
         variables_checkpoint.restore()
 
 
-struct_definations = []
+struct_definations = OrderedDict()
 instanced_struct_names = []
 
 IncludeLines = [] # ["#include<stdio.h>", ...]
@@ -818,16 +818,18 @@ def get_global_function_by_name(p_fn_name: str):
     return None
 
 def is_class_name(p_token: str) -> bool:
-    return any(defined_struct.name == p_token for defined_struct in struct_definations)
+    return get_struct_defination_of_type(p_token) is not None
 
 def get_class_static_function(class_name: str, p_fn_name: str):
-    for defined_struct in struct_definations:
-        if defined_struct.name == class_name:
-            for fn in defined_struct.member_functions:
-                if fn.fn_name == p_fn_name:
-                    if not fn.is_static():
-                        RAISE_ERROR(f"Function {p_fn_name} of class {class_name} is not static.")
-                    return fn
+    struct_def = get_struct_defination_of_type(class_name)
+    if struct_def is None:
+        return None
+
+    for fn in struct_def.member_functions:
+        if fn.fn_name == p_fn_name:
+            if not fn.is_static():
+                RAISE_ERROR(f"Function {p_fn_name} of class {class_name} is not static.")
+            return fn
     return None
 
 class Struct:
@@ -1396,11 +1398,8 @@ class StructInstance:
 
 
 def get_struct_defination_of_type(p_struct_type: str) -> Optional[Struct]:
-    for defined_struct in struct_definations:
-        if defined_struct.name == p_struct_type:
-            return defined_struct
-    return None
-
+    return struct_definations.get(p_struct_type, None)
+    
 
 def add_fn_member_to_struct(p_struct_name: str, p_fn: MemberFunction):
     struct_defination = get_struct_defination_of_type(p_struct_name)
@@ -2228,7 +2227,7 @@ while index < len(Lines):
 
         templated_fn_codes = []
 
-        for defined_struct in struct_definations:
+        for defined_struct in list(struct_definations.values()):
             if defined_struct.unparsed_functions_should_be_parsed:
                 template_code = [f"namespace {defined_struct.name}\n"]
                 template_code.extend(defined_struct.unparsed_functions)
@@ -2657,7 +2656,7 @@ while index < len(Lines):
             function_declarations.append(instantiated_struct_info.unparsed_functions[start_index])
 
         global struct_definations
-        struct_definations.append(instantiated_struct_info)
+        struct_definations[instantiated_struct_info.name] = instantiated_struct_info
 
         ###################################################################################################
 
@@ -5491,7 +5490,7 @@ while index < len(Lines):
 
             # GlobalStructInitCode += struct_code
 
-        struct_definations.append(struct_data)
+        struct_definations[struct_data.name] = struct_data
         # Non generic structs shouldn't be written out early, but since the c_function blocks write out functions despite being templated we leave the base templated struct defined, so that the funtions generated don't have defination error.
         # GlobalStructInitCode += struct_code
 
