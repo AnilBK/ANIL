@@ -251,6 +251,10 @@ if len(imported_modules) > 0:
 
 LinesCache = []
 
+def emit(code):
+    global LinesCache
+    LinesCache.append(code)
+
 # This is like Git but for generated codes.
 # While speculative parsing of functions, we may generate some intermediate codes.
 # If speculative parsing fails, we need to undo these changes.
@@ -557,7 +561,7 @@ class SymbolTable:
             else:
                 destructor_code = self.get_scope_by_id(exiting_scope_id).get_destructor_code_for_all_variables()
                 if destructor_code != "":
-                    LinesCache.append(destructor_code)
+                    emit(destructor_code)
             del self.scopes[exiting_scope_id]
 
         # No more scopes remaining.
@@ -1796,16 +1800,16 @@ def parse_global_c_function():
     
     code += f") {{\n"
 
-    LinesCache.append(code)
+    emit(code)
 
     if is_anil_file and function_name in ("main", "WinMain"):
         # Normal .c file has identifiers which indicates where the global variables constructors is placed in main.
         # .anil files doesn't have that, so, the first line for main function is the global variables constructors
         # initialization code.
         if len(global_variables_initialization_code) > 0:
-            LinesCache.append("//Global Variables Initialization.\n")
+            emit("//Global Variables Initialization.\n")
             LinesCache.extend(global_variables_initialization_code)
-            LinesCache.append("\n")
+            emit("\n")
             global_variables_initialization_code = []
     
     fn = MemberFunction(function_name, parameters, return_type)
@@ -1837,12 +1841,11 @@ def RAISE_ERROR(error_msg):
 
 
 def create_const_charptr_iterator(array_name, current_array_value_variable):
-    global LinesCache
     global temp_c_str_iterator_variable_count
 
     iterator_var_name = f"{array_name}_iterator_{temp_c_str_iterator_variable_count}"
 
-    LinesCache.append(
+    emit(
         f"char *{iterator_var_name} = {array_name};"
         f"while (*{iterator_var_name} != '\\0') {{"
         f"char {current_array_value_variable} = *{iterator_var_name};"
@@ -1857,8 +1860,7 @@ def create_const_charptr_iterator(array_name, current_array_value_variable):
 def create_array_enumerator(
     array_name, ranged_index_item_variable, current_array_value_variable
 ):
-    global LinesCache
-    LinesCache.append(
+    emit(
         f"Iterator {array_name}_iter = create_iterator_from_array({array_name}, {array_name}_array_size); \n"
         f"Enumerator {array_name}_enumerator;\n"
         f"{array_name}_enumerator.index = -1;\n\n"
@@ -1869,8 +1871,6 @@ def create_array_enumerator(
 
 
 def create_normal_array_iterator(array_name, current_array_value_variable):
-    global LinesCache
-
     # The variable type is in format '[int]'.
     array_type = get_type_of_variable(array_name)
     if array_type == None:
@@ -1878,7 +1878,7 @@ def create_normal_array_iterator(array_name, current_array_value_variable):
 
     array_type = array_type[1:-1]
 
-    LinesCache.append(
+    emit(
         f"for (unsigned int i = 0; i < {array_name}_array_size; i++){{\n"
         f"{array_type} {current_array_value_variable} = {array_name}[i];\n"
     )
@@ -1891,7 +1891,7 @@ def promote_char_to_string(var_to_check):
     promoted_char_var_name = f"{var_to_check}_promoted_{temp_char_promoted_to_string_variable_count}"
     temp_char_promoted_to_string_variable_count += 1
 
-    LinesCache.append(f"char {promoted_char_var_name}[2] = {{ {var_to_check}, '\\0'}};\n")
+    emit(f"char {promoted_char_var_name}[2] = {{ {var_to_check}, '\\0'}};\n")
     REGISTER_VARIABLE(f"{promoted_char_var_name}", "str")
 
     return promoted_char_var_name
@@ -1903,7 +1903,7 @@ def handle_array_in_operator(var_to_check, var_to_check_against):
     search_variable = f"{var_to_check_against}__contains__{var_to_check}_{temp_arr_search_variable_count}"
     temp_arr_search_variable_count += 1
 
-    LinesCache.append(
+    emit(
         f"bool {search_variable} = false;\n"
         f"for (unsigned int i = 0; i < {var_to_check_against}_array_size; i++){{\n"
         f"  if ({var_to_check_against}[i] == {var_to_check}){{\n"
@@ -2177,11 +2177,11 @@ while index < len(Lines):
             else:
                 main_fn_found = True
                 if len(global_variables_initialization_code) > 0:
-                    LinesCache.append("//Global Variables Initialization.\n")
+                    emit("//Global Variables Initialization.\n")
                     for g_code in global_variables_initialization_code:
-                        LinesCache.append(g_code)
+                        emit(g_code)
                     global_variables_initialization_code = []
-                    LinesCache.append("\n")
+                    emit("\n")
                 continue
         else:
             continue
@@ -2198,7 +2198,7 @@ while index < len(Lines):
             is_inside_form = False
             gui_code = gui_manager.get_window_code()
             for code in gui_code:
-                LinesCache.append(code)
+                emit(code)
         continue
     elif Line.startswith("<UI>"):
         if is_inside_GUI_code:
@@ -2223,7 +2223,7 @@ while index < len(Lines):
         # Destroy all variables, then emit the code to be parsed later.
         # Now the code to be parsed later has fresh symbol table to work with.
         if not is_anil_file:
-            LinesCache.append(symbol_table.destructor_code_for_all_remaining_variables())
+            emit(symbol_table.destructor_code_for_all_remaining_variables())
 
         templated_fn_codes = []
 
@@ -2261,7 +2261,7 @@ while index < len(Lines):
 
     if not is_inside_new_code:
         # Normal C code, so just write that.
-        LinesCache.append(Line)
+        emit(Line)
         continue
 
     if is_inside_global_c_function and not "endc_function" in Line:
@@ -2421,15 +2421,15 @@ while index < len(Lines):
             increment_operation = f"+={step}"
 
         if stop == "0":
-            LinesCache.append(
+            emit(
                 f"for (size_t {current_array_value_variable} = {start}; {current_array_value_variable} {stopping_condition} (size_t) - 1; {current_array_value_variable}{increment_operation}){{\n"
             )
         elif step[0] == "-":
-            LinesCache.append(
+            emit(
                 f"for (size_t {current_array_value_variable} = {stop}; {current_array_value_variable} {stopping_condition} {start}; {current_array_value_variable}{increment_operation}){{\n"
             )
         else:
-            LinesCache.append(
+            emit(
                 f"for (size_t {current_array_value_variable} = {start}; {current_array_value_variable} {stopping_condition} {stop}; {current_array_value_variable}{increment_operation}){{\n"
             )
         REGISTER_VARIABLE(current_array_value_variable, "size_t")
@@ -2570,11 +2570,8 @@ while index < len(Lines):
         array_element_count = len(array_values)
         array_elements_str = ",".join(array_values)
 
-        global LinesCache
-        LinesCache.append(f"{type_name} {array_name}[] = {{ {array_elements_str} }};\n")
-        LinesCache.append(
-            f"unsigned int {array_name}_array_size = {array_element_count};\n\n"
-        )
+        emit(f"{type_name} {array_name}[] = {{ {array_elements_str} }};\n")
+        emit(f"unsigned int {array_name}_array_size = {array_element_count};\n\n")
 
         # register variable as '[int]' to indicate the array of type int.
         REGISTER_VARIABLE(array_name, f"[{type_name}]")
@@ -2789,15 +2786,13 @@ while index < len(Lines):
 
         code = f"struct {m_struct_type} {struct_name};\n"
 
-        global LinesCache
-
         has_constuctor = instanced_struct_info.struct_type_has_constructor()
         if has_constuctor:
             values_str = ""
             if len(values_list) > 0:
                 values_str = ",".join(values_list)
 
-            LinesCache.append(code)
+            emit(code)
             constructor_ANIL_code = f"{struct_name}.__init__({values_str})\n"
 
             index_to_insert_at = index
@@ -2811,7 +2806,7 @@ while index < len(Lines):
 
                 code += f"{struct_name}.{mem} = {values};\n"
 
-        LinesCache.append(code)
+        emit(code)
 
     def _read_a_parameter():
         # Parse a number or string..
@@ -3043,11 +3038,11 @@ while index < len(Lines):
                 # instance.should_be_freed = False
                 instanced_struct_names.append(instance)
 
-                LinesCache.append(f"struct String {temp_string_var_name} = {string_value};\n")
+                emit(f"struct String {temp_string_var_name} = {string_value};\n")
                 REGISTER_VARIABLE(f"{temp_string_var_name}", f"String")
-                
+
                 ast.update_param(i, temp_string_var_name, ParameterType.STRING_CLASS)
-                
+
                 # Write the new temporary instead.
                 generated_code_lines.append(f"{target_variable_name}.{add_method}({temp_string_var_name})")
                 length_expressions.append(f"{temp_string_var_name}.len()")
@@ -3085,7 +3080,6 @@ while index < len(Lines):
         term_parameters = term["parameter"]
 
         global instanced_struct_names
-        global LinesCache
         global temp_string_object_variable_count    
 
         term_type = term['type']
@@ -3133,7 +3127,7 @@ while index < len(Lines):
                     assignment_code += f"{parameters_str}"
                 assignment_code += ");"
 
-            LinesCache.append(f"{assignment_code}\n")
+            emit(f"{assignment_code}\n")
             return
         elif term_type == ParameterType.STRING_CLASS:
             # Creation of a string variable from another string variable.
@@ -3161,7 +3155,7 @@ while index < len(Lines):
                         # instance.should_be_freed = False
                         instanced_struct_names.append(instance)
 
-                        LinesCache.append(f"struct String {temp_string_var_name} = {ast_p_name};\n")
+                        emit(f"struct String {temp_string_var_name} = {ast_p_name};\n")
                         REGISTER_VARIABLE(f"{temp_string_var_name}", f"String")
                         str_temporarires.append(temp_string_var_name)
                         new_ast.append((temp_string_var_name ,ParameterType.STRING_CLASS))
@@ -3272,7 +3266,7 @@ while index < len(Lines):
                 assignment_code += f"{parameters_str}"
             assignment_code += ");"
 
-        LinesCache.append(f"{assignment_code}\n")
+        emit(f"{assignment_code}\n")
 
     def parse_macro(parsed_member, p_macro_type, p_macro_fn_name=""):
         # p_macro_type -> NORMAL_MACRO | CLASS_MACRO
@@ -4412,10 +4406,10 @@ while index < len(Lines):
                 instance.should_be_freed = False
                 instanced_struct_names.append(instance)
 
-                LinesCache.append(f"struct String {temp_string_var_name};\n")
+                emit(f"struct String {temp_string_var_name};\n")
                 string_len_without_quotes = len(param) - 2
                 #                                                                  v the param already has quotes.
-                LinesCache.append(f"Stringinit__STATIC__(&{temp_string_var_name}, {param}, {string_len_without_quotes});\n")
+                emit(f"Stringinit__STATIC__(&{temp_string_var_name}, {param}, {string_len_without_quotes});\n")
                 # TODO: By using String Object above, we could get the mangled function name instead of hardcoding
                 # the mangled function.
                 REGISTER_VARIABLE(f"{temp_string_var_name}", f"String")
@@ -4423,7 +4417,7 @@ while index < len(Lines):
                 parameter.param_type = ParameterType.STRING_CLASS
 
         if char_to_string_promotion_code != "":
-            LinesCache.append(f"{char_to_string_promotion_code}\n")
+            emit(f"{char_to_string_promotion_code}\n")
 
         parameters_str = ""
         has_parameters = len(parameters) > 0
@@ -4733,12 +4727,12 @@ while index < len(Lines):
                             # Found a constructor function in global scope.
                             global_variables_initialization_code.append(f"{code};\n")
                         else:
-                            LinesCache.append(f"{code};\n")
+                            emit(f"{code};\n")
                 elif StructInfo.has_macro(tk):
                     # macro type functinons
                     struct_name = StructInfo.name
                     parse_macro(struct_name, "CLASS_MACRO", tk)
-                    LinesCache.append(f"//Class Macro.\n")
+                    emit(f"//Class Macro.\n")
                 else:
                     RAISE_ERROR(f"FATAL ERROR(Should never happen):{tk} is neither a struct macro nor a member function.")
                 continue
@@ -4789,7 +4783,7 @@ while index < len(Lines):
                 if data_type == "int":
                     # member_access_string = this->size
                     ANIL_code = f"{member_access_string} -= {value}; \n"
-                    LinesCache.append(ANIL_code)
+                    emit(ANIL_code)
                 else:
                     RAISE_ERROR(f"Subtraction operation is not implemented for data type {data_type}.")
                 continue
@@ -4797,7 +4791,7 @@ while index < len(Lines):
                 data_type = struct_instance.struct_type
                 if data_type in {"int", "bool", "float", "char"}: 
                     value = parser.get_token()
-                    LinesCache.append(f"{member_access_string} = {value};\n")
+                    emit(f"{member_access_string} = {value};\n")
                 else:
                     # Expression Reassignment.
                     reassign_ANIL_code = f"{parsed_member}.__reassign__("
@@ -4816,7 +4810,7 @@ while index < len(Lines):
                             RAISE_ERROR(f"For \"{reassign_ANIL_code}\", expression fn call parsing failed.")
                         else:
                             return_code = fn_call_parse_info.get_fn_str()
-                            LinesCache.append(f"{return_code};\n")
+                            emit(f"{return_code};\n")
                 continue
             elif expression_type == ExpressionType.INDEXED_MEMBER_ACCESS:
                 # This should parse
@@ -4862,7 +4856,7 @@ while index < len(Lines):
         elif is_global_function(parsed_member):
             m_fn = get_global_function_by_name(parsed_member)
             if m_fn.return_type == "void" and len(m_fn.fn_arguments) == 0:
-                LinesCache.append(f"{parsed_member}(); \n")
+                emit(f"{parsed_member}(); \n")
                 continue
             else:
                 fn_name = parsed_member
@@ -4887,9 +4881,9 @@ while index < len(Lines):
                         parser.consume_token(lexer.Token.COMMA)
                 parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
 
-                LinesCache.append(f"{fn_name}( {', '.join(params)}); \n")
+                emit(f"{fn_name}( {', '.join(params)}); \n")
                 continue
-                # LinesCache.append(f"  {return_code};\n")
+                # emit(f"  {return_code};\n")
                 # RAISE_ERROR(f"UserDefined Function : {parsed_member} calling void functions can't take parameters as of now. ")
         elif is_variable_boolean_type(parsed_member):
             # escape_back_slash = False
@@ -4902,9 +4896,9 @@ while index < len(Lines):
             is_false_token = curr_token == lexer.Token.FALSE
 
             if is_true_token:
-                LinesCache.append(f"{parsed_member} = true; \n")
+                emit(f"{parsed_member} = true; \n")
             elif is_false_token:
-                LinesCache.append(f"{parsed_member} = false; \n")
+                emit(f"{parsed_member} = false; \n")
             else:
                 RAISE_ERROR("Expected a boolean value.")
             continue
@@ -4914,8 +4908,8 @@ while index < len(Lines):
 
             parser.consume_token(lexer.Token.EQUALS)
             value_to_assign = get_integer_expression(f"Expected integer expression to reassign to existing integer named \"{parsed_member}\".")
-            
-            LinesCache.append(f"{parsed_member} = {value_to_assign}; \n")
+
+            emit(f"{parsed_member} = {value_to_assign}; \n")
             continue
         elif is_class_name(parsed_member):
             # ClassName::StaticFunctionCall()
@@ -4938,10 +4932,10 @@ while index < len(Lines):
                 RAISE_ERROR("Class static function calls are supposed to return void as of now.")
             
             code = fn_call_parse_info.get_fn_str()
-            LinesCache.append(f"{code};\n")
+            emit(f"{code};\n")
             continue
     else:
-        LinesCache.append("\n")
+        emit("\n")
         continue
 
     if check_token(lexer.Token.RIGHT_CURLY):
@@ -4952,17 +4946,17 @@ while index < len(Lines):
             _ = nesting_levels.pop(-1)
             for_loop_depth -= 1
             decrement_scope()
-            LinesCache.append("}\n")
+            emit("}\n")
         elif top_of_stack == NestingLevel.IF_STATEMENT:
             _ = nesting_levels.pop(-1)
             decrement_scope()
-            LinesCache.append("}\n")
+            emit("}\n")
 
             if len(parser.tokens) >= 2:
                 parser.next_token()
                 if check_token(lexer.Token.ELSE):
                     parser.next_token()
-                    LinesCache.append("else")
+                    emit("else")
 
                     has_else_if_branch = False
 
@@ -4982,17 +4976,17 @@ while index < len(Lines):
 
                     if not has_else_if_branch:
                         # normal else branch.
-                        LinesCache.append("{\n")
+                        emit("{\n")
                         nesting_levels.append(NestingLevel.ELSE_STATEMENT)
                         increment_scope()
         elif top_of_stack == NestingLevel.ELSE_STATEMENT:
             _ = nesting_levels.pop(-1)
             decrement_scope()
-            LinesCache.append("}\n")
+            emit("}\n")
         elif top_of_stack == NestingLevel.WHILE_STATEMENT:
             _ = nesting_levels.pop(-1)
             decrement_scope()
-            LinesCache.append("}\n")
+            emit("}\n")
         else:
             RAISE_ERROR("UnImplemented Right Curly.")
     elif check_token(lexer.Token.HASH):
@@ -5005,11 +4999,11 @@ while index < len(Lines):
             if is_anil_file:
                 IncludeLines.append(Line)
             else:
-                LinesCache.append(Line)
+                emit(Line)
         else:
             parts = Line.split("#", 1)
             line_without_hash = parts[1]
-            LinesCache.append(f" //{line_without_hash}")
+            emit(f" //{line_without_hash}")
     elif parser.current_token() == "print":
         parser.next_token()
         parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
@@ -5026,7 +5020,7 @@ while index < len(Lines):
         parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
 
         print_node = PrintNode(actual_str)
-        LinesCache.append(print_node.codegen())
+        emit(print_node.codegen())
     elif check_token(lexer.Token.CONST):
         parser.consume_token(lexer.Token.CONST)
 
@@ -5045,7 +5039,7 @@ while index < len(Lines):
             #           ^
             string = parser.extract_string_literal()
             # print(f"Obtained String : {string}")
-            LinesCache.append(f'char {string_name}[{len(string)+1}] = "{string}";\n')
+            emit(f'char {string_name}[{len(string)+1}] = "{string}";\n')
             REGISTER_VARIABLE(string_name, "c_str")
         else:
             RAISE_ERROR("Only const strings are supported as of now.")
@@ -5134,7 +5128,7 @@ while index < len(Lines):
                         if boolean_expr_code == "true":
                             gui_manager.register_default_value("true")
 
-                LinesCache.append(stmt_node.codegen() + "\n")
+                emit(stmt_node.codegen() + "\n")
                 continue
  
             if parser.check_token(lexer.Token.QUOTE):
@@ -5191,7 +5185,7 @@ while index < len(Lines):
 
                 value_node = LiteralNode(parser.current_token() == lexer.Token.TRUE, "bool")
                 stmt_node = VariableDeclarationNode(array_name, "bool", value_node)
-                LinesCache.append(stmt_node.codegen() + "\n")
+                emit(stmt_node.codegen() + "\n")
             elif parser.check_token(lexer.Token.LEFT_SQUARE_BRACKET):
                 #let test_list = [];
                 parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)
@@ -5266,12 +5260,12 @@ while index < len(Lines):
                             if found_raw_string_during_lookup:
                                 # We are performing direct lookup on string dict with a string literal,
                                 # so we write the string initialization code directly.
-                                LinesCache.append(f"struct String {var_name}; \n")
-                                LinesCache.append(f'String__init__from_charptr(&{var_name}, "{actual_value}", {len(actual_value)}); \n')
+                                emit(f"struct String {var_name}; \n")
+                                emit(f'String__init__from_charptr(&{var_name}, "{actual_value}", {len(actual_value)}); \n')
                             else:
                                 # We passed variable to constexpr dict lookup.
                                 # So, we write a function call instead.
-                                LinesCache.append(f"struct String {var_name} = {actual_value};\n")
+                                emit(f"struct String {var_name} = {actual_value};\n")
 
                             instance = StructInstance("String", f"{var_name}", get_current_scope())
                             instanced_struct_names.append(instance)
@@ -5280,7 +5274,7 @@ while index < len(Lines):
                             actual_value = parse_constexpr_dictionary(target)
                             dict_type = get_constexpr_dictionary_type(target)
                             if dict_type == "number":
-                                LinesCache.append(f"int {var_name} = {actual_value};\n")
+                                emit(f"int {var_name} = {actual_value};\n")
                                 REGISTER_VARIABLE(f"{var_name}", "int")
                             else:
                                 RAISE_ERROR(f"Dict type {dict_type} undefined.")
@@ -5294,7 +5288,7 @@ while index < len(Lines):
         code = boolean_expression()
         parser.consume_token(lexer.Token.LEFT_CURLY)
 
-        LinesCache.append(f"\nif({code.return_value}){{\n")
+        emit(f"\nif({code.return_value}){{\n")
     elif check_token(lexer.Token.FOR):
         # Normal, Un-Enumerated loops.
         # for current_array_value_variable in array_name{
@@ -5390,7 +5384,7 @@ while index < len(Lines):
         code = boolean_expression()
         parser.consume_token(lexer.Token.LEFT_CURLY)
 
-        LinesCache.append(f"\nwhile({code.return_value}){{\n")
+        emit(f"\nwhile({code.return_value}){{\n")
     elif check_token(lexer.Token.STRUCT):
         #  struct Point {T x, T y };
         parser.consume_token(lexer.Token.STRUCT)
@@ -5494,7 +5488,7 @@ while index < len(Lines):
         # Non generic structs shouldn't be written out early, but since the c_function blocks write out functions despite being templated we leave the base templated struct defined, so that the funtions generated don't have defination error.
         # GlobalStructInitCode += struct_code
 
-        # LinesCache.append(code)
+        # emit(code)
         # [struct_name,x,y,z..]
     elif check_token(lexer.Token.CFUNCTION):
         # c_function say(Param1:type1, Param2:type2, ... ParamN:typeN)
@@ -5743,9 +5737,9 @@ while index < len(Lines):
 
             if is_inside_global_c_function:
                 if should_write_fn_body:
-                    LinesCache.append(currently_reading_fn_body)
+                    emit(currently_reading_fn_body)
                     code = "}\n"
-                    LinesCache.append(code)
+                    emit(code)
             else:
                 add_fnbody_to_member_to_struct(
                     currently_reading_fn_parent_struct,
@@ -6092,16 +6086,16 @@ while index < len(Lines):
         
         code += f") {{\n"
 
-        LinesCache.append(code)
+        emit(code)
 
         if is_anil_file and function_name in ("main", "WinMain"):
             # Normal .c file has identifiers which indicates where the global variables constructors is placed in main.
             # .anil files doesn't have that, so, the first line for main function is the global variables constructors
             # initialization code.
             if len(global_variables_initialization_code) > 0:
-                LinesCache.append("//Global Variables Initialization.\n")
+                emit("//Global Variables Initialization.\n")
                 LinesCache.extend(global_variables_initialization_code)
-                LinesCache.append("\n")
+                emit("\n")
                 global_variables_initialization_code = []
         
         fn = MemberFunction(function_name, parameters, return_type)
@@ -6161,17 +6155,20 @@ while index < len(Lines):
                     if member_struct_def is not None:
                         if member_struct_def.has_destructor():
                             destructor_mangled_fn_name = get_mangled_fn_name(member_type, "__del__")
-                            LinesCache.append(f"{destructor_mangled_fn_name}(&this->{member.member});\n")
+                            emit(f"{destructor_mangled_fn_name}(&this->{member.member});\n")
 
         class_fn_defination["end_index"] = len(LinesCache)
 
         if class_fn_defination["function_destination"] == "class":
-            fn_body = ""
-            for i in range(class_fn_defination["start_index"] + 1, class_fn_defination["end_index"]):
-                line = LinesCache[i]
-                fn_body += line
+            start = class_fn_defination["start_index"]
+            end = class_fn_defination["end_index"]
 
-            del LinesCache[class_fn_defination["start_index"] : class_fn_defination["end_index"]]
+            # Extract function body (skip the function defination line).
+            fn_body = "".join(LinesCache[start + 1 : end])
+
+            # Remove the whole function (including function defination line).
+            del LinesCache[start : end]
+
             # When using FUNCTION, C code is generated from ANIL code.
             # The c code is part of the function body and not needed in LinesCache.
             # So, remove it from LinesCache after adding the function body to the struct.
@@ -6196,8 +6193,8 @@ while index < len(Lines):
         else:
             if should_write_fn_body:
                 code = "}\n"
-                LinesCache.append(code)
-        
+                emit(code)
+
         # Remove all the variables that were brought into scope by the function.
         for param in registered_function_parameters:
             remove_struct_instance(param)
@@ -6219,7 +6216,7 @@ while index < len(Lines):
         parser.consume_token(lexer.Token.RETURN)
 
         if not parser.has_tokens_remaining():
-            LinesCache.append(f"return;\n")
+            emit(f"return;\n")
             continue
 
         result = boolean_expression()
@@ -6310,18 +6307,18 @@ while index < len(Lines):
                 elif return_type == ParameterType.STRING_EXPRESSION:
                     return_type = "struct String"
 
-            LinesCache.append(f"{return_type} return_value = {result.return_value};\n")
+            emit(f"{return_type} return_value = {result.return_value};\n")
 
         # Write destructors.
         for scope in tracked_scopes_for_current_fn[::-1]:
             if scope in symbol_table.scopes:
                 destructor_code = symbol_table.get_scope_by_id(scope).get_destructor_code_for_all_variables()
                 if destructor_code != "":
-                    LinesCache.append(destructor_code)
+                    emit(destructor_code)
 
         if class_fn_defination["function_name"] in ("main", "WinMain"):
             if True or is_anil_file:
-                LinesCache.append("\n// GLOBAL_VARIABLES_DESTRUCTOR_CODE //\n")
+                emit("\n// GLOBAL_VARIABLES_DESTRUCTOR_CODE //\n")
 
         return_encountered_in_fn = True
         scopes_with_return_stmnt.append(current_scope)
@@ -6329,9 +6326,9 @@ while index < len(Lines):
         # Write return itself.
         # We assume we have single return statement.
         if create_temporary_for_return:
-            LinesCache.append(f"return return_value;\n")
+            emit(f"return return_value;\n")
         else:
-            LinesCache.append(f"return {result.return_value};\n")
+            emit(f"return {result.return_value};\n")
     elif check_token(lexer.Token.NAMESPACE):
         if is_inside_name_space:
             RAISE_ERROR(f"Is already inside a namespace(\"{namespace_name}\"). Can't declare a new namespace.")
@@ -6492,7 +6489,7 @@ while index < len(Lines):
                     ANIL_code = f"this.{member_name}.__del__();\n"
                     insert_intermediate_lines(index, [ANIL_code])
     else:
-        LinesCache.append(Line)
+        emit(Line)
 
 if len(global_variables_initialization_code) > 0 and not main_fn_found:
     print("====== Global Initialization Code ======")
