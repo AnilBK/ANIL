@@ -248,46 +248,78 @@ if len(imported_modules) > 0:
     
     Lines = ImportedCodeLines + Lines
 
+class CompilerContext:
+    def __init__(self):
+        self.generated_lines = []
 
-LinesCache = []
+        # This is like Git but for generated code lines.
+        # While speculative parsing of functions, we may generate some intermediate codes.
+        # If speculative parsing fails, we need to undo these changes.
+        # These changes are marked using these trackers.
+        self.generated_lines_checkpoints = []
+
+    def emit(self, code: str):
+        self.generated_lines.append(code)
+
+    def get_generated_lines_count(self) -> int:
+        return len(self.generated_lines)
+
+    def extend_generated_lines(self, new_lines):
+        self.generated_lines.extend(new_lines)
+
+    def get_generated_lines_slice(self, start: int, end: int):
+        return self.generated_lines[start:end]
+
+    def remove_generated_lines(self, start: int, end: int):
+        del self.generated_lines[start:end]
+
+    def get_generated_line(self, index: int):
+        return self.generated_lines[index]
+
+    def set_generated_line(self, index: int, value):
+        self.generated_lines[index] = value
+
+    def push_generated_lines_checkpoint(self):
+        self.generated_lines_checkpoints.append(self.get_generated_lines_count())
+
+    def commit_generated_lines_checkpoint(self):
+        if self.generated_lines_checkpoints:
+            del self.generated_lines_checkpoints[-1]
+        else:
+            print("Generated lines weren't tracking.")
+
+    def revert_generated_lines_checkpoint(self):
+        if not self.generated_lines_checkpoints:
+            print("Generated lines were not tracking. Cant revert.")
+            return
+
+        checkpoint = self.generated_lines_checkpoints[-1]
+        if self.get_generated_lines_count() != checkpoint:
+            del self.generated_lines[checkpoint:]
+        del self.generated_lines_checkpoints[-1]
+
+    def write_final_code(self, p_output_file_name: str):
+        with open(p_output_file_name, "w") as outputFile:
+            for line in self.generated_lines:
+                outputFile.writelines(line)
+
+
+ctx = CompilerContext()
 
 def emit(code):
-    global LinesCache
-    LinesCache.append(code)
-
-# This is like Git but for generated codes.
-# While speculative parsing of functions, we may generate some intermediate codes.
-# If speculative parsing fails, we need to undo these changes.
-# These changes are marked using these trackers.
-LinesCacheCheckPoints = []
+    ctx.emit(code)
 
 def _LinesCacheAddNewTracker():
-    global LinesCache
-    LinesCacheCheckPoints.append(len(LinesCache))
+    ctx.push_generated_lines_checkpoint()
 
 def _CommitLinesCache():
-    # No need to do anything with the LinesCache,
-    # Just remove the recent tracker.
-    if LinesCacheCheckPoints:
-        del LinesCacheCheckPoints[-1]
-    else:
-        # Shouldn't happen.
-        print("LinesCache wasn't tracking.")
+    # No need to do anything with the generated lines,
+    # just remove the recent tracker.
+    ctx.commit_generated_lines_checkpoint()
 
 def _RevertLinesCache():
-    global LinesCache
+    ctx.revert_generated_lines_checkpoint()
 
-    if not LinesCacheCheckPoints:
-        # Shouldn't happen.
-        print("LinesCache was not tracking. Cant revert.")
-        return
-
-    previous_check_point = LinesCacheCheckPoints[-1]
-    current_check_point = len(LinesCache)
-
-    if current_check_point != previous_check_point:
-        del LinesCache[previous_check_point:]
-        del LinesCacheCheckPoints[-1]
 
 class RollbackTemporaryGeneratedCodes(Exception):
     pass
@@ -1695,7 +1727,7 @@ def parse_hook_info(p_hook_body) -> HookInfo:
 ##############################################################################################
 
 def parse_global_c_function():
-    global temporary_annotations_list, GlobalGeneratedFunctionDeclarations, LinesCache, should_write_fn_body
+    global temporary_annotations_list, GlobalGeneratedFunctionDeclarations, should_write_fn_body
     global GlobalStructInitCode, global_variables_initialization_code, is_inside_global_c_function
 
     should_write_fn_body = True
@@ -1729,7 +1761,7 @@ def parse_global_c_function():
             defining_fn_for_custom_class = True
             class_fn_defination["class_name"] = target_class
             class_fn_defination["function_name"] = function_name
-            class_fn_defination["start_index"] = len(LinesCache)
+            class_fn_defination["start_index"] = ctx.get_generated_lines_count()
         else:
             RAISE_ERROR('Expected for after function declaration like "function A() for namespace_name".')
 
@@ -1808,7 +1840,7 @@ def parse_global_c_function():
         # initialization code.
         if len(global_variables_initialization_code) > 0:
             emit("//Global Variables Initialization.\n")
-            LinesCache.extend(global_variables_initialization_code)
+            ctx.extend_generated_lines(global_variables_initialization_code)
             emit("\n")
             global_variables_initialization_code = []
     
@@ -4363,8 +4395,6 @@ while index < len(Lines):
         parameters_quoted = _quote_string_params(fn_args, parameters)
         parameters = parameters_quoted
 
-        global LinesCache
-
         # Promotion of char to char* when char is provided to a function that expects a char*.
         char_to_string_promotion_code = ""
         for i, (arg, parameter) in enumerate(zip(fn_args, parameters)):
@@ -5960,7 +5990,7 @@ while index < len(Lines):
             defining_fn_for_custom_class = True 
             class_fn_defination["class_name"] = namespace_name
             class_fn_defination["function_name"] = function_name
-            class_fn_defination["start_index"] = len(LinesCache)
+            class_fn_defination["start_index"] = ctx.get_generated_lines_count()
 
             if function_name == "WinMain":
                 RAISE_ERROR(f"WinMain is a global entry point. It can't be a member function of \"{namespace_name}\".")
@@ -5981,7 +6011,7 @@ while index < len(Lines):
                 defining_fn_for_custom_class = True
                 class_fn_defination["class_name"] = target_class
                 class_fn_defination["function_name"] = function_name
-                class_fn_defination["start_index"] = len(LinesCache)
+                class_fn_defination["start_index"] = ctx.get_generated_lines_count()
             else:
                 RAISE_ERROR('Expected for after function declaration like "function A() for namespace_name".')
 
@@ -6094,7 +6124,7 @@ while index < len(Lines):
             # initialization code.
             if len(global_variables_initialization_code) > 0:
                 emit("//Global Variables Initialization.\n")
-                LinesCache.extend(global_variables_initialization_code)
+                ctx.extend_generated_lines(global_variables_initialization_code)
                 emit("\n")
                 global_variables_initialization_code = []
         
@@ -6157,21 +6187,21 @@ while index < len(Lines):
                             destructor_mangled_fn_name = get_mangled_fn_name(member_type, "__del__")
                             emit(f"{destructor_mangled_fn_name}(&this->{member.member});\n")
 
-        class_fn_defination["end_index"] = len(LinesCache)
+        class_fn_defination["end_index"] = ctx.get_generated_lines_count()
 
         if class_fn_defination["function_destination"] == "class":
             start = class_fn_defination["start_index"]
             end = class_fn_defination["end_index"]
 
             # Extract function body (skip the function defination line).
-            fn_body = "".join(LinesCache[start + 1 : end])
+            fn_body = "".join(ctx.get_generated_lines_slice(start + 1, end))
 
             # Remove the whole function (including function defination line).
-            del LinesCache[start : end]
+            ctx.remove_generated_lines(start, end)
 
             # When using FUNCTION, C code is generated from ANIL code.
-            # The c code is part of the function body and not needed in LinesCache.
-            # So, remove it from LinesCache after adding the function body to the struct.
+            # The c code is part of the function body and not needed in ctx.generated_lines.
+            # So, remove it from ctx.generated_lines after adding the function body to the struct.
             if should_write_fn_body:
                 GlobalStructInitCode += fn_body + "\n}\n\n"
 
@@ -6520,26 +6550,24 @@ def get_initial_global_definations():
 # TODO?? But does this work with actual multiple returns ??
 destructor_for_all_global_variables = symbol_table.destructor_code_for_all_remaining_variables()
 
-for i in range(len(LinesCache)):
-    if "// STRUCT_DEFINATIONS //" in LinesCache[i]:
-        LinesCache[i] = get_initial_global_definations()
-    elif "// DESTRUCTOR_CODE //" in LinesCache[i]:
-        LinesCache[i] = ""
-    elif "// HWND_VARIABLE_DECLARATIONS //" in LinesCache[i]:
-        LinesCache[i] = gui_manager.get_hwnd_variable_declaration_code()
-    elif "// GUI_NODES_CREATION //" in LinesCache[i]:
-        LinesCache[i] = gui_manager.get_gui_nodes_creation_code()
-    elif "// ASSIGN_GUI_OUTPUTS //" in LinesCache[i]:
-        LinesCache[i] = gui_manager.get_gui_assignment_code()
-    elif "// INPUT_FIELD_AUTO_BIND_TO_STRING //"  in LinesCache[i]:
-        LinesCache[i] = gui_manager.get_all_input_field_update_code()
-    elif "// GLOBAL_VARIABLES_DESTRUCTOR_CODE //" in LinesCache[i]:
-        LinesCache[i] = "\n" + destructor_for_all_global_variables
+for i in range(ctx.get_generated_lines_count()):
+    line = ctx.get_generated_line(i)
+    if "// STRUCT_DEFINATIONS //" in line:
+        ctx.set_generated_line(i, get_initial_global_definations())
+    elif "// DESTRUCTOR_CODE //" in line:
+        ctx.set_generated_line(i, "")
+    elif "// HWND_VARIABLE_DECLARATIONS //" in line:
+        ctx.set_generated_line(i, gui_manager.get_hwnd_variable_declaration_code())
+    elif "// GUI_NODES_CREATION //" in line:
+        ctx.set_generated_line(i, gui_manager.get_gui_nodes_creation_code())
+    elif "// ASSIGN_GUI_OUTPUTS //" in line:
+        ctx.set_generated_line(i, gui_manager.get_gui_assignment_code())
+    elif "// INPUT_FIELD_AUTO_BIND_TO_STRING //"  in line:
+        ctx.set_generated_line(i, gui_manager.get_all_input_field_update_code())
+    elif "// GLOBAL_VARIABLES_DESTRUCTOR_CODE //" in line:
+        ctx.set_generated_line(i, "\n" + destructor_for_all_global_variables)
 
-
-with open(output_file_name, "w") as outputFile:
-    for Line in LinesCache:
-        outputFile.writelines(Line)
+ctx.write_final_code(output_file_name)
 
 import subprocess
 
