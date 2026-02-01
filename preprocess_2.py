@@ -16,6 +16,9 @@ from ErrorHandler import ErrorHandler
 from input_variables_gui_manager import InputVariablesGUI
 from JSXLikeParser import UIAttribute, UIElement, UIElementTree 
 
+from CompilerContext import CompilerContext
+from CCodeGenerator import CCodeGenerator
+
 # from ASTNodes import *
 
 from abc import ABC, abstractmethod
@@ -248,63 +251,9 @@ if len(imported_modules) > 0:
     
     Lines = ImportedCodeLines + Lines
 
-class CompilerContext:
-    def __init__(self):
-        self.generated_lines = []
-
-        # This is like Git but for generated code lines.
-        # While speculative parsing of functions, we may generate some intermediate codes.
-        # If speculative parsing fails, we need to undo these changes.
-        # These changes are marked using these trackers.
-        self.generated_lines_checkpoints = []
-
-    def emit(self, code: str):
-        self.generated_lines.append(code)
-
-    def get_generated_lines_count(self) -> int:
-        return len(self.generated_lines)
-
-    def extend_generated_lines(self, new_lines):
-        self.generated_lines.extend(new_lines)
-
-    def get_generated_lines_slice(self, start: int, end: int):
-        return self.generated_lines[start:end]
-
-    def remove_generated_lines(self, start: int, end: int):
-        del self.generated_lines[start:end]
-
-    def get_generated_line(self, index: int):
-        return self.generated_lines[index]
-
-    def set_generated_line(self, index: int, value):
-        self.generated_lines[index] = value
-
-    def push_generated_lines_checkpoint(self):
-        self.generated_lines_checkpoints.append(self.get_generated_lines_count())
-
-    def commit_generated_lines_checkpoint(self):
-        if self.generated_lines_checkpoints:
-            del self.generated_lines_checkpoints[-1]
-        else:
-            print("Generated lines weren't tracking.")
-
-    def revert_generated_lines_checkpoint(self):
-        if not self.generated_lines_checkpoints:
-            print("Generated lines were not tracking. Cant revert.")
-            return
-
-        checkpoint = self.generated_lines_checkpoints[-1]
-        if self.get_generated_lines_count() != checkpoint:
-            del self.generated_lines[checkpoint:]
-        del self.generated_lines_checkpoints[-1]
-
-    def write_final_code(self, p_output_file_name: str):
-        with open(p_output_file_name, "w") as outputFile:
-            for line in self.generated_lines:
-                outputFile.writelines(line)
-
 
 ctx = CompilerContext()
+code_generator = CCodeGenerator(compiler_context = ctx)
 
 def emit(code):
     ctx.emit(code)
@@ -2209,11 +2158,10 @@ while index < len(Lines):
             else:
                 main_fn_found = True
                 if len(global_variables_initialization_code) > 0:
-                    emit("//Global Variables Initialization.\n")
+                    code_generator.emit_comment("//Global Variables Initialization.")
                     for g_code in global_variables_initialization_code:
-                        emit(g_code)
+                        code_generator.emit(g_code)
                     global_variables_initialization_code = []
-                    emit("\n")
                 continue
         else:
             continue
@@ -2599,11 +2547,7 @@ while index < len(Lines):
         parser.next_token()
         parser.consume_token(lexer.Token.SEMICOLON)
 
-        array_element_count = len(array_values)
-        array_elements_str = ",".join(array_values)
-
-        emit(f"{type_name} {array_name}[] = {{ {array_elements_str} }};\n")
-        emit(f"unsigned int {array_name}_array_size = {array_element_count};\n\n")
+        code_generator.emit_array_declaration(array_type=type_name, array_name=array_name, elements=array_values)
 
         # register variable as '[int]' to indicate the array of type int.
         REGISTER_VARIABLE(array_name, f"[{type_name}]")
@@ -3069,8 +3013,11 @@ while index < len(Lines):
                 # instance.is_pointer_type = True
                 # instance.should_be_freed = False
                 instanced_struct_names.append(instance)
-
-                emit(f"struct String {temp_string_var_name} = {string_value};\n")
+                code_generator.emit_variable_declaration(
+                    variable_type= "struct String",
+                    variable_name= temp_string_var_name,
+                    initialization_value= string_value
+                )
                 REGISTER_VARIABLE(f"{temp_string_var_name}", f"String")
 
                 ast.update_param(i, temp_string_var_name, ParameterType.STRING_CLASS)
@@ -3187,7 +3134,11 @@ while index < len(Lines):
                         # instance.should_be_freed = False
                         instanced_struct_names.append(instance)
 
-                        emit(f"struct String {temp_string_var_name} = {ast_p_name};\n")
+                        code_generator.emit_variable_declaration(
+                            variable_type= "struct String",
+                            variable_name= temp_string_var_name,
+                            initialization_value= ast_p_name
+                        )
                         REGISTER_VARIABLE(f"{temp_string_var_name}", f"String")
                         str_temporarires.append(temp_string_var_name)
                         new_ast.append((temp_string_var_name ,ParameterType.STRING_CLASS))
@@ -4762,7 +4713,7 @@ while index < len(Lines):
                     # macro type functinons
                     struct_name = StructInfo.name
                     parse_macro(struct_name, "CLASS_MACRO", tk)
-                    emit(f"//Class Macro.\n")
+                    code_generator.emit_comment(f"Class Macro.")
                 else:
                     RAISE_ERROR(f"FATAL ERROR(Should never happen):{tk} is neither a struct macro nor a member function.")
                 continue
@@ -4821,7 +4772,7 @@ while index < len(Lines):
                 data_type = struct_instance.struct_type
                 if data_type in {"int", "bool", "float", "char"}: 
                     value = parser.get_token()
-                    emit(f"{member_access_string} = {value};\n")
+                    code_generator.emit_reassignment(member_access_string, value)
                 else:
                     # Expression Reassignment.
                     reassign_ANIL_code = f"{parsed_member}.__reassign__("
@@ -4886,8 +4837,7 @@ while index < len(Lines):
         elif is_global_function(parsed_member):
             m_fn = get_global_function_by_name(parsed_member)
             if m_fn.return_type == "void" and len(m_fn.fn_arguments) == 0:
-                emit(f"{parsed_member}(); \n")
-                continue
+                code_generator.emit_function_call(function_name = parsed_member, arguments = [])
             else:
                 fn_name = parsed_member
                 parser.next_token()
@@ -4911,10 +4861,8 @@ while index < len(Lines):
                         parser.consume_token(lexer.Token.COMMA)
                 parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
 
-                emit(f"{fn_name}( {', '.join(params)}); \n")
-                continue
-                # emit(f"  {return_code};\n")
-                # RAISE_ERROR(f"UserDefined Function : {parsed_member} calling void functions can't take parameters as of now. ")
+                code_generator.emit_function_call(function_name = fn_name, arguments = params)
+            continue
         elif is_variable_boolean_type(parsed_member):
             # escape_back_slash = False
             parser.next_token()
@@ -4925,10 +4873,8 @@ while index < len(Lines):
             is_true_token = curr_token == lexer.Token.TRUE
             is_false_token = curr_token == lexer.Token.FALSE
 
-            if is_true_token:
-                emit(f"{parsed_member} = true; \n")
-            elif is_false_token:
-                emit(f"{parsed_member} = false; \n")
+            if is_true_token or is_false_token:
+                code_generator.emit_boolean_reassignment(parsed_member, is_true_token)
             else:
                 RAISE_ERROR("Expected a boolean value.")
             continue
@@ -4939,7 +4885,7 @@ while index < len(Lines):
             parser.consume_token(lexer.Token.EQUALS)
             value_to_assign = get_integer_expression(f"Expected integer expression to reassign to existing integer named \"{parsed_member}\".")
 
-            emit(f"{parsed_member} = {value_to_assign}; \n")
+            code_generator.emit_reassignment(parsed_member, value_to_assign)
             continue
         elif is_class_name(parsed_member):
             # ClassName::StaticFunctionCall()
@@ -5033,7 +4979,7 @@ while index < len(Lines):
         else:
             parts = Line.split("#", 1)
             line_without_hash = parts[1]
-            emit(f" //{line_without_hash}")
+            code_generator.emit_comment(line_without_hash.strip())
     elif parser.current_token() == "print":
         parser.next_token()
         parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
@@ -5068,8 +5014,7 @@ while index < len(Lines):
             # const str = "Hello World"
             #           ^
             string = parser.extract_string_literal()
-            # print(f"Obtained String : {string}")
-            emit(f'char {string_name}[{len(string)+1}] = "{string}";\n')
+            code_generator.emit_string_literal_declaration(string_name = string_name, string = string)
             REGISTER_VARIABLE(string_name, "c_str")
         else:
             RAISE_ERROR("Only const strings are supported as of now.")
@@ -5295,7 +5240,11 @@ while index < len(Lines):
                             else:
                                 # We passed variable to constexpr dict lookup.
                                 # So, we write a function call instead.
-                                emit(f"struct String {var_name} = {actual_value};\n")
+                                code_generator.emit_variable_declaration(
+                                    variable_type="struct String",
+                                    variable_name=var_name,
+                                    initialization_value=actual_value
+                                )
 
                             instance = StructInstance("String", f"{var_name}", get_current_scope())
                             instanced_struct_names.append(instance)
@@ -5304,7 +5253,7 @@ while index < len(Lines):
                             actual_value = parse_constexpr_dictionary(target)
                             dict_type = get_constexpr_dictionary_type(target)
                             if dict_type == "number":
-                                emit(f"int {var_name} = {actual_value};\n")
+                                code_generator.emit_variable_declaration(variable_type="int", variable_name=var_name, initialization_value=actual_value)
                                 REGISTER_VARIABLE(f"{var_name}", "int")
                             else:
                                 RAISE_ERROR(f"Dict type {dict_type} undefined.")
@@ -6246,7 +6195,7 @@ while index < len(Lines):
         parser.consume_token(lexer.Token.RETURN)
 
         if not parser.has_tokens_remaining():
-            emit(f"return;\n")
+            code_generator.emit_return_statement()
             continue
 
         result = boolean_expression()
@@ -6336,8 +6285,7 @@ while index < len(Lines):
                     return_type = get_type_of_variable(result.structs_involved[0])
                 elif return_type == ParameterType.STRING_EXPRESSION:
                     return_type = "struct String"
-
-            emit(f"{return_type} return_value = {result.return_value};\n")
+            code_generator.emit_variable_declaration(variable_type=return_type, variable_name="return_value", initialization_value=result.return_value)
 
         # Write destructors.
         for scope in tracked_scopes_for_current_fn[::-1]:
@@ -6355,10 +6303,7 @@ while index < len(Lines):
 
         # Write return itself.
         # We assume we have single return statement.
-        if create_temporary_for_return:
-            emit(f"return return_value;\n")
-        else:
-            emit(f"return {result.return_value};\n")
+        code_generator.emit_return_statement(return_value="return_value" if create_temporary_for_return else result.return_value)
     elif check_token(lexer.Token.NAMESPACE):
         if is_inside_name_space:
             RAISE_ERROR(f"Is already inside a namespace(\"{namespace_name}\"). Can't declare a new namespace.")
