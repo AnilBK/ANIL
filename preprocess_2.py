@@ -1859,9 +1859,10 @@ def create_normal_array_iterator(array_name, current_array_value_variable):
 
     array_type = array_type[1:-1]
 
-    emit(
-        f"for (unsigned int i = 0; i < {array_name}_array_size; i++){{\n"
-        f"{array_type} {current_array_value_variable} = {array_name}[i];\n"
+    code_generator.emit_normal_array_iterator(
+        array_name = array_name,
+        array_type = array_type,
+        iterator_name = current_array_value_variable
     )
 
     REGISTER_VARIABLE(current_array_value_variable, array_type)
@@ -1872,7 +1873,11 @@ def promote_char_to_string(var_to_check):
     promoted_char_var_name = f"{var_to_check}_promoted_{temp_char_promoted_to_string_variable_count}"
     temp_char_promoted_to_string_variable_count += 1
 
-    emit(f"char {promoted_char_var_name}[2] = {{ {var_to_check}, '\\0'}};\n")
+    code_generator.emit_char_to_str(
+        str_var_name = promoted_char_var_name,
+        char_content = var_to_check
+    )
+
     REGISTER_VARIABLE(f"{promoted_char_var_name}", "str")
 
     return promoted_char_var_name
@@ -5235,8 +5240,10 @@ while index < len(Lines):
                             if found_raw_string_during_lookup:
                                 # We are performing direct lookup on string dict with a string literal,
                                 # so we write the string initialization code directly.
-                                emit(f"struct String {var_name}; \n")
-                                emit(f'String__init__from_charptr(&{var_name}, "{actual_value}", {len(actual_value)}); \n')
+                                code_generator.emit_string_object_from_literal(
+                                    var_name = var_name,
+                                    string_literal = actual_value
+                                )
                             else:
                                 # We passed variable to constexpr dict lookup.
                                 # So, we write a function call instead.

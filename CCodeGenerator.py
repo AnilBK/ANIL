@@ -25,16 +25,18 @@ class CCodeGenerator:
     def emit_string_literal_declaration(self, string_name: str, string: str):
         self.emit(f'char {string_name}[{len(string)+1}] = "{string}";\n')
 
+    def emit_char_to_str(self, str_var_name: str, char_content: str):
+        self.emit(f"char {str_var_name}[2] = {{ {char_content}, '\\0'}};\n")
+
+    def emit_string_object_from_literal(self, var_name: str, string_literal: str):
+        self.emit(f"struct String {var_name}; \n")
+        self.emit(
+            f'String__init__from_charptr(&{var_name}, "{string_literal}", {len(string_literal)}); \n'
+        )
+
     def emit_boolean_reassignment(self, variable_name: str, value: bool):
         bool_str = "true" if value else "false"
         self.emit_reassignment(variable_name, bool_str)
-
-    def emit_array_declaration(self, array_type: str, array_name: str, elements: list):
-        array_element_count = len(elements)
-        array_elements_str = ",".join(elements)
-
-        self.emit(f"{array_type} {array_name}[] = {{ {array_elements_str} }};\n")
-        self.emit(f"unsigned int {array_name}_array_size = {array_element_count};\n\n")
 
     def emit_function_call(self, function_name: str, arguments: list = []):
         args_str = ", ".join(arguments)
@@ -45,3 +47,28 @@ class CCodeGenerator:
             self.emit(f"return {return_value};\n")
         else:
             self.emit("return;\n")
+
+    def get_array_size_variable_name(self, array_name: str) -> str:
+        return f"{array_name}_array_size"
+
+    def get_array_element(self, array_name: str, index: str) -> str:
+        return f"{array_name}[{index}]"
+
+    def emit_array_declaration(self, array_type: str, array_name: str, elements: list):
+        array_element_count = len(elements)
+        array_elements_str = ",".join(elements)
+
+        self.emit(f"{array_type} {array_name}[] = {{ {array_elements_str} }};\n")
+        self.emit(
+            f"unsigned int {self.get_array_size_variable_name(array_name)} = {array_element_count};\n\n"
+        )
+
+    def emit_normal_array_iterator(
+        self, array_name: str, array_type: str, iterator_name: str
+    ):
+        self.emit(
+            f"for(unsigned int i = 0; i < {self.get_array_size_variable_name(array_name)}; i++) {{\n"
+        )
+        self.emit(
+            f"    {array_type} {iterator_name} = {self.get_array_element(array_name, 'i')};\n"
+        )
