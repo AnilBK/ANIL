@@ -72,3 +72,16 @@ class CCodeGenerator:
         self.emit(
             f"    {array_type} {iterator_name} = {self.get_array_element(array_name, 'i')};\n"
         )
+
+    def emit_array_contains_check(
+        self, var_to_check_against: str, var_to_check: str, search_variable: str
+    ):
+        self.emit(
+            f"bool {search_variable} = false;\n"
+            f"for (unsigned int i = 0; i < {self.get_array_size_variable_name(var_to_check_against)}; i++) {{\n"
+            f"  if ({var_to_check_against}[i] == {var_to_check}) {{\n"
+            f"      {search_variable} = true;\n"
+            f"      break;\n"
+            f"  }}\n"
+            f" }}\n"
+        )

@@ -1888,16 +1888,8 @@ def handle_array_in_operator(var_to_check, var_to_check_against):
 
     search_variable = f"{var_to_check_against}__contains__{var_to_check}_{temp_arr_search_variable_count}"
     temp_arr_search_variable_count += 1
-
-    emit(
-        f"bool {search_variable} = false;\n"
-        f"for (unsigned int i = 0; i < {var_to_check_against}_array_size; i++){{\n"
-        f"  if ({var_to_check_against}[i] == {var_to_check}){{\n"
-        f"      {search_variable} = true;\n"
-        f"      break;\n"
-        f"  }}\n"
-        f" }}\n"
-    )
+    
+    code_generator.emit_array_contains_check(var_to_check_against, var_to_check, search_variable)
 
     REGISTER_VARIABLE(search_variable, f"bool")
     return search_variable
