@@ -1433,7 +1433,7 @@ def generate_destructor_for_struct(p_struct_name: str):
     fn_body = ""
 
     # Write member destructors in reverse order.
-    for member in struct_defination.members[::-1]:
+    for member in reversed(struct_defination.members):
         member_type = member.data_type
 
         member_struct_def = get_struct_defination_of_type(member_type)
@@ -1476,7 +1476,7 @@ def get_struct_type_of_instanced_struct(p_struct_name):
 
 
 def get_destructor_for_struct(p_name):
-    for struct in instanced_struct_names[::-1]:
+    for struct in reversed(instanced_struct_names):
         if struct.should_be_freed:
             # Maybe : Check for scope
             # Since variables can't be repeated across scopes,
@@ -6104,7 +6104,7 @@ while index < len(Lines):
         else:
             # Remove all struct instances form current scope.
             # decrement_scope() above automatically does this.
-            for scope in tracked_scopes_for_current_fn[::-1]:
+            for scope in reversed(tracked_scopes_for_current_fn):
                 if scope in symbol_table.scopes:
                     symbol_table.get_scope_by_id(scope).remove_all_variables()
 
@@ -6126,7 +6126,7 @@ while index < len(Lines):
                 RAISE_ERROR(f"Internal Error: The current function we are writing is a destructor of {current_class} but {current_class} isn't a valid class.")
             else:
                 # Write destructors in reverse order.
-                for member in struct_defination.members[::-1]:
+                for member in reversed(struct_defination.members):
                     member_type = member.data_type
 
                     member_struct_def = get_struct_defination_of_type(member_type)
@@ -6237,7 +6237,7 @@ while index < len(Lines):
         structs_with_destructors = 0
 
         if result.structs_involved:
-            for scope in tracked_scopes_for_current_fn[::-1]:
+            for scope in reversed(tracked_scopes_for_current_fn):
                 if scope not in symbol_table.scopes:
                     continue
 
@@ -6287,7 +6287,7 @@ while index < len(Lines):
             code_generator.emit_variable_declaration(variable_type=return_type, variable_name="return_value", initialization_value=result.return_value)
 
         # Write destructors.
-        for scope in tracked_scopes_for_current_fn[::-1]:
+        for scope in reversed(tracked_scopes_for_current_fn):
             if scope in symbol_table.scopes:
                 destructor_code = symbol_table.get_scope_by_id(scope).get_destructor_code_for_all_variables()
                 if destructor_code != "":
