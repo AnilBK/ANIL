@@ -1826,12 +1826,7 @@ def create_const_charptr_iterator(array_name, current_array_value_variable):
 
     iterator_var_name = f"{array_name}_iterator_{temp_c_str_iterator_variable_count}"
 
-    emit(
-        f"char *{iterator_var_name} = {array_name};"
-        f"while (*{iterator_var_name} != '\\0') {{"
-        f"char {current_array_value_variable} = *{iterator_var_name};"
-        f"{iterator_var_name}++;"
-    )
+    code_generator.emit_const_charptr_iterator(array_name, iterator_var_name)
 
     REGISTER_VARIABLE(current_array_value_variable, "char")
 
@@ -1907,26 +1902,44 @@ class ParameterType(Enum):
     FUNCTION_POINTER = 7
     STRING_EXPRESSION = 8
 
+    def to_c_type(self) -> str:
+        mapping = {
+            ParameterType.NUMBER: "int",
+            ParameterType.CHAR_TYPE: "char",
+            ParameterType.RAW_STRING: "char*",
+            ParameterType.STR_TYPE: "char*",
+            ParameterType.STRING_CLASS: "struct String",
+            ParameterType.STRING_EXPRESSION: "struct String",
+            ParameterType.FUNCTION_POINTER: "fn_ptr",
+            ParameterType.BOOLEAN_CONSTANT: "bool",
+        }
 
-def _parameters_to_types_str_list(parameters : list) -> list:
+        if self not in mapping:
+            raise ValueError(f"No C type for {self.name}")
+
+        return mapping[self]
+
+
+def _parameters_to_types_str_list(parameters: list) -> list:
     strs = []
+
     for param in parameters:
-        if param.param_type == ParameterType.NUMBER or param.param_type == "int":
+        ptype = param.param_type
+
+        if isinstance(ptype, ParameterType):
+            if ptype == ParameterType.VARIABLE:
+                strs.append(get_type_of_variable(param.param))
+            else:
+                strs.append(ptype.to_c_type())
+        elif ptype in ("int",):
             strs.append("int")
-        elif param.param_type == ParameterType.CHAR_TYPE:
-            strs.append("char")
-        elif param.param_type == ParameterType.RAW_STRING or param.param_type == ParameterType.STR_TYPE:
-            strs.append("char*")
-        elif param.param_type == ParameterType.STRING_CLASS or param.param_type == ParameterType.STRING_EXPRESSION or param.param_type == "struct String" or param.param_type == "String":
+        elif ptype in ("struct String", "String"):
             strs.append("struct String")
-        elif param.param_type == ParameterType.FUNCTION_POINTER:
-            strs.append("fn_ptr")
-        elif param.param_type == ParameterType.VARIABLE:
-            strs.append(get_type_of_variable(param.param))
-        elif is_data_type_struct_object(data_type_with_struct_stripped(param.param_type)):
-            strs.append(data_type_with_struct_stripped(param.param_type))
+        elif is_data_type_struct_object(data_type_with_struct_stripped(ptype)):
+            strs.append(data_type_with_struct_stripped(ptype))
         else:
-            RAISE_ERROR(f"Unimplemented for {param.param_type}.")
+            RAISE_ERROR(f"Unimplemented for {ptype}.")
+
     return strs
 
 

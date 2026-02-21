@@ -22,6 +22,10 @@ class CCodeGenerator:
         else:
             self.emit(f"{variable_type} {variable_name};\n")
 
+    def emit_boolean_declaration(self, variable_name: str, initial_value: bool = False):
+        bool_str = "true" if initial_value else "false"
+        self.emit_variable_declaration("bool", variable_name, bool_str)
+
     def emit_string_literal_declaration(self, string_name: str, string: str):
         self.emit(f'char {string_name}[{len(string)+1}] = "{string}";\n')
 
@@ -73,11 +77,21 @@ class CCodeGenerator:
             f"    {array_type} {iterator_name} = {self.get_array_element(array_name, 'i')};\n"
         )
 
+    def emit_const_charptr_iterator(self, array_name: str, iterator_name: str):
+        self.emit(
+            f"char *{iterator_name} = {array_name};"
+            f"while (*{iterator_name} != '\\0') {{"
+            f"char current_char = *{iterator_name};"
+            f"{iterator_name}++;"
+        )
+
     def emit_array_contains_check(
         self, var_to_check_against: str, var_to_check: str, search_variable: str
     ):
+        self.emit_boolean_declaration(
+            variable_name=search_variable, initial_value=False
+        )
         self.emit(
-            f"bool {search_variable} = false;\n"
             f"for (unsigned int i = 0; i < {self.get_array_size_variable_name(var_to_check_against)}; i++) {{\n"
             f"  if ({var_to_check_against}[i] == {var_to_check}) {{\n"
             f"      {search_variable} = true;\n"
