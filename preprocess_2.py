@@ -4487,9 +4487,13 @@ while index < len(Lines):
         }
 
     def handle_equality(var_to_check_against, var_to_check, l_type, r_type, left_struct_info, is_lhs_struct, negation):
+        def eq(lhs, rhs):
+            expr = f"{lhs} == {rhs}"
+            return f"!({expr})" if negation else expr
+        
         operator = "!=" if negation else "=="
         if l_type == ParameterType.STR_TYPE and r_type == ParameterType.STR_TYPE:
-            return f"strcmp({var_to_check}, {var_to_check_against}) {operator} 0"
+            return code_generator.str_to_str_comparision_code(var_to_check, var_to_check_against, negation)
 
         if r_type == ParameterType.RAW_STRING:
             return handle_raw_string_equality(var_to_check_against, var_to_check, l_type, left_struct_info, is_lhs_struct, negation)
@@ -4500,8 +4504,7 @@ while index < len(Lines):
         if l_type == ParameterType.CHAR_TYPE:
             if r_type == ParameterType.CHAR_TYPE:
                 # char a, char b
-                comparision_code = f'{var_to_check_against} == {var_to_check}'
-                return f"!({comparision_code})" if negation else comparision_code
+                return eq(var_to_check_against, var_to_check)
 
             # char a , 'B'
             return handle_char_equality(var_to_check_against, var_to_check, l_type, negation)
@@ -4510,10 +4513,7 @@ while index < len(Lines):
         if var_to_check == '"':
             return f'{var_to_check_against} {operator} "{var_to_check}"'
         else:
-            comparision_code = (
-                f'{var_to_check_against} == {var_to_check}'
-            )
-            return f"!({comparision_code})" if negation else comparision_code
+            return eq(var_to_check_against, var_to_check)
 
     def boolean_expression() -> BooleanExpressionType:
         expr = BooleanExpressionType()

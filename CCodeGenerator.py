@@ -85,3 +85,12 @@ class CCodeGenerator:
             f"  }}\n"
             f" }}\n"
         )
+
+    def str_to_str_comparision_code(
+        self,
+        var_to_check_str: str,
+        var_to_check_against_str: str,
+        negation: bool = False,
+    ) -> str:
+        operator = "!=" if negation else "=="
+        return f"strcmp({var_to_check_str}, {var_to_check_against_str}) {operator} 0"
