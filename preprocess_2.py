@@ -4821,7 +4821,10 @@ while index < len(Lines):
             is_false_token = curr_token == lexer.Token.FALSE
 
             if is_true_token or is_false_token:
-                code_generator.emit_boolean_reassignment(parsed_member, is_true_token)
+                value_node = LiteralNode(is_true_token, "bool")
+                reassign_node = AssignmentNode(parsed_member, value_node)
+
+                code_generator.generate_code_for_ast_node(reassign_node)
             else:
                 RAISE_ERROR("Expected a boolean value.")
             continue

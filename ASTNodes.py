@@ -40,6 +40,8 @@ class LiteralNode(ExpressionNode):
             return f"'{self.value}'"
         if self.value_type == "str":
             return f'"{self.value}"'
+        if self.value_type == "bool":
+            return "true" if self.value else "false"
         return (
             str(self.value).lower() if isinstance(self.value, bool) else str(self.value)
         )
