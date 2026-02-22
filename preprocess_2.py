@@ -208,6 +208,13 @@ if len(imported_modules) > 0:
     Lines = ImportedCodeLines + Lines
 
 
+Error_Handler = ErrorHandler()
+Error_Handler.register_source_file(source_file)
+
+def RAISE_ERROR(error_msg):
+    Error_Handler.raise_error(error_msg)
+
+
 ctx = CompilerContext()
 code_generator = CCodeGenerator(compiler_context = ctx)
 
@@ -1537,6 +1544,24 @@ def generate_contexpr_dict_runtime_lookup_code(func_name, contexpr_dict):
 
 constexpr_dictionaries = []
 
+def get_constexpr_dictionary(p_dict_name):
+    for dict in constexpr_dictionaries:
+        if dict.dict_name == p_dict_name:
+            return dict
+    # Shouldn't happen as the caller functions have already verified the presence of the dictionaries.
+    RAISE_ERROR(f"Constexpr dictionary {p_dict_name} is undefined.")
+
+def get_constexpr_dictionary_type(p_dict_name):
+    for dict in constexpr_dictionaries:
+        if dict.dict_name == p_dict_name:
+            try:
+                return dict.dict_type
+            except KeyError:
+                print(
+                    f'[Error] Key "{key}" wasn\'t found in the constexpr dictionary {p_dict_name}.'
+                )
+    # Shouldn't happen as the caller functions have already verified the presence of the dictionaries.
+    RAISE_ERROR(f"Constexpr dictionary {p_dict_name} is undefined.")
 
 def is_constexpr_dictionary(p_dict_name) -> bool:
     return any(m_dict.dict_name == p_dict_name for m_dict in constexpr_dictionaries)
@@ -1747,14 +1772,6 @@ def parse_global_c_function():
 
 
 ##############################################################################################
-
-
-Error_Handler = ErrorHandler()
-Error_Handler.register_source_file(source_file)
-
-def RAISE_ERROR(error_msg):
-    Error_Handler.raise_error(error_msg)
-
 
 def create_const_charptr_iterator(array_name, current_array_value_variable):
     global temp_c_str_iterator_variable_count
@@ -3510,25 +3527,6 @@ while index < len(Lines):
         # Shouldn't happen as the caller functions have already verified the presence of the dictionaries.
         RAISE_ERROR(f"Constexpr dictionary {p_dict_name} is undefined.")
 
-    def get_constexpr_dictionary(p_dict_name):
-        for dict in constexpr_dictionaries:
-            if dict.dict_name == p_dict_name:
-                return dict
-        # Shouldn't happen as the caller functions have already verified the presence of the dictionaries.
-        RAISE_ERROR(f"Constexpr dictionary {p_dict_name} is undefined.")
-
-    def get_constexpr_dictionary_type(p_dict_name):
-        for dict in constexpr_dictionaries:
-            if dict.dict_name == p_dict_name:
-                try:
-                    return dict.dict_type
-                except KeyError:
-                    print(
-                        f'[Error] Key "{key}" wasn\'t found in the constexpr dictionary {p_dict_name}.'
-                    )
-        # Shouldn't happen as the caller functions have already verified the presence of the dictionaries.
-        RAISE_ERROR(f"Constexpr dictionary {p_dict_name} is undefined.")
-
     def parse_function_declaration(incomplete_types = None):
         # parse everything after function/c_function token.
         # function<> append<>(p_value : int) -> return_type
@@ -4931,7 +4929,8 @@ while index < len(Lines):
         else:
             parts = Line.split("#", 1)
             line_without_hash = parts[1]
-            code_generator.emit_comment(line_without_hash.strip())
+            comment_node = CommentNode(comment = line_without_hash.strip())
+            code_generator.generate_code_for_ast_node(comment_node)
     elif parser.current_token() == "print":
         parser.next_token()
         parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)

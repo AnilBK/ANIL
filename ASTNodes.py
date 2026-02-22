@@ -52,3 +52,11 @@ class AssignmentNode(StatementNode):
 
     def codegen(self) -> str:
         return f"{self.var_name} = {self.expression.codegen()};"
+
+
+class CommentNode(StatementNode):
+    def __init__(self, comment):
+        self.comment = comment
+
+    def codegen(self) -> str:
+        return f"// {self.comment}\n"
