@@ -1,4 +1,5 @@
 from CompilerContext import CompilerContext
+from ASTNodes import *
 
 
 class CCodeGenerator:
@@ -108,3 +109,7 @@ class CCodeGenerator:
     ) -> str:
         operator = "!=" if negation else "=="
         return f"strcmp({var_to_check_str}, {var_to_check_against_str}) {operator} 0"
+
+    def generate_code_for_ast_node(self, node: ASTNode):
+        code = node.codegen()
+        self.emit(code)

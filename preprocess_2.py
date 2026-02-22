@@ -5076,7 +5076,7 @@ while index < len(Lines):
                         if boolean_expr_code == "true":
                             gui_manager.register_default_value("true")
 
-                emit(stmt_node.codegen() + "\n")
+                code_generator.generate_code_for_ast_node(stmt_node)
                 continue
  
             if parser.check_token(lexer.Token.QUOTE):
@@ -5133,7 +5133,7 @@ while index < len(Lines):
 
                 value_node = LiteralNode(parser.current_token() == lexer.Token.TRUE, "bool")
                 stmt_node = VariableDeclarationNode(array_name, "bool", value_node)
-                emit(stmt_node.codegen() + "\n")
+                code_generator.generate_code_for_ast_node(stmt_node)
             elif parser.check_token(lexer.Token.LEFT_SQUARE_BRACKET):
                 #let test_list = [];
                 parser.consume_token(lexer.Token.LEFT_SQUARE_BRACKET)

@@ -21,7 +21,7 @@ class VariableDeclarationNode(StatementNode):
         self.var_type = var_type
         self.initializer = initializer
 
-    def codegen(self):
+    def codegen(self) -> str:
         # Generate the C code: "int x = 10;"
         code = f"{self.var_type} {self.var_name}"
         if self.initializer:
@@ -50,5 +50,5 @@ class AssignmentNode(StatementNode):
         self.var_name = var_name
         self.expression = expression
 
-    def codegen(self):
+    def codegen(self) -> str:
         return f"{self.var_name} = {self.expression.codegen()};"
