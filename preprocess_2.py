@@ -749,14 +749,14 @@ class MemberFunction:
 # Functions which aren't defined inside structs.
 GlobalFunctions = []
 
-def is_global_function(p_fn_name: str) -> bool:
-    return any(fn.fn_name == p_fn_name for fn in GlobalFunctions)
-
 def get_global_function_by_name(p_fn_name: str):
     for fn in GlobalFunctions:
         if fn.fn_name == p_fn_name:
             return fn
     return None
+
+def is_global_function(p_fn_name: str) -> bool:
+    return get_global_function_by_name(p_fn_name) is not None
 
 def is_class_name(p_token: str) -> bool:
     return get_struct_defination_of_type(p_token) is not None
@@ -881,35 +881,27 @@ class Struct:
                 fn.is_overloaded = True
             
 
-    def get_function_arguments_with_types(self, p_fn_name, provided_parameter_types:list):
+    def _find_overloaded_function(self, p_fn_name: str, provided_parameter_types: list) -> Optional[MemberFunction]:
         # To get arguments of overloaded function.
         possible_args = []
         for fn in self.member_functions:
             if fn.fn_name == p_fn_name:
-                args = fn.fn_arguments
-                args_list = [a.data_type for a in args]
+                args_list = [a.data_type for a in fn.fn_arguments]
                 if args_list == provided_parameter_types:
-                    return args
+                    return fn
                 possible_args.append(args_list)
-        error_msg = f"Didn't find overloaded function({p_fn_name}) of provided types {provided_parameter_types}."
-        error_msg += f"Possible argument types for the overloaded function are {possible_args}."
-        RAISE_ERROR(f"{error_msg}")
+        
+        m_types = [a.data_type for a in provided_parameter_types]
+        error_msg = f"Didn't find overloaded function({p_fn_name}) of provided types {m_types}.\nPossible argument types for the overloaded functions are {possible_args}."
+        RAISE_ERROR(error_msg)
+
+
+    def get_function_arguments_with_types(self, p_fn_name, provided_parameter_types:list):
+        return self._find_overloaded_function(p_fn_name, provided_parameter_types).fn_arguments
 
 
     def get_return_type_of_overloaded_fn(self, p_fn_name, provided_parameter_types:list):
-        # To get arguments of overloaded function.
-        possible_args = []
-        for fn in self.member_functions:
-            if fn.fn_name == p_fn_name:
-                args = fn.fn_arguments
-                args_list = [a.data_type for a in args]
-                if args_list == provided_parameter_types:
-                    return fn.return_type
-                possible_args.append(args_list)
-        m_types = [a.data_type for a in provided_parameter_types]
-        error_msg = f"Didn't find overloaded function({p_fn_name}) of provided types {m_types}."
-        error_msg += f"Possible argument types for the overloaded functions are {possible_args}."
-        RAISE_ERROR(f"{error_msg}")
+        return self._find_overloaded_function(p_fn_name, provided_parameter_types).return_type
 
 
     def is_return_type_of_fn_ref_type(self, p_fn_name, p_custom_overload_type = "") -> str:
@@ -925,19 +917,9 @@ class Struct:
 
         RAISE_ERROR(f"Function {p_fn_name} not found.")
 
+
     def is_return_type_of_overloaded_fn_ref_type(self, p_fn_name, provided_parameter_types:list):
-        possible_args = []
-        for fn in self.member_functions:
-            if fn.fn_name == p_fn_name:
-                args = fn.fn_arguments
-                args_list = [a.data_type for a in args]
-                if args_list == provided_parameter_types:
-                    return fn.is_return_type_ref_type
-                possible_args.append(args_list)
-        m_types = [a.data_type for a in provided_parameter_types]
-        error_msg = f"Didn't find overloaded function({p_fn_name}) of provided types {m_types}."
-        error_msg += f"Possible argument types for the overloaded functions are {possible_args}."
-        RAISE_ERROR(f"{error_msg}")
+        return self._find_overloaded_function(p_fn_name, provided_parameter_types).is_return_type_ref_type
 
 
     def get_type_of_member(self, p_member_name) -> Optional[str]:
@@ -1414,9 +1396,6 @@ def generate_destructor_for_struct(p_struct_name: str):
     GlobalGeneratedStructDestructors += "}\n\n"
 
 
-def is_instanced_struct(p_struct_name: str):
-    return any(struct.struct_name == p_struct_name for struct in instanced_struct_names)
-
 
 def get_instanced_struct(p_struct_name) -> Optional[StructInstance]:
     for struct in reversed(instanced_struct_names):
@@ -1424,12 +1403,12 @@ def get_instanced_struct(p_struct_name) -> Optional[StructInstance]:
             return struct
     return None
 
+def is_instanced_struct(p_struct_name: str) -> bool:
+    return get_instanced_struct(p_struct_name) is not None
 
-def get_struct_type_of_instanced_struct(p_struct_name):
-    for struct in instanced_struct_names:
-        if struct.struct_name == p_struct_name:
-            return struct.struct_type
-
+def get_struct_type_of_instanced_struct(p_struct_name) -> Optional[str]:
+    struct = get_instanced_struct(p_struct_name)
+    return struct.struct_type if struct else None
 
 def get_destructor_for_struct(p_name):
     for struct in reversed(instanced_struct_names):
