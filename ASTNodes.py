@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 class ASTNode(ABC):
     @abstractmethod
-    def codegen(self):
+    def codegen(self) -> str:
         pass
 
 
@@ -43,3 +43,12 @@ class LiteralNode(ExpressionNode):
         return (
             str(self.value).lower() if isinstance(self.value, bool) else str(self.value)
         )
+
+
+class AssignmentNode(StatementNode):
+    def __init__(self, var_name, expression: ExpressionNode):
+        self.var_name = var_name
+        self.expression = expression
+
+    def codegen(self):
+        return f"{self.var_name} = {self.expression.codegen()};"

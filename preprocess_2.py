@@ -4738,7 +4738,11 @@ while index < len(Lines):
                 data_type = struct_instance.struct_type
                 if data_type in {"int", "bool", "float", "char"}: 
                     value = parser.get_token()
-                    code_generator.emit_reassignment(member_access_string, value)
+
+                    value_node = LiteralNode(value, data_type)
+                    reassign_node = AssignmentNode(member_access_string, value_node)
+
+                    code_generator.generate_code_for_ast_node(reassign_node)
                 else:
                     # Expression Reassignment.
                     reassign_ANIL_code = f"{parsed_member}.__reassign__("
@@ -4851,7 +4855,10 @@ while index < len(Lines):
             parser.consume_token(lexer.Token.EQUALS)
             value_to_assign = get_integer_expression(f"Expected integer expression to reassign to existing integer named \"{parsed_member}\".")
 
-            code_generator.emit_reassignment(parsed_member, value_to_assign)
+            value_node = LiteralNode(value_to_assign, "int")
+            reassign_node = AssignmentNode(parsed_member, value_node)
+
+            code_generator.generate_code_for_ast_node(reassign_node)
             continue
         elif is_class_name(parsed_member):
             # ClassName::StaticFunctionCall()
