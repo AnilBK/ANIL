@@ -30,6 +30,15 @@ class VariableDeclarationNode(StatementNode):
         return code
 
 
+class VariableNode(ExpressionNode):
+    def __init__(self, var_name, var_type=None):
+        self.var_name = var_name
+        self.var_type = var_type
+
+    def codegen(self) -> str:
+        return self.var_name
+
+
 class LiteralNode(ExpressionNode):
     def __init__(self, value, value_type):
         self.value = value
@@ -41,7 +50,13 @@ class LiteralNode(ExpressionNode):
         if self.value_type == "str":
             return f'"{self.value}"'
         if self.value_type == "bool":
-            return "true" if self.value else "false"
+            if isinstance(self.value, str):
+                l = self.value.lower()
+                if l in ("true", "false"):
+                    return l
+            elif isinstance(self.value, bool):
+                return "true" if self.value else "false"
+            return self.value
         return (
             str(self.value).lower() if isinstance(self.value, bool) else str(self.value)
         )
@@ -62,3 +77,23 @@ class CommentNode(StatementNode):
 
     def codegen(self) -> str:
         return f"// {self.comment}\n"
+
+
+class ReturnNode(StatementNode):
+    """
+    def __init__(self, expression: ExpressionNode):
+        self.expression = expression
+    Currently we dont have support for proper expressions.
+    So we will allow string as expression for now.
+    """
+
+    def __init__(self, expression):
+        self.expression = expression
+
+    def codegen(self) -> str:
+        if isinstance(self.expression, str):
+            return f"return {self.expression};"
+        elif isinstance(self.expression, ExpressionNode):
+            return f"return {self.expression.codegen()};"
+        else:
+            raise ValueError("Unsupported return expression type.")

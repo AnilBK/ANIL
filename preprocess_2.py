@@ -4716,7 +4716,12 @@ while index < len(Lines):
                 if data_type in {"int", "bool", "float", "char"}: 
                     value = parser.get_token()
 
-                    value_node = LiteralNode(value, data_type)
+                    if value.lower() in ["true", "false"]:
+                        # TODO: all kinds of Literals should be LiteralNode.
+                        value_node = LiteralNode(value, data_type)
+                    else:
+                        value_node = VariableNode(var_name = value, var_type = data_type)
+
                     reassign_node = AssignmentNode(member_access_string, value_node)
 
                     code_generator.generate_code_for_ast_node(reassign_node)
@@ -6259,7 +6264,9 @@ while index < len(Lines):
 
         # Write return itself.
         # We assume we have single return statement.
-        code_generator.emit_return_statement(return_value="return_value" if create_temporary_for_return else result.return_value)
+        return_value = "return_value" if create_temporary_for_return else result.return_value
+        return_node = ReturnNode(expression = return_value)
+        code_generator.generate_code_for_ast_node(return_node)
     elif check_token(lexer.Token.NAMESPACE):
         if is_inside_name_space:
             RAISE_ERROR(f"Is already inside a namespace(\"{namespace_name}\"). Can't declare a new namespace.")
