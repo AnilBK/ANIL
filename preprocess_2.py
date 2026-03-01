@@ -606,9 +606,11 @@ def is_variable_string_class(p_var_name):
 
 
 def is_variable_str_type(p_var_name):
-    return is_variable_of_type(p_var_name, "str") or is_variable_of_type(
-        p_var_name, "char*"
-    )
+    var_type = get_type_of_variable(p_var_name)
+    if var_type == None:
+        return False
+
+    return var_type == "str" or var_type == "char*"
 
 
 def is_variable_boolean_type(p_var_name):
