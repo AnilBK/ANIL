@@ -244,18 +244,16 @@ class VariablesCheckpoint:
         self.for_loop_depth = for_loop_depth
 
         # These maybe mutated, so we perform deepcopy.
-        self.instanced_struct_names = copy.deepcopy(instanced_struct_names)
         self.symbol_table = copy.deepcopy(symbol_table)
 
     def restore(self):
-        global instanced_struct_names,symbol_table, for_loop_depth
+        global symbol_table, for_loop_depth
 
         # Instantly restore all counters to their exact state
         ctx.counters = self.saved_counters 
 
         for_loop_depth = self.for_loop_depth
 
-        instanced_struct_names = self.instanced_struct_names
         symbol_table = self.symbol_table
 
 @contextmanager
@@ -273,7 +271,6 @@ def SpeculativeFunctionParse():
 
 
 struct_definations = OrderedDict()
-instanced_struct_names = []
 
 IncludeLines = [] # ["#include<stdio.h>", ...]
 
@@ -415,36 +412,42 @@ def get_overloaded_mangled_fn_name(p_struct_type: str, p_fn_name: str, p_paramet
 
 
 class Symbol:
-    def __init__(self, name, data_type):
+    def __init__(self, name, data_type, struct_instance = None):
         self.name = name
         self.data_type = data_type
+        self.struct_instance = struct_instance
 
 class Scope:
     def __init__(self, scope_id):
         self.scope_id = scope_id
         self.symbols = OrderedDict()
 
-    def declare_variable(self, name, p_type):
+    def declare_variable(self, name, p_type, struct_instance = None):
         if name in self.symbols:
             RAISE_ERROR(f"Variable '{name}' is already declared in this scope.")
-        self.symbols[name] = Symbol(name, p_type)
+        self.symbols[name] = Symbol(name, p_type, struct_instance)
 
     def lookup_variable(self, name):
         return self.symbols.get(name, None)
     
     def get_destructor_code_for_all_variables(self):
         destructor_code = ""
-        for symbol in reversed(self.symbols):
-            code = get_destructor_for_struct(symbol)
-            if code is not None:
-                destructor_code += code
+        for name, symbol in reversed(self.symbols.items()):
+            instance = symbol.struct_instance
+            if instance and instance.should_be_freed:
+                # Recursively add destructors if needed.
+                if not instance.struct_type_has_destructor():
+                    instance.get_struct_defination().fill_with_destructors_recursive()
+                
+                if instance.struct_type_has_destructor():
+                    destructor_fn_name = instance.get_destructor_fn_name()
+                    destructor_code += f"{destructor_fn_name}(&{name});\n"
+                    
         return destructor_code
 
     def remove_all_variables(self):
-        for symbol in self.symbols:
-            remove_struct_instance(symbol)
         self.symbols.clear()
-
+        
     def get_destructor_for_all_variables_and_remove(self):
         destructor_code = self.get_destructor_code_for_all_variables()
         self.remove_all_variables()
@@ -514,7 +517,7 @@ class SymbolTable:
                 print(f"{scope_id} {name} {symbol.data_type}")
         print("-------------------------------------------------")
 
-    def declare_variable(self, name, p_type):
+    def declare_variable(self, name, p_type, struct_instance = None):
         current_scope = self.get_scope_by_id(self.current_scope())
 
         if name in current_scope.symbols:
@@ -526,7 +529,7 @@ class SymbolTable:
                 self.print_symbol_table()
                 RAISE_ERROR(f"Variable '{name}' already declared in previous scope {scope_id}.")
 
-        current_scope.declare_variable(name, p_type)
+        current_scope.declare_variable(name, p_type, struct_instance)
 
     def lookup_variable(self, name):
         for scope_id in reversed(self.scope_stack):
@@ -544,6 +547,19 @@ class SymbolTable:
                 destructor_code += des_code
             del self.scopes[exiting_scope_id]
         return destructor_code
+
+    def get_struct_instance(self, name): # -> Optional[StructInstance]:
+        symbol = self.lookup_variable(name)
+        if symbol:
+            return symbol.struct_instance
+        return None
+
+    def remove_variable(self, name):
+        for scope_id in reversed(self.scope_stack):
+            scope = self.get_scope_by_id(scope_id)
+            if name in scope.symbols:
+                del scope.symbols[name]
+                return
 
 
 symbol_table = SymbolTable()
@@ -577,8 +593,8 @@ def decrement_scope():
     symbol_table.exit_scope()
 
 
-def REGISTER_VARIABLE(p_var_name: str, p_var_data_type: str) -> None:
-    symbol_table.declare_variable(p_var_name, p_var_data_type)
+def REGISTER_VARIABLE(p_var_name: str, p_var_data_type: str, struct_instance = None) -> None:
+    symbol_table.declare_variable(p_var_name, p_var_data_type, struct_instance)
     if is_inside_form:
         gui_manager.process_variable(p_var_name, p_var_data_type)
 
@@ -1398,39 +1414,27 @@ def generate_destructor_for_struct(p_struct_name: str):
 
 
 def get_instanced_struct(p_struct_name) -> Optional[StructInstance]:
-    for struct in reversed(instanced_struct_names):
-        if struct.struct_name == p_struct_name:
-            return struct
-    return None
+    return symbol_table.get_struct_instance(p_struct_name)
 
 def is_instanced_struct(p_struct_name: str) -> bool:
-    return get_instanced_struct(p_struct_name) is not None
+    return symbol_table.get_struct_instance(p_struct_name) is not None
 
 def get_struct_type_of_instanced_struct(p_struct_name) -> Optional[str]:
-    struct = get_instanced_struct(p_struct_name)
-    return struct.struct_type if struct else None
+    instance = symbol_table.get_struct_instance(p_struct_name)
+    return instance.struct_type if instance else None
 
 def get_destructor_for_struct(p_name):
-    for struct in reversed(instanced_struct_names):
-        if struct.should_be_freed:
-            # Maybe : Check for scope
-            # Since variables can't be repeated across scopes,
-            # We mayn't need to check for scopes.
-            struct_name = struct.struct_name
-            if struct_name == p_name:
-                if not struct.struct_type_has_destructor():
-                    struct.get_struct_defination().fill_with_destructors_recursive()
+    symbol = symbol_table.lookup_variable(p_name)
+    if symbol and symbol.struct_instance and symbol.struct_instance.should_be_freed:
+        struct_instance = symbol.struct_instance
+        if not struct_instance.struct_type_has_destructor():
+            struct_instance.get_struct_defination().fill_with_destructors_recursive()
 
-                if struct.struct_type_has_destructor():
-                    destructor_fn_name = struct.get_destructor_fn_name()
-                    des_code = f"{destructor_fn_name}(&{struct_name});\n"
-                    return des_code
+        if struct_instance.struct_type_has_destructor():
+            destructor_fn_name = struct_instance.get_destructor_fn_name()
+            des_code = f"{destructor_fn_name}(&{p_name});\n"
+            return des_code
     return None
-
-
-def remove_struct_instance(p_instance_name):
-    global instanced_struct_names
-    instanced_struct_names = [instance for instance in instanced_struct_names if instance.struct_name != p_instance_name]
 
 
 class MacroDefination:
@@ -2700,10 +2704,7 @@ while index < len(Lines):
 
         instanced_struct_info = StructInstance(m_struct_type, struct_name, get_current_scope())
 
-        global instanced_struct_names
-        instanced_struct_names.append(instanced_struct_info)
-
-        REGISTER_VARIABLE(struct_name, m_struct_type)
+        REGISTER_VARIABLE(struct_name, m_struct_type, instanced_struct_info)
 
         code = f"struct {m_struct_type} {struct_name};\n"
 
@@ -2943,8 +2944,6 @@ while index < len(Lines):
         memory_allocation_lines = []
         length_expressions = []
 
-        global instanced_struct_names
-
         for i, (string_value, string_type) in enumerate(ast.params):
             if string_type == ParameterType.RAW_STRING:
                 # "string"
@@ -2957,13 +2956,12 @@ while index < len(Lines):
                 instance = StructInstance("String", f"{temp_string_var_name}", get_current_scope())
                 # instance.is_pointer_type = True
                 # instance.should_be_freed = False
-                instanced_struct_names.append(instance)
                 code_generator.emit_variable_declaration(
                     variable_type= "struct String",
                     variable_name= temp_string_var_name,
                     initialization_value= string_value
                 )
-                REGISTER_VARIABLE(f"{temp_string_var_name}", f"String")
+                REGISTER_VARIABLE(f"{temp_string_var_name}", f"String", struct_instance=instance)
 
                 ast.update_param(i, temp_string_var_name, ParameterType.STRING_CLASS)
 
@@ -3003,8 +3001,6 @@ while index < len(Lines):
         term = parse_term()
         term_parameters = term["parameter"]
 
-        global instanced_struct_names
-        
         term_type = term['type']
 
         fn_call_parse_info = term_parameters.fn_call_parse_info
@@ -3017,6 +3013,7 @@ while index < len(Lines):
             parsed_fn_call_type = parse_result["function_call_type"]
             member_access_string = parse_result["member_access_string"]
 
+            instance = None
             if return_type.startswith("struct ") or is_data_type_struct_object(return_type):
                 raw_return_type = return_type
                 if return_type.startswith("struct "):
@@ -3030,9 +3027,7 @@ while index < len(Lines):
                 if is_return_type_ref_type or parsed_fn_call_type == ParsedFunctionCallType.MEMBER_ACCESS_CALL:
                     instance.should_be_freed = False
                 
-                instanced_struct_names.append(instance)
-
-            REGISTER_VARIABLE(var_name, return_type)
+            REGISTER_VARIABLE(var_name, return_type, struct_instance=instance)
 
             assignment_code = ""
             if parsed_fn_call_type == ParsedFunctionCallType.MEMBER_ACCESS_CALL:
@@ -3077,14 +3072,13 @@ while index < len(Lines):
                         instance = StructInstance("String", f"{temp_string_var_name}", get_current_scope())
                         # instance.is_pointer_type = True
                         # instance.should_be_freed = False
-                        instanced_struct_names.append(instance)
 
                         code_generator.emit_variable_declaration(
                             variable_type= "struct String",
                             variable_name= temp_string_var_name,
                             initialization_value= ast_p_name
                         )
-                        REGISTER_VARIABLE(f"{temp_string_var_name}", f"String")
+                        REGISTER_VARIABLE(f"{temp_string_var_name}", f"String", instance)
                         str_temporarires.append(temp_string_var_name)
                         new_ast.append((temp_string_var_name ,ParameterType.STRING_CLASS))
                     elif ast_p_type == ParameterType.RAW_STRING:
@@ -3161,6 +3155,7 @@ while index < len(Lines):
         parsed_fn_call_type = parse_result["function_call_type"]
         member_access_string = parse_result["member_access_string"]
 
+        instance = None
         if return_type.startswith("struct ") or is_data_type_struct_object(return_type):
             raw_return_type = return_type
             if return_type.startswith("struct "):
@@ -3174,9 +3169,7 @@ while index < len(Lines):
             if is_return_type_ref_type or parsed_fn_call_type == ParsedFunctionCallType.MEMBER_ACCESS_CALL:
                 instance.should_be_freed = False
             
-            instanced_struct_names.append(instance)
-
-        REGISTER_VARIABLE(var_name, return_type)
+        REGISTER_VARIABLE(var_name, return_type, struct_instance=instance)
 
         assignment_code = ""
         if parsed_fn_call_type == ParsedFunctionCallType.MEMBER_ACCESS_CALL:
@@ -3382,10 +3375,13 @@ while index < len(Lines):
                         return [stringify(fn.fn_name) for fn in struct_def.member_functions]
 
                     def _get_instances():
-                        global instanced_struct_names
-                        return [stringify(struct.struct_name) 
-                                for struct in instanced_struct_names 
-                                if struct.struct_type == class_name]
+                        instances = []
+                        for scope_id in symbol_table.scope_stack:
+                            scope = symbol_table.get_scope_by_id(scope_id)
+                            for name, symbol in scope.symbols.items():
+                                if symbol.struct_instance and symbol.struct_instance.struct_type == class_name:
+                                    instances.append(stringify(name))
+                        return instances
                     
                     def _get_annotated_functions_by_name():
                         global annotations_list
@@ -4310,7 +4306,6 @@ while index < len(Lines):
                 instance = StructInstance("String", f"{temp_string_var_name}", get_current_scope())
                 # instance.is_pointer_type = True
                 instance.should_be_freed = False
-                instanced_struct_names.append(instance)
 
                 emit(f"struct String {temp_string_var_name};\n")
                 string_len_without_quotes = len(param) - 2
@@ -4318,7 +4313,7 @@ while index < len(Lines):
                 emit(f"Stringinit__STATIC__(&{temp_string_var_name}, {param}, {string_len_without_quotes});\n")
                 # TODO: By using String Object above, we could get the mangled function name instead of hardcoding
                 # the mangled function.
-                REGISTER_VARIABLE(f"{temp_string_var_name}", f"String")
+                REGISTER_VARIABLE(f"{temp_string_var_name}", f"String", struct_instance=instance)
                 parameter.param = temp_string_var_name
                 parameter.param_type = ParameterType.STRING_CLASS
 
@@ -5190,8 +5185,7 @@ while index < len(Lines):
                                 )
 
                             instance = StructInstance("String", f"{var_name}", get_current_scope())
-                            instanced_struct_names.append(instance)
-                            REGISTER_VARIABLE(f"{var_name}", "String")
+                            REGISTER_VARIABLE(f"{var_name}", "String", struct_instance = instance)
                         else:
                             actual_value = parse_constexpr_dictionary(target)
                             dict_type = get_constexpr_dictionary_type(target)
@@ -5655,7 +5649,7 @@ while index < len(Lines):
                 """
         
             for param in registered_function_parameters:
-                remove_struct_instance(param)
+                symbol_table.remove_variable(param)
 
             if is_inside_global_c_function:
                 if should_write_fn_body:
@@ -5919,8 +5913,7 @@ while index < len(Lines):
             instance.is_pointer_type = True
             instance.should_be_freed = False
 
-            instanced_struct_names.append(instance)
-            REGISTER_VARIABLE("this", f"{struct_name}")
+            REGISTER_VARIABLE("this", f"{struct_name}", struct_instance = instance)
 
         # TODO: This need not be performed as the template types should be resolved at template instantiation time.
         # This could be performed by updating 'unparsed_function' during template instantiation.
@@ -5943,16 +5936,15 @@ while index < len(Lines):
 
             param_type = data_type_with_struct_stripped(param_type)
                 
+            instance = None
             if is_data_type_struct_object(param_type):
                 instance = StructInstance(param_type, param_name, curr_scope)
 
                 # Function parameters shouldn't be freed at the end of the scope.
                 # So, add a tag.
                 instance.should_be_freed = False
-
-                instanced_struct_names.append(instance)
                 registered_function_parameters.append(param_name)
-            REGISTER_VARIABLE(param_name, param_type)
+            REGISTER_VARIABLE(param_name, param_type, struct_instance = instance)
 
 
         if defining_fn_for_custom_class:
@@ -6043,15 +6035,17 @@ while index < len(Lines):
     elif check_token(lexer.Token.ENDFUNCTION):
         current_scope = get_current_scope()
 
-        if not return_encountered_in_fn:
-            decrement_scope() 
-        else:
-            # Remove all struct instances form current scope.
-            # decrement_scope() above automatically does this.
+        if return_encountered_in_fn:
+            # We already generated destructors for all scopes in the function at the 'return' statement.
+            # To prevent 'decrement_scope()' from generating destructors again for the function's base scope,
+            # we must clear the variables first before we pop the scope.
             for scope in reversed(tracked_scopes_for_current_fn):
                 if scope in symbol_table.scopes:
                     symbol_table.get_scope_by_id(scope).remove_all_variables()
 
+        # Unconditionally pop the function's scope to prevent compiler scope leaks.
+        decrement_scope()
+        
         if not is_inside_user_defined_function:
             RAISE_ERROR("End function without being in Function block.")
         
@@ -6110,7 +6104,7 @@ while index < len(Lines):
             class_fn_defination["function_destination"] = "global"
 
             # Remove 'this*' StructInstance, so it doesn't mess up, as there can be different 'this*' parameters for different classes.
-            remove_struct_instance("this")
+            symbol_table.remove_variable("this")
 
         else:
             if should_write_fn_body:
@@ -6119,11 +6113,7 @@ while index < len(Lines):
 
         # Remove all the variables that were brought into scope by the function.
         for param in registered_function_parameters:
-            remove_struct_instance(param)
-
-        for struct in instanced_struct_names:
-            if struct.scope in tracked_scopes_for_current_fn:
-                remove_struct_instance(struct.struct_name)
+            symbol_table.remove_variable(param)
 
         tracking_scopes_for_current_fn = False
         tracked_scopes_for_current_fn = []
