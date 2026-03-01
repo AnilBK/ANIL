@@ -8,6 +8,16 @@ class CompilerContext:
         # These changes are marked using these trackers.
         self.generated_lines_checkpoints = []
 
+        self.counters = {}
+
+    def get_next_temp_id(self, prefix: str) -> int:
+        if prefix not in self.counters:
+            self.counters[prefix] = 0
+
+        current_id = self.counters[prefix]
+        self.counters[prefix] += 1
+        return current_id
+
     def emit(self, code: str):
         self.generated_lines.append(code)
 

@@ -21,7 +21,7 @@ from CCodeGenerator import CCodeGenerator
 
 from ASTNodes import *
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 
 class PrintNode(StatementNode):
     def __init__(self, raw_template_string: str):
@@ -239,12 +239,8 @@ class RollbackTemporaryGeneratedCodes(Exception):
 class VariablesCheckpoint:
     # TODO: Just track what was added during speculative parsing.
     def __init__(self):
-        # Save global speculative counters and variables.
-        self.temp_string_object_variable_count = temp_string_object_variable_count
-        self.temp_arr_length_variable_count = temp_arr_length_variable_count
-        self.temp_c_str_iterator_variable_count = temp_c_str_iterator_variable_count
-        self.temp_arr_search_variable_count = temp_arr_search_variable_count
-        self.temp_char_promoted_to_string_variable_count = temp_char_promoted_to_string_variable_count
+        self.saved_counters = ctx.counters.copy()
+
         self.for_loop_depth = for_loop_depth
 
         # These maybe mutated, so we perform deepcopy.
@@ -252,14 +248,11 @@ class VariablesCheckpoint:
         self.symbol_table = copy.deepcopy(symbol_table)
 
     def restore(self):
-        global temp_string_object_variable_count,temp_arr_length_variable_count,temp_c_str_iterator_variable_count,temp_arr_search_variable_count,temp_char_promoted_to_string_variable_count,for_loop_depth,instanced_struct_names,symbol_table
+        global instanced_struct_names,symbol_table, for_loop_depth
 
-        # Restore all variables to their checkpointed values.
-        temp_string_object_variable_count = self.temp_string_object_variable_count
-        temp_arr_length_variable_count = self.temp_arr_length_variable_count
-        temp_c_str_iterator_variable_count = self.temp_c_str_iterator_variable_count
-        temp_arr_search_variable_count = self.temp_arr_search_variable_count
-        temp_char_promoted_to_string_variable_count = self.temp_char_promoted_to_string_variable_count
+        # Instantly restore all counters to their exact state
+        ctx.counters = self.saved_counters 
+
         for_loop_depth = self.for_loop_depth
 
         instanced_struct_names = self.instanced_struct_names
@@ -1486,12 +1479,6 @@ is_inside_global_c_function = False
 namespace_name = ""
 is_inside_name_space = False
 
-temp_arr_length_variable_count = 0
-temp_c_str_iterator_variable_count = 0
-temp_string_object_variable_count = 0
-temp_arr_search_variable_count = 0
-temp_char_promoted_to_string_variable_count = 0
-
 # This is to index which loop variable we are using for 'for loops'.
 # like i,j,k...z,a..i
 # First scope will use i.
@@ -1774,15 +1761,14 @@ def parse_global_c_function():
 ##############################################################################################
 
 def create_const_charptr_iterator(array_name, current_array_value_variable):
-    global temp_c_str_iterator_variable_count
+    temp_id = ctx.get_next_temp_id("c_str_iterator")
 
-    iterator_var_name = f"{array_name}_iterator_{temp_c_str_iterator_variable_count}"
+    iterator_var_name = f"{array_name}_iterator_{temp_id}"
 
     code_generator.emit_const_charptr_iterator(array_name, iterator_var_name)
 
     REGISTER_VARIABLE(current_array_value_variable, "char")
 
-    temp_c_str_iterator_variable_count += 1
 
 
 def create_array_enumerator(
@@ -1815,10 +1801,9 @@ def create_normal_array_iterator(array_name, current_array_value_variable):
     REGISTER_VARIABLE(current_array_value_variable, array_type)
 
 def promote_char_to_string(var_to_check):                             
-    global temp_char_promoted_to_string_variable_count
+    temp_id = ctx.get_next_temp_id("char_promoted")
     
-    promoted_char_var_name = f"{var_to_check}_promoted_{temp_char_promoted_to_string_variable_count}"
-    temp_char_promoted_to_string_variable_count += 1
+    promoted_char_var_name = f"{var_to_check}_promoted_{temp_id}"
 
     code_generator.emit_char_to_str(
         str_var_name = promoted_char_var_name,
@@ -1831,10 +1816,9 @@ def promote_char_to_string(var_to_check):
 
 
 def handle_array_in_operator(var_to_check, var_to_check_against):
-    global temp_arr_search_variable_count
+    temp_id = ctx.get_next_temp_id("array_in_operator")
 
-    search_variable = f"{var_to_check_against}__contains__{var_to_check}_{temp_arr_search_variable_count}"
-    temp_arr_search_variable_count += 1
+    search_variable = f"{var_to_check_against}__contains__{var_to_check}_{temp_id}"
     
     code_generator.emit_array_contains_check(var_to_check_against, var_to_check, search_variable)
 
@@ -2264,7 +2248,8 @@ while index < len(Lines):
         return start_index, end_index, step_size
 
     def create_array_iterator_from_struct(array_name, current_array_value_variable):
-        global temp_arr_length_variable_count
+        temp_id = ctx.get_next_temp_id("array_iter")
+
         global for_loop_depth
 
         #for x in list[::-1]
@@ -2277,7 +2262,7 @@ while index < len(Lines):
         loop_indices = "ijklmnopqrstuvwxyzabcdefgh"
         loop_counter_index = loop_indices[for_loop_depth % 26]
 
-        temporary_len_var_name = f"tmp_len_{temp_arr_length_variable_count}"
+        temporary_len_var_name = f"tmp_len_{temp_id}"
 
         # Emit ANIL code to perform looping.
         # This line will be parsed by the compiler in next line.
@@ -2312,8 +2297,6 @@ while index < len(Lines):
             code = [l1, l2, l3]
 
         insert_intermediate_lines(index, code)
-
-        temp_arr_length_variable_count += 1
 
     def create_range_iterator(current_array_value_variable):
         # for i in range(1..10){    -> 0 >= i < 10
@@ -2960,7 +2943,6 @@ while index < len(Lines):
         memory_allocation_lines = []
         length_expressions = []
 
-        global temp_string_object_variable_count
         global instanced_struct_names
 
         for i, (string_value, string_type) in enumerate(ast.params):
@@ -2969,8 +2951,9 @@ while index < len(Lines):
                 generated_code_lines.append(f"{target_variable_name}.{add_method}(\"{string_value}\")")
                 length_expressions.append(str(len(string_value)))
             elif string_type == ParameterType.STRING_EXPRESSION:
-                temp_string_var_name = f"tmp_string_{temp_string_object_variable_count}"
-                temp_string_object_variable_count += 1
+                temp_id = ctx.get_next_temp_id("string")
+
+                temp_string_var_name = f"tmp_string_{temp_id}"
                 instance = StructInstance("String", f"{temp_string_var_name}", get_current_scope())
                 # instance.is_pointer_type = True
                 # instance.should_be_freed = False
@@ -3021,8 +3004,7 @@ while index < len(Lines):
         term_parameters = term["parameter"]
 
         global instanced_struct_names
-        global temp_string_object_variable_count    
-
+        
         term_type = term['type']
 
         fn_call_parse_info = term_parameters.fn_call_parse_info
@@ -3089,8 +3071,9 @@ while index < len(Lines):
                 new_ast = []
                 for i, (ast_p_name, ast_p_type) in enumerate(parameters.ast.params):
                     if ast_p_type == ParameterType.STRING_EXPRESSION:
-                        temp_string_var_name = f"tmp_string_{temp_string_object_variable_count}"
-                        temp_string_object_variable_count += 1
+                        temp_id = ctx.get_next_temp_id("string")
+                        
+                        temp_string_var_name = f"tmp_string_{temp_id}"
                         instance = StructInstance("String", f"{temp_string_var_name}", get_current_scope())
                         # instance.is_pointer_type = True
                         # instance.should_be_freed = False
@@ -4322,9 +4305,8 @@ while index < len(Lines):
                 # For f(a:String){..} we provided f("constant string literal");
                 #         ^^^^^^ arg                 ^^^^^^^^^^^^^^^^^^^^^^^ param_type
                 #
-                global temp_string_object_variable_count    
-                temp_string_var_name = f"tmp_string_{temp_string_object_variable_count}"
-                temp_string_object_variable_count += 1
+                temp_id = ctx.get_next_temp_id("string")
+                temp_string_var_name = f"tmp_string_{temp_id}"
                 instance = StructInstance("String", f"{temp_string_var_name}", get_current_scope())
                 # instance.is_pointer_type = True
                 instance.should_be_freed = False
