@@ -21,6 +21,8 @@ from CCodeGenerator import CCodeGenerator
 
 from ASTNodes import *
 
+from name_mangling import NameMangler
+
 from abc import abstractmethod
 
 class PrintNode(StatementNode):
@@ -55,7 +57,7 @@ class PrintNode(StatementNode):
 
                 if struct_def:
                     if struct_def.has_member_fn("__str__"):
-                        mangled_str_fn_name = get_mangled_fn_name(struct_type, "__str__")
+                        mangled_str_fn_name = NameMangler.mangle_function(struct_type, "__str__")
                         # If it's a pointer (like 'this'), pass directly, else pass address.
                         prefix = "" if (instanced_struct_info and instanced_struct_info.is_pointer_type) else "&"
                         extracted_var_name_list.append(f"{mangled_str_fn_name}({prefix}{extracted_var_name})")
@@ -377,37 +379,6 @@ def get_format_specifier(p_type: str) -> str:
             return "s"
 
         return "d"
-
-
-def get_mangled_templated_class_type(p_base_class_type: str, p_templated_type: str) -> str:
-    '''Mangle an instance of A<T> as A_T.'''
-    return p_base_class_type + "_" + p_templated_type
-
-
-def get_mangled_fn_name(p_struct_type: str, p_fn_name: str) -> str:
-    return p_struct_type + p_fn_name
-
-
-def get_templated_mangled_fn_name(
-    p_struct_type: str, p_fn_name: str, p_templated_data_type: str
-) -> str:
-    return p_struct_type + "_" + p_templated_data_type + p_fn_name
-
-
-def get_overloaded_mangled_fn_name(p_struct_type: str, p_fn_name: str, p_parameters: list) -> str:
-    # append(int) -> ListappendOVDint
-    # append(char*) -> ListappendOVDstr
-    function_name = get_mangled_fn_name(p_struct_type, p_fn_name)
-    function_name += "OVD"
-    for param in p_parameters:
-        data_type = param
-        if data_type == "char*":
-            function_name += "str"
-        else:
-            #"struct String", we dont want those spaces in final function name.
-            data_type_no_spaces = data_type.replace(" ", "")
-            function_name += data_type_no_spaces
-    return function_name
 # UTILS END
 
 
@@ -1292,9 +1263,9 @@ class StructInstance:
         StructInfo = self.get_struct_defination()
 
         if StructInfo.function_is_overloaded(p_fn_name):
-            return get_overloaded_mangled_fn_name(self.struct_type, p_fn_name, parameters if parameters != None else [])
+            return NameMangler.mangle_function_with_parameters(self.struct_type, p_fn_name, parameters if parameters != None else [])
         else:
-            return get_mangled_fn_name(self.struct_type, p_fn_name)
+            return NameMangler.mangle_function(self.struct_type, p_fn_name)
 
     def is_return_type_ref_type(self, p_fn_name, parameters = None):
         struct_info = self.get_struct_defination()
@@ -1395,7 +1366,7 @@ def generate_destructor_for_struct(p_struct_name: str):
             continue
 
         if member_struct_def.has_destructor():
-            destructor_mangled_fn_name = get_mangled_fn_name(member_type, "__del__")
+            destructor_mangled_fn_name = NameMangler.mangle_function(member_type, "__del__")
             fn_body += f"{destructor_mangled_fn_name}(&this->{member.member});\n"
 
     params = []
@@ -1404,7 +1375,7 @@ def generate_destructor_for_struct(p_struct_name: str):
 
     add_fn_member_to_struct(p_struct_name, fn)
 
-    mangled_destructor_fn_name = get_mangled_fn_name(p_struct_name, "__del__")
+    mangled_destructor_fn_name = NameMangler.mangle_function(p_struct_name, "__del__")
 
     global GlobalGeneratedStructDestructors
     GlobalGeneratedStructDestructors += f"void {mangled_destructor_fn_name}(struct {p_struct_name} *this){{ \n"
@@ -1682,11 +1653,11 @@ def parse_global_c_function():
     if defining_fn_for_custom_class:
         if is_overloaded:
             # Get datatype from MemberDataType,
-            # as get_overloaded_mangled_fn_name requires list of strings(data_type).
+            # as NameMangler.mangle_function_with_parameters requires list of strings(data_type).
             data_types_str_list = [p.data_type for p in parameters]
-            func_name = get_overloaded_mangled_fn_name(class_fn_defination["class_name"], function_name, data_types_str_list)
+            func_name = NameMangler.mangle_function_with_parameters(class_fn_defination["class_name"], function_name, data_types_str_list)
         else:
-            func_name = get_mangled_fn_name(class_fn_defination["class_name"], function_name)
+            func_name = NameMangler.mangle_function(class_fn_defination["class_name"], function_name)
     
         if temporary_annotations_list:
             RAISE_ERROR("Annotations are not supported for class functions.")
@@ -2468,7 +2439,7 @@ while index < len(Lines):
                 data_type_str += f"<{inner_data_type}>"
                 return data_type_str
             else:
-                data_type_str = get_mangled_templated_class_type(data_type_str, inner_data_type)
+                data_type_str = NameMangler.mangle_templated_class_type(data_type_str, inner_data_type)
                 instantiate_template(data_type, inner_data_type)
         else:
             if incomplete_types != None:
@@ -2503,7 +2474,7 @@ while index < len(Lines):
 
     def instantiate_template(struct_type, templated_data_type):
         # Recreate Generic Structs on instantiation.
-        m_struct_name = get_mangled_templated_class_type(struct_type, templated_data_type)
+        m_struct_name = NameMangler.mangle_templated_class_type(struct_type, templated_data_type)
         m_struct_info = get_struct_defination_of_type(m_struct_name)
         if m_struct_info != None:
             # This struct has already been defined.
@@ -2669,7 +2640,7 @@ while index < len(Lines):
             parser.next_token()
             templated_data_type = resolve_templated_type(parser.get_token())
             parser.consume_token(lexer.Token.GREATER_THAN)
-            m_struct_type = get_mangled_templated_class_type(struct_type, templated_data_type)
+            m_struct_type = NameMangler.mangle_templated_class_type(struct_type, templated_data_type)
 
         if templated_data_type != "":
             class_already_instantiated = is_data_type_struct_object(m_struct_type)
@@ -4232,7 +4203,7 @@ while index < len(Lines):
 
                 args = m_fn.fn_arguments
                 return_type = m_fn.return_type
-                fn_name_mangled = get_mangled_fn_name(class_name, fn_name)
+                fn_name_mangled = NameMangler.mangle_function(class_name, fn_name)
                 parsing_fn_call_type = ParsedFunctionCallType.CLASS_STATIC_FUNCTION_CALL
             else:
                 # let expr = Function()
@@ -5468,11 +5439,11 @@ while index < len(Lines):
         else:
             if is_overloaded:
                 # Get datatype from MemberDataType,
-                # as get_overloaded_mangled_fn_name requires list of strings(data_type).
+                # as NameMangler.mangle_function_with_parameters requires list of strings(data_type).
                 data_types_str_list = [p.data_type for p in parameters]
-                fn_name = get_overloaded_mangled_fn_name(struct_name, fn_name, data_types_str_list)
+                fn_name = NameMangler.mangle_function_with_parameters(struct_name, fn_name, data_types_str_list)
             else:
-                fn_name = get_mangled_fn_name(struct_name, fn_name)
+                fn_name = NameMangler.mangle_function(struct_name, fn_name)
 
             return_type = format_struct_data_type(return_type)
 
@@ -5950,11 +5921,11 @@ while index < len(Lines):
         if defining_fn_for_custom_class:
             if is_overloaded:
                 # Get datatype from MemberDataType,
-                # as get_overloaded_mangled_fn_name requires list of strings(data_type).
+                # as NameMangler.mangle_function_with_parameters requires list of strings(data_type).
                 data_types_str_list = [p.data_type for p in parameters]
-                func_name = get_overloaded_mangled_fn_name(class_fn_defination["class_name"], function_name, data_types_str_list)
+                func_name = NameMangler.mangle_function_with_parameters(class_fn_defination["class_name"], function_name, data_types_str_list)
             else:
-                func_name = get_mangled_fn_name(class_fn_defination["class_name"], function_name)
+                func_name = NameMangler.mangle_function(class_fn_defination["class_name"], function_name)
         
             if temporary_annotations_list:
                 RAISE_ERROR("Annotations are not supported for class functions.")
@@ -6070,7 +6041,7 @@ while index < len(Lines):
                     member_struct_def = get_struct_defination_of_type(member_type)
                     if member_struct_def is not None:
                         if member_struct_def.has_destructor():
-                            destructor_mangled_fn_name = get_mangled_fn_name(member_type, "__del__")
+                            destructor_mangled_fn_name = NameMangler.mangle_function(member_type, "__del__")
                             emit(f"{destructor_mangled_fn_name}(&this->{member.member});\n")
 
         class_fn_defination["end_index"] = ctx.get_generated_lines_count()
@@ -6391,7 +6362,7 @@ while index < len(Lines):
                     # arr[i].__del__()
                     # ANIL_code = f"this.{member_name}[{arrindex}].__del__();\n"
                     # FIMXE: Unimplemented array function call.      
-                    destructor_mangled_fn_name = get_mangled_fn_name(member_type, "__del__")
+                    destructor_mangled_fn_name = NameMangler.mangle_function(member_type, "__del__")
                     des_code = f"{destructor_mangled_fn_name}(&this->{member_name}[{arrindex}]);\n"                                  
                     insert_intermediate_lines(index, [des_code])
                 else:
