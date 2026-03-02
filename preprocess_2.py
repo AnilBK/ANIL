@@ -364,18 +364,20 @@ def escape_quotes(s):
     return result
 
 
+FORMAT_SPECIFIER_MAP = {"char": "c", "int": "d", "float": "f", "size_t": "llu", "String": "s"}
+
 def get_format_specifier(p_type: str) -> str:
-    db = {"char": "c", "int": "d", "float": "f", "size_t": "llu", "String": "s"}
+    m_type = TypeInfo(p_type)
+    array_inner_type = m_type.array_inner_type
+    if array_inner_type:
+        # Extract type of array, if it is one.
+        p_type = array_inner_type
 
-    is_array_type = p_type[0] == "[" and p_type[-1] == "]"
-    if is_array_type:
-        p_type = p_type[1:-1]
-
-    if p_type in db.keys():
-        return db[p_type]
+    if p_type in FORMAT_SPECIFIER_MAP.keys():
+        return FORMAT_SPECIFIER_MAP[p_type]
     else:
         # Custom classes can overload __str__ function.
-        struct_type = TypeInfo(p_type).stripped_name
+        struct_type = m_type.stripped_name
         struct_def = get_struct_defination_of_type(struct_type)
         if struct_def and struct_def.has_member_fn("__str__"):
             return "s"
@@ -2057,6 +2059,13 @@ class BooleanExpressionType:
         self.returns_single_value = False
         #    ^^^^^^^^^^^^^^^^^^^^ if we properly fetched all 'structs_involved' then this can be removed.
 
+
+class ExpressionType(Enum):
+    ASSIGNMENT = 0 # a.b = 10
+    FUNCTION_CALL = 1 # a.b()
+    ADD = 2 # a += b + c + ...
+    SUBTRACT = 3 # a -= 1 ..
+    INDEXED_MEMBER_ACCESS = 4 # a[3] = ..
 
 
 index = 0
@@ -4554,12 +4563,7 @@ while index < len(Lines):
 
             parser.next_token()
 
-            class ExpressionType(Enum):
-                ASSIGNMENT = 0 # a.b = 10
-                FUNCTION_CALL = 1 # a.b()
-                ADD = 2 # a += b + c + ...
-                SUBTRACT = 3 # a -= 1 ..
-                INDEXED_MEMBER_ACCESS = 4 # a[3] = ..
+
             expression_type = ExpressionType.ASSIGNMENT
 
             struct_tk = tk
@@ -6111,7 +6115,7 @@ while index < len(Lines):
 
         should_write_fn_body = True
         is_inside_user_defined_function = False
-    elif parser.current_token() == lexer.Token.RETURN:
+    elif check_token(lexer.Token.RETURN):
         parser.consume_token(lexer.Token.RETURN)
 
         if not parser.has_tokens_remaining():
