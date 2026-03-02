@@ -43,15 +43,17 @@ class PrintNode(StatementNode):
                 braces_open = False
                 
                 # Logic to determine C format specifier (%d, %s, etc.)
-                format_specifier = "d" 
-                return_type = get_type_of_variable(extracted_var_name)
+                format_specifier = "d"
+                
+                symbol = symbol_table.lookup_variable(extracted_var_name)
+                return_type = symbol.data_type if symbol else None
                 
                 if return_type is not None:
                     format_specifier = get_format_specifier(return_type)
                 
                 str_text += f"%{format_specifier}"
 
-                struct_type = data_type_with_struct_stripped(return_type or "")
+                struct_type = TypeInfo(return_type or "").stripped_name
                 struct_def = get_struct_defination_of_type(struct_type)
                 instanced_struct_info = get_instanced_struct(extracted_var_name)
 
@@ -373,7 +375,7 @@ def get_format_specifier(p_type: str) -> str:
         return db[p_type]
     else:
         # Custom classes can overload __str__ function.
-        struct_type = data_type_with_struct_stripped(p_type)
+        struct_type = TypeInfo(p_type).stripped_name
         struct_def = get_struct_defination_of_type(struct_type)
         if struct_def and struct_def.has_member_fn("__str__"):
             return "s"
@@ -382,11 +384,73 @@ def get_format_specifier(p_type: str) -> str:
 # UTILS END
 
 
+class TypeInfo:
+    def __init__(self, raw_type: str):
+        self.raw_type = raw_type.strip() if raw_type else ""
+
+    @property
+    def stripped_name(self) -> str:
+        '''"struct Vector" -> "Vector"'''
+        if self.raw_type.startswith("struct "):
+            return self.raw_type[len("struct ") :]
+        return self.raw_type
+
+    @property
+    def is_array(self) -> bool:
+        return self.raw_type.startswith("[") and self.raw_type.endswith("]")
+
+    @property
+    def array_inner_type(self) -> Optional[str]:
+        return self.raw_type[1:-1] if self.is_array else None
+
+
 class Symbol:
-    def __init__(self, name, data_type, struct_instance = None):
+    def __init__(self, name, data_type, struct_instance=None):
         self.name = name
-        self.data_type = data_type
+        # self.data_type = data_type
+        self.type_info = TypeInfo(data_type)
         self.struct_instance = struct_instance
+
+    @property
+    def data_type(self) -> str:
+        # Return the raw string if we still need it incase.
+        return self.type_info.raw_type
+
+    @property
+    def is_char(self) -> bool:
+        return self.type_info.raw_type == "char"
+
+    @property
+    def is_c_str(self) -> bool:
+        return self.type_info.raw_type == "c_str"
+
+    @property
+    def is_str(self) -> bool:
+        return self.type_info.raw_type in ("str", "char*")
+
+    @property
+    def is_bool(self) -> bool:
+        return self.type_info.raw_type == "bool"
+
+    @property
+    def is_int(self) -> bool:
+        return self.type_info.raw_type == "int"
+
+    @property
+    def is_size_t(self) -> bool:
+        return self.type_info.raw_type == "size_t"
+
+    @property
+    def is_array(self) -> bool:
+        return self.type_info.is_array
+
+    @property
+    def is_string_class(self) -> bool:
+        return (
+            self.struct_instance is not None
+            and self.struct_instance.struct_type == "String"
+        )
+
 
 class Scope:
     def __init__(self, scope_id):
@@ -570,70 +634,6 @@ def REGISTER_VARIABLE(p_var_name: str, p_var_data_type: str, struct_instance = N
         gui_manager.process_variable(p_var_name, p_var_data_type)
 
 
-def get_type_of_variable(p_var_name):
-    var = symbol_table.lookup_variable(p_var_name)
-    if var == None:
-        return None
-    else:
-        return var.data_type
-
-
-def is_variable_of_type(p_var_name, p_type):
-    var_type = get_type_of_variable(p_var_name)
-    if var_type == None:
-        return False
-
-    return var_type == p_type
-
-
-def is_variable(p_var_name) -> bool:
-    return get_type_of_variable(p_var_name) != None
-
-
-def is_variable_char_type(p_var_name):
-    return is_variable_of_type(p_var_name, "char")
-
-
-def is_variable_const_char_ptr(p_var_name):
-    return is_variable_of_type(p_var_name, "c_str")
-
-
-def is_variable_string_class(p_var_name):
-    struct_info = get_instanced_struct(p_var_name)
-    if struct_info != None:
-        return struct_info.struct_type == "String"
-    return False
-
-
-def is_variable_str_type(p_var_name):
-    var_type = get_type_of_variable(p_var_name)
-    if var_type == None:
-        return False
-
-    return var_type == "str" or var_type == "char*"
-
-
-def is_variable_boolean_type(p_var_name):
-    return is_variable_of_type(p_var_name, "bool")
-
-
-def is_variable_int_type(p_var_name):
-    return is_variable_of_type(p_var_name, "int")
-
-
-def is_variable_size_t_type(p_var_name):
-    return is_variable_of_type(p_var_name, "size_t")
-
-
-def is_variable_array_type(p_var_name):
-    var_type = get_type_of_variable(p_var_name)
-    if var_type == None:
-        return False
-
-    is_array_type = var_type[0] == "[" and var_type[-1] == "]"
-    return is_array_type
-
-
 def is_data_type_struct_object(p_data_type):
     struct_info = get_struct_defination_of_type(p_data_type)
     return struct_info != None
@@ -642,13 +642,6 @@ def is_data_type_struct_object(p_data_type):
 def format_struct_data_type(p_data_type):
     if is_data_type_struct_object(p_data_type):
         return f"struct {p_data_type}"
-    return p_data_type
-
-
-def data_type_with_struct_stripped(p_data_type):
-    '''"struct Vector" -> "Vector"'''
-    if p_data_type.startswith("struct "):
-        return p_data_type[len("struct "):]
     return p_data_type
 
 
@@ -1036,7 +1029,7 @@ class Struct:
                 # 'struct DictObject'
 
                 #strip "struct " from base_type
-                base_type = data_type_with_struct_stripped(base_type)
+                base_type = TypeInfo(base_type).stripped_name
                 # 'DictObject'
 
                 instantiate_template(base_type, p_templated_type)
@@ -1062,7 +1055,7 @@ class Struct:
             if type.startswith("Self"):
                 type = type.replace("Self", f"struct {self.name}", 1)
 
-            type = data_type_with_struct_stripped(type)
+            type = TypeInfo(type).stripped_name
 
             struct_member.data_type = type
 
@@ -1762,12 +1755,13 @@ def create_array_enumerator(
 
 
 def create_normal_array_iterator(array_name, current_array_value_variable):
-    # The variable type is in format '[int]'.
-    array_type = get_type_of_variable(array_name)
-    if array_type == None:
-        RAISE_ERROR(f"{array_type} isn't a registered array type.")
+    sym = symbol_table.lookup_variable(array_name)
+    
+    if not sym or not sym.is_array:
+        RAISE_ERROR(f"'{array_name}' isn't a registered array type.")
 
-    array_type = array_type[1:-1]
+    # Automatically extracts 'int' from '[int]'
+    array_type = sym.type_info.array_inner_type
 
     code_generator.emit_normal_array_iterator(
         array_name = array_name,
@@ -1841,17 +1835,22 @@ def _parameters_to_types_str_list(parameters: list) -> list:
 
         if isinstance(ptype, ParameterType):
             if ptype == ParameterType.VARIABLE:
-                strs.append(get_type_of_variable(param.param))
+                var = symbol_table.lookup_variable(param.param)
+                if var is None:
+                    RAISE_ERROR(f"Variable {param.param} not found in symbol table.")
+                strs.append(var.data_type)
             else:
                 strs.append(ptype.to_c_type())
         elif ptype in ("int",):
             strs.append("int")
-        elif ptype in ("struct String", "String"):
-            strs.append("struct String")
-        elif is_data_type_struct_object(data_type_with_struct_stripped(ptype)):
-            strs.append(data_type_with_struct_stripped(ptype))
         else:
-            RAISE_ERROR(f"Unimplemented for {ptype}.")
+            data_type = TypeInfo(ptype).stripped_name
+            if data_type == "String":
+                strs.append("struct String")
+            elif is_data_type_struct_object(data_type):
+                strs.append(data_type)
+            else:
+                RAISE_ERROR(f"Unimplemented for {ptype}.")
 
     return strs
 
@@ -2799,13 +2798,16 @@ while index < len(Lines):
             parser.rollback_checkpoint()
             parser.clear_checkpoint()
         
-        if is_variable(tk):
+        sym = symbol_table.lookup_variable(tk)
+
+        if sym:
             parameter = tk
-            if is_variable_str_type(tk):
+
+            if sym.is_str:
                 parameter_type = ParameterType.STR_TYPE
-            elif is_variable_string_class(tk):
+            elif sym.is_string_class:
                 parameter_type = ParameterType.STRING_CLASS
-            elif is_variable_char_type(tk):
+            elif sym.is_char:
                 parameter_type = ParameterType.CHAR_TYPE
             else:
                 parameter_type = ParameterType.VARIABLE
@@ -3738,21 +3740,22 @@ while index < len(Lines):
         token_type = SpeculativeTokenType.NONE
         exact_type = ""
 
-        if is_numeric_constexpr_dictionary(current_token):
-            parser.next_token()
-            return_value = parse_constexpr_dictionary(current_token)
-            exact_type = "int"
-            token_type = SpeculativeTokenType.NUMERIC_CONSTANT
-        elif is_variable_int_type(current_token):
+        symbol = symbol_table.lookup_variable(current_token)
+        if symbol and symbol.is_int:
             return_value = current_token
             exact_type = "int"
             token_type = SpeculativeTokenType.NUMERIC_VARIABLE
             parser.next_token()
-        elif is_variable_size_t_type(current_token):
+        elif symbol and symbol.is_size_t:
             return_value = current_token
             exact_type = "size_t"
             token_type = SpeculativeTokenType.NUMERIC_VARIABLE
             parser.next_token()
+        elif is_numeric_constexpr_dictionary(current_token):
+            parser.next_token()
+            return_value = parse_constexpr_dictionary(current_token)
+            exact_type = "int"
+            token_type = SpeculativeTokenType.NUMERIC_CONSTANT
         else:
             try:
                 if current_token.isdigit():
@@ -3813,16 +3816,19 @@ while index < len(Lines):
             return_value = f"{string}"
             exact_type = "c_str"
             token_type = SpeculativeTokenType.STRING_LITERAL
-        elif is_variable_char_type(current_token):
-            return_value = current_token
-            exact_type = "char"
-            token_type = SpeculativeTokenType.CHAR_TYPE
-            parser.next_token()
-        elif is_variable_str_type(current_token):
-            return_value = current_token
-            exact_type = "str"
-            token_type = SpeculativeTokenType.STR_TYPE
-            parser.next_token()
+        else:
+            symbol = symbol_table.lookup_variable(current_token)
+            if symbol:
+                if symbol.is_char:
+                    return_value = current_token
+                    exact_type = "char"
+                    token_type = SpeculativeTokenType.CHAR_TYPE
+                    parser.next_token()
+                elif symbol.is_str:
+                    return_value = current_token
+                    exact_type = "str"
+                    token_type = SpeculativeTokenType.STR_TYPE
+                    parser.next_token()
 
         if return_value == None:
             # Nothing is string as of now.
@@ -3838,7 +3844,8 @@ while index < len(Lines):
                     # We must restore tokens to the state before we tried parsing the function.
                     parser.rollback_checkpoint()
                     
-                    if is_variable_string_class(current_token):
+                    symbol = symbol_table.lookup_variable(current_token)
+                    if symbol and symbol.is_string_class:
                         return_value = current_token
                         exact_type = "struct String"
                         token_type = SpeculativeTokenType.STRING_CLASS
@@ -4257,7 +4264,8 @@ while index < len(Lines):
                     # Our Expression parser said this is STRING_CLASS,
                     # doesn't mean we got String object, we might have char* as well.
                     if param_struct_info is None:
-                        if is_variable_str_type(param):
+                        symbol = symbol_table.lookup_variable(param)
+                        if symbol and symbol.is_str:
                             pass
                         else:
                             RAISE_ERROR("Error in conversion between strings for function parameters.")
@@ -4493,15 +4501,17 @@ while index < len(Lines):
                             return_code = f"!{return_code}" 
 
                         expr.return_value = return_code
-                elif is_variable_array_type(var_to_check_against):
-                    return_code = handle_array_in_operator(var_to_check, var_to_check_against)
-                    if negation:
-                        return_code = f"!{return_code}" 
-                    expr.return_value = return_code
-                    # The arrays we have created till now aren't arrays of structs,
-                    # just array of <ints>, hope this code below for that too.
                 else:
-                    RAISE_ERROR(f"Target variable {var_to_check_against} is undefined. It is neither an array nor a struct.")
+                    symbol = symbol_table.lookup_variable(var_to_check_against)
+                    if symbol and symbol.is_array:
+                        return_code = handle_array_in_operator(var_to_check, var_to_check_against)
+                        if negation:
+                            return_code = f"!{return_code}" 
+                        expr.return_value = return_code
+                        # The arrays we have created till now aren't arrays of structs,
+                        # just array of <ints>, hope this code below for that too.
+                    else:
+                        RAISE_ERROR(f"Target variable {var_to_check_against} is undefined. It is neither an array nor a struct.")
             else:
                 return_code = f"{lhs['value']} {operators_as_str} {rhs['value']}"
                 expr.return_value = return_code
@@ -4765,36 +4775,6 @@ while index < len(Lines):
 
                 code_generator.emit_function_call(function_name = fn_name, arguments = params)
             continue
-        elif is_variable_boolean_type(parsed_member):
-            # escape_back_slash = False
-            parser.next_token()
-
-            parser.consume_token(lexer.Token.EQUALS)
-
-            curr_token = parser.get_token()
-            is_true_token = curr_token == lexer.Token.TRUE
-            is_false_token = curr_token == lexer.Token.FALSE
-
-            if is_true_token or is_false_token:
-                value_node = LiteralNode(is_true_token, "bool")
-                reassign_node = AssignmentNode(parsed_member, value_node)
-
-                code_generator.generate_code_for_ast_node(reassign_node)
-            else:
-                RAISE_ERROR("Expected a boolean value.")
-            continue
-        elif is_variable_int_type(parsed_member):
-            # new_scope = random_index
-            parser.next_token()
-
-            parser.consume_token(lexer.Token.EQUALS)
-            value_to_assign = get_integer_expression(f"Expected integer expression to reassign to existing integer named \"{parsed_member}\".")
-
-            value_node = LiteralNode(value_to_assign, "int")
-            reassign_node = AssignmentNode(parsed_member, value_node)
-
-            code_generator.generate_code_for_ast_node(reassign_node)
-            continue
         elif is_class_name(parsed_member):
             # ClassName::StaticFunctionCall()
             # ^^^^^^^^^
@@ -4818,6 +4798,39 @@ while index < len(Lines):
             code = fn_call_parse_info.get_fn_str()
             emit(f"{code};\n")
             continue
+        else:
+            symbol = symbol_table.lookup_variable(parsed_member)
+            if symbol:
+                if symbol.is_bool:
+                    # escape_back_slash = False
+                    parser.next_token()
+
+                    parser.consume_token(lexer.Token.EQUALS)
+
+                    curr_token = parser.get_token()
+                    is_true_token = curr_token == lexer.Token.TRUE
+                    is_false_token = curr_token == lexer.Token.FALSE
+
+                    if is_true_token or is_false_token:
+                        value_node = LiteralNode(is_true_token, "bool")
+                        reassign_node = AssignmentNode(parsed_member, value_node)
+
+                        code_generator.generate_code_for_ast_node(reassign_node)
+                    else:
+                        RAISE_ERROR("Expected a boolean value.")
+                    continue
+                elif symbol.is_int:
+                    # new_scope = random_index
+                    parser.next_token()
+
+                    parser.consume_token(lexer.Token.EQUALS)
+                    value_to_assign = get_integer_expression(f"Expected integer expression to reassign to existing integer named \"{parsed_member}\".")
+
+                    value_node = LiteralNode(value_to_assign, "int")
+                    reassign_node = AssignmentNode(parsed_member, value_node)
+
+                    code_generator.generate_code_for_ast_node(reassign_node)
+                    continue
     else:
         emit("\n")
         continue
@@ -5237,7 +5250,8 @@ while index < len(Lines):
                 array_name, ranged_index_item_variable, current_array_value_variable
             )
         else:
-            if is_variable_const_char_ptr(array_name):
+            symbol = symbol_table.lookup_variable(array_name)
+            if symbol and symbol.is_c_str:
                 create_const_charptr_iterator(array_name, current_array_value_variable)
             elif is_struct:
                 # This generates new ANIL code which creates a for loop(which makes a new scope).
@@ -5323,7 +5337,7 @@ while index < len(Lines):
 
             # parse_data_type returns "struct Vector" with struct keyword.
             # We dont write "struct" for MemberDataTypes, so we need to strip it.
-            struct_member_type = data_type_with_struct_stripped(struct_member_type)
+            struct_member_type = TypeInfo(struct_member_type).stripped_name
 
             pointerless_struct_member_type = struct_member_type
 
@@ -5907,7 +5921,7 @@ while index < len(Lines):
 
             parameters[i].data_type = param_type
 
-            param_type = data_type_with_struct_stripped(param_type)
+            param_type = TypeInfo(param_type).stripped_name
                 
             instance = None
             if is_data_type_struct_object(param_type):
@@ -6188,7 +6202,10 @@ while index < len(Lines):
             return_type = result.return_type
             if result.returns_single_value:
                 if return_type == ParameterType.VARIABLE:
-                    return_type = get_type_of_variable(result.structs_involved[0])
+                    var = symbol_table.lookup_variable(result.structs_involved[0])
+                    if var is None:
+                        RAISE_ERROR(f"Variable {result.structs_involved[0]} not found in symbol table.")
+                    return_type = var.data_type
                 elif return_type == ParameterType.STRING_EXPRESSION:
                     return_type = "struct String"
             code_generator.emit_variable_declaration(variable_type=return_type, variable_name="return_value", initialization_value=result.return_value)
