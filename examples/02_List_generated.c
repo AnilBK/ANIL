@@ -21,13 +21,12 @@ typedef struct ListObject *ListObjectptr;
 
 struct ListObject {
   Variant data;
-  struct ListObject *next;
 };
 
 struct List {
-  struct ListObject *head;
-  struct ListObject *tail;
+  struct ListObject *items;
   int size;
+  int capacity;
 };
 
 void ListObject__init__OVDint(struct ListObject *this, int p_value);
@@ -45,14 +44,12 @@ bool ListObject__eq__OVDstr(struct ListObject *this, char *p_value);
 int Listlen(struct List *this);
 void List__init__(struct List *this);
 void List__del__(struct List *this);
+void List_ensure_capacity(struct List *this, int min_capacity);
 struct ListObject List__getitem__(struct List *this, int index);
 struct ListObject Listpop(struct List *this, int index);
 bool List__contains__OVDint(struct List *this, int p_value);
 bool List__contains__OVDstr(struct List *this, char *p_value);
 void Listprint(struct List *this);
-void List_insert_end(struct List *this, ListObjectptr new_node);
-ListObjectptr Listcreate_int_node(struct List *this, int p_value);
-ListObjectptr Listcreate_string_node(struct List *this, char *p_value);
 void Listappend_int(struct List *this, int p_value);
 void Listappend_str(struct List *this, char *p_value);
 void ListappendOVDint(struct List *this, int p_value);
@@ -64,13 +61,11 @@ void List__reassign__(struct List *this, struct List p_list);
 void ListObject__init__OVDint(struct ListObject *this, int p_value) {
   this->data.data.int_data = p_value;
   this->data.data_type = INT;
-  this->next = NULL;
 }
 
 void ListObject__init__OVDstr(struct ListObject *this, char *p_value) {
   this->data.data.str_data = strdup(p_value);
   this->data.data_type = STRING;
-  this->next = NULL;
 }
 
 bool ListObjectis_int(struct ListObject *this) {
@@ -132,23 +127,37 @@ bool ListObject__eq__OVDstr(struct ListObject *this, char *p_value) {
 int Listlen(struct List *this) { return this->size; }
 
 void List__init__(struct List *this) {
-  this->head = NULL;
-  this->tail = NULL;
+  this->items = NULL;
   this->size = 0;
+  this->capacity = 0;
 }
 
 void List__del__(struct List *this) {
-  struct ListObject *current = this->head;
-  while (current != NULL) {
-    struct ListObject *temp = current;
-    current = current->next;
-
-    ListObject__del__(temp);
-    free(temp);
+  for (int i = 0; i < this->size; i++) {
+    ListObject__del__(&this->items[i]);
   }
-  this->head = NULL;
-  this->tail = NULL;
+  free(this->items);
+  this->items = NULL;
   this->size = 0;
+  this->capacity = 0;
+}
+
+void List_ensure_capacity(struct List *this, int min_capacity) {
+  if (this->capacity >= min_capacity) {
+    return;
+  }
+
+  int new_capacity = this->capacity == 0 ? 4 : this->capacity * 2;
+  if (new_capacity < min_capacity) {
+    new_capacity = min_capacity;
+  }
+
+  this->items = realloc(this->items, new_capacity * sizeof(struct ListObject));
+  if (this->items == NULL) {
+    printf("List: Failed to reallocate array to capacity %d.\n", new_capacity);
+    exit(EXIT_FAILURE);
+  }
+  this->capacity = new_capacity;
 }
 
 struct ListObject List__getitem__(struct List *this, int index) {
@@ -161,15 +170,7 @@ struct ListObject List__getitem__(struct List *this, int index) {
     exit(EXIT_FAILURE);
   }
 
-  struct ListObject *current = this->head;
-  for (int i = 0; i < index; i++) {
-    current = current->next;
-  }
-
-  // Duplicate contents of node and return it.
-  // If we return a reference, then the calling function will call destructor,
-  // which will free the str_data causing free() errors later.
-  return ListObject_duplicate(current);
+  return ListObject_duplicate(&this->items[index]);
 }
 
 struct ListObject Listpop(struct List *this, int index) {
@@ -178,91 +179,62 @@ struct ListObject Listpop(struct List *this, int index) {
     exit(EXIT_FAILURE);
   }
 
+  if (index < 0) {
+    index += this->size;
+  }
+
   if (index < 0 || index >= this->size) {
     printf("Index %d out of bounds(max : %d).\n", index, this->size - 1);
     exit(EXIT_FAILURE);
   }
 
-  struct ListObject *current = this->head;
-  struct ListObject *previous = NULL;
+  // Copy the node to return (transfers ownership of string memory if any).
+  struct ListObject popped_node = this->items[index];
 
-  for (int i = 0; i < index; i++) {
-    previous = current;
-    current = current->next;
-  }
-
-  if (previous == NULL) {
-    // Popping the head.
-    this->head = current->next;
-    if (this->head == NULL) {
-      // The list is now empty.
-      this->tail = NULL;
-    }
-  } else {
-    previous->next = current->next;
-    if (current->next == NULL) {
-      // Popping the tail.
-      this->tail = previous;
-    }
+  for (int i = index; i < this->size - 1; i++) {
+    this->items[i] = this->items[i + 1];
   }
 
   this->size--;
-
-  struct ListObject popped_node = *current;
-  // Don't free current->data.str_data even though current data_type is String.
-  // After copying the *pointer above, popped_node now owns
-  // current->data.str_data. This avoids duplicating current->data.str_data into
-  // popped_node.
-  free(current);
   return popped_node;
 }
 
 bool List__contains__OVDint(struct List *this, int p_value) {
-  struct ListObject *current = this->head;
-  while (current != NULL) {
-    if (current->data.data_type == INT) {
-      int data = current->data.data.int_data;
-
-      if (data == p_value) {
+  for (int i = 0; i < this->size; i++) {
+    if (this->items[i].data.data_type == INT) {
+      if (this->items[i].data.data.int_data == p_value) {
         return true;
       }
     }
-    current = current->next;
   }
   return false;
 }
 
 bool List__contains__OVDstr(struct List *this, char *p_value) {
-  struct ListObject *current = this->head;
-  while (current != NULL) {
-    if (current->data.data_type == STRING) {
-      char *data = current->data.data.str_data;
-
-      if (strcmp(data, p_value) == 0) {
+  for (int i = 0; i < this->size; i++) {
+    if (this->items[i].data.data_type == STRING) {
+      if (strcmp(this->items[i].data.data.str_data, p_value) == 0) {
         return true;
       }
     }
-    current = current->next;
   }
   return false;
 }
 
 void Listprint(struct List *this) {
-  struct ListObject *current = this->head;
   printf("[");
-  while (current != NULL) {
-    if (current->data.data_type == STRING) {
-      printf("\"%s\"", current->data.data.str_data);
+  for (int i = 0; i < this->size; i++) {
+    if (this->items[i].data.data_type == STRING) {
+      printf("\"%s\"", this->items[i].data.data.str_data);
     } else {
-      int data = current->data.data.int_data;
+      int data = this->items[i].data.data.int_data;
 
       //@hook_begin("custom_integer_printer" "int" data)
       printf("%d", data);
       //@hook_end
     }
 
-    current = current->next;
-    if (current != NULL) {
+    if (i < this->size - 1) {
       printf(", ");
     }
   }
@@ -272,69 +244,34 @@ void Listprint(struct List *this) {
 typedef void (*custom_integer_printer)(int);
 void Listprint_hooked_custom_integer_printer(
     struct List *this, custom_integer_printer p_custom_integer_printer) {
-  struct ListObject *current = this->head;
   printf("[");
-  while (current != NULL) {
-    if (current->data.data_type == STRING) {
-      printf("\"%s\"", current->data.data.str_data);
+  for (int i = 0; i < this->size; i++) {
+    if (this->items[i].data.data_type == STRING) {
+      printf("\"%s\"", this->items[i].data.data.str_data);
     } else {
-      int data = current->data.data.int_data;
+      int data = this->items[i].data.data.int_data;
 
       //
       p_custom_integer_printer(data);
     }
 
-    current = current->next;
-    if (current != NULL) {
+    if (i < this->size - 1) {
       printf(", ");
     }
   }
   printf("]\n");
 }
 
-void List_insert_end(struct List *this, ListObjectptr new_node) {
-  this->size++;
-  if (this->head == NULL) {
-    this->head = new_node;
-    this->tail = new_node;
-    return;
-  }
-
-  this->tail->next = new_node;
-  this->tail = new_node;
-}
-
-ListObjectptr Listcreate_int_node(struct List *this, int p_value) {
-  struct ListObject *new_node =
-      (struct ListObject *)malloc(sizeof(struct ListObject));
-  if (new_node == NULL) {
-    printf("List : Failed to allocate a new node of type int for value %d.",
-           p_value);
-    exit(EXIT_FAILURE);
-  }
-  ListObject__init__OVDint(new_node, p_value);
-  return new_node;
-}
-
-ListObjectptr Listcreate_string_node(struct List *this, char *p_value) {
-  struct ListObject *new_node =
-      (struct ListObject *)malloc(sizeof(struct ListObject));
-  if (new_node == NULL) {
-    printf("List : Failed to allocate a new node of type char*.");
-    exit(EXIT_FAILURE);
-  }
-  ListObject__init__OVDstr(new_node, p_value);
-  return new_node;
-}
-
 void Listappend_int(struct List *this, int p_value) {
-  ListObjectptr int_node = Listcreate_int_node(this, p_value);
-  List_insert_end(this, int_node);
+  List_ensure_capacity(this, this->size + 1);
+  ListObject__init__OVDint(&this->items[this->size], p_value);
+  this->size++;
 }
 
 void Listappend_str(struct List *this, char *p_value) {
-  ListObjectptr str_node = Listcreate_string_node(this, p_value);
-  List_insert_end(this, str_node);
+  List_ensure_capacity(this, this->size + 1);
+  ListObject__init__OVDstr(&this->items[this->size], p_value);
+  this->size++;
 }
 
 void ListappendOVDint(struct List *this, int p_value) {
@@ -356,8 +293,9 @@ void ListappendOVDstructListObject(struct List *this,
 }
 
 void List__reassign__(struct List *this, struct List p_list) {
-  int tmp_len_0 = Listlen(&p_list);
-  for (size_t i = 0; i < tmp_len_0; i++) {
+  List_ensure_capacity(this, this->size + p_list.size);
+
+  for (int i = 0; i < p_list.size; i++) {
     struct ListObject item = List__getitem__(&p_list, i);
     ListappendOVDstructListObject(this, item);
     ListObject__del__(&item);
@@ -392,14 +330,14 @@ int main() {
   Listprint(&test_list);
 
   if (List__contains__OVDint(&test_list, 10)) {
-    printf("10 is in the list.\n");
+    printf("10 is in the list.\n\n");
   }
 
   if (!List__contains__OVDint(&test_list, 5)) {
-    printf("5 is not in the list.\n");
+    printf("5 is not in the list.\n\n");
   }
 
-  printf("Duplicating List: ");
+  printf("Duplicating List: \n");
   struct List test_list2;
   List__init__(&test_list2);
   List__reassign__(&test_list2, test_list);
