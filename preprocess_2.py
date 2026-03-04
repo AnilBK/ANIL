@@ -858,6 +858,11 @@ class Struct:
                 return fn.is_overloaded
         return False
 
+    def function_is_static(self, p_fn_name):
+        for fn in self.member_functions:
+            if fn.fn_name == p_fn_name:
+                return fn.is_static()
+        RAISE_ERROR(f"Function {p_fn_name} not found.")
 
     def set_functions_overloaded(self, p_fn_name : str):
         for fn in self.member_functions:
@@ -1299,6 +1304,10 @@ class StructInstance:
             RAISE_ERROR(f"Arguments for function {p_fn_name} not found.")
 
         return fn_args
+
+    def is_fn_static(self, p_fn_name: str) -> bool:
+        StructInfo = self.get_struct_defination()
+        return StructInfo.function_is_static(p_fn_name)
 
     def get_destructor_fn_name(self) -> str:
         return self.get_mangled_function_name("__del__")
@@ -4238,6 +4247,10 @@ while index < len(Lines):
                 fn_name_mangled = global_fn_name
                 parsing_fn_call_type = ParsedFunctionCallType.GLOBAL_FUNCTION_CALL
         else:
+            is_fn_static = struct_instance.is_fn_static(fn_name_unmangled)
+            if is_fn_static:
+                RAISE_ERROR(f"Static function \"{fn_name_unmangled}\" of struct {struct_instance.struct_type} cannot be called with struct instance. Use \"{struct_instance.struct_type}::{fn_name_unmangled}(..)\" to call it.")
+
             provided_types = _parameters_to_types_str_list(parameters)
             
             args = struct_instance.get_fn_arguments(fn_name_unmangled, provided_types)
@@ -4245,6 +4258,7 @@ while index < len(Lines):
             is_return_type_ref_type = struct_instance.is_return_type_ref_type(fn_name_unmangled, provided_types)
             fn_name_mangled = struct_instance.get_mangled_function_name(fn_name_unmangled, provided_types)
             parsing_fn_call_type = ParsedFunctionCallType.STRUCT_FUNCTION_CALL
+
         fn_args = []
         if args is not None:
             fn_args = [arg.data_type for arg in args]

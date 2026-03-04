@@ -31,7 +31,7 @@ char *Stringc_str(struct String *this);
 char *String__str__(struct String *this);
 size_t Stringlen(struct String *this);
 char String__getitem__(struct String *this, int index);
-size_t Stringlength_of_charptr(struct String *this, char *p_string);
+size_t Stringlength_of_charptr(char *p_string);
 void String__init__from_charptr(struct String *this, char *text,
                                 int p_text_length);
 void Stringinit__STATIC__(struct String *this, char *text, int p_text_length);
@@ -102,10 +102,7 @@ char String__getitem__(struct String *this, int index) {
   return *(this->arr + index);
 }
 
-size_t Stringlength_of_charptr(struct String *this, char *p_string) {
-  // This should be some kind of static method.
-  return strlen(p_string);
-}
+size_t Stringlength_of_charptr(char *p_string) { return strlen(p_string); }
 
 void String__init__from_charptr(struct String *this, char *text,
                                 int p_text_length) {
@@ -137,7 +134,7 @@ void Stringinit__STATIC__(struct String *this, char *text, int p_text_length) {
 }
 
 void String__init__OVDstr(struct String *this, char *text) {
-  size_t p_text_length = Stringlength_of_charptr(this, text);
+  size_t p_text_length = Stringlength_of_charptr(text);
   String__init__from_charptr(this, text, p_text_length);
 }
 
@@ -226,7 +223,6 @@ struct Vector_String Stringsplit(struct String *this, char delimeter) {
 
   int index = 0;
   int segment_start = 0;
-
   size_t tmp_len_0 = Stringlen(this);
   for (size_t i = 0; i < tmp_len_0; i++) {
     char character = String__getitem__(this, i);
@@ -305,7 +301,7 @@ void String__reassign__OVDstructString(struct String *this,
 }
 
 void String__reassign__OVDstr(struct String *this, char *pstring) {
-  size_t p_text_length = Stringlength_of_charptr(this, pstring);
+  size_t p_text_length = Stringlength_of_charptr(pstring);
   Stringreassign_internal(this, pstring, p_text_length);
 }
 

@@ -25,8 +25,8 @@ c_function __getitem__(index: int) -> char:
   return *(this->arr + index);
 endc_function
 
+@static
 c_function length_of_charptr(p_string:str) -> size_t:
-  // This should be some kind of static method.
   return strlen(p_string);
 endc_function
 
@@ -58,7 +58,7 @@ c_function init__STATIC__(text: str, p_text_length: int)
 endc_function
 
 function __init__<>(text: str)
-  let p_text_length = this.length_of_charptr(text)
+  let p_text_length = String::length_of_charptr(text)
   this.__init__from_charptr(text, p_text_length)
 endfunction
 
@@ -217,7 +217,7 @@ function __reassign__<>(pstring: String)
 endfunction
 
 function __reassign__<>(pstring: str)
-  let p_text_length = this.length_of_charptr(pstring)
+  let p_text_length = String::length_of_charptr(pstring)
   this.reassign_internal(pstring, p_text_length)
 endfunction
 
