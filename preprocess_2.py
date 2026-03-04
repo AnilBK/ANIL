@@ -1746,7 +1746,7 @@ def create_const_charptr_iterator(array_name, current_array_value_variable):
 
     iterator_var_name = f"{array_name}_iterator_{temp_id}"
 
-    code_generator.emit_const_charptr_iterator(array_name, iterator_var_name)
+    code_generator.emit_const_charptr_iterator(array_name, iterator_var_name, current_array_value_variable)
 
     REGISTER_VARIABLE(current_array_value_variable, "char")
 

@@ -78,7 +78,7 @@ class CCodeGenerator:
             f"    {array_type} {iterator_name} = {self.get_array_element(array_name, 'i')};\n"
         )
 
-    def emit_const_charptr_iterator(self, array_name: str, iterator_name: str):
+    def emit_const_charptr_iterator(self, array_name: str, iterator_name: str, current_array_value_variable: str):
         self.emit(
             f"char *{iterator_name} = {array_name};"
             f"while (*{iterator_name} != '\\0') {{"
