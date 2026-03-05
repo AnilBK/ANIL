@@ -88,9 +88,9 @@ struct List{ListObject *items, int size, int capacity};
 
 namespace List
 
-c_function len() -> int:
-  return this->size;
-endc_function
+function len() -> int:
+  return this.size
+endfunction
 
 c_function __init__()
   this->items = NULL;
@@ -139,12 +139,7 @@ c_function __getitem__(index : int) -> ListObject:
   return ListObject_duplicate(&this->items[index]);
 endc_function    
 
-c_function pop(index : int) -> ListObject:
-  if (this->size == 0) {
-    printf("List is empty. Can't pop element.\n");
-    exit(EXIT_FAILURE);
-  }
-  
+c_function __getitem_ref__(index : int) -> &ListObject:
   if (index < 0){
     index += this->size;
   }
@@ -153,39 +148,44 @@ c_function pop(index : int) -> ListObject:
     printf("Index %d out of bounds(max : %d).\n", index, this->size - 1);
     exit(EXIT_FAILURE);
   }
+    
+  return this->items[index];
+endc_function    
 
-  // Copy the node to return (transfers ownership of string memory if any).
-  struct ListObject popped_node = this->items[index];
-
+c_function _shift_left_from(index : int)
+  // NOTE: The index is assumed to be valid(i.e not negative and within bounds).  
   for (int i = index; i < this->size - 1; i++) {
     this->items[i] = this->items[i + 1];
   }
+endc_function  
 
-  this->size--;
-  return popped_node;
-endc_function
+function pop(index : int) -> ListObject:
+  # Duplicate the item.
+  # We cant return a reference to the popped item, as it will be freed when the list is modified (e.g when a new item is appended or another item is popped).
+  let item = this[index]
 
-c_function __contains__<>(p_value : int) -> bool:
-  for (int i = 0; i < this->size; i++) {
-    if (this->items[i].data.data_type == INT) {
-      if (this->items[i].data.data.int_data == p_value) {
-        return true;
-      }
+  this._shift_left_from(index)
+  this.size -= 1
+  return item
+endfunction
+
+function __contains__<>(p_value : int) -> bool:
+  for ref item in this{
+    if item == p_value{
+      return true
     }
   }
-  return false;
-endc_function
+  return false
+endfunction
 
-c_function __contains__<>(p_value : str) -> bool:
-  for (int i = 0; i < this->size; i++) {
-    if (this->items[i].data.data_type == STRING) {
-      if (strcmp(this->items[i].data.data.str_data, p_value) == 0) {
-        return true;
-      }
+function __contains__<>(p_value : str) -> bool:
+  for ref item in this{
+    if item == p_value{
+      return true
     }
   }
-  return false;
-endc_function
+  return false
+endfunction
 
 c_function print()
   printf("[");
@@ -235,15 +235,12 @@ function append<>(p_value : ListObject)
   }
 endfunction
 
-c_function __reassign__(p_list: List)
-  List_ensure_capacity(this, this->size + p_list.size);
-
-  for (int i = 0; i < p_list.size; i++) {
-    struct ListObject item = List__getitem__(&p_list, i);
-    ListappendOVDstructListObject(this, item);
-    ListObject__del__(&item);
+function __reassign__(p_list : List)
+  this._ensure_capacity(this.size + p_list.size)
+  for ref item in p_list{
+    this.append(item)
   }
-endc_function
+endfunction
 endnamespace
 
 ///*///

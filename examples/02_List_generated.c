@@ -46,6 +46,8 @@ void List__init__(struct List *this);
 void List__del__(struct List *this);
 void List_ensure_capacity(struct List *this, int min_capacity);
 struct ListObject List__getitem__(struct List *this, int index);
+struct ListObject List__getitem_ref__(struct List *this, int index);
+void List_shift_left_from(struct List *this, int index);
 struct ListObject Listpop(struct List *this, int index);
 bool List__contains__OVDint(struct List *this, int p_value);
 bool List__contains__OVDstr(struct List *this, char *p_value);
@@ -173,12 +175,7 @@ struct ListObject List__getitem__(struct List *this, int index) {
   return ListObject_duplicate(&this->items[index]);
 }
 
-struct ListObject Listpop(struct List *this, int index) {
-  if (this->size == 0) {
-    printf("List is empty. Can't pop element.\n");
-    exit(EXIT_FAILURE);
-  }
-
+struct ListObject List__getitem_ref__(struct List *this, int index) {
   if (index < 0) {
     index += this->size;
   }
@@ -188,34 +185,47 @@ struct ListObject Listpop(struct List *this, int index) {
     exit(EXIT_FAILURE);
   }
 
-  // Copy the node to return (transfers ownership of string memory if any).
-  struct ListObject popped_node = this->items[index];
+  return this->items[index];
+}
 
+void List_shift_left_from(struct List *this, int index) {
+  // NOTE: The index is assumed to be valid(i.e not negative and within bounds).
   for (int i = index; i < this->size - 1; i++) {
     this->items[i] = this->items[i + 1];
   }
+}
 
-  this->size--;
-  return popped_node;
+struct ListObject Listpop(struct List *this, int index) {
+  // Duplicate the item.
+  // We cant return a reference to the popped item, as it will be freed when the
+  // list is modified (e.g when a new item is appended or another item is
+  // popped).
+  struct ListObject item = List__getitem__(this, index);
+
+  List_shift_left_from(this, index);
+  this->size -= 1;
+  return item;
 }
 
 bool List__contains__OVDint(struct List *this, int p_value) {
-  for (int i = 0; i < this->size; i++) {
-    if (this->items[i].data.data_type == INT) {
-      if (this->items[i].data.data.int_data == p_value) {
-        return true;
-      }
+  int tmp_len_0 = Listlen(this);
+  for (size_t i = 0; i < tmp_len_0; i++) {
+    struct ListObject item = List__getitem_ref__(this, i);
+
+    if (ListObject__eq__OVDint(&item, p_value)) {
+      return true;
     }
   }
   return false;
 }
 
 bool List__contains__OVDstr(struct List *this, char *p_value) {
-  for (int i = 0; i < this->size; i++) {
-    if (this->items[i].data.data_type == STRING) {
-      if (strcmp(this->items[i].data.data.str_data, p_value) == 0) {
-        return true;
-      }
+  int tmp_len_1 = Listlen(this);
+  for (size_t i = 0; i < tmp_len_1; i++) {
+    struct ListObject item = List__getitem_ref__(this, i);
+
+    if (ListObject__eq__OVDstr(&item, p_value)) {
+      return true;
     }
   }
   return false;
@@ -294,11 +304,10 @@ void ListappendOVDstructListObject(struct List *this,
 
 void List__reassign__(struct List *this, struct List p_list) {
   List_ensure_capacity(this, this->size + p_list.size);
-
-  for (int i = 0; i < p_list.size; i++) {
-    struct ListObject item = List__getitem__(&p_list, i);
+  int tmp_len_2 = Listlen(&p_list);
+  for (size_t i = 0; i < tmp_len_2; i++) {
+    struct ListObject item = List__getitem_ref__(&p_list, i);
     ListappendOVDstructListObject(this, item);
-    ListObject__del__(&item);
   }
 }
 

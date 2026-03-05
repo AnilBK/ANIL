@@ -2241,7 +2241,7 @@ while index < len(Lines):
         
         return start_index, end_index, step_size
 
-    def create_array_iterator_from_struct(array_name, current_array_value_variable):
+    def create_array_iterator_from_struct(array_name, current_array_value_variable, use_reference_semantics_for_loop_variables):
         temp_id = ctx.get_next_temp_id("array_iter")
 
         global for_loop_depth
@@ -2275,6 +2275,9 @@ while index < len(Lines):
 
             l2 = f"for {loop_counter_index} in range({temporary_len_var_name}..={start_index},{step_size}){{\n"
             l3 = f"let {current_array_value_variable} = {array_name}[{loop_counter_index}]\n"
+            if use_reference_semantics_for_loop_variables:
+                l3 = f"let {current_array_value_variable} = {array_name}.__getitem_ref__({loop_counter_index})\n"
+            
             code = [l1, l1a, l2, l3]
         else:
             l1 = ""
@@ -2288,6 +2291,8 @@ while index < len(Lines):
             else:
                 l2 = f"for {loop_counter_index} in range({start_index}..{temporary_len_var_name}){{\n"
             l3 = f"let {current_array_value_variable} = {array_name}[{loop_counter_index}]\n"
+            if use_reference_semantics_for_loop_variables:
+                l3 = f"let {current_array_value_variable} = {array_name}.__getitem_ref__({loop_counter_index})\n"
             code = [l1, l2, l3]
 
         insert_intermediate_lines(index, code)
@@ -5221,6 +5226,13 @@ while index < len(Lines):
 
         parser.consume_token(lexer.Token.FOR)
 
+        use_reference_semantics_for_loop_variables = False
+        if parser.current_token() == lexer.Token.REF:
+            # for ref item in p_list{
+            #     ^^^
+            parser.next_token()
+            use_reference_semantics_for_loop_variables = True
+
         current_array_value_variable = parser.get_token()
         ranged_index_item_variable = None
 
@@ -5288,7 +5300,7 @@ while index < len(Lines):
 
                 decrement_scope()
                 create_array_iterator_from_struct(
-                    array_name, current_array_value_variable
+                    array_name, current_array_value_variable, use_reference_semantics_for_loop_variables
                 )
             elif array_name == "range":
                 # If we have some list named range, then it will be parsed earlier above ^^^.

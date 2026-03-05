@@ -54,6 +54,7 @@ class Token(Enum):
     WHILE = 50
     NOT = 51
     TILDE = 52
+    REF = 53
 
 
 CHARACTER_TOKENS = {
@@ -113,6 +114,7 @@ KEYWORD_TOKENS = {
     "return": Token.RETURN,
     "namespace": Token.NAMESPACE,
     "endnamespace": Token.ENDNAMESPACE,
+    "ref": Token.REF,
 }
 
 
