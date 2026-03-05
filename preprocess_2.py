@@ -6226,6 +6226,10 @@ while index < len(Lines):
                     return_type = var.data_type
                 elif return_type == ParameterType.STRING_EXPRESSION:
                     return_type = "struct String"
+
+            if isinstance(return_type, ParameterType):
+                return_type = return_type.to_c_type()
+
             code_generator.emit_variable_declaration(variable_type=return_type, variable_name="return_value", initialization_value=result.return_value)
 
         # Write destructors.
