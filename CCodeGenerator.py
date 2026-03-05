@@ -82,7 +82,7 @@ class CCodeGenerator:
         self.emit(
             f"char *{iterator_name} = {array_name};"
             f"while (*{iterator_name} != '\\0') {{"
-            f"char current_char = *{iterator_name};"
+            f"char {current_array_value_variable} = *{iterator_name};"
             f"{iterator_name}++;"
         )
 
