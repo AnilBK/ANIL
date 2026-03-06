@@ -953,6 +953,12 @@ class Struct:
             else:
                 RAISE_ERROR(f"{self.name} doesn't have the function name : {p_fn_name}")
 
+    def resolve_template_data_type(self,p_type):
+        if p_type == self.template_defination_variable:
+            return self.templated_data_type or p_type
+        return p_type
+
+
     # Template Instantiation Related Code.     
     
     # Note : To be called by instantiate_template() only.
@@ -1651,9 +1657,7 @@ def parse_global_c_function():
     # This could be performed by updating 'unparsed_function' during template instantiation.
     def resolve_template_data_type(p_type):
         if struct_def != None:
-            if p_type == struct_def.template_defination_variable:
-                if struct_def.templated_data_type:
-                    return struct_def.templated_data_type
+            return struct_def.resolve_template_data_type(p_type)
         return p_type
 
     if defining_fn_for_custom_class:
@@ -5597,9 +5601,7 @@ while index < len(Lines):
 
         def resolve_template_data_type(p_type):
             if StructInfo != None:
-                if p_type == StructInfo.template_defination_variable:
-                    if StructInfo.templated_data_type:
-                        return StructInfo.templated_data_type
+                return StructInfo.resolve_template_data_type(p_type)
             return p_type
 
         for i,param in enumerate(parameters):
@@ -5969,9 +5971,7 @@ while index < len(Lines):
         # This could be performed by updating 'unparsed_function' during template instantiation.
         def resolve_template_data_type(p_type):
             if struct_def != None:
-                if p_type == struct_def.template_defination_variable:
-                    if struct_def.templated_data_type:
-                        return struct_def.templated_data_type
+                return struct_def.resolve_template_data_type(p_type)
             return p_type
 
         # Register the parameters so they can be used inside function body.
