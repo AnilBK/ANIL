@@ -15,6 +15,36 @@ class ExpressionNode(ASTNode):
     pass
 
 
+class MemberAccessNode(ExpressionNode):
+    # a.b
+    def __init__(self, object: str, field: str):
+        self.object = object
+        self.field = field
+
+    def codegen(self) -> str:
+        return f"{self.object}.{self.field}"
+
+
+class IdentifierNode(ExpressionNode):
+    # a
+    def __init__(self, value: str):
+        self.value = value
+
+    def codegen(self) -> str:
+        return self.value
+
+
+class AssignmentExpressionNode(ExpressionNode):
+    # a = c
+    # a.b = c
+    def __init__(self, left: ExpressionNode, right: ExpressionNode):
+        self.left = left
+        self.right = right
+
+    def codegen(self) -> str:
+        return f"{self.left.codegen()} = {self.right.codegen()};"
+
+
 class VariableDeclarationNode(StatementNode):
     def __init__(self, var_name, var_type, initializer: ExpressionNode):
         self.var_name = var_name
