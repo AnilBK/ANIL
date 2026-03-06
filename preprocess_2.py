@@ -2077,6 +2077,11 @@ class ExpressionType(Enum):
     INDEXED_MEMBER_ACCESS = 4 # a[3] = ..
 
 
+parser = Parser.Parser("")
+
+def check_token(token: lexer.Token):
+    return parser.check_token(token)
+
 index = 0
 
 while index < len(Lines):
@@ -2202,10 +2207,8 @@ while index < len(Lines):
 
     Error_Handler.register_current_line_code(Line)
     
-    parser = Parser.Parser(Line)
-
-    def check_token(token: lexer.Token):
-        return parser.check_token(token)
+    parser.reset()
+    parser.load_line(Line)
 
     def parse_slice(parser):
         start_index, step_size, end_index = None, None, None

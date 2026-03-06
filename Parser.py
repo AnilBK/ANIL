@@ -7,6 +7,14 @@ class Parser:
         self.tokens = lexer.get_tokens(line)
         self.checkpoint_stack = []
 
+    def load_line(self, line: str) -> None:
+        self.tokens = lexer.get_tokens(line)
+        self.checkpoint_stack.clear()
+
+    def reset(self) -> None:
+        self.tokens.clear()
+        self.checkpoint_stack.clear()
+
     def has_tokens_remaining(self) -> bool:
         return len(self.tokens) > 0
 
@@ -35,9 +43,9 @@ class Parser:
                 error_msg += "\n" + p_custom_msg
             ErrorHandler().raise_error(error_msg)
         return self.current_token() == token
-    
+
     def check_n_tokens(self, tokens: list) -> bool:
-        return self.tokens[:len(tokens)] == tokens
+        return self.tokens[: len(tokens)] == tokens
 
     def match_token(self, token: lexer.Token, p_custom_msg=None):
         if self.check_token(token, p_custom_msg):
@@ -80,7 +88,7 @@ class Parser:
         self.next_token()
 
         return string
-    
+
     # Checkpoint tokens.
     # While parsing, we consume tokens. If we find that we are parsing wrong thing(say expression),
     # we roll back to the point where, we need to reparse again with different kind of (expression)parser.
@@ -92,6 +100,6 @@ class Parser:
         if self.checkpoint_stack:
             self.tokens.clear()
             self.tokens = self.checkpoint_stack.pop()
-              
+
     def clear_checkpoint(self):
         self.checkpoint_stack.clear()
