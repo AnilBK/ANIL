@@ -2079,8 +2079,72 @@ class ExpressionType(Enum):
 
 parser = Parser.Parser("")
 
+
 def check_token(token: lexer.Token):
     return parser.check_token(token)
+
+
+def handle_hash_directive():
+    # Comments.
+    # Just create a split at the first '#'.
+    parser.consume_token(lexer.Token.HASH)
+
+    if check_token(lexer.Token.INCLUDE):
+        # this has to handle #include<string.h> as well.
+        if is_anil_file:
+            IncludeLines.append(Line)
+        else:
+            emit(Line)
+    else:
+        parts = Line.split("#", 1)
+        line_without_hash = parts[1]
+        comment_node = CommentNode(comment = line_without_hash.strip())
+        code_generator.generate_code_for_ast_node(comment_node)
+
+
+def handle_print():
+    # Skip the "print" token.
+    parser.next_token()
+    
+    parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
+    
+    if parser.check_token(lexer.Token.QUOTE):
+        # print("Value: {x}")
+        actual_str = parser.extract_string_literal()
+    else:
+        # print(x)
+        # We wrap the variable name in braces to reuse the existing PrintNode logic.
+        var_token = parser.get_token()
+        actual_str = "{" + var_token + "}"
+        
+    parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
+
+    print_node = PrintNode(actual_str)
+    emit(print_node.codegen())
+
+
+def handle_const():
+    parser.consume_token(lexer.Token.CONST)
+
+    # const string_var = "Hello World"
+    # compiled to const char* string_var = "Hello World";
+
+    # On other hand, let string_var = "Hello World"
+    # compiled to let string_var = String{"Hello World"};
+
+    string_name = parser.get_token()
+
+    parser.consume_token(lexer.Token.EQUALS)
+
+    if parser.check_token(lexer.Token.QUOTE):
+        # const str = "Hello World"
+        #           ^
+        string = parser.extract_string_literal()
+        code_generator.emit_string_literal_declaration(string_name = string_name, string = string)
+        REGISTER_VARIABLE(string_name, "c_str")
+    else:
+        RAISE_ERROR("Only const strings are supported as of now.")
+
 
 index = 0
 
@@ -4913,59 +4977,11 @@ while index < len(Lines):
         else:
             RAISE_ERROR("UnImplemented Right Curly.")
     elif check_token(lexer.Token.HASH):
-        # Comments.
-        # Just create a split at the first '#'.
-        parser.next_token()
-
-        if check_token(lexer.Token.INCLUDE):
-            # this has to handle #include<string.h> as well.
-            if is_anil_file:
-                IncludeLines.append(Line)
-            else:
-                emit(Line)
-        else:
-            parts = Line.split("#", 1)
-            line_without_hash = parts[1]
-            comment_node = CommentNode(comment = line_without_hash.strip())
-            code_generator.generate_code_for_ast_node(comment_node)
+        handle_hash_directive()
     elif parser.current_token() == "print":
-        parser.next_token()
-        parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
-        
-        if parser.check_token(lexer.Token.QUOTE):
-            # print("Value: {x}")
-            actual_str = parser.extract_string_literal()
-        else:
-            # print(x)
-            # We wrap the variable name in braces to reuse the existing PrintNode logic.
-            var_token = parser.get_token()
-            actual_str = "{" + var_token + "}"
-            
-        parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
-
-        print_node = PrintNode(actual_str)
-        emit(print_node.codegen())
+        handle_print()
     elif check_token(lexer.Token.CONST):
-        parser.consume_token(lexer.Token.CONST)
-
-        # const string_var = "Hello World"
-        # compiled to const char* string_var = "Hello World";
-
-        # On other hand, let string_var = "Hello World"
-        # compiled to let string_var = String{"Hello World"};
-
-        string_name = parser.get_token()
-
-        parser.consume_token(lexer.Token.EQUALS)
-
-        if parser.check_token(lexer.Token.QUOTE):
-            # const str = "Hello World"
-            #           ^
-            string = parser.extract_string_literal()
-            code_generator.emit_string_literal_declaration(string_name = string_name, string = string)
-            REGISTER_VARIABLE(string_name, "c_str")
-        else:
-            RAISE_ERROR("Only const strings are supported as of now.")
+        handle_const()
     elif check_token(lexer.Token.LET):
         parser.consume_token(lexer.Token.LET)
 
