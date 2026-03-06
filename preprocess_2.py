@@ -2146,6 +2146,67 @@ def handle_const():
         RAISE_ERROR("Only const strings are supported as of now.")
 
 
+def handle_constexpr():
+    # constexpr Color = {"Red":255, "Green":200}
+    parser.consume_token(lexer.Token.CONSTEXPR)
+
+    dict_name = parser.get_token()
+    # print(f"Obtained Constexpr Dictionary name = {dict_name}")
+
+    if is_constexpr_dictionary(dict_name):
+        RAISE_ERROR(f'Constexpr dictionary "{dict_name}" already defined.')
+    
+    parser.consume_token(lexer.Token.EQUALS)
+    parser.consume_token(lexer.Token.LEFT_CURLY)
+
+    dict = {}
+    default_key_value = None
+    dict_type = "number"
+
+    while True:
+        # default : ""}
+        # ^^^^^^^
+        key = None
+        if parser.check_token(lexer.Token.QUOTE):
+            key = parser.extract_string_literal()
+        else:
+            key = parser.get_token()
+            if key == "default":
+                if default_key_value is not None:
+                    RAISE_ERROR("Ther can be only one default value")
+            else:
+                RAISE_ERROR("Only default word except strings can be Constexpr Dictionary key format.")
+
+        parser.consume_token(lexer.Token.COLON)
+
+        #constexpr COMPILE_FLAGS = {"Win32" : "-mwindows -lgdi32 -lcomctl32", 
+        #                                     ^
+        value = None
+        if parser.check_token(lexer.Token.QUOTE):
+            value = parser.extract_string_literal()
+            dict_type = "string"
+        else:
+            value = parser.get_token()
+
+        if key == "default":
+            default_key_value = value
+        else:
+            dict[key] = value
+
+        if parser.check_token(lexer.Token.RIGHT_CURLY):
+            parser.next_token()
+            break
+        elif parser.check_token(lexer.Token.COMMA):
+            parser.consume_token(lexer.Token.COMMA)
+        else:
+            RAISE_ERROR("Incorrect Constexpr Dictionary Format.")
+
+    m_dict = ConstexprDictionaryType(dict_name, dict)
+    m_dict.default_key_value = default_key_value
+    m_dict.dict_type = dict_type
+    constexpr_dictionaries.append(m_dict)    
+
+
 index = 0
 
 while index < len(Lines):
@@ -5770,63 +5831,7 @@ while index < len(Lines):
         currently_reading_def_target_class = target_class
     elif check_token(lexer.Token.CONSTEXPR):
         # constexpr Color = {"Red":255, "Green":200}
-        parser.consume_token(lexer.Token.CONSTEXPR)
-
-        dict_name = parser.get_token()
-        # print(f"Obtained Constexpr Dictionary name = {dict_name}")
-
-        parser.consume_token(lexer.Token.EQUALS)
-
-        parser.consume_token(lexer.Token.LEFT_CURLY)
-
-        dict = {}
-        default_key_value = None
-        dict_type = "number"
-
-        while True:
-            # default : ""}
-            # ^^^^^^^
-            key = None
-            if parser.check_token(lexer.Token.QUOTE):
-                key = parser.extract_string_literal()
-            else:
-                key = parser.get_token()
-                if key == "default":
-                    if default_key_value is not None:
-                        RAISE_ERROR("Ther can be only one default value")
-                else:
-                    RAISE_ERROR("Only default word except strings can be Constexpr Dictionary key format.")
-
-            parser.consume_token(lexer.Token.COLON)
-
-            #constexpr COMPILE_FLAGS = {"Win32" : "-mwindows -lgdi32 -lcomctl32", 
-            #                                     ^
-            value = None
-            if parser.check_token(lexer.Token.QUOTE):
-                value = parser.extract_string_literal()
-                dict_type = "string"
-            else:
-                value = parser.get_token()
-
-            if key == "default":
-                default_key_value = value
-            else:
-                dict[key] = value
-
-            if parser.check_token(lexer.Token.RIGHT_CURLY):
-                parser.next_token()
-                break
-            elif parser.check_token(lexer.Token.COMMA):
-                parser.consume_token(lexer.Token.COMMA)
-            else:
-                RAISE_ERROR("Incorrect Constexpr Dictionary Format.")
-
-        if is_constexpr_dictionary(dict_name):
-            RAISE_ERROR(f'Constexpr dictionary "{dict_name}" already defined.')
-        m_dict = ConstexprDictionaryType(dict_name, dict)
-        m_dict.default_key_value = default_key_value
-        m_dict.dict_type = dict_type
-        constexpr_dictionaries.append(m_dict)
+        handle_constexpr()
     elif check_token(lexer.Token.AT):
         # @apply_hook("custom_integer_printer", CustomPrint)
         parser.consume_token(lexer.Token.AT)
