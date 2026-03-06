@@ -2207,6 +2207,59 @@ def handle_constexpr():
     constexpr_dictionaries.append(m_dict)    
 
 
+def handle_at():
+    # @route("/Home")
+    # @apply_hook("custom_integer_printer", CustomPrint)
+    parser.consume_token(lexer.Token.AT)
+
+    if check_token(lexer.Token.APPLY_HOOK):
+        parser.consume_token(lexer.Token.APPLY_HOOK)
+        parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
+        HOOKS_hook_fn_name = parser.extract_string_literal()
+        parser.consume_token(lexer.Token.COMMA)
+        HOOKS_target_fn = parser.get_token()
+        parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
+    else:
+        # @route("/Home")
+        #         ^^^^^^ annotation_argument_value
+        #  ^^^^^ annotation_name
+        # function Home():
+        #          ^^^^ annotated_fn_name
+        annotation_name = parser.get_token()
+
+        annotation_argument_values = []
+
+        # @static
+        # annotation without arguments is also valid.
+        if parser.has_tokens_remaining():
+            parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
+            
+            # @route("GET", "/get_todos")
+            while True:
+                annotation_argument_value = parser.extract_string_literal()
+                annotation_argument_values.append(annotation_argument_value)
+
+                if parser.check_token(lexer.Token.COMMA):
+                    parser.consume_token(lexer.Token.COMMA)
+                elif parser.check_token(lexer.Token.RIGHT_ROUND_BRACKET):
+                    break
+
+            parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
+
+        annotated_item = Annotation(annotation_name, annotation_argument_values, "")
+        # Leave annotated_fn_name empty. Patch it later. 
+        # PATCH_ANNOTATION
+
+        # @default_route("Home")
+        # @route("/Home")
+        # function Home()
+        # Multiple annotations can be stacked line by line, so save it in a stack.
+        temporary_annotations_list.append(annotated_item)
+
+
+
+
+
 index = 0
 
 while index < len(Lines):
@@ -5833,52 +5886,8 @@ while index < len(Lines):
         # constexpr Color = {"Red":255, "Green":200}
         handle_constexpr()
     elif check_token(lexer.Token.AT):
-        # @apply_hook("custom_integer_printer", CustomPrint)
-        parser.consume_token(lexer.Token.AT)
-
-        if check_token(lexer.Token.APPLY_HOOK):
-            parser.consume_token(lexer.Token.APPLY_HOOK)
-            parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
-            HOOKS_hook_fn_name = parser.extract_string_literal()
-            parser.consume_token(lexer.Token.COMMA)
-            HOOKS_target_fn = parser.get_token()
-            parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
-        else:
-            # @route("/Home")
-            #         ^^^^^^ annotation_argument_value
-            #  ^^^^^ annotation_name
-            # function Home():
-            #          ^^^^ annotated_fn_name
-            annotation_name = parser.get_token()
-
-            annotation_argument_values = []
-
-            # @static
-            # annotation without arguments is also valid.
-            if parser.has_tokens_remaining():
-                parser.consume_token(lexer.Token.LEFT_ROUND_BRACKET)
-                
-                # @route("GET", "/get_todos")
-                while True:
-                    annotation_argument_value = parser.extract_string_literal()
-                    annotation_argument_values.append(annotation_argument_value)
-
-                    if parser.check_token(lexer.Token.COMMA):
-                        parser.consume_token(lexer.Token.COMMA)
-                    elif parser.check_token(lexer.Token.RIGHT_ROUND_BRACKET):
-                        break
-
-                parser.consume_token(lexer.Token.RIGHT_ROUND_BRACKET)
-
-            annotated_item = Annotation(annotation_name, annotation_argument_values, "")
-            # Leave annotated_fn_name empty. Patch it later. 
-            # PATCH_ANNOTATION
-
-            # @default_route("Home")
-            # @route("/Home")
-            # function Home()
-            # Multiple annotations can be stacked line by line, so save it in a stack.
-            temporary_annotations_list.append(annotated_item)
+        # @route("/Home")
+        handle_at()
     elif check_token(lexer.Token.FUNCTION):
         # function say()
         # function say(Param1 : type1, Param2 : type2 ... ParamN : typeN)
