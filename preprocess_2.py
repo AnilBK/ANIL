@@ -5522,18 +5522,11 @@ while index < len(Lines):
         is_overloaded_fn = function_declaration["is_overloaded_fn"]
         overload_for_type = function_declaration["overload_for_type"]
 
-        def resolve_template_data_type(p_type):
-            if StructInfo != None:
-                return StructInfo.resolve_template_data_type(p_type)
-            return p_type
-
-        for i,param in enumerate(parameters):
-            # This could be done in parameters parsing loop above,
-            # but we are doing this here so that FUNCTION body is same as C_FUNCTION.
-            parameters[i].data_type = resolve_template_data_type(parameters[i].data_type)
-
-        return_type = resolve_template_data_type(return_type)
-
+        if StructInfo is not None:
+            return_type = StructInfo.resolve_template_data_type(return_type)
+            for param in parameters:
+                param.data_type = StructInfo.resolve_template_data_type(param.data_type)
+                
         code = ""
 
         unmangled_name = fn_name
