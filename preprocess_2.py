@@ -795,38 +795,24 @@ class Struct:
     def fill_with_destructors_recursive(self):
         # Recursively figure out if any of its children has destructors.
         # If true, then we add destructor to their parent as well, if the parent doesn't have a destructor.
+        atleast_one_child_has_destructor = False
+
         for member in self.members:
             member_type = member.data_type
-
             member_struct_def = get_struct_defination_of_type(member_type)
             if member_struct_def is None:
-                # Skip for non struct members.
+                # Skip non-struct members.
                 continue
 
-            if member_struct_def.has_destructor():
-                continue
-
+            # Recursively fill destructors for children.
             member_struct_def.fill_with_destructors_recursive()
 
-        # All it's children have destructors filled if necessary.
-        # Now, if we don't have a destructor, then we need to fill the destructor in ourself.
-        if not self.has_destructor():
-            atleast_one_child_has_destructor = False
+            if member_struct_def.has_destructor():
+                atleast_one_child_has_destructor = True
 
-            for member in self.members:
-                member_type = member.data_type
-
-                member_struct_def = get_struct_defination_of_type(member_type)
-                if member_struct_def is None:
-                    # Skip for non struct members.
-                    continue
-
-                if member_struct_def.has_destructor():
-                    atleast_one_child_has_destructor = True
-                    break
-
-            if atleast_one_child_has_destructor:
-                generate_destructor_for_struct(self.name)
+        # If any child has a destructor and we don't, generate one for this struct.
+        if atleast_one_child_has_destructor and not self.has_destructor():
+            generate_destructor_for_struct(self.name)
 
     def has_member_fn(self, p_fn_name) -> bool:
         return any(fn.fn_name == p_fn_name for fn in self.member_functions)
