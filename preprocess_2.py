@@ -1072,148 +1072,80 @@ class Struct:
 
             struct_member.data_type = type
 
+    def _replace_tags_in_body(self, fn_body: str, replacements: dict) -> str:
+        # Find and replace tags between '@'
+        i = 0
+        while i < len(fn_body):
+            start_idx = fn_body.find("@", i)
+            if start_idx == -1:
+                break
 
+            if fn_body.startswith("@TYPEOF(", start_idx):
+                #@TYPEOF(table) -> struct DictObject_int
+                #        ^^^^^^   var_name
+                #^                start_pos
+                #             ^   end_pos
+                start_pos = start_idx
+                end_pos = fn_body.find(")", start_idx)
 
-    def resolve_tags(self, p_templated_type: str) -> None:
+                if end_pos == -1:
+                    RAISE_ERROR(f"Couldn't find closing ')' for @TYPEOF( tag in function body.")
+
+                var_name = fn_body[start_pos + len("@TYPEOF(") : end_pos]
+
+                member_type = self.get_type_of_member(var_name)
+                if member_type == None:
+                    RAISE_ERROR(f"Struct doesnt have member named {var_name} to replace inside function body.")
+                else:
+                    # Strip away pointers.
+                    # (We could add another @tag@ to get full data type with pointers)
+                    ptr_less_data_type = format_struct_data_type(member_type.replace("*", ""))
+
+                    # Replace only in the region between start_pos and end_pos
+                    fn_body = fn_body[:start_pos] + ptr_less_data_type + fn_body[end_pos + 1:]
+                    i = start_pos + len(ptr_less_data_type)
+                    continue
+
+            end_idx = fn_body.find("@", start_idx + 1)
+            if end_idx == -1:
+                break
+
+            # Extract the tag between the '@' symbols
+            tag = fn_body[start_idx + 1:end_idx]
+            
+            # Check if the tag is in the dictionary, then replace it
+            if tag in replacements:
+                replacement_value = replacements[tag]
+                # Replace only in the region between start_idx and end_idx
+                fn_body = fn_body[:start_idx] + replacement_value + fn_body[end_idx + 1:]
+                i = start_idx + len(replacement_value)
+            else:
+                i = end_idx + 1
+        return fn_body
+
+    def resolve_tags(self, templated_type: str) -> None:
         # if we want to use template type in fn body, we use following syntax.
         # @TEMPLATED_DATA_TYPE@
         # ^^^^^^^^^^^^^^^^^^^^^  These are tags.
-
-        tag_replacements = {
-            "TEMPLATED_DATA_TYPE": format_struct_data_type(p_templated_type),
-            "PATCH_TEMPLATED_DATA_TYPE": p_templated_type,
+        replacements = {
+            "TEMPLATED_DATA_TYPE": format_struct_data_type(templated_type),
+            "PATCH_TEMPLATED_DATA_TYPE": templated_type,
             "SELF": f"struct {self.name}"
         }
+        for fn in self.member_functions:
+            fn.fn_body = self._replace_tags_in_body(fn.fn_body, replacements)
 
-        for idx,fn in enumerate(self.member_functions):
-            fn_body = fn.fn_body
-
-            # Find and replace tags between '@'
-            i = 0
-            modified = False
-            while i < len(fn_body):
-                start_idx = fn_body.find("@", i)
-                if start_idx == -1:
-                    break
-
-                if fn_body.startswith("@TYPEOF(", start_idx):
-                    #@TYPEOF(table) -> struct DictObject_int
-                    #        ^^^^^^   var_name
-                    #^                start_pos
-                    #             ^   end_pos
-                    start_pos = start_idx
-                    end_pos = fn_body.find(")", start_idx)
-
-                    if end_pos == -1:
-                        RAISE_ERROR(f"Couldn't find closing ')' for @TYPEOF( tag in function body.")
-
-                    var_name = fn_body[start_pos + len("@TYPEOF(") : end_pos]
-
-                    member_type = self.get_type_of_member(var_name)
-                    if member_type == None:
-                        RAISE_ERROR(f"Struct doesnt have member named {var_name} to replace inside function body.")
-                    else:
-                        # Strip away pointers.
-                        # (We could add another @tag@ to get full data type with pointers)
-                        ptr_less_data_type = format_struct_data_type(member_type.replace("*", ""))
-
-                        # Replace only in the region between start_pos and end_pos
-                        fn_body = fn_body[:start_pos] + ptr_less_data_type + fn_body[end_pos + 1:]
-                        i = start_pos + len(ptr_less_data_type)
-                        modified = True
-                        continue
-
-                end_idx = fn_body.find("@", start_idx + 1)
-                if end_idx == -1:
-                    break
-
-                # Extract the tag between the '@' symbols
-                tag = fn_body[start_idx + 1:end_idx]
-                
-                # Check if the tag is in the dictionary, then replace it
-                if tag in tag_replacements:
-                    replacement_value = tag_replacements[tag]
-                    # Replace only in the region between start_idx and end_idx
-                    fn_body = fn_body[:start_idx] + replacement_value + fn_body[end_idx + 1:]
-                    i = start_idx + len(replacement_value)
-                    modified = True
-                else:
-                    i = end_idx + 1
-            if modified:
-                self.member_functions[idx].fn_body = fn_body
-
-
-
-    def resolve_tags_in_unparsed_functions(self, p_templated_type: str) -> None:
+    def resolve_tags_in_unparsed_functions(self, templated_type: str) -> None:
         # if we want to use template type in fn body, we use following syntax.
         # @TEMPLATED_DATA_TYPE@
         # ^^^^^^^^^^^^^^^^^^^^^  These are tags.
-
-        # TODO: We probably dont want to perform these replacements for normal functions, just c_functions.
-
-        tag_replacements = {
-            "TEMPLATED_DATA_TYPE": format_struct_data_type(p_templated_type),
-            "PATCH_TEMPLATED_DATA_TYPE": p_templated_type,
+        replacements = {
+            "TEMPLATED_DATA_TYPE": format_struct_data_type(templated_type),
+            "PATCH_TEMPLATED_DATA_TYPE": templated_type,
             "SELF": f"struct {self.name}"
         }
-
-        for idx,fn in enumerate(self.unparsed_functions):
-            fn_body = fn
-
-            # Find and replace tags between '@'
-            i = 0
-            modified = False
-            while i < len(fn_body):
-                start_idx = fn_body.find("@", i)
-                if start_idx == -1:
-                    break
-
-                if fn_body.startswith("@TYPEOF(", start_idx):
-                    #@TYPEOF(table) -> struct DictObject_int
-                    #        ^^^^^^   var_name
-                    #^                start_pos
-                    #             ^   end_pos
-                    start_pos = start_idx
-                    end_pos = fn_body.find(")", start_idx)
-
-                    if end_pos == -1:
-                        RAISE_ERROR(f"Couldn't find closing ')' for @TYPEOF( tag in function body.")
-
-                    var_name = fn_body[start_pos + len("@TYPEOF(") : end_pos]
-
-                    member_type = self.get_type_of_member(var_name)
-                    if member_type == None:
-                        RAISE_ERROR(f"Struct doesnt have member named {var_name} to replace inside function body.")
-                    else:
-                        # Strip away pointers.
-                        # (We could add another @tag@ to get full data type with pointers)
-                        ptr_less_data_type = format_struct_data_type(member_type.replace("*", ""))
-
-                        # Replace only in the region between start_pos and end_pos
-                        fn_body = fn_body[:start_pos] + ptr_less_data_type + fn_body[end_pos + 1:]
-                        i = start_pos + len(ptr_less_data_type)
-                        modified = True
-                        continue
-
-                end_idx = fn_body.find("@", start_idx + 1)
-                if end_idx == -1:
-                    break
-
-                # Extract the tag between the '@' symbols
-                tag = fn_body[start_idx + 1:end_idx]
-                
-                # Check if the tag is in the dictionary, then replace it
-                if tag in tag_replacements:
-                    replacement_value = tag_replacements[tag]
-                    # Replace only in the region between start_idx and end_idx
-                    fn_body = fn_body[:start_idx] + replacement_value + fn_body[end_idx + 1:]
-                    i = start_idx + len(replacement_value)
-                    modified = True
-                else:
-                    i = end_idx + 1
-            if modified:
-                self.unparsed_functions[idx] = fn_body
-
+        for fn in self.unparsed_functions:
+            fn = self._replace_tags_in_body(fn, replacements)
 
     def resolve_templated_member_fns(self, p_templated_type: str) -> None:
         for idx,fn in enumerate(self.member_functions):
