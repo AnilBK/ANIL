@@ -162,5 +162,9 @@ endc_function
 c_function DrawText(text : str, x : int, y : int, font_size : int, color : rlColor)
   DrawText(text, x, y, font_size, color.color);
 endc_function
+
+c_function GetFrameTime() -> float:
+  return GetFrameTime();
+endc_function
 endnamespace
 ///*///

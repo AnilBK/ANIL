@@ -137,14 +137,16 @@ void raylibDrawPolyLinesEx(struct raylib *this, struct rlVector2 center,
                            float lineThick, struct rlColor color);
 void raylibDrawText(struct raylib *this, char *text, int x, int y,
                     int font_size, struct rlColor color);
+float raylibGetFrameTime(struct raylib *this);
 
 void Random__init__(struct Random *this);
 int Randomrandrange(struct Random *this, int upper_limit);
 
 char *Stringc_str(struct String *this);
+char *String__str__(struct String *this);
 size_t Stringlen(struct String *this);
 char String__getitem__(struct String *this, int index);
-size_t Stringlength_of_charptr(struct String *this, char *p_string);
+size_t Stringlength_of_charptr(char *p_string);
 void String__init__from_charptr(struct String *this, char *text,
                                 int p_text_length);
 void Stringinit__STATIC__(struct String *this, char *text, int p_text_length);
@@ -409,6 +411,8 @@ void raylibDrawText(struct raylib *this, char *text, int x, int y,
   DrawText(text, x, y, font_size, color.color);
 }
 
+float raylibGetFrameTime(struct raylib *this) { return GetFrameTime(); }
+
 void Random__init__(struct Random *this) { srand(time(0)); }
 
 int Randomrandrange(struct Random *this, int upper_limit) {
@@ -417,16 +421,15 @@ int Randomrandrange(struct Random *this, int upper_limit) {
 
 char *Stringc_str(struct String *this) { return this->arr; }
 
+char *String__str__(struct String *this) { return this->arr; }
+
 size_t Stringlen(struct String *this) { return this->length; }
 
 char String__getitem__(struct String *this, int index) {
   return *(this->arr + index);
 }
 
-size_t Stringlength_of_charptr(struct String *this, char *p_string) {
-  // This should be some kind of static method.
-  return strlen(p_string);
-}
+size_t Stringlength_of_charptr(char *p_string) { return strlen(p_string); }
 
 void String__init__from_charptr(struct String *this, char *text,
                                 int p_text_length) {
@@ -458,7 +461,7 @@ void Stringinit__STATIC__(struct String *this, char *text, int p_text_length) {
 }
 
 void String__init__OVDstr(struct String *this, char *text) {
-  size_t p_text_length = Stringlength_of_charptr(this, text);
+  size_t p_text_length = Stringlength_of_charptr(text);
   String__init__from_charptr(this, text, p_text_length);
 }
 
@@ -547,7 +550,6 @@ struct Vector_String Stringsplit(struct String *this, char delimeter) {
 
   int index = 0;
   int segment_start = 0;
-
   size_t tmp_len_0 = Stringlen(this);
   for (size_t i = 0; i < tmp_len_0; i++) {
     char character = String__getitem__(this, i);
@@ -626,7 +628,7 @@ void String__reassign__OVDstructString(struct String *this,
 }
 
 void String__reassign__OVDstr(struct String *this, char *pstring) {
-  size_t p_text_length = Stringlength_of_charptr(this, pstring);
+  size_t p_text_length = Stringlength_of_charptr(pstring);
   Stringreassign_internal(this, pstring, p_text_length);
 }
 
@@ -641,8 +643,6 @@ struct String Stringfrom(int number) {
   }
 
   if ((size_t)len >= sizeof(buf)) {
-    // truncated output
-    // either treat as error or clamp
     String__init__from_charptr(&text, buf, sizeof(buf) - 1);
     return text;
   }
@@ -782,14 +782,16 @@ void Snakemove_body(struct Snake *this) {
 
 bool Snakeis_out_of_bounds(struct Snake *this, int GRID_WIDTH,
                            int GRID_HEIGHT) {
+  int x = rlVector2get_x_int(&this->position);
+  int y = rlVector2get_y_int(&this->position);
 
-  if (rlVector2get_x_int(&this->position) < 0) {
+  if (x < 0) {
     return true;
-  } else if (rlVector2get_x_int(&this->position) >= GRID_WIDTH) {
+  } else if (x >= GRID_WIDTH) {
     return true;
-  } else if (rlVector2get_y_int(&this->position) < 0) {
+  } else if (y < 0) {
     return true;
-  } else if (rlVector2get_y_int(&this->position) >= GRID_HEIGHT) {
+  } else if (y >= GRID_HEIGHT) {
     return true;
   }
   return false;
@@ -1210,10 +1212,10 @@ void Vector_rlVector2print(struct Vector_rlVector2 *this) {
   printf("Unknown Format Specifier for type struct rlVector2.\n");
 }
 
+struct Random rng;
+
 struct rlVector2 new_food_spawn(struct Snake snake, int grid_width,
                                 int grid_height) {
-  struct Random rng;
-  Random__init__(&rng);
 
   while (true) {
     int new_x = Randomrandrange(&rng, grid_width);
@@ -1234,6 +1236,9 @@ struct rlVector2 new_food_spawn(struct Snake snake, int grid_width,
 
 int main() {
 
+  // Global Variables Initialization.
+  Random__init__(&rng);
+
   struct rlColor rlRED;
   rlColor__init__(&rlRED, 230, 41, 55, 255);
   struct rlColor rlGREEN;
@@ -1248,21 +1253,19 @@ int main() {
   int rlKEY_RIGHT = 262;
   int rlKEY_LEFT = 263;
   int rlKEY_R = 82;
-
   int CELL_SIZE = 20;
   int GRID_WIDTH = 25;
   int GRID_HEIGHT = 25;
-
   int w_x = GRID_WIDTH * CELL_SIZE;
   int w_y = GRID_HEIGHT * CELL_SIZE;
-
   int mid_x = GRID_WIDTH / 2;
   int mid_y = GRID_HEIGHT / 2;
-
   struct rlVector2 pos;
   rlVector2__init__OVDintint(&pos, mid_x, mid_y);
   struct rlVector2 speed;
   rlVector2__init__OVDintint(&speed, 1, 0);
+  struct rlVector2 next_speed;
+  rlVector2__init__OVDintint(&next_speed, 1, 0);
 
   struct Snake snake;
   Snake__init__(&snake, pos, speed);
@@ -1274,28 +1277,117 @@ int main() {
   Food__init__(&food, new_food_pos);
 
   bool gameOver = false;
-
   int score = 0;
   struct String scoreText;
   String__init__OVDstrint(&scoreText, "Score: 0", 8);
 
   struct raylib rl;
   raylibInitWindow(&rl, w_x, w_y, "Snake Game");
-  raylibSetTargetFPS(&rl, 10);
+  raylibSetTargetFPS(&rl, 60);
+
+  float move_timer = 0.0f;
+  float move_delay = 0.1f;
+  bool input_handled_this_tick = false;
 
   while (raylibWindowShouldOpen(&rl)) {
     raylibBeginDrawing(&rl);
+    raylibClearBackground(&rl, rlBLACK);
+
+    float frame_time = raylibGetFrameTime(&rl);
+
+    if (gameOver == false) {
+      // Buffer ONLY 1 valid command per internal clock tick (stops immediate
+      // self-reverse suicide input mapping)
+
+      if (input_handled_this_tick == false) {
+
+        if (raylibIsKeyPressed(&rl, rlKEY_UP)) {
+
+          if (rlVector2get_y(&snake.speed) == 0) {
+            rlVector2set_int(&next_speed, 0, -1);
+          }
+          input_handled_this_tick = true;
+        } else if (raylibIsKeyPressed(&rl, rlKEY_DOWN)) {
+
+          if (rlVector2get_y(&snake.speed) == 0) {
+            rlVector2set_int(&next_speed, 0, 1);
+          }
+          input_handled_this_tick = true;
+        } else if (raylibIsKeyPressed(&rl, rlKEY_LEFT)) {
+
+          if (rlVector2get_x(&snake.speed) == 0) {
+            rlVector2set_int(&next_speed, -1, 0);
+          }
+          input_handled_this_tick = true;
+        } else if (raylibIsKeyPressed(&rl, rlKEY_RIGHT)) {
+
+          if (rlVector2get_x(&snake.speed) == 0) {
+            rlVector2set_int(&next_speed, 1, 0);
+          }
+          input_handled_this_tick = true;
+        }
+      }
+
+      move_timer += frame_time;
+
+      if (move_timer >= move_delay) {
+        move_timer -= move_delay;
+        input_handled_this_tick = false;
+        rlVector2__reassign__(&snake.speed, next_speed);
+
+        struct rlVector2 tail_pos =
+            Vector_rlVector2__getitem__(&snake.body, -1);
+        Snakemove_body(&snake);
+
+        // Update head position.
+        rlVector2translate_i(&snake.position, snake.speed);
+        Vector_rlVector2__setitem__(&snake.body, 0, snake.position);
+
+        if (Snakeis_out_of_bounds(&snake, GRID_WIDTH, GRID_HEIGHT)) {
+          gameOver = true;
+        } else if (Snakeis_touching_itself(&snake)) {
+          gameOver = true;
+        } else if (Snakeate_food(&snake, food)) {
+          Vector_rlVector2push(&snake.body, tail_pos);
+
+          rlVector2__reassign__(&food.position,
+                                new_food_spawn(snake, GRID_WIDTH, GRID_HEIGHT));
+
+          score = score + 1;
+          Stringformat(&scoreText, "Score: %d", score);
+        }
+      }
+    }
+
+    // Always keep drawing visual environment (allows seeing exactly where and
+    // how player died instead of wiping screen clear)
+
+    // Draw food.
+    int fx = rlVector2get_x_int(&food.position) * CELL_SIZE;
+    int fy = rlVector2get_y_int(&food.position) * CELL_SIZE;
+    raylibDrawRectangle(&rl, fx, fy, CELL_SIZE, CELL_SIZE, rlRED);
+
+    // Draw snake
+    size_t tmp_len_2 = Vector_rlVector2len(&snake.body);
+    for (size_t i = 0; i < tmp_len_2; i++) {
+      struct rlVector2 body = Vector_rlVector2__getitem__(&snake.body, i);
+      int x = rlVector2get_x_int(&body) * CELL_SIZE;
+      int y = rlVector2get_y_int(&body) * CELL_SIZE;
+      raylibDrawRectangle(&rl, x, y, CELL_SIZE, CELL_SIZE, rlGREEN);
+    }
+
+    raylibDrawText(&rl, Stringc_str(&scoreText), 10, 20, 20, rlRED);
 
     if (gameOver) {
-      raylibClearBackground(&rl, rlRAYWHITE);
-      raylibDrawText(&rl, "Game Over! Press R to Restart", 100, 200, 20, rlRED);
+      raylibDrawText(&rl, "Game Over! Press R to Restart", 100, 200, 20,
+                     rlRAYWHITE);
 
       if (raylibIsKeyPressed(&rl, rlKEY_R)) {
         gameOver = false;
-
         rlVector2set_int(&snake.speed, 1, 0);
-        rlVector2set_int(&snake.position, mid_x, mid_y);
+        rlVector2set_int(&next_speed, 1, 0);
 
+        rlVector2set_int(&snake.position, mid_x, mid_y);
         Vector_rlVector2clear(&snake.body);
         Vector_rlVector2push(&snake.body, snake.position);
 
@@ -1304,88 +1396,10 @@ int main() {
 
         score = 0;
         String__reassign__OVDstr(&scoreText, "Score: 0");
-      }
-    } else {
-      raylibClearBackground(&rl, rlBLACK);
-
-      // Update game.
-
-      if (raylibIsKeyPressed(&rl, rlKEY_UP)) {
-
-        if (rlVector2get_y(&snake.speed) == 0) {
-          rlVector2set_int(&snake.speed, 0, -1);
-        }
-      }
-
-      if (raylibIsKeyPressed(&rl, rlKEY_DOWN)) {
-
-        if (rlVector2get_y(&snake.speed) == 0) {
-          rlVector2set_int(&snake.speed, 0, 1);
-        }
-      }
-
-      if (raylibIsKeyPressed(&rl, rlKEY_LEFT)) {
-
-        if (rlVector2get_x(&snake.speed) == 0) {
-          rlVector2set_int(&snake.speed, -1, 0);
-        }
-      }
-
-      if (raylibIsKeyPressed(&rl, rlKEY_RIGHT)) {
-
-        if (rlVector2get_x(&snake.speed) == 0) {
-          rlVector2set_int(&snake.speed, 1, 0);
-        }
-      }
-
-      Snakemove_body(&snake);
-
-      // Update head position.
-      rlVector2translate_i(&snake.position, snake.speed);
-      Vector_rlVector2__setitem__(&snake.body, 0, snake.position);
-
-      // Check for wall collisions.
-
-      if (Snakeis_out_of_bounds(&snake, GRID_WIDTH, GRID_HEIGHT)) {
-        gameOver = true;
-      }
-
-      if (Snakeis_touching_itself(&snake)) {
-        gameOver = true;
-      }
-
-      if (Snakeate_food(&snake, food)) {
-        struct rlVector2 last_pos =
-            Vector_rlVector2__getitem__(&snake.body, -1);
-        rlVector2__add__(&last_pos, snake.speed);
-
-        Vector_rlVector2push(&snake.body, last_pos);
-
-        rlVector2__reassign__(&food.position,
-                              new_food_spawn(snake, GRID_WIDTH, GRID_HEIGHT));
-
-        score = score + 1;
-        Stringformat(&scoreText, "Score: %d", score);
-      }
-
-      // Draw food.
-      int fx = rlVector2get_x_int(&food.position) * CELL_SIZE;
-      int fy = rlVector2get_y_int(&food.position) * CELL_SIZE;
-
-      raylibDrawRectangle(&rl, fx, fy, CELL_SIZE, CELL_SIZE, rlRED);
-
-      // Draw snake
-      size_t tmp_len_2 = Vector_rlVector2len(&snake.body);
-      for (size_t i = 0; i < tmp_len_2; i++) {
-        struct rlVector2 body = Vector_rlVector2__getitem__(&snake.body, i);
-        int x = rlVector2get_x_int(&body) * CELL_SIZE;
-        int y = rlVector2get_y_int(&body) * CELL_SIZE;
-
-        raylibDrawRectangle(&rl, x, y, CELL_SIZE, CELL_SIZE, rlGREEN);
+        move_timer = 0.0;
+        input_handled_this_tick = false;
       }
     }
-
-    raylibDrawText(&rl, Stringc_str(&scoreText), 10, 20, 20, rlRED);
 
     raylibEndDrawing(&rl);
   }

@@ -15,6 +15,8 @@
 import raylib
 import Random
 
+let rng = Random{};
+
 struct Food{rlVector2 position};
 namespace Food
 function __init__(p_position : rlVector2)
@@ -53,13 +55,16 @@ function move_body()
 endfunction
 
 function is_out_of_bounds(GRID_WIDTH : int, GRID_HEIGHT : int) -> bool:
-    if this.position.get_x_int() < 0{
+    let x = this.position.get_x_int()
+    let y = this.position.get_y_int()
+
+    if x < 0{
         return true
-    } else if this.position.get_x_int() >= GRID_WIDTH{
+    } else if x >= GRID_WIDTH{
         return true
-    } else if this.position.get_y_int() < 0{
+    } else if y < 0{
         return true
-    } else if this.position.get_y_int() >= GRID_HEIGHT{
+    } else if y >= GRID_HEIGHT{
         return true
     }
     return false
@@ -67,8 +72,6 @@ endfunction
 endnamespace
 
 function new_food_spawn(snake : Snake, grid_width : int, grid_height : int) -> rlVector2:
-    let rng = Random{};
-    
     while true {
         let new_x = rng.randrange(grid_width)
         let new_y = rng.randrange(grid_height)
@@ -116,6 +119,7 @@ int main() {
 
   let pos = rlVector2{mid_x, mid_y};
   let speed = rlVector2{1, 0};
+  let next_speed = rlVector2{1, 0};
 
   let snake = Snake{pos, speed};
   snake.body.push(pos)
@@ -130,20 +134,105 @@ int main() {
 
   let rl = raylib{};
   rl.InitWindow(w_x, w_y, "Snake Game")
-  rl.SetTargetFPS(10)
+  rl.SetTargetFPS(60)
+
+  let move_timer : float = 0.0
+  let move_delay : float = 0.1
+  let input_handled_this_tick : bool = False
 
   while rl.WindowShouldOpen(){
     rl.BeginDrawing()
+    rl.ClearBackground(rlBLACK)
+
+    let frame_time : float = rl.GetFrameTime()
+
+    if gameOver == false{
+        // Buffer ONLY 1 valid command per internal clock tick (stops immediate
+        // self-reverse suicide input mapping)
+        if input_handled_this_tick == false{
+            if rl.IsKeyPressed(rlKEY_UP){
+                if snake.speed.get_y() == 0{
+                    next_speed.set_int(0, -1)
+                }
+                input_handled_this_tick = True
+            } else if rl.IsKeyPressed(rlKEY_DOWN){
+                if snake.speed.get_y() == 0{
+                    next_speed.set_int(0, 1)
+                }
+                input_handled_this_tick = True
+            } else if rl.IsKeyPressed(rlKEY_LEFT){
+                if snake.speed.get_x() == 0{
+                    next_speed.set_int(-1, 0)
+                }
+                input_handled_this_tick = True
+            } else if rl.IsKeyPressed(rlKEY_RIGHT){
+                if snake.speed.get_x() == 0{
+                    next_speed.set_int(1, 0)
+                }
+                input_handled_this_tick = True
+            }
+        }
+
+        move_timer += frame_time;
+
+        if move_timer >= move_delay{
+            move_timer -= move_delay;
+            input_handled_this_tick = False
+
+            snake.speed = next_speed
+
+            let tail_pos = snake.body[-1]
+            snake.move_body()
+
+            # Update head position.
+            snake.position.translate_i(snake.speed)
+            snake.body[0] = snake.position
+
+            if snake.is_out_of_bounds(GRID_WIDTH, GRID_HEIGHT){
+                gameOver = True
+            } else if snake.is_touching_itself(){
+                gameOver = True
+            } else if snake.ate_food(food){
+                snake.body.push(tail_pos)
+
+                food.position = new_food_spawn(snake, GRID_WIDTH, GRID_HEIGHT)
+
+                score = score + 1
+                scoreText.format("Score: %d", score)
+            }
+        }
+
+    }
+
+    // Always keep drawing visual environment (allows seeing exactly where and
+    // how player died instead of wiping screen clear)
+
+    // Draw food.
+    let fx : int = food.position.get_x_int() * CELL_SIZE
+    let fy : int = food.position.get_y_int() * CELL_SIZE
+
+    rl.DrawRectangle(fx, fy, CELL_SIZE, CELL_SIZE, rlRED)
+    
+    // Draw snake
+    for body in snake.body{
+        let x : int = body.get_x_int() * CELL_SIZE
+        let y : int = body.get_y_int() * CELL_SIZE
+
+        rl.DrawRectangle(x, y, CELL_SIZE, CELL_SIZE, rlGREEN)
+    }
+
+    rl.DrawText(scoreText, 10, 20, 20, rlRED)
 
     if gameOver{
-        rl.ClearBackground(rlRAYWHITE)
-        rl.DrawText("Game Over! Press R to Restart", 100, 200, 20, rlRED)
+        rl.DrawText("Game Over! Press R to Restart", 100, 200, 20, rlRAYWHITE)
+        
         if rl.IsKeyPressed(rlKEY_R){
             gameOver = False
             
             snake.speed.set_int(1, 0)
-            snake.position.set_int(mid_x, mid_y)
+            next_speed.set_int(1, 0)
 
+            snake.position.set_int(mid_x, mid_y)
             snake.body.clear()
             snake.body.push(snake.position)
 
@@ -151,75 +240,10 @@ int main() {
 
             score = 0
             scoreText = "Score: 0"
-        }
-    }else{
-        rl.ClearBackground(rlBLACK)
-
-        // Update game.
-        if rl.IsKeyPressed(rlKEY_UP){
-            if snake.speed.get_y() == 0{
-                snake.speed.set_int(0, -1)
-            }
-        }
-        if rl.IsKeyPressed(rlKEY_DOWN){
-            if snake.speed.get_y() == 0{
-                snake.speed.set_int(0, 1)
-            }
-        }
-        if rl.IsKeyPressed(rlKEY_LEFT){
-            if snake.speed.get_x() == 0{
-                snake.speed.set_int(-1, 0)
-            }
-        }
-        if rl.IsKeyPressed(rlKEY_RIGHT){
-            if snake.speed.get_x() == 0{
-                snake.speed.set_int(1, 0)
-            }
-        }
-
-        snake.move_body()
-
-        // Update head position.
-        snake.position.translate_i(snake.speed)
-        snake.body[0] = snake.position
-
-        // Check for wall collisions.
-        if snake.is_out_of_bounds(GRID_WIDTH, GRID_HEIGHT){
-            gameOver = True
-        }
-
-        if snake.is_touching_itself(){
-            gameOver = True
-        }
-
-        if snake.ate_food(food){
-            let last_pos = snake.body[-1]
-            last_pos += snake.speed
-
-            snake.body.push(last_pos)
-
-            food.position = new_food_spawn(snake, GRID_WIDTH, GRID_HEIGHT)
-
-            score = score + 1
-            scoreText.format("Score: %d", score)
-        }
-
-        // Draw food.
-        let fx : int = food.position.get_x_int() * CELL_SIZE
-        let fy : int = food.position.get_y_int() * CELL_SIZE
-
-        rl.DrawRectangle(fx, fy, CELL_SIZE, CELL_SIZE, rlRED)
-        
-        // Draw snake
-        for body in snake.body{
-            let x : int = body.get_x_int() * CELL_SIZE
-            let y : int = body.get_y_int() * CELL_SIZE
-
-            rl.DrawRectangle(x, y, CELL_SIZE, CELL_SIZE, rlGREEN)
+            move_timer = 0.0;
+            input_handled_this_tick = False
         }
     }
-
-    rl.DrawText(scoreText, 10, 20, 20, rlRED)
 
     rl.EndDrawing()
   }
