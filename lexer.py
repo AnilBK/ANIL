@@ -181,7 +181,8 @@ def get_tokens(line):
 
     escape_back_slash = False
 
-    for i in range(length):
+    i = 0
+    while i < length:
         char = line[i]
 
         if escape_back_slash:
@@ -195,7 +196,10 @@ def get_tokens(line):
                 token += "\\"
                 token += char
                 escape_back_slash = False
-        elif char == '"':
+            i += 1
+            continue
+
+        if char == '"':
             if inside_string:
                 # End of string.
                 inside_string = False
@@ -210,31 +214,65 @@ def get_tokens(line):
                 # Start of string.
                 inside_string = True
             tokens.append(Token.QUOTE)
-        elif inside_string:
+            i += 1
+            continue
+
+        if inside_string:
             # \"
             if char == "\\":
                 escape_back_slash = True
+                i += 1
                 continue
 
             token += char
-        elif char == " " or char == "\t":
-            if token == "":
+            i += 1
+            continue
+
+        if char == " " or char == "\t":
+            if token != "":
+                add_token(token)
+                token = ""
+            i += 1
+            continue
+
+        if (
+            char == "."
+            and token.isdigit()
+            and i + 1 < length
+            and line[i + 1].isdigit()
+        ):
+            # Treat sequences like 10.25 as a single float literal token.
+            token += "."
+            i += 1
+            while i < length and line[i].isdigit():
+                token += line[i]
+                i += 1
+            if token.endswith("."):
+                # If the token ends with a dot, it's not a valid float literal. 
+                # We should split it into a number token and a dot token.
+                token = token[:-1]  # Remove the trailing dot from the token.
+                add_token(token)  # Add the number part as a token.
+                add_token(".")  # Add the dot as a separate token.
                 continue
             add_token(token)
             token = ""
-        else:
-            if char in CHARACTER_TOKENS:
-                if token != "":
-                    add_token(token)
-                tokens.append(CHARACTER_TOKENS[char])
-                token = ""
-                continue
+            continue
 
-            if token in CHARACTER_TOKENS:
-                tokens.append(CHARACTER_TOKENS[token])
-                token = ""
-                continue
-            token += char
+        if char in CHARACTER_TOKENS:
+            if token != "":
+                add_token(token)
+            tokens.append(CHARACTER_TOKENS[char])
+            token = ""
+            i += 1
+            continue
+
+        if token in CHARACTER_TOKENS:
+            tokens.append(CHARACTER_TOKENS[token])
+            token = ""
+            continue
+
+        token += char
+        i += 1
 
     # Process the last token.
     if token != "":
@@ -262,6 +300,6 @@ if __name__ == "__main__":
     tk = get_tokens(line)
     print(tk)
 
-    line = "\tlet p1"
+    line = "\tlet p1 = 10.55 5.A"
     tk = get_tokens(line)
     print(tk)

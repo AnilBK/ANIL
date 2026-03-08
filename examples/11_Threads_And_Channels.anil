@@ -38,7 +38,7 @@ function main() -> int:
 
     let res = ch.send(i)
 
-    if res == false{
+    if !res{
       print("Main: Failed to send data, channel is closed.\n")
       break;
     }

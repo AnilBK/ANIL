@@ -146,10 +146,10 @@ int main() {
 
     let frame_time : float = rl.GetFrameTime()
 
-    if gameOver == false{
+    if !gameOver{
         // Buffer ONLY 1 valid command per internal clock tick (stops immediate
         // self-reverse suicide input mapping)
-        if input_handled_this_tick == false{
+        if !input_handled_this_tick{
             if rl.IsKeyPressed(rlKEY_UP){
                 if snake.speed.get_y() == 0{
                     next_speed.set_int(0, -1)

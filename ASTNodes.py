@@ -79,6 +79,17 @@ class LiteralNode(ExpressionNode):
             return f"'{self.value}'"
         if self.value_type == "str":
             return f'"{self.value}"'
+        if self.value_type == "float":
+            # We dont have way to separate float literals from float expressions yet. 
+            # So, check if the value is a string that can be converted to a float. If so, treat it as a float literal.
+            # And append 'f' at the end to make it a float literal in C.
+            if isinstance(self.value, str):
+                try:
+                    float(self.value)  # Check if it can be converted to a float.
+                    return f"{self.value}f"
+                except ValueError:
+                    pass  # Not a valid float literal, treat it as an expression.
+            return f"{self.value}"
         if self.value_type == "bool":
             if isinstance(self.value, str):
                 l = self.value.lower()

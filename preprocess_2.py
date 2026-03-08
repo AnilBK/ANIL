@@ -4766,7 +4766,15 @@ while index < len(Lines):
                     else:
                         RAISE_ERROR(f"Target variable {var_to_check_against} is undefined. It is neither an array nor a struct.")
             else:
-                return_code = f"{lhs['value']} {operators_as_str} {rhs['value']}"
+                return_code = ""
+                if operators_as_str == "!":
+                    # This means we dont have lhs
+                    if lhs['value'] is not None:
+                        RAISE_ERROR("Unexpected token '!' in boolean expression.")
+
+                    return_code = f"!{rhs['value']}"
+                else:
+                    return_code = f"{lhs['value']} {operators_as_str} {rhs['value']}"
                 expr.return_value = return_code
                 expr.return_type = "bool"
                 # TODO : Check if return_type is bool.

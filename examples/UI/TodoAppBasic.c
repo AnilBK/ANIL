@@ -71,7 +71,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
   // Create Windows Controls (HWNDs) for Children of Root.
   let create_status = App.CreateControls()
-  if create_status == false {
+  if !create_status {
     fprintf(stderr, "Failed to create HWND tree starting from child '%s'.\n", root_elem.uiElement->id);
     App.CleanUp()
     return -1
