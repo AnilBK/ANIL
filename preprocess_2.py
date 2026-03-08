@@ -1324,19 +1324,6 @@ def get_struct_type_of_instanced_struct(p_struct_name) -> Optional[str]:
     instance = symbol_table.get_struct_instance(p_struct_name)
     return instance.struct_type if instance else None
 
-def get_destructor_for_struct(p_name):
-    symbol = symbol_table.lookup_variable(p_name)
-    if symbol and symbol.struct_instance and symbol.struct_instance.should_be_freed:
-        struct_instance = symbol.struct_instance
-        if not struct_instance.struct_type_has_destructor():
-            struct_instance.get_struct_defination().fill_with_destructors_recursive()
-
-        if struct_instance.struct_type_has_destructor():
-            destructor_fn_name = struct_instance.get_destructor_fn_name()
-            des_code = f"{destructor_fn_name}(&{p_name});\n"
-            return des_code
-    return None
-
 
 class MacroDefination:
     def __init__(self, p_name, p_first_param, p_fn_body) -> None:
@@ -2004,6 +1991,52 @@ parser = Parser.Parser("")
 
 def check_token(token: lexer.Token):
     return parser.check_token(token)
+
+
+def get_comparision_operator():
+    """Read comparision operator (if any) which includes >, <, >=, <=, ==, !=, in, not in"""
+    has_comparision_operator = False
+    operators_as_str = ""
+
+    if parser.has_tokens_remaining():
+        token_map = {
+            lexer.Token.GREATER_THAN: ">",
+            lexer.Token.SMALLER_THAN: "<",
+            lexer.Token.EQUALS: "=",
+            lexer.Token.EXCLAMATION: "!",
+        }
+
+        token = parser.current_token()
+
+        if token in token_map:
+            parser.consume_token(token)
+
+            has_comparision_operator = True
+            operators_as_str = token_map[token]
+
+            if (
+                parser.has_tokens_remaining()
+                and parser.current_token() == lexer.Token.EQUALS
+            ):
+                parser.consume_token(lexer.Token.EQUALS)
+                operators_as_str += "="
+        elif token == lexer.Token.IN:
+            parser.consume_token(lexer.Token.IN)
+
+            has_comparision_operator = True
+            operators_as_str = "in"
+        elif token == lexer.Token.NOT:
+            parser.consume_token(lexer.Token.NOT)
+            # not is implemented only for in to make 'not in'.
+            parser.consume_token(lexer.Token.IN)
+
+            has_comparision_operator = True
+            operators_as_str = "not in"
+
+    return {
+        "has_comparision_operator": has_comparision_operator,
+        "operators_as_str": operators_as_str,
+    }
 
 
 def handle_hash_directive():
@@ -4596,52 +4629,6 @@ while index < len(Lines):
             "parameter": parameter_info
         }
 
-    def get_comparision_operator():
-        """Read comparision operator (if any) which includes >, <, >=, <=, ==, !=, in, not in"""
-        has_comparision_operator = False
-        operators_as_str = ""
-
-        global parser
-
-        if parser.has_tokens_remaining():
-            token_map = {
-                lexer.Token.GREATER_THAN: ">",
-                lexer.Token.SMALLER_THAN: "<",
-                lexer.Token.EQUALS: "=",
-                lexer.Token.EXCLAMATION: "!",
-            }
-
-            token = parser.current_token()
-
-            if token in token_map:
-                parser.consume_token(token)
-
-                has_comparision_operator = True
-                operators_as_str = token_map[token]
-
-                if (
-                    parser.has_tokens_remaining()
-                    and parser.current_token() == lexer.Token.EQUALS
-                ):
-                    parser.consume_token(lexer.Token.EQUALS)
-                    operators_as_str += "="
-            elif token == lexer.Token.IN:
-                parser.consume_token(lexer.Token.IN)
-
-                has_comparision_operator = True
-                operators_as_str = "in"
-            elif token == lexer.Token.NOT:
-                parser.consume_token(lexer.Token.NOT)
-                # not is implemented only for in to make 'not in'.
-                parser.consume_token(lexer.Token.IN)
-
-                has_comparision_operator = True
-                operators_as_str = "not in"
-
-        return {
-            "has_comparision_operator": has_comparision_operator,
-            "operators_as_str": operators_as_str,
-        }
 
     def handle_equality(var_to_check_against, var_to_check, l_type, r_type, left_struct_info, is_lhs_struct, negation):
         def eq(lhs, rhs):
