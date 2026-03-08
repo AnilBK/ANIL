@@ -2282,7 +2282,7 @@ while index < len(Lines):
             else:
                 main_fn_found = True
                 if len(global_variables_initialization_code) > 0:
-                    code_generator.emit_comment("//Global Variables Initialization.")
+                    code_generator.emit_comment("Global Variables Initialization.")
                     for g_code in global_variables_initialization_code:
                         code_generator.emit(g_code)
                     global_variables_initialization_code = []
@@ -3857,6 +3857,14 @@ while index < len(Lines):
             currently_reading_def_body = ""
         continue
     
+    def _is_float_literal_token(token):
+        if not isinstance(token, str):
+            return False
+        if token.count(".") != 1:
+            return False
+        lhs, rhs = token.split(".", 1)
+        return lhs.isdigit() and rhs.isdigit()
+
     def speculative_parse_number():
         current_token = parser.current_token()
         
@@ -3916,6 +3924,79 @@ while index < len(Lines):
                     else:
                         parser.rollback_checkpoint()
                         # parser.clear_checkpoint()
+                        raise RollbackTemporaryGeneratedCodes()
+
+        if is_negative:
+            if return_value == None:
+                RAISE_ERROR(f"Expected some numeric value, but got {current_token}.")
+            return_value = '-' + return_value
+
+        if return_value is not None:
+            parse_info = SpeculativeParseInfo()
+            parse_info.speculative_token_type = token_type
+            parse_info.speculative_exact_type = exact_type
+            parse_info.speculative_token_value = return_value
+            return parse_info
+        return None
+
+    def speculative_parse_float_value():
+        current_token = parser.current_token()
+
+        is_negative = False
+        if current_token == lexer.Token.MINUS:
+            parser.next_token()
+            is_negative = True
+            current_token = parser.current_token()
+
+        return_value = None
+        token_type = SpeculativeTokenType.NONE
+        exact_type = ""
+
+        symbol = symbol_table.lookup_variable(current_token)
+        if symbol:
+            if symbol.data_type == "float":
+                return_value = current_token
+                exact_type = "float"
+                token_type = SpeculativeTokenType.NUMERIC_VARIABLE
+                parser.next_token()
+            elif symbol.is_int or symbol.is_size_t:
+                return_value = current_token
+                exact_type = symbol.data_type
+                token_type = SpeculativeTokenType.NUMERIC_VARIABLE
+                parser.next_token()
+        elif is_numeric_constexpr_dictionary(current_token):
+            parser.next_token()
+            return_value = parse_constexpr_dictionary(current_token)
+            exact_type = "int"
+            token_type = SpeculativeTokenType.NUMERIC_CONSTANT
+        else:
+            if isinstance(current_token, str):
+                if _is_float_literal_token(current_token):
+                    return_value = current_token
+                    exact_type = "float"
+                    token_type = SpeculativeTokenType.NUMERIC_CONSTANT
+                    parser.next_token()
+                elif current_token.isdigit():
+                    return_value = current_token
+                    exact_type = "int"
+                    token_type = SpeculativeTokenType.NUMERIC_CONSTANT
+                    parser.next_token()
+
+        if return_value == None:
+            parser.save_checkpoint()
+
+            with SpeculativeFunctionParse():
+                fn_call_parse_info = function_call_expression()
+                if fn_call_parse_info == None:
+                    parser.rollback_checkpoint()
+                    raise RollbackTemporaryGeneratedCodes()
+                else:
+                    parse_result = fn_call_parse_info.function_call_metadata
+                    return_type = parse_result["return_type"]
+                    if return_type in {"float", "int", "size_t"}:
+                        return_value = fn_call_parse_info.get_fn_str()
+                    else:
+                        parser.rollback_checkpoint()
                         raise RollbackTemporaryGeneratedCodes()
 
         if is_negative:
@@ -4094,6 +4175,42 @@ while index < len(Lines):
             else:
                 break
         
+        if expr == "":
+            return None
+        else:
+            expression_info = SpeculativeExpressionInfo()
+            expression_info.speculative_expression_type = SpeculativeExpressionType.NUMERIC_EXPRESSION
+            expression_info.speculative_expression_value = expr
+            return expression_info
+
+    def speculative_parse_float_expression():
+        expr = ""
+
+        while parser.has_tokens_remaining():
+            parse_info = speculative_parse_float_value()
+            if parse_info == None:
+                break
+
+            tk = parse_info.speculative_token_value
+            expr += tk
+
+            if parser.has_tokens_remaining():
+                symbols = {
+                    lexer.Token.PLUS: "+",
+                    lexer.Token.MINUS: "-",
+                    lexer.Token.ASTERISK: "*",
+                    lexer.Token.FRONT_SLASH: "/",
+                }
+
+                current_tk = parser.current_token()
+                if current_tk in symbols:
+                    expr += symbols[current_tk]
+                    parser.next_token()
+                else:
+                    break
+            else:
+                break
+
         if expr == "":
             return None
         else:
@@ -4764,6 +4881,19 @@ while index < len(Lines):
                 # str += "World"
                 #      ^
                 parser.consume_token(lexer.Token.EQUALS)
+                data_type = struct_instance.struct_type
+
+                if data_type == "float":
+                    float_expr = speculative_parse_float_expression()
+                    if float_expr is None:
+                        RAISE_ERROR(f'Expected float expression for "{parsed_member}".')
+
+                    target_expr = member_access_string
+                    if target_expr.startswith("&"):
+                        target_expr = target_expr[1:]
+
+                    emit(f"{target_expr} += {float_expr.speculative_expression_value};\n")
+                    continue
 
                 term = parse_term()
 
@@ -4778,7 +4908,6 @@ while index < len(Lines):
                     continue
                 else:
                     add_method = "__add__"
-                    data_type = struct_instance.struct_type
                     # TODO: Check if we have __add__ method for this object.
                     value_to_add = parameters.param
                     if member_access_string[0] == "&":
@@ -5084,6 +5213,14 @@ while index < len(Lines):
                     boolean_expr_code = boolean_expression().return_value
                     value_node = LiteralNode(boolean_expr_code == "true", "bool")
                     stmt_node = VariableDeclarationNode(array_name, "bool", value_node)
+                elif POD_type == "float":
+                    float_expr = speculative_parse_float_expression()
+                    if float_expr is None:
+                        RAISE_ERROR(f"Expected float expression for {array_name}.")
+
+                    float_value = float_expr.speculative_expression_value
+                    value_node = LiteralNode(float_value, "float")
+                    stmt_node = VariableDeclarationNode(array_name, "float", value_node)
                 else:
                     RAISE_ERROR(f'Parsing POD Type "{POD_type}" not implemented yet.')
 
