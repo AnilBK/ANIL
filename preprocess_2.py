@@ -1118,8 +1118,8 @@ class Struct:
             "PATCH_TEMPLATED_DATA_TYPE": templated_type,
             "SELF": f"struct {self.name}"
         }
-        for fn in self.member_functions:
-            fn.fn_body = self._replace_tags_in_body(fn.fn_body, replacements)
+        for i, fn in enumerate(self.member_functions):
+            self.member_functions[i].fn_body = self._replace_tags_in_body(fn.fn_body, replacements)
 
     def resolve_tags_in_unparsed_functions(self, templated_type: str) -> None:
         # if we want to use template type in fn body, we use following syntax.
@@ -1130,8 +1130,8 @@ class Struct:
             "PATCH_TEMPLATED_DATA_TYPE": templated_type,
             "SELF": f"struct {self.name}"
         }
-        for fn in self.unparsed_functions:
-            fn = self._replace_tags_in_body(fn, replacements)
+        for i, fn in enumerate(self.unparsed_functions):
+            self.unparsed_functions[i] = self._replace_tags_in_body(fn, replacements)
 
     def resolve_templated_member_fns(self, p_templated_type: str) -> None:
         for idx,fn in enumerate(self.member_functions):
