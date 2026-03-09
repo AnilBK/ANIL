@@ -6225,123 +6225,123 @@ while index < len(Lines):
     elif check_token(lexer.Token.RETURN):
         parser.consume_token(lexer.Token.RETURN)
 
-        if not parser.has_tokens_remaining():
-            code_generator.emit_return_statement()
-            continue
+        return_value = ""
 
-        result = boolean_expression()
+        if parser.has_tokens_remaining():
+            result = boolean_expression()
 
-        # Boolean expressions for Structs function call need to save the result
-        # of the comparision temporarily somewhere.
-        # It is because we write the destructors then the return expression.
-        # Since, the destructors are called earlier, we dont have the struct to return
-        # with a return statement.
-        # For e.g:
-        # ListObject__del__(&node);
-        # return ListObject__eq__OVDint(&node, token);
-        # ^^^^^^ So, we convert the above expression to following.
-        # bool return_value = ListObject__eq__OVDint(&node, token);
-        # ListObject__del__(&node);
-        # return return_value;
+            # Boolean expressions for Structs function call need to save the result
+            # of the comparision temporarily somewhere.
+            # It is because we write the destructors then the return expression.
+            # Since, the destructors are called earlier, we dont have the struct to return
+            # with a return statement.
+            # For e.g:
+            # ListObject__del__(&node);
+            # return ListObject__eq__OVDint(&node, token);
+            # ^^^^^^ So, we convert the above expression to following.
+            # bool return_value = ListObject__eq__OVDint(&node, token);
+            # ListObject__del__(&node);
+            # return return_value;
 
-        current_scope = get_current_scope()
+            current_scope = get_current_scope()
 
-        # return s
-        #        ^  s shouldn't be freed, because it is returned.
-        # Should be the job of the caller to free it.
-        # TODO: For 'return s.f()'. This should be also handled too.
-        # As of now, s.f() is a function call and function call generates temporary return variable automatically.
-        if result.returns_single_value:
-            for struct_involved in result.structs_involved:
-                struct = get_instanced_struct(struct_involved)
-                if struct == None:
-                    continue
-
-                if struct.scope != current_scope:
-                    continue
-
-                struct.should_be_freed = False
-                # This loop should run for one iteration anyway(result.returns_single_value), 
-                # so the loop could be unrolled.
-                break
-
-        structs_to_be_freed = []
-        structs_with_destructors = 0
-
-        if result.structs_involved:
-            for scope in reversed(tracked_scopes_for_current_fn):
-                if scope not in symbol_table.scopes:
-                    continue
-
-                symbols = symbol_table.get_scope_by_id(scope).symbols
-                for symbol in symbols:
-                    struct_info = get_instanced_struct(symbol)
-                    if struct_info != None:
-                        if struct_info.struct_name in result.structs_involved:
-                            if struct_info.should_be_freed:
-                                structs_to_be_freed.append(struct_info.struct_name)
-                            if struct_info.struct_type_has_destructor():
-                                structs_with_destructors += 1
-
-
-        create_temporary_for_return = False
-
-        structs_returned_set = set(result.structs_involved)
-        structs_freed_set = set(structs_to_be_freed)
-
-        # If any of the structs involved in the return statement need their destructors called,
-        # then we need to create a temporary variable to store the return value. 
-        # By doing this, we can call the destructors and then return the value using the temporary variable.
-        has_items_that_call_destructors = len(structs_returned_set.intersection(structs_freed_set)) > 0
-
-        # return value == p_type
-        # Given : p_type is not freed and value is freed.
-        # Since value is freed, the length of intersection should be greater than 0.
-        # That means we need to create a temporary return variable.
-        if has_items_that_call_destructors:
-            if structs_with_destructors > 0:
-                create_temporary_for_return = True
-        else:
-            if "(" in result.return_value:
-                # HACK: If it is a fn expression then some structs may be involved here.
-                # Assuming that, for fn expressions, we create a temp variable to store the result.
-                # in case the variables involved in fn expressions need their destructors called.
-                # TODO: Properly parse structs involed in function call to figure out if their destructors need to be called.
-                create_temporary_for_return = True
-
-        if create_temporary_for_return:
-            return_type = result.return_type
+            # return s
+            #        ^  s shouldn't be freed, because it is returned.
+            # Should be the job of the caller to free it.
+            # TODO: For 'return s.f()'. This should be also handled too.
+            # As of now, s.f() is a function call and function call generates temporary return variable automatically.
             if result.returns_single_value:
-                if return_type == ParameterType.VARIABLE:
-                    var = symbol_table.lookup_variable(result.structs_involved[0])
-                    if var is None:
-                        RAISE_ERROR(f"Variable {result.structs_involved[0]} not found in symbol table.")
-                    return_type = var.data_type
-                elif return_type == ParameterType.STRING_EXPRESSION:
-                    return_type = "struct String"
+                for struct_involved in result.structs_involved:
+                    struct = get_instanced_struct(struct_involved)
+                    if struct == None:
+                        continue
 
-            if isinstance(return_type, ParameterType):
-                return_type = return_type.to_c_type()
+                    if struct.scope != current_scope:
+                        continue
 
-            code_generator.emit_variable_declaration(variable_type=return_type, variable_name="return_value", initialization_value=result.return_value)
+                    struct.should_be_freed = False
+                    # This loop should run for one iteration anyway(result.returns_single_value), 
+                    # so the loop could be unrolled.
+                    break
 
-        # Write destructors.
-        for scope in reversed(tracked_scopes_for_current_fn):
-            if scope in symbol_table.scopes:
-                destructor_code = symbol_table.get_scope_by_id(scope).get_destructor_code_for_all_variables()
-                if destructor_code != "":
-                    emit(destructor_code)
+            structs_to_be_freed = []
+            structs_with_destructors = 0
 
-        if class_fn_defination["function_name"] in ("main", "WinMain"):
-            if True or is_anil_file:
-                emit("\n// GLOBAL_VARIABLES_DESTRUCTOR_CODE //\n")
+            if result.structs_involved:
+                for scope in reversed(tracked_scopes_for_current_fn):
+                    if scope not in symbol_table.scopes:
+                        continue
 
-        return_encountered_in_fn = True
-        scopes_with_return_stmnt.append(current_scope)
+                    symbols = symbol_table.get_scope_by_id(scope).symbols
+                    for symbol in symbols:
+                        struct_info = get_instanced_struct(symbol)
+                        if struct_info != None:
+                            if struct_info.struct_name in result.structs_involved:
+                                if struct_info.should_be_freed:
+                                    structs_to_be_freed.append(struct_info.struct_name)
+                                if struct_info.struct_type_has_destructor():
+                                    structs_with_destructors += 1
 
-        # Write return itself.
-        # We assume we have single return statement.
-        return_value = "return_value" if create_temporary_for_return else result.return_value
+
+            create_temporary_for_return = False
+
+            structs_returned_set = set(result.structs_involved)
+            structs_freed_set = set(structs_to_be_freed)
+
+            # If any of the structs involved in the return statement need their destructors called,
+            # then we need to create a temporary variable to store the return value. 
+            # By doing this, we can call the destructors and then return the value using the temporary variable.
+            has_items_that_call_destructors = len(structs_returned_set.intersection(structs_freed_set)) > 0
+
+            # return value == p_type
+            # Given : p_type is not freed and value is freed.
+            # Since value is freed, the length of intersection should be greater than 0.
+            # That means we need to create a temporary return variable.
+            if has_items_that_call_destructors:
+                if structs_with_destructors > 0:
+                    create_temporary_for_return = True
+            else:
+                if "(" in result.return_value:
+                    # HACK: If it is a fn expression then some structs may be involved here.
+                    # Assuming that, for fn expressions, we create a temp variable to store the result.
+                    # in case the variables involved in fn expressions need their destructors called.
+                    # TODO: Properly parse structs involed in function call to figure out if their destructors need to be called.
+                    create_temporary_for_return = True
+
+            if create_temporary_for_return:
+                return_type = result.return_type
+                if result.returns_single_value:
+                    if return_type == ParameterType.VARIABLE:
+                        var = symbol_table.lookup_variable(result.structs_involved[0])
+                        if var is None:
+                            RAISE_ERROR(f"Variable {result.structs_involved[0]} not found in symbol table.")
+                        return_type = var.data_type
+                    elif return_type == ParameterType.STRING_EXPRESSION:
+                        return_type = "struct String"
+
+                if isinstance(return_type, ParameterType):
+                    return_type = return_type.to_c_type()
+
+                code_generator.emit_variable_declaration(variable_type=return_type, variable_name="return_value", initialization_value=result.return_value)
+
+            # Write destructors.
+            for scope in reversed(tracked_scopes_for_current_fn):
+                if scope in symbol_table.scopes:
+                    destructor_code = symbol_table.get_scope_by_id(scope).get_destructor_code_for_all_variables()
+                    if destructor_code != "":
+                        emit(destructor_code)
+
+            if class_fn_defination["function_name"] in ("main", "WinMain"):
+                if True or is_anil_file:
+                    emit("\n// GLOBAL_VARIABLES_DESTRUCTOR_CODE //\n")
+
+            return_encountered_in_fn = True
+            scopes_with_return_stmnt.append(current_scope)
+
+            # Write return itself.
+            # We assume we have single return statement.
+            return_value = "return_value" if create_temporary_for_return else result.return_value
+            
         return_node = ReturnNode(expression = return_value)
         code_generator.generate_code_for_ast_node(return_node)
     elif check_token(lexer.Token.NAMESPACE):
